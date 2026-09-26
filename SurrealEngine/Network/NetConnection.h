@@ -108,9 +108,10 @@ public:
 	int NegotiatedVer = 1100;
 	int UserFlags = 0;
 	int CurrentNetSpeed = 0;
-	// The server's rates for what it sends, from DYNAMICRATE and STATICRATE.
-	int DynamicUpdateRate = 40;
-	int StaticUpdateRate = 12;
+	// The server's DYNAMICRATE and STATICRATE as intervals, which pace the
+	// player's moves (Deus Ex's).
+	float DynamicUpdateInterval = 0.0f;
+	float StaticUpdateInterval = 0.0f;
 	UPlayerPawn* Actor = nullptr;
 
 	double LastReceiveTime = 0.0;
@@ -142,6 +143,7 @@ private:
 	void UpdateStats();
 
 	NetBitWriter Out;
+	bool TimeSensitive = false;
 	Array<int> QueuedAcks;
 	Array<int> ResendAcks;
 

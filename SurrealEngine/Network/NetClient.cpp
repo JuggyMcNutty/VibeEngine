@@ -8,6 +8,7 @@
 #include "Packages/Engine/UConsole.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 
@@ -21,6 +22,12 @@ namespace
 				return false;
 		}
 		return true;
+	}
+
+	// A rate a second as the time between updates, 0.01 s to 1 s; none for 0.
+	float RateInterval(int rate)
+	{
+		return rate != 0 ? std::clamp(1.0f / (float)rate, 0.01f, 1.0f) : 0.0f;
 	}
 
 	// The engine's answer to a server's challenge.
@@ -207,11 +214,11 @@ void NetPendingLevel::NotifyReceivedText(NetConnection* connection, const std::s
 	}
 	else if (NetParseCommand(text, "DYNAMICRATE", &rest))
 	{
-		connection->DynamicUpdateRate = std::atoi(rest.c_str());
+		connection->DynamicUpdateInterval = RateInterval(std::atoi(rest.c_str()));
 	}
 	else if (NetParseCommand(text, "STATICRATE", &rest))
 	{
-		connection->StaticUpdateRate = std::atoi(rest.c_str());
+		connection->StaticUpdateInterval = RateInterval(std::atoi(rest.c_str()));
 	}
 	else if (NetParseCommand(text, "USERFLAG", &rest))
 	{

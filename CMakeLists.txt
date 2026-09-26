@@ -759,6 +759,10 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Network/NetDriver.h
 	SurrealEngine/Network/NetPackageMap.cpp
 	SurrealEngine/Network/NetPackageMap.h
+	SurrealEngine/Network/NetRemote.cpp
+	SurrealEngine/Network/NetRemote.h
+	SurrealEngine/Network/NetSerialize.cpp
+	SurrealEngine/Network/NetSerialize.h
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Component.h
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.cpp
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.h

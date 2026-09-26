@@ -256,6 +256,7 @@ int NetConnection::SendRawBunch(NetOutBunch& bunch, bool allowMerge)
 
 	PreSend(header.GetNumBits() + bunch.Data.GetNumBits());
 	bunch.Time = Driver->Time;
+	TimeSensitive = true;
 	Out.WriteBits(header.GetData(), header.GetNumBits());
 	Out.WriteBits(bunch.Data.GetData(), bunch.Data.GetNumBits());
 	bunch.PacketId = OutPacketId;
@@ -266,6 +267,7 @@ int NetConnection::SendRawBunch(NetOutBunch& bunch, bool allowMerge)
 
 void NetConnection::FlushNet()
 {
+	TimeSensitive = false;
 	if (Out.GetNumBits() || Driver->Time - LastSendTime > Driver->KeepAliveTime)
 	{
 		// A keepalive is a packet with its number only.
@@ -323,7 +325,10 @@ void NetConnection::Tick()
 			State = ConnectionState::Closed;
 	}
 
-	if (Driver->Time - LastSendTime > Driver->KeepAliveTime)
+	// A packet goes out at the end of a tick that sent a bunch, or with the
+	// second copies of the acks when nothing has gone for a while.
+	PurgeAcks();
+	if (TimeSensitive || Driver->Time - LastSendTime > Driver->KeepAliveTime)
 		FlushNet();
 
 	// The rate: what has gone out drains at the connection's speed.

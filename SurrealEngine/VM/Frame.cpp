@@ -19,6 +19,8 @@
 #include "Packages/Engine/Subsystems/USurrealAudioDevice.h"
 #include "Engine.h"
 #include "Package/PackageManager.h"
+#include "Network/NetDriver.h"
+#include "Network/NetRemote.h"
 #include "Utils/AlignedAlloc.h"
 #include "Commandlet/VM/DisassemblyCommandlet.h"
 
@@ -250,6 +252,11 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
 	}
 
 	TraceCall(func, instance, args);
+
+	// In a net game an actor's call may go to the other side instead, or not
+	// run at all; a native with its own number never does either.
+	if (engine->LevelNetDriver && !(AllFlags(func->FuncFlags, FunctionFlags::Native) && func->NativeFuncIndex != 0) && NetProcessRemoteFunction(func, instance, args))
+		return func->ReturnParm ? ExpressionValue::DefaultValue(func->ReturnParm) : ExpressionValue::NothingValue();
 
 	// Whether func is an event is a property of its name: look it up once
 	if (func->EventIndex == -2)

@@ -2,6 +2,7 @@
 #include "Precomp.h"
 #include "NetChannel.h"
 #include "NetDriver.h"
+#include "NetSerialize.h"
 #include "Packages/Core/UClass.h"
 #include "Packages/Core/UEnum.h"
 #include "Packages/Core/UFunction.h"
@@ -215,116 +216,6 @@ namespace
 				return true;
 		}
 		return false;
-	}
-
-	bool ObjectIsA(UObject* obj, UClass* cls)
-	{
-		for (UStruct* c = obj ? obj->Class : nullptr; c; c = c->BaseStruct)
-		{
-			if (c == cls)
-				return true;
-		}
-		return false;
-	}
-
-	int CeilLogTwo(uint32_t value)
-	{
-		int bits = 0;
-		while (bits < 32 && (1u << bits) < value)
-			bits++;
-		return bits;
-	}
-
-	// One replicated value into memory (the original's NetSerializeItem,
-	// loading): docs/re/network.md has the forms.
-	void ReadItem(UProperty* prop, NetBitReader& reader, NetPackageMap& map, void* data)
-	{
-		if (auto boolProp = UObject::TryCast<UBoolProperty>(prop))
-		{
-			boolProp->SetBool(data, reader.ReadBit());
-		}
-		else if (auto byteProp = UObject::TryCast<UByteProperty>(prop))
-		{
-			uint8_t value = 0;
-			if (byteProp->EnumType)
-				reader.ReadBits(&value, CeilLogTwo((uint32_t)byteProp->EnumType->ElementNames.size()));
-			else
-				value = reader.ReadByte();
-			*static_cast<uint8_t*>(data) = value;
-		}
-		else if (UObject::TryCast<UIntProperty>(prop))
-		{
-			*static_cast<int32_t*>(data) = reader.ReadInt32();
-		}
-		else if (UObject::TryCast<UFloatProperty>(prop))
-		{
-			*static_cast<float*>(data) = reader.ReadFloat();
-		}
-		else if (auto objProp = UObject::TryCast<UObjectProperty>(prop))
-		{
-			UObject* obj = map.ReadObject(reader);
-			if (obj && objProp->ObjectClass && !ObjectIsA(obj, objProp->ObjectClass))
-				obj = nullptr;
-			*static_cast<UObject**>(data) = obj;
-		}
-		else if (UObject::TryCast<UNameProperty>(prop))
-		{
-			*static_cast<NameString*>(data) = map.ReadName(reader);
-		}
-		else if (UObject::TryCast<UStrProperty>(prop) || UObject::TryCast<UStringProperty>(prop))
-		{
-			*static_cast<std::string*>(data) = reader.ReadString();
-		}
-		else if (auto structProp = UObject::TryCast<UStructProperty>(prop))
-		{
-			UStruct* s = structProp->Struct;
-			if (s->Name == "Vector")
-			{
-				uint32_t bits = reader.ReadInt(16);
-				int bias = 1 << (bits + 1);
-				uint32_t max = 1u << (bits + 2);
-				int x = (int)reader.ReadInt(max) - bias;
-				int y = (int)reader.ReadInt(max) - bias;
-				int z = (int)reader.ReadInt(max) - bias;
-				*static_cast<vec3*>(data) = vec3((float)x, (float)y, (float)z);
-			}
-			else if (s->Name == "Rotator")
-			{
-				int values[3];
-				for (int& value : values)
-				{
-					uint8_t b = reader.ReadBit() ? reader.ReadByte() : 0;
-					value = b << 8;
-				}
-				*static_cast<Rotator*>(data) = Rotator(values[0], values[1], values[2]);
-			}
-			else if (s->Name == "Plane")
-			{
-				float* plane = static_cast<float*>(data);
-				for (int i = 0; i < 4; i++)
-				{
-					uint8_t bytes[2];
-					reader.ReadBytes(bytes, 2);
-					plane[i] = (float)(int16_t)(bytes[0] | (bytes[1] << 8));
-				}
-			}
-			else
-			{
-				for (UField* field = s->Children; field; field = field->Next)
-				{
-					UProperty* member = UObject::TryCast<UProperty>(field);
-					if (!member || map.ObjectToIndex(member) == -1)
-						continue;
-					for (int i = 0; i < member->ArrayDimension; i++)
-						ReadItem(member, reader, map, member->GetElement(static_cast<uint8_t*>(data) + member->DataOffset.DataOffset, i));
-				}
-			}
-		}
-		else
-		{
-			LogMessage("Net: cannot receive a " + prop->Class->Name.ToString() + " (" + prop->Name.ToString() + ")");
-			reader.SetError();
-		}
 	}
 
 	// Storage for one element, to read a value into and drop.
@@ -594,12 +485,12 @@ void NetActorChannel::ReceivedBunch(NetInBunch& bunch)
 			if (take)
 			{
 				Retirement[{ prop, element }] = bunch.PacketId;
-				ReadItem(prop, reader, map, prop->GetElement(Actor->PropertyData.Ptr(prop), element));
+				NetReadItem(prop, reader, map, prop->GetElement(Actor->PropertyData.Ptr(prop), element));
 			}
 			else
 			{
 				ScratchElement scratch(prop);
-				ReadItem(prop, reader, map, scratch.Get());
+				NetReadItem(prop, reader, map, scratch.Get());
 			}
 			field = nextField();
 		}
@@ -667,7 +558,7 @@ void NetActorChannel::ReceiveFunction(UFunction* declared, NetInBunch& bunch)
 		if (map.ObjectToIndex(prop) == -1)
 			continue;
 		if (UObject::TryCast<UBoolProperty>(prop) || reader.ReadBit())
-			ReadItem(prop, reader, map, data + prop->DataOffset.DataOffset);
+			NetReadItem(prop, reader, map, data + prop->DataOffset.DataOffset);
 	}
 
 	if (!reader.IsError() && !Actor->bDeleteMe())

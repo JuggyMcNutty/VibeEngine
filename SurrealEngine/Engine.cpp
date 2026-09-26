@@ -57,6 +57,7 @@
 #include "Network/NetChannel.h"
 #include <chrono>
 #include <set>
+#include <thread>
 
 Engine* engine = nullptr;
 
@@ -1512,6 +1513,17 @@ void Engine::HandleClientPlayer(NetConnection* connection, UPlayerPawn* pawn)
 	if (viewport->Actor())
 		viewport->Actor()->Player() = nullptr;
 
+	// The connection's speed and the server's update intervals, the
+	// viewport's now: the player's moves are paced by them.
+	viewport->CurrentNetSpeed() = connection->CurrentNetSpeed;
+	for (UProperty* prop : viewport->PropertyData.Class->Properties)
+	{
+		if (prop->Name == "StaticUpdateInterval")
+			*static_cast<float*>(viewport->GetProperty(prop)) = connection->StaticUpdateInterval;
+		else if (prop->Name == "DynamicUpdateInterval")
+			*static_cast<float*>(viewport->GetProperty(prop)) = connection->DynamicUpdateInterval;
+	}
+
 	pawn->Role() = ROLE_AutonomousProxy;
 	pawn->ShowFlags() = 0x480c;
 	pawn->RendMap() = 5;
@@ -1567,6 +1579,17 @@ UObject* Engine::FindObject(NameString name, NameString className)
 float Engine::CalcTimeElapsed()
 {
 	using namespace std::chrono;
+
+	// A client runs no more frames a second than its connection's speed over
+	// 64, as the original's GetMaxTickRate has it: 40 at the default 2,600.
+	int maxTickRate = (LevelNetDriver && LevelNetDriver->ServerConnection) ? LevelNetDriver->ServerConnection->CurrentNetSpeed / 64 : 0;
+	if (maxTickRate > 0 && lastTime != 0)
+	{
+		uint64_t minDelta = 1'000'000 / (uint64_t)maxTickRate;
+		uint64_t now = duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count();
+		if (now - lastTime < minDelta)
+			std::this_thread::sleep_for(microseconds(minDelta - (now - lastTime)));
+	}
 
 	uint64_t currentTime = duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count();
 	if (lastTime == 0)

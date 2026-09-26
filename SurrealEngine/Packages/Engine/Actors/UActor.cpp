@@ -277,6 +277,40 @@ void UActor::Tick(float elapsed)
 	if (engine->LaunchInfo.IsDeusEx() && mainAnimMoving)
 		TickBlendAnimation(elapsed);
 
+	// A net game's copies tick as the original's do by their roles: another
+	// player's pawn moves along its velocity, falling at half the zone's
+	// gravity when off the ground, and runs its Tick, nothing more; a dumb
+	// proxy only falls; the local player's physics run in its own moves
+	// (AutonomousPhysics), not here.
+	bool netGame = Level()->NetMode() != NM_Standalone;
+	if (netGame && Role() == ROLE_SimulatedProxy && bIsPawn())
+	{
+		if (UPawn* pawn = UObject::TryCast<UPawn>(this))
+		{
+			UZoneInfo* zone = Region().Zone;
+			if (pawn->bIsPlayer() && !pawn->bCanFly() && !(zone && zone->bWaterZone()))
+			{
+				TraceFlags flags;
+				flags.movers = true;
+				flags.world = true;
+				vec3 extent(CollisionRadius(), CollisionRadius(), CollisionHeight());
+				CollisionHit hit = XLevel()->Collision.TraceFirstHit(Location(), Location() - vec3(0.0f, 0.0f, 8.0f), this, extent, flags);
+				if ((hit.Fraction == 1.0f || hit.Normal.z < 0.7f) && zone)
+					Velocity() += zone->ZoneGravity() * (0.5f * elapsed);
+			}
+			MoveSmooth(Velocity() * elapsed);
+			if (IsEventEnabled(EventName::Tick))
+				CallEvent(this, EventName::Tick, { ExpressionValue::FloatValue(elapsed) });
+			return;
+		}
+	}
+	if (netGame && Role() < ROLE_SimulatedProxy)
+	{
+		if (Physics() == PHYS_Falling)
+			TickPhysics(elapsed);
+		return;
+	}
+
 	float thinkElapsed = elapsed;
 	bool think = ThinkThisFrame(elapsed, thinkElapsed);
 
@@ -305,7 +339,8 @@ void UActor::Tick(float elapsed)
 		}
 	}
 
-	TickPhysics(elapsed);
+	if (!(netGame && Role() == ROLE_AutonomousProxy))
+		TickPhysics(elapsed);
 
 	if (TimerRate() > 0.0f) // Role() == ROLE_Authority && RemoteRole() == ROLE_AutonomousProxy
 	{
