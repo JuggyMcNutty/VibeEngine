@@ -79,6 +79,7 @@ public:
 	// Deus Ex's save picture, taken when the save is asked for: of the frame
 	// the player last saw, where the save itself waits for the next one.
 	void TakeSaveSnapshot();
+	void TakeScreenshot();
 	// Deus Ex's save directories (docs/re/deusex-dll.md, travel and saving):
 	// Save%04d a slot, QuickSave (-1) the quick save, Current (-2) the
 	// mission in progress.

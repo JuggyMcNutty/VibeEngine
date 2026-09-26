@@ -11,6 +11,8 @@ struct GameLaunchInfo
 	std::string gameExecutableName = "";	// Name of the game executable (e.g. "UnrealTournament")
 	std::string gameVersionString = "";		// Version (+ sub version) info as a string (e.g. "469d")
 	std::string url = "";					// The UnrealURL to launch upon startup
+	std::string systemIniPath = "";			// --ini: the system ini to read and write, as the original's INI=
+	std::string userIniPath = "";			// --userini: the user ini, as the original's USERINI=
 
 	bool IsUnreal1() const { return gameExecutableName == "Unreal"; }
 	bool IsUnreal1_226() const { return IsUnreal1() && gameVersion == 226; }

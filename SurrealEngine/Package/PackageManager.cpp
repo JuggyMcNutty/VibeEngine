@@ -821,10 +821,18 @@ void PackageManager::SaveAllIniFiles()
 		if (iniFile.first == launchInfo.gameExecutableName || iniFile.first == "System")
 		{
 			const std::string engineIniName = "SE-" + iniFile.first.ToString() + ".ini";
-			iniFile.second->UpdateIfExists((gameSystemFolderPath / engineIniName).string());
+			if (!launchInfo.systemIniPath.empty())
+				iniFile.second->UpdateIfExists(launchInfo.systemIniPath);
+			else
+				iniFile.second->UpdateIfExists((gameSystemFolderPath / engineIniName).string());
 		}
 		else if (iniFile.first == "User")
-			iniFile.second->UpdateIfExists((gameSystemFolderPath / "SE-User.ini").string());
+		{
+			if (!launchInfo.userIniPath.empty())
+				iniFile.second->UpdateIfExists(launchInfo.userIniPath);
+			else
+				iniFile.second->UpdateIfExists((gameSystemFolderPath / "SE-User.ini").string());
+		}
 		else
 			iniFile.second->UpdateFile();
 	}
@@ -860,7 +868,17 @@ void PackageManager::LoadEngineIniFiles()
 	// Also load Default.ini, so that we can reset values.
 	defaultIniFile = std::make_unique<IniFile>((gameSystemFolderPath / "Default.ini").string());
 
-	iniFiles[systemIniName] = std::make_unique<IniFile>((gameSystemFolderPath / systemIniFileName).string());
+	// --ini and --userini name the files outright, read and written back,
+	// as the original's INI= and USERINI= do.
+	if (!launchInfo.systemIniPath.empty())
+	{
+		iniFiles[systemIniName] = std::make_unique<IniFile>(launchInfo.systemIniPath);
+		missing_se_system_ini = false;
+	}
+	else
+	{
+		iniFiles[systemIniName] = std::make_unique<IniFile>((gameSystemFolderPath / systemIniFileName).string());
+	}
 
 	if (launchInfo.ue1Version > 219)
 	{
@@ -871,7 +889,10 @@ void PackageManager::LoadEngineIniFiles()
 				userIniName = "DefUser.ini";
 		}
 
-		iniFiles["User"] = std::make_unique<IniFile>((gameSystemFolderPath / userIniName).string());
+		if (!launchInfo.userIniPath.empty())
+			iniFiles["User"] = std::make_unique<IniFile>(launchInfo.userIniPath);
+		else
+			iniFiles["User"] = std::make_unique<IniFile>((gameSystemFolderPath / userIniName).string());
 		defaultUserFile = std::make_unique<IniFile>((gameSystemFolderPath / "DefUser.ini").string());
 	}
 }

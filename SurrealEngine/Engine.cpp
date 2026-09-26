@@ -1032,6 +1032,63 @@ void Engine::TakeSaveSnapshot()
 	dxSaveInfo->Snapshot() = dxRootWindow->MakeSnapshot(dxSaveInfo->Snapshot(), dxSaveInfo->package);
 }
 
+// The original's SHOT: the frame as the player saw it, into the next free
+// ShotNNNN.bmp in the game's System folder, 24-bit and bottom-up.
+void Engine::TakeScreenshot()
+{
+	Array<TextureColor> pixels;
+	int width = 0, height = 0;
+	if (!render || !render->ReadLastFrame(pixels, width, height))
+		return;
+
+	fs::path folder = packages->GetSystemFolderPath();
+	fs::path filename;
+	for (int i = 0; i < 10000; i++)
+	{
+		char name[16];
+		std::snprintf(name, sizeof(name), "Shot%04d.bmp", i);
+		if (!fs::exists(folder / name))
+		{
+			filename = folder / name;
+			break;
+		}
+	}
+	if (filename.empty())
+		return;
+
+	// The device reads back blue, green, red, alpha, top row first.
+	int rowSize = (width * 3 + 3) & ~3;
+	uint32_t imageSize = (uint32_t)rowSize * height;
+	std::vector<uint8_t> file(54 + imageSize, 0);
+	auto put16 = [&](size_t at, uint16_t v) { file[at] = v & 0xff; file[at + 1] = v >> 8; };
+	auto put32 = [&](size_t at, uint32_t v) { for (int i = 0; i < 4; i++) file[at + i] = (v >> (i * 8)) & 0xff; };
+	file[0] = 'B';
+	file[1] = 'M';
+	put32(2, (uint32_t)file.size());
+	put32(10, 54);
+	put32(14, 40);
+	put32(18, (uint32_t)width);
+	put32(22, (uint32_t)height);
+	put16(26, 1);
+	put16(28, 24);
+	put32(34, imageSize);
+	for (int y = 0; y < height; y++)
+	{
+		const uint8_t* src = (const uint8_t*)(pixels.data() + (size_t)(height - 1 - y) * width);
+		uint8_t* dest = file.data() + 54 + (size_t)y * rowSize;
+		for (int x = 0; x < width; x++)
+		{
+			dest[x * 3] = src[x * 4];
+			dest[x * 3 + 1] = src[x * 4 + 1];
+			dest[x * 3 + 2] = src[x * 4 + 2];
+		}
+	}
+
+	auto out = File::create_always(filename.string());
+	out->write(file.data(), file.size());
+	LogMessage("Screenshot: " + filename.filename().string());
+}
+
 std::string Engine::SaveSlotFolderName(int32_t slot) const
 {
 	if (slot == -1)
@@ -1395,6 +1452,10 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	if (command == "exit" || command == "quit")
 	{
 		quit = true;
+	}
+	else if (command == "shot")
+	{
+		TakeScreenshot();
 	}
 	else if (command == "timedemo" && args.size() == 2)
 	{

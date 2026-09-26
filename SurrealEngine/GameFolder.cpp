@@ -54,6 +54,8 @@ GameLaunchInfo GameFolderSelection::GetLaunchInfo(int selectedGame)
 	info.gameName = commandline->GetArg("-g", "--game", info.gameName);
 	info.noEntryMap = commandline->HasArg("-n", "--noentrymap") || info.noEntryMap;
 	info.url = commandline->GetArg("-u", "--url", info.url);
+	info.systemIniPath = commandline->GetArg("", "--ini", info.systemIniPath);
+	info.userIniPath = commandline->GetArg("", "--userini", info.userIniPath);
 	return info;
 }
 
