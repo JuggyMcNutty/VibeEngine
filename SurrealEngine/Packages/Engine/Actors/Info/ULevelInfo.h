@@ -11,6 +11,15 @@ class USpawnNotify;
 class ULevelSummary;
 class UDynamicZoneInfo;
 
+enum ELevelAction
+{
+	LEVACT_None,
+	LEVACT_Loading,
+	LEVACT_Saving,
+	LEVACT_Connecting,
+	LEVACT_Precaching
+};
+
 class ULevelInfo : public UZoneInfo
 {
 public:

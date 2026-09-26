@@ -56,6 +56,10 @@ class UDXSaveInfo;
 class UDeusExLevelInfo;
 class URootWindow;
 class UGC;
+class NetPendingLevel;
+class NetDriver;
+class NetClientLevel;
+class NetConnection;
 struct TextureInfo;
 struct SceneNode;
 struct SurfaceFacet;
@@ -73,7 +77,7 @@ public:
 	void ClientTravel(const std::string& URL, ETravelType travelType, bool transferItems);
 	UnrealURL GetDefaultURL(const std::string& map);
 	void LoadEntryMap();
-	void LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo = {});
+	void LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo = {}, bool asClient = false);
 	void LoadFromSaveFile(const UnrealURL& url);
 	void SaveGameToSlot(int32_t slotNum, const std::string& saveDescription) const;
 	// Deus Ex's save picture, taken when the save is asked for: of the frame
@@ -99,6 +103,15 @@ public:
 	void UnloadMap();
 	void LoginPlayer();
 	void PossessSavedPlayer();
+
+	// Joining a server (docs/re/network.md, joining): the handshake while the
+	// current level plays on, then the server's map loaded as a client, and
+	// the player the server spawns for it.
+	void BeginConnect(const UnrealURL& url);
+	void TickPendingLevel(float realTimeElapsed);
+	void LoadClientMap(NetPendingLevel* pending);
+	void HandleClientPlayer(NetConnection* connection, UPlayerPawn* pawn);
+	void CloseNetDriver();
 
 	UObject* FindObject(NameString name, NameString className);
 
@@ -180,6 +193,11 @@ public:
 	Package* deusExPackage = nullptr;
 	UDeusExLevelInfo* DeusExLevelInfo = nullptr;
 	bool dxTravelUsesCurrent = false; // set by DeusExPreTravel, read once by LoadMap
+
+	std::unique_ptr<NetPendingLevel> PendingLevel;
+	std::unique_ptr<NetDriver> LevelNetDriver;
+	std::unique_ptr<NetClientLevel> ClientLevel;
+	std::string NetFailure;
 	struct
 	{
 		UnrealURL URL;
@@ -251,6 +269,8 @@ private:
 	void GetLevelInfoObject();
 	void GetLevelObject();
 	void LinkActorsToLevel();
+	void BeginPlay(const UnrealURL& url);
+	void EnsureFlagBase(UPlayerPawn* pawn);
 
 	bool m_EditorMode = false; // Set this to true to allow rendering of invisible polys.
 	bool m_GamePaused = false;

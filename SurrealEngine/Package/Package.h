@@ -49,6 +49,18 @@ public:
 
 	std::string GetExportName(int objref);
 
+	// What the network's package map needs: the file's GUID ("%08X" of its
+	// four little-endian dwords, as USES lines write it), its generations'
+	// counts, and whether an object is a given export of it.
+	struct Generation { int ExportCount = 0; int NameCount = 0; };
+	std::string GetGuidString() const;
+	const Array<Generation>& GetGenerations() const { return Generations; }
+	// The file's own counts: a runtime export (AddRuntimeExport) is not the
+	// other side's.
+	int GetExportCount() const { return FileExportCount; }
+	int GetNameCount() const { return FileNameCount; }
+	bool IsExportObject(const UObject* obj, int index) const { return index >= 0 && (size_t)index < ExportObjects.size() && ExportObjects[index] == obj; }
+
 	template<class T> Array<T*> GetAllObjects();
 
 private:
@@ -71,6 +83,9 @@ private:
 	Array<ExportTableEntry> ExportTable;
 	Array<ImportTableEntry> ImportTable;
 	uint8_t Guid[16] = {};
+	Array<Generation> Generations;
+	int FileExportCount = 0;
+	int FileNameCount = 0;
 
 	std::map<NameString, int> NameHash;
 

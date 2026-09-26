@@ -369,8 +369,19 @@ void Package::ReadTables()
 
 	if (Version < 68)
 	{
+		// An older file has a heritage of GUIDs, the last its own, and one
+		// generation: its counts now.
 		uint32_t heritageCount = stream->ReadInt32();
 		uint32_t heritageOffset = stream->ReadInt32();
+		if (heritageCount > 0)
+		{
+			stream->Seek(heritageOffset + (heritageCount - 1) * 16);
+			stream->ReadBytes(Guid, 16);
+		}
+		Generation generation;
+		generation.ExportCount = (int)exportCount;
+		generation.NameCount = (int)nameCount;
+		Generations.push_back(generation);
 	}
 	else
 	{
@@ -378,8 +389,10 @@ void Package::ReadTables()
 		uint32_t generationCount = stream->ReadInt32();
 		for (uint32_t i = 0; i < generationCount; i++)
 		{
-			uint32_t genExportCount = stream->ReadInt32();
-			uint32_t genNameCount = stream->ReadInt32();
+			Generation generation;
+			generation.ExportCount = stream->ReadInt32();
+			generation.NameCount = stream->ReadInt32();
+			Generations.push_back(generation);
 		}
 	}
 
@@ -417,6 +430,9 @@ void Package::ReadTables()
 		entry.ObjName = stream->ReadIndex();
 		ImportTable.push_back(entry);
 	}
+
+	FileExportCount = (int)exportCount;
+	FileNameCount = (int)nameCount;
 }
 
 std::unique_ptr<ObjectStream> Package::OpenObjectStream(int index, const NameString& name, UClass* base)
@@ -452,4 +468,14 @@ std::string Package::GetExportName(int objref)
 
 	objname = Name.ToString() + '.' + objname;
 	return objname;
+}
+
+std::string Package::GetGuidString() const
+{
+	char text[33];
+	uint32_t d[4];
+	for (int i = 0; i < 4; i++)
+		d[i] = Guid[i * 4] | (Guid[i * 4 + 1] << 8) | (Guid[i * 4 + 2] << 16) | ((uint32_t)Guid[i * 4 + 3] << 24);
+	snprintf(text, sizeof(text), "%08X%08X%08X%08X", d[0], d[1], d[2], d[3]);
+	return text;
 }

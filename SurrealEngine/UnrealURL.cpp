@@ -39,6 +39,8 @@ UnrealURL::UnrealURL(std::string urlString)
 	urlString.erase(urlString.find_last_not_of(' ') + 1);
 	urlString.erase(0, urlString.find_first_not_of(' '));
 
+	ParseAddress(urlString);
+
 	size_t mapNamePos = StrTools::find_first_of_any(urlString, "?/#");
 
 	Map = urlString.substr(0, mapNamePos);
@@ -68,6 +70,71 @@ UnrealURL::UnrealURL(std::string urlString)
 			nextParamPos = StrTools::find_first_of_any(allParams, "?/#");
 		} while (nextParamPos != std::string::npos);
 	}
+}
+
+// A server's address ahead of the map, as the original's URL parser finds
+// one (docs/re/network.md, the address): [protocol:][//]host[:port][/map],
+// where the host is the text up to a slash with a dot past its first
+// character whose next letters are not the map's or a save's extension. A
+// colon past the second character before any dot ends a protocol; a colon as
+// the second is a drive letter, a file.
+void UnrealURL::ParseAddress(std::string& urlString)
+{
+	size_t end = StrTools::find_first_of_any(urlString, "?#");
+	std::string text = urlString.substr(0, end);
+	std::string rest = end != std::string::npos ? urlString.substr(end) : std::string();
+
+	if (text.size() > 2 && text[1] == ':')
+		return;
+
+	std::string protocol;
+	size_t colon = text.find(':');
+	size_t dot = text.find('.');
+	if (colon != std::string::npos && colon > 1 && (dot == std::string::npos || colon < dot))
+	{
+		protocol = text.substr(0, colon);
+		text = text.substr(colon + 1);
+	}
+
+	if (!text.empty() && text[0] == '/')
+	{
+		if (text.size() < 2 || text[1] != '/')
+			return;
+		text = text.substr(2);
+	}
+
+	dot = text.find('.');
+	if (dot == std::string::npos || dot < 1)
+		return;
+	auto isExtension = [&](const std::string& ext) {
+		if (ext.empty() || !StrTools::equals_ignore_case(text.substr(dot + 1, ext.size()), ext))
+			return false;
+		size_t after = dot + 1 + ext.size();
+		return after >= text.size() || !std::isalnum((unsigned char)text[after]);
+	};
+	std::string mapExt = engine ? engine->packages->GetMapExtension() : MapExt;
+	std::string saveExt = engine ? engine->packages->GetSaveExtension() : SaveExt;
+	if (isExtension(mapExt) || isExtension(saveExt))
+		return;
+
+	size_t slash = text.find('/');
+	std::string host = text.substr(0, slash);
+	std::string mapPart = slash != std::string::npos ? text.substr(slash + 1) : std::string();
+
+	if (!protocol.empty())
+		Protocol = protocol;
+	Port = engine ? std::atoi(engine->packages->GetIniValue("system", "URL", "Port", "7777").c_str()) : 7777;
+	size_t portPos = host.find(':');
+	if (portPos != std::string::npos)
+	{
+		Port = std::atoi(host.substr(portPos + 1).c_str());
+		host = host.substr(0, portPos);
+	}
+	Host = host;
+
+	if (mapPart.empty() && engine)
+		mapPart = engine->packages->GetIniValue("system", "URL", "Map");
+	urlString = mapPart + rest;
 }
 
 void UnrealURL::AddOrReplaceOption(const std::string& newvalue)
@@ -203,5 +270,6 @@ void UnrealURL::Clear()
 	Map.clear();
 	Portal.clear();
 	Options.clear();
+	Host.clear();
 }
 

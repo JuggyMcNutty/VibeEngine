@@ -369,6 +369,15 @@ Package* PackageManager::GetPackage(const NameString& name)
 	return package.get();
 }
 
+bool PackageManager::IsMapPackage(const NameString& name) const
+{
+	auto it = packageFilenames.find(name);
+	if (it == packageFilenames.end())
+		return false;
+	std::string ext = fs::path(it->second).extension().string();
+	return StrTools::equals_ignore_case(ext, "." + GetMapExtension());
+}
+
 Package* PackageManager::LoadMap(const std::string& path)
 {
 	const auto mapPath = convert_path_separators(path);

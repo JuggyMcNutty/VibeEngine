@@ -747,6 +747,18 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/IpDrv/UTcpLink.h
 	SurrealEngine/Packages/IpDrv/UUdpLink.cpp
 	SurrealEngine/Packages/IpDrv/UUdpLink.h
+	SurrealEngine/Network/NetBits.cpp
+	SurrealEngine/Network/NetBits.h
+	SurrealEngine/Network/NetChannel.cpp
+	SurrealEngine/Network/NetChannel.h
+	SurrealEngine/Network/NetClient.cpp
+	SurrealEngine/Network/NetClient.h
+	SurrealEngine/Network/NetConnection.cpp
+	SurrealEngine/Network/NetConnection.h
+	SurrealEngine/Network/NetDriver.cpp
+	SurrealEngine/Network/NetDriver.h
+	SurrealEngine/Network/NetPackageMap.cpp
+	SurrealEngine/Network/NetPackageMap.h
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Component.h
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.cpp
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.h
@@ -1018,6 +1030,7 @@ source_group("SurrealEngine" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Sur
 source_group("SurrealEngine\\Audio" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Audio/.+")
 source_group("SurrealEngine\\Math" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Math/.+")
 source_group("SurrealEngine\\Native" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Native/.+")
+source_group("SurrealEngine\\Network" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Network/.+")
 source_group("SurrealEngine\\Package" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Package/.+")
 source_group("SurrealEngine\\RenderDevice" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/RenderDevice/.+")
 source_group("SurrealEngine\\RenderDevice/Vulkan" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/RenderDevice/Vulkan/.+")

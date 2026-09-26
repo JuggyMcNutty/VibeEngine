@@ -208,6 +208,11 @@ void USurrealAudioDevice::ShutdownDevice()
 
 void USurrealAudioDevice::SetViewport(UViewport* InViewport)
 {
+	// A joining client's viewport has no player until the server's arrives;
+	// it is taken then, its music with it.
+	if (InViewport && !InViewport->Actor())
+		return;
+
 	if (m_Viewport != InViewport)
 	{
 		StopSounds();

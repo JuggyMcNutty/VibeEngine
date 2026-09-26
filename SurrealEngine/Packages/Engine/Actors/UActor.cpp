@@ -19,7 +19,7 @@
 #include "Render/RenderSubsystem.h"
 #include "LauncherSettings.h"
 
-UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std::optional<NameString> SpawnTag, std::optional<vec3> SpawnLocation, std::optional<Rotator> SpawnRotation)
+UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std::optional<NameString> SpawnTag, std::optional<vec3> SpawnLocation, std::optional<Rotator> SpawnRotation, bool noCollisionFail, bool remoteOwned)
 {
 	if (!SpawnClass || SpawnClass->ClsFlags & ClassFlags::Abstract)
 	{
@@ -34,7 +34,9 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	float height = SpawnClass->GetDefaultObject<UActor>()->CollisionHeight();
 	bool bCollideWorld = SpawnClass->GetDefaultObject<UActor>()->bCollideWorld();
 	bool bCollideWhenPlacing = SpawnClass->GetDefaultObject<UActor>()->bCollideWhenPlacing();
-	if (bCollideWorld || bCollideWhenPlacing)
+	// A client's spawn, and one the server's actor channel makes, stays where
+	// asked.
+	if ((bCollideWorld || bCollideWhenPlacing) && !noCollisionFail && Level()->NetMode() != NM_Client)
 	{
 		auto result = CheckLocation(location, radius, height, bCollideWorld || bCollideWhenPlacing);
 		if (!result.first)
@@ -50,6 +52,10 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	static std::map<NameString, int> nextIndex;
 	NameString name = SpawnClass->Name.ToString() + std::to_string(nextIndex[SpawnClass->Name]++);
 	UActor* actor = UObject::Cast<UActor>(engine->LevelPackage->NewObject(name, UObject::Cast<UClass>(SpawnClass), ObjectFlags::Transient, true));
+
+	// An actor the server owns and this client copies has the roles turned.
+	if (remoteOwned)
+		std::swap(actor->Role(), actor->RemoteRole());
 
 	actor->Outer() = XLevel()->Outer();
 	actor->XLevel() = XLevel();
@@ -250,7 +256,9 @@ void UActor::Tick(float elapsed)
 {
 	if (engine->LaunchInfo.IsDeusEx())
 	{
-		DistanceFromPlayer() = length(engine->viewport->Actor()->Location() - Location());
+		// A joining client has no player until the server's arrives.
+		if (UActor* player = engine->viewport->Actor())
+			DistanceFromPlayer() = length(player->Location() - Location());
 
 		// The original's tick does nothing else for an actor in stasis --
 		// no script tick, physics, animation or timers -- and destroys a

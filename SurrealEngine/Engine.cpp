@@ -53,6 +53,8 @@
 #include "VM/ScriptCall.h"
 #include "Video/VideoPlayer.h"
 #include "Utils/Convert.h"
+#include "Network/NetClient.h"
+#include "Network/NetChannel.h"
 #include <chrono>
 #include <set>
 
@@ -155,12 +157,18 @@ void Engine::Run()
 	if (!LaunchInfo.noEntryMap)
 		LoadEntryMap();
 
-	if (LaunchInfo.url.empty())
+	bool launchServer = !LaunchInfo.url.empty() && !UnrealURL(LaunchInfo.url).Host.empty();
+	if (LaunchInfo.url.empty() || launchServer)
 		LoadMap(GetDefaultURL(packages->GetIniValue("system", "URL", "LocalMap")));
 	else
 		LoadMap(UnrealURL(GetDefaultURL(packages->GetIniValue("system", "URL", "LocalMap")), LaunchInfo.url));
 
 	LoginPlayer();
+
+	// A server's address to start with: joined from the menu's map, as the
+	// original's first browse does.
+	if (launchServer)
+		ClientTravel(LaunchInfo.url, ETravelType::TRAVEL_Absolute, false);
 
 	auto objprop = GC::Alloc<UObjectProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
 	auto vecprop = GC::Alloc<UStructProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
@@ -183,6 +191,11 @@ void Engine::Run()
 			currentZoneTimeDilation = viewport->Actor()->PlayerReplicationInfo()->PlayerZone()->ZoneTimeDilation();
 
 		float realTimeElapsed = CalcTimeElapsed();
+
+		// A join under way; its map may load here, before the level's time.
+		if (PendingLevel)
+			TickPendingLevel(realTimeElapsed);
+
 		float entryLevelElapsed = EntryLevel ? realTimeElapsed * clamp(EntryLevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f) : 0.0f;
 		float levelElapsed = realTimeElapsed * clamp(LevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f);
 
@@ -220,9 +233,17 @@ void Engine::Run()
 			LevelInfo->bAggressiveLOD() = false;
 		}
 
+		// A client's packets come in before its level ticks and go out
+		// after, as the original's level tick has them.
+		if (LevelNetDriver)
+			LevelNetDriver->TickDispatch(levelElapsed);
+
 		if (EntryLevel)
 			EntryLevel->Tick(entryLevelElapsed, m_GamePaused);
 		Level->Tick(levelElapsed, m_GamePaused);
+
+		if (LevelNetDriver)
+			LevelNetDriver->TickFlush();
 
 		if (dxRootWindow)
 			dxRootWindow->Tick(levelElapsed); // Should this maybe be realTimeElapsed?
@@ -317,7 +338,22 @@ void Engine::Run()
 			PossessSavedPlayer();
 		}
 
-		if (!ClientTravelInfo.URL.Map.empty())
+		// Lost the server, or refused by it: back to the menu's map.
+		if (LevelNetDriver && (!NetFailure.empty() || LevelNetDriver->ServerConnection->State == ConnectionState::Closed))
+		{
+			LogMessage("Net: disconnected" + (NetFailure.empty() ? std::string() : ": " + NetFailure));
+			NetFailure.clear();
+			LoadMap(GetDefaultURL(packages->GetIniValue("system", "URL", "LocalMap")));
+			LoginPlayer();
+		}
+
+		if (!ClientTravelInfo.URL.Host.empty())
+		{
+			UnrealURL url(ClientTravelInfo.URL);
+			ClientTravelInfo.URL.Clear();
+			BeginConnect(url);
+		}
+		else if (!ClientTravelInfo.URL.Map.empty())
 		{
 			// To do: need to do something about that travel type and transfering of items
 
@@ -333,6 +369,7 @@ void Engine::Run()
 	}
 
 	LogMessage("Shutting down...");
+	CloseNetDriver();
 	window->UnlockCursor();
 
 	LogMessage("Saving configurations...");
@@ -655,6 +692,8 @@ void Engine::LoadEntryMap()
 
 void Engine::UnloadMap()
 {
+	CloseNetDriver();
+
 	if (!LevelPackage)
 		return;
 
@@ -669,7 +708,7 @@ void Engine::UnloadMap()
 	// GC::Collect();
 }
 
-void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo)
+void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo, bool asClient)
 {
 	ClientTravelInfo.URL.Clear();
 
@@ -710,7 +749,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	if (LaunchInfo.ue1Version > 219)
 		LevelInfo->MinNetVersion() = LaunchInfo.gameVersionString + " SE";
 	LevelInfo->bHighDetailMode() = true;
-	LevelInfo->NetMode() = 0; // NM_StandAlone
+	LevelInfo->NetMode() = asClient ? NM_Client : NM_Standalone;
 	LevelInfo->DefaultTexture() = engine->DefaultTexture;
 
 	LevelInfo->URL = url;
@@ -737,6 +776,25 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 
 	LinkActorsToLevel();
 
+	if (asClient)
+	{
+		// A client keeps the map's static and no-delete actors, their roles
+		// turned to this side, and has no game: the server sends the rest.
+		for (UActor* actor : Level->Actors)
+		{
+			if (!actor)
+				continue;
+			if (actor->bStatic() || actor->bNoDelete())
+				std::swap(actor->Role(), actor->RemoteRole());
+			else
+				actor->Destroy();
+		}
+		GameInfo = nullptr;
+		LevelInfo->Game() = nullptr;
+		BeginPlay(url);
+		return;
+	}
+
 	// Find the game info class
 	UClass* gameInfoClass = packages->FindClass(LevelInfo->URL.GetOption("game"));
 	if (!gameInfoClass)
@@ -762,6 +820,11 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 
 	LevelInfo->Game() = GameInfo;
 
+	BeginPlay(url);
+}
+
+void Engine::BeginPlay(const UnrealURL& url)
+{
 	if (!LevelInfo->bBegunPlay())
 	{
 		LevelInfo->TimeSeconds() = 0.0f;
@@ -776,9 +839,12 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		size_t loadActorCount = Level->Actors.size();
 
 		LevelInfo->bStartup() = true;
-		CallEvent(GameInfo, EventName::InitGame, { ExpressionValue::StringValue(options), ExpressionValue::Variable(&error, stringProp) });
-		if (!error.empty())
-			Exception::Throw("InitGame failed: " + error);
+		if (GameInfo)
+		{
+			CallEvent(GameInfo, EventName::InitGame, { ExpressionValue::StringValue(options), ExpressionValue::Variable(&error, stringProp) });
+			if (!error.empty())
+				Exception::Throw("InitGame failed: " + error);
+		}
 
 		// Note: the events may spawn actors. We can't use iterators here.
 		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PreBeginPlay); }
@@ -903,6 +969,18 @@ static void ClearIgnoreNextShowMenu(UObject* player)
 	}
 }
 
+void Engine::EnsureFlagBase(UPlayerPawn* pawn)
+{
+	if (auto pawnExt = UObject::TryCast<UPlayerPawnExt>(pawn))
+	{
+		if (!pawnExt->FlagBase())
+		{
+			auto flagBaseCls = packages->FindClass("Extension.FlagBase");
+			pawnExt->FlagBase() = UObject::Cast<UFlagBase>(LevelPackage->NewObject("FlagBase", flagBaseCls, ObjectFlags::NoFlags));
+		}
+	}
+}
+
 void Engine::PossessSavedPlayer()
 {
 	// Loading a save must not reuse LoginPlayer, because that always calls GameInfo.Login,
@@ -923,16 +1001,9 @@ void Engine::PossessSavedPlayer()
 	if (!pawn)
 		Exception::Throw("Save file has no player pawn for " + LevelPackage->GetPackageName().ToString() + "!");
 
-	if (auto pawnExt = UObject::TryCast<UPlayerPawnExt>(pawn))
-	{
-		// A saved pawn brings its own flag base back with the level; only a
-		// save from before the base lived in the level lacks one.
-		if (!pawnExt->FlagBase())
-		{
-			auto flagBaseCls = packages->FindClass("Extension.FlagBase");
-			pawnExt->FlagBase() = UObject::Cast<UFlagBase>(LevelPackage->NewObject("FlagBase", flagBaseCls, ObjectFlags::NoFlags));
-		}
-	}
+	// A saved pawn brings its own flag base back with the level; only a save
+	// from before the base lived in the level lacks one.
+	EnsureFlagBase(pawn);
 
 	viewport->Actor() = pawn;
 	viewport->Actor()->Player() = viewport;
@@ -1301,16 +1372,9 @@ void Engine::LoginPlayer()
 
 	pawn->LoadProperties();
 
-	if (auto pawnExt = UObject::TryCast<UPlayerPawnExt>(pawn))
-	{
-		// In the level package, so a save keeps the base and its flags. A
-		// travelled or loaded pawn brings its own.
-		if (!pawnExt->FlagBase())
-		{
-			auto flagBaseCls = packages->FindClass("Extension.FlagBase");
-			pawnExt->FlagBase() = UObject::Cast<UFlagBase>(LevelPackage->NewObject("FlagBase", flagBaseCls, ObjectFlags::NoFlags));
-		}
-	}
+	// In the level package, so a save keeps the base and its flags. A
+	// travelled or loaded pawn brings its own.
+	EnsureFlagBase(pawn);
 
 	// Assign the pawn to the viewport
 	viewport->Actor() = pawn;
@@ -1359,6 +1423,126 @@ void Engine::LoginPlayer()
 		ClearIgnoreNextShowMenu(pawn);
 
 	render->OnMapLoaded();
+}
+
+void Engine::BeginConnect(const UnrealURL& url)
+{
+	LogMessage("Net: joining " + url.Host + ":" + std::to_string(url.Port));
+	PendingLevel = std::make_unique<NetPendingLevel>(url);
+	if (!PendingLevel->Error.empty())
+	{
+		LogMessage("Net: could not join: " + PendingLevel->Error);
+		PendingLevel.reset();
+	}
+}
+
+void Engine::TickPendingLevel(float realTimeElapsed)
+{
+	PendingLevel->Tick(realTimeElapsed);
+	if (!PendingLevel->Error.empty())
+	{
+		LogMessage("Net: could not join: " + PendingLevel->Error);
+		PendingLevel.reset();
+	}
+	else if (PendingLevel->Success)
+	{
+		std::unique_ptr<NetPendingLevel> pending = std::move(PendingLevel);
+		LoadClientMap(pending.get());
+	}
+}
+
+void Engine::LoadClientMap(NetPendingLevel* pending)
+{
+	UnrealURL url = pending->URL;
+	LogMessage("Net: loading " + url.Map + " as a client");
+	LoadMap(url, {}, true);
+
+	viewport->Actor() = nullptr;
+	CameraActor = nullptr;
+	render->OnMapLoaded();
+
+	// The driver is the level's now.
+	LevelNetDriver = std::move(pending->Driver);
+	ClientLevel = std::make_unique<NetClientLevel>();
+	LevelNetDriver->Notify = ClientLevel.get();
+	NetConnection* connection = LevelNetDriver->ServerConnection.get();
+
+	// Objects by number in the server's order of packages; the map is the
+	// level just loaded, and has to be the server's.
+	NetPackageMap& map = connection->PackageMap;
+	map.List.clear();
+	for (const NetPendingLevel::UsedPackage& used : pending->Uses)
+	{
+		NetPackageMap::PackageInfo info;
+		bool isLevel = StrTools::equals_ignore_case(used.Name.ToString(), LevelPackage->GetPackageName().ToString());
+		info.Pkg = isLevel ? LevelPackage : packages->GetPackage(used.Name);
+		info.Name = used.Name;
+		info.Guid = used.Guid;
+		info.Flags = used.Flags;
+		info.FileSize = used.Size;
+		info.RemoteGeneration = used.Generation;
+		if (isLevel && !StrTools::equals_ignore_case(LevelPackage->GetGuidString(), used.Guid))
+			NetFailure = "Map " + used.Name.ToString() + " differs from the server's";
+		map.List.push_back(info);
+	}
+	map.Compute();
+
+	// Where this side has another generation of a package than the server,
+	// the server is told which.
+	for (const NetPackageMap::PackageInfo& info : map.List)
+	{
+		if (info.LocalGeneration != info.RemoteGeneration)
+			connection->SendText("HAVE GUID=" + info.Guid + " GEN=" + std::to_string(info.LocalGeneration));
+	}
+
+	if (!pending->LonePlayer)
+	{
+		LevelInfo->LevelAction() = LEVACT_Connecting;
+		if (EntryLevelInfo)
+			EntryLevelInfo->LevelAction() = LEVACT_Connecting;
+		connection->SendText("JOIN");
+		connection->FlushNet();
+	}
+}
+
+void Engine::HandleClientPlayer(NetConnection* connection, UPlayerPawn* pawn)
+{
+	LogMessage("Net: joined as " + pawn->Name.ToString());
+
+	if (viewport->Actor())
+		viewport->Actor()->Player() = nullptr;
+
+	pawn->Role() = ROLE_AutonomousProxy;
+	pawn->ShowFlags() = 0x480c;
+	pawn->RendMap() = 5;
+	pawn->LoadProperties();
+	EnsureFlagBase(pawn);
+
+	viewport->Actor() = pawn;
+	pawn->Player() = viewport;
+	CallEvent(pawn, EventName::Possess);
+	ReleaseHeldInputKeys();
+
+	LevelInfo->LevelAction() = LEVACT_None;
+	if (EntryLevelInfo)
+		EntryLevelInfo->LevelAction() = LEVACT_None;
+	connection->State = ConnectionState::Open;
+	connection->Actor = pawn;
+}
+
+void Engine::CloseNetDriver()
+{
+	if (!LevelNetDriver)
+		return;
+	if (NetConnection* connection = LevelNetDriver->ServerConnection.get())
+	{
+		// The server hears the close with the control channel's.
+		if (NetChannel* control = connection->Channels[0])
+			control->Close();
+		connection->FlushNet();
+	}
+	LevelNetDriver.reset();
+	ClientLevel.reset();
 }
 
 UZoneInfo* Engine::GetZoneActor(int zoneIndex)
@@ -1534,6 +1718,13 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		const std::string& maparg = args[1];
 
 		UnrealURL url(maparg);
+
+		// A server's address: join it.
+		if (!url.Host.empty())
+		{
+			ClientTravel(maparg, ETravelType::TRAVEL_Absolute, false);
+			return {};
+		}
 
 		for (auto& map : packages->GetMaps())
 		{

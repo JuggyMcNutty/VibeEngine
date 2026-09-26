@@ -21,6 +21,8 @@ public:
 	bool Empty() const;
 	void Clear();
 
+	// A server's address, when the URL has one: its host, and its port (the
+	// game's [URL] Port when not given).
 	std::string Protocol = "unreal";
 	std::string ProtocolDescription = "Unreal Protocol";
 	std::string Name = "Player";
@@ -31,4 +33,7 @@ public:
 	std::string SaveExt = "usa";
 	int Port = 7777;
 	Array<std::string> Options;
+
+private:
+	void ParseAddress(std::string& urlString);
 };
