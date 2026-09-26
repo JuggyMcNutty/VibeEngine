@@ -121,6 +121,8 @@ public:
 
 	void Key(std::string key);
 	void InputEvent(EInputKey key, EInputType type, int delta = 0);
+	void ReleaseHeldInputKeys();
+	void ReleaseFireButtons();
 
 	void OnWindowPaint() override;
 	void OnWindowMouseMove(const Point& pos) override;

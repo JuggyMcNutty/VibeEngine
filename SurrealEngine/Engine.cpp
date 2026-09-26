@@ -1902,7 +1902,10 @@ void Engine::OnWindowMouseDown(const Point& pos, EInputKey key)
 		return;
 
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseDown(pos, key))
+	{
+		ReleaseFireButtons();
 		return;
+	}
 
 	InputEvent(key, IST_Press);
 }
@@ -1910,7 +1913,10 @@ void Engine::OnWindowMouseDown(const Point& pos, EInputKey key)
 void Engine::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 {
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseDoubleclick(pos, key))
+	{
+		ReleaseFireButtons();
 		return;
+	}
 
 	// Double click event sequence is: mouse down, up, doubleclick, up
 	// Since we don't have double click events in the UE1 event system, the second click
@@ -1924,7 +1930,10 @@ void Engine::OnWindowMouseUp(const Point& pos, EInputKey key)
 		return;
 
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseUp(pos, key))
+	{
+		ReleaseFireButtons();
 		return;
+	}
 
 	InputEvent(key, IST_Release);
 }
@@ -1974,7 +1983,10 @@ void Engine::OnWindowKeyDown(EInputKey key)
 	}
 
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowKeyDown(key))
+	{
+		ReleaseHeldInputKeys();
 		return;
+	}
 
 	InputEvent(key, IST_Press);
 }
@@ -1985,7 +1997,10 @@ void Engine::OnWindowKeyUp(EInputKey key)
 		return;
 
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowKeyUp(key))
+	{
+		ReleaseHeldInputKeys();
 		return;
+	}
 
 	InputEvent(key, IST_Release);
 }
@@ -2039,6 +2054,45 @@ void Engine::Key(std::string key)
 	for (char c : key)
 	{
 		CallEvent(console, EventName::KeyType, { ExpressionValue::ByteValue(c) });
+	}
+}
+
+// When the UI takes a key, every key the input holds down is released, so
+// nothing stays held under a menu (extension-dll.md, the engine and the
+// input). The original's XInputExt runs each held key's release binding; the
+// buttons and axes tracked here are the fork's equivalent of those bindings.
+void Engine::ReleaseHeldInputKeys()
+{
+	if (Frame::RunState != FrameRunState::Running || !viewport || !viewport->Actor())
+		return;
+
+	for (auto& button : activeInputButtons)
+		viewport->Actor()->SetBool(button.first, false);
+	activeInputButtons.clear();
+
+	for (auto& axis : activeInputAxes)
+		viewport->Actor()->SetFloat(axis.first, 0.0f);
+	activeInputAxes.clear();
+}
+
+// When the UI takes a mouse button, the original's root window clears only
+// the player's bFire and bAltFire (extension-dll.md, the root window).
+void Engine::ReleaseFireButtons()
+{
+	if (Frame::RunState != FrameRunState::Running || !viewport || !viewport->Actor())
+		return;
+
+	for (auto it = activeInputButtons.begin(); it != activeInputButtons.end();)
+	{
+		if (NameString(it->first) == "bFire" || NameString(it->first) == "bAltFire")
+		{
+			viewport->Actor()->SetBool(it->first, false);
+			it = activeInputButtons.erase(it);
+		}
+		else
+		{
+			++it;
+		}
 	}
 }
 
