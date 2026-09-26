@@ -24,21 +24,33 @@ void UActor::InitActorZone()
 
 void UActor::UpdateActorZone()
 {
+	if (bDeleteMe())
+		return;
+
 	PointRegion oldregion = Region();
 	PointRegion newregion = FindRegion();
 
-	if (oldregion.Zone && oldregion.Zone != newregion.Zone)
-		CallEvent(oldregion.Zone, EventName::ActorLeaving, { ExpressionValue::ObjectValue(this) });
-
-	Region() = newregion;
-
-	if (newregion.Zone && oldregion.Zone != newregion.Zone)
+	if (oldregion.Zone != newregion.Zone)
 	{
-		CallEvent(this, EventName::ZoneChange, { ExpressionValue::ObjectValue(newregion.Zone) });
-		CallEvent(newregion.Zone, EventName::ActorEntered, { ExpressionValue::ObjectValue(this) });
+		// ZoneChange still sees the zone being left in Region: scripts
+		// compare the two (a decoration splashes only coming out of dry).
+		if (oldregion.Zone)
+			CallEvent(oldregion.Zone, EventName::ActorLeaving, { ExpressionValue::ObjectValue(this) });
+		if (newregion.Zone)
+			CallEvent(this, EventName::ZoneChange, { ExpressionValue::ObjectValue(newregion.Zone) });
+		Region() = newregion;
+		if (newregion.Zone)
+			CallEvent(newregion.Zone, EventName::ActorEntered, { ExpressionValue::ObjectValue(this) });
+	}
+	else
+	{
+		Region() = newregion;
 	}
 
-	if (Region().Zone)
+	// Deus Ex's scripts do these themselves (ZoneInfo.ActorEntered gives
+	// stray inventory 1.5 seconds; decorations and fragments check
+	// bDestructive), and its engine does neither.
+	if (!engine->LaunchInfo.IsDeusEx() && Region().Zone)
 	{
 		if (Region().Zone->bDestructive() && IsA("Carcass"))
 		{

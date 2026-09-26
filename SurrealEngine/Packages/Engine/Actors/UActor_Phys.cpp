@@ -52,17 +52,39 @@ void UActor::SetCollision(bool newColActors, bool newBlockActors, bool newBlockP
 	XLevel()->Collision.AddToCollision(this);
 }
 
-bool UActor::SetLocation(const vec3& newLocation)
+bool UActor::SetLocation(const vec3& newLocation, bool noCheck)
 {
-	auto result = CheckLocation(newLocation, CollisionRadius(), CollisionHeight(), bCollideWorld() || bCollideWhenPlacing());
-	if (!result.first)
+	if (bStatic() || !bMovable())
 		return false;
 
+	vec3 location = newLocation;
+	if (!noCheck)
+	{
+		bool findRoom = bCollideWorld() || (bCollideWhenPlacing() && Level()->NetMode() != NM_Client);
+		auto result = CheckLocation(newLocation, CollisionRadius(), CollisionHeight(), findRoom);
+		if (!result.first)
+			return false;
+		location = result.second;
+	}
+
+	// Whatever stands on it is left behind.
+	if (StandingCount() > 0)
+	{
+		Array<UActor*> standing = BasedActors;
+		for (UActor* actor : standing)
+		{
+			if (actor && actor->ActorBase() == this)
+				actor->SetBase(nullptr, true);
+		}
+	}
+	bJustTeleported() = true;
+
 	XLevel()->Collision.RemoveFromCollision(this);
-	Location() = result.second;
+	Location() = location;
+	OldLocation() = location;
 	XLevel()->Collision.AddToCollision(this);
 
-	if (Level()->bBegunPlay())
+	if (!noCheck && Level()->bBegunPlay())
 	{
 		// Send touch notifications for anything at the new location
 		for (UActor* actor : XLevel()->Collision.CollidingActors(Location(), CollisionHeight(), CollisionRadius()))
@@ -92,6 +114,7 @@ bool UActor::SetLocation(const vec3& newLocation)
 		}
 	}
 
+	UpdateActorZone();
 	return true;
 }
 

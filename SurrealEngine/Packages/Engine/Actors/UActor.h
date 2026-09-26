@@ -438,7 +438,8 @@ public:
 
 	std::pair<bool, vec3> CheckLocation(vec3 location, float radius, float height, bool check);
 
-	bool SetLocation(const vec3& newLocation);
+	// noCheck skips finding room and the touches (a trailer following its owner).
+	bool SetLocation(const vec3& newLocation, bool noCheck = false);
 	bool SetRotation(const Rotator& newRotation);
 	bool SetCollisionSize(float newRadius, float newHeight);
 

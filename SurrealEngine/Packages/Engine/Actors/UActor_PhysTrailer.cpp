@@ -15,7 +15,7 @@ void UActor::TickTrailer(float elapsed)
 		newLocation += PrePivot();
 	}
 
-	SetLocation(newLocation);
+	SetLocation(newLocation, true);
 
 	if ((engine->LaunchInfo.ue1Version < 400 || bTrailerSameRotation()) && DrawType() != DT_Sprite)
 	{
