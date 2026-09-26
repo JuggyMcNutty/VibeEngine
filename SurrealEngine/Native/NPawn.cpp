@@ -8,6 +8,7 @@
 #include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/Resources/USound.h"
+#include "Collision/BottomLevel/TraceRayModel.h"
 #include "Engine.h"
 
 void NPawn::RegisterFunctions()
@@ -141,10 +142,64 @@ void NPawn::FindRandomDest(UObject* Self, std::optional<bool> bClearPaths, UObje
 	ReturnValue = selfPawn->FindRandomDest();
 }
 
+// Deus Ex's Look Up Stairs: the original (UE1's own, engine-dll.md, Small)
+// probes the floor ahead at eye height with a frame of 0.33 s or less and
+// eases the view pitch toward looking down (-5000) or up (5400) a flight of
+// stairs, or back to level. The probe distances and the easing rate are the
+// fork's reading of that; the targets and the frame gate are the original's.
 void NPawn::FindStairRotation(UObject* Self, float DeltaTime, int& ReturnValue)
 {
-	LogUnimplemented("Pawn.FindStairRotation");
-	ReturnValue = 0;
+	UPawn* pawn = UObject::Cast<UPawn>(Self);
+
+	int pitch = pawn->ViewRotation().Pitch & 0xffff;
+	if (pitch > 0x8000)
+		pitch -= 0x10000;
+	ReturnValue = pitch;
+
+	if (DeltaTime > 0.33f)
+		return;
+	ULevel* level = pawn->XLevel();
+	if (!level || !level->Model)
+		return;
+
+	auto blocked = [&](const vec3& from, const vec3& to) -> bool
+	{
+		dvec3 origin = to_dvec3(from);
+		dvec3 delta = to_dvec3(to) - origin;
+		double len = length(delta);
+		if (len < 0.01)
+			return false;
+		TraceRayModel tracer;
+		return tracer.TraceAnyHit(level->Model, origin, 0.01, delta * (1.0 / len), len, false);
+	};
+
+	vec3 at, left, up;
+	Coords::Rotation(pawn->Rotation()).GetAxes(at, left, up);
+	at.z = 0.0f;
+	float len = length(at);
+	if (len < 0.01f)
+		return;
+	at *= 1.0f / len;
+
+	vec3 eyes = pawn->Location();
+	eyes.z += pawn->EyeHeight();
+	float footZ = pawn->Location().z - pawn->CollisionHeight();
+	const float step = 25.0f;
+	vec3 probe = eyes + at * (4.0f * pawn->CollisionRadius() + 32.0f);
+
+	int target = 0;
+	if (!blocked(eyes, probe))
+	{
+		// The floor under the probe point: above a step up means stairs up,
+		// none until a step down means stairs down, else level. A wall at
+		// eye height ahead keeps the view level.
+		if (blocked(probe, vec3(probe.x, probe.y, footZ + step)))
+			target = 5400;
+		else if (!blocked(vec3(probe.x, probe.y, footZ + step), vec3(probe.x, probe.y, footZ - step)))
+			target = -5000;
+	}
+
+	ReturnValue = pitch + (int)((target - pitch) * std::min(5.0f * DeltaTime, 1.0f));
 }
 
 void NPawn::LineOfSightTo(UObject* Self, UObject* Other, BitfieldBool& ReturnValue)

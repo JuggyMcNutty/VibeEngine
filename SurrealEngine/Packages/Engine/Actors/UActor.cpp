@@ -497,10 +497,13 @@ void UActor::AIEndEvent(const NameString& eventName, uint8_t eventType)
 		manager->EndEvent(this, eventName, eventType);
 }
 
+static float AILightAt(UActor* actor, const vec3& location);
+
 float UActor::AIGetLightLevel(const vec3& Location)
 {
-	LogUnimplemented("Actor.AIGetLightLevel");
-	return 1.0f;
+	// The light the AI-sight work computes for AIVisibility (engine-dll.md,
+	// Small); no game script calls this one directly.
+	return AILightAt(this, Location);
 }
 
 void UActor::AISendEvent(const NameString& eventName, uint8_t eventType, std::optional<float> Value, std::optional<float> Radius)

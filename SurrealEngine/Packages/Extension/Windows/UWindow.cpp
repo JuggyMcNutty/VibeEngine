@@ -807,6 +807,11 @@ UObject* UWindow::NewChild(UObject* NewClass, std::optional<bool> bShow)
 	return child;
 }
 
+// The original plays a window sound one unit from the player: turned left or
+// right by the point's place across the screen -- a quarter turn at either
+// edge -- when the root has positional sound on, else straight ahead. The
+// point defaults to the window's centre and the volume to the window's own
+// (extension-dll.md, Window sounds).
 void UWindow::PlaySound(UObject* newsound, std::optional<float> Volume, std::optional<float> Pitch, std::optional<float> posX, std::optional<float> posY)
 {
 	USound* s = UObject::Cast<USound>(newsound);
@@ -815,12 +820,26 @@ void UWindow::PlaySound(UObject* newsound, std::optional<float> Volume, std::opt
 	{
 		int slot = SLOT_Misc;
 		int id = ((((int)(ptrdiff_t)this) & 0xffffff) << 4) + (slot << 1);
-		vec3 location = player->Location();
-		if (posX)
-			location.x = *posX;
-		if (posY)
-			location.y = *posY;
-		engine->audiodev->PlaySound(player, id, s, location, Volume ? *Volume : 1.0f, player->WorldSoundRadius(), Pitch ? *Pitch : 1.0f, false);
+
+		float across = 0.0f;
+		URootWindow* root = GetRootWindow();
+		if (root && root->bPositionalSound())
+		{
+			float rootX = 0.0f, rootY = 0.0f;
+			ConvertCoordinates(this, posX ? *posX : Width() * 0.5f, posY ? *posY : Height() * 0.5f, root, rootX, rootY);
+			if (root->Width() > 0.0f)
+				across = std::clamp(rootX / root->Width() * 2.0f - 1.0f, -1.0f, 1.0f);
+		}
+
+		vec3 at, left, up;
+		Coords::Rotation(player->Rotation()).GetAxes(at, left, up);
+		float turn = across * (3.14159265f * 0.5f);
+		vec3 location = player->Location() + at * std::cos(turn) - left * std::sin(turn);
+
+		// The window's own volume when it set one (13 windows set 0.25); its
+		// native default is unread, so an unset 0 falls back to full.
+		float volume = Volume ? *Volume : (SoundVolume() > 0.0f ? SoundVolume() : 1.0f);
+		engine->audiodev->PlaySound(player, id, s, location, volume, player->WorldSoundRadius(), Pitch ? *Pitch : 1.0f, false);
 	}
 }
 

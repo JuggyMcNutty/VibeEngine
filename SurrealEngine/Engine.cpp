@@ -1585,8 +1585,10 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		NameString propertyName = args[2];
 		std::string value = args[3];
 
-		// Special input setting handling
-		if (className == "input")
+		// Special input setting handling. Deus Ex's input class is Extension's
+		// InputExt, so the multiplayer key SETs land here too instead of
+		// failing on every map (extension-dll.md, the engine and the input).
+		if (className == "input" || className == "inputext")
 		{
 			keybindings[propertyName.ToString()] = value;
 			packages->SetIniValue("user", "Engine.Input", propertyName, value);

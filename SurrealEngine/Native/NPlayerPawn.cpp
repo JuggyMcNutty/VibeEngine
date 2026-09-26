@@ -100,7 +100,12 @@ void NPlayerPawn::PasteFromClipboard(UObject* Self, std::string& ReturnValue)
 
 void NPlayerPawn::ResetKeyboard(UObject* Self)
 {
-	LogUnimplemented("PlayerPawn.ResetKeyboard");
+	// The original's ResetConfig of the input's class copies nothing in
+	// Deus Ex and has the input read the player's bindings from User.ini
+	// again (core-dll.md, configuration); the fork's binding store reads
+	// from the same ini. DeusExPlayer.TravelPostAccept calls this on every
+	// level change.
+	engine->LoadKeybindings();
 }
 
 void NPlayerPawn::UpdateURL(UObject* Self, const std::string& NewOption, const std::string& NewValue, bool bSaveDefault)
