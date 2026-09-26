@@ -564,11 +564,23 @@ void UWindow::GrabMouse()
 
 void UWindow::Hide()
 {
-	if (bIsVisible())
-	{
-		bIsVisible() = false;
-		VisibilityChanged(false);
-	}
+	SetVisibility(false);
+}
+
+// The original's SetVisibility asks the window's parent: the parent's
+// ChildRequestedVisibilityChange event decides, and the script's default
+// calls SetChildVisibility back on the child; DeusExHUD's override also lays
+// the HUD out again, so the InfoLink and the log push it around as they come
+// and go. The root window, having no parent, sets its own
+// (extension-dll.md, Showing and hiding).
+void UWindow::SetVisibility(bool show)
+{
+	if (bIsVisible() == show)
+		return;
+	if (UWindow* parent = parentOwner())
+		parent->ChildRequestedVisibilityChange(this, show);
+	else
+		SetChildVisibility(show);
 }
 
 bool UWindow::IsActorValid(UObject* refActor)
@@ -872,9 +884,69 @@ void UWindow::SetBoldFont(UObject* fn)
 	boldFont() = UObject::Cast<UFont>(fn);
 }
 
+// VisibilityChanged goes to the window and down through the descendants whose
+// own flags let the change reach them: a subtree hidden by its own flag did
+// not change what can be seen.
+static void NotifyVisibilityChanged(UWindow* window, bool bNewVisibility)
+{
+	window->VisibilityChanged(bNewVisibility);
+	for (UWindow* child = window->firstChild(); child; child = child->nextSibling())
+	{
+		if (child->bIsVisible())
+			NotifyVisibilityChanged(child, bNewVisibility);
+	}
+}
+
+// The original's (extension-dll.md, Showing and hiding): the flag is set, and
+// when that changes whether the window can be seen, focus and grabs move away
+// from what is hidden, VisibilityChanged goes to the window and its
+// descendants, and the tree is laid out again.
 void UWindow::SetChildVisibility(bool bNewVisibility)
 {
-	LogUnimplemented("Window.SetChildVisibility");
+	if (bIsVisible() == bNewVisibility)
+		return;
+
+	// The flag change only shows when every ancestor is visible.
+	bool ancestorsVisible = true;
+	for (UWindow* w = parentOwner(); w; w = w->parentOwner())
+	{
+		if (!w->bIsVisible())
+		{
+			ancestorsVisible = false;
+			break;
+		}
+	}
+
+	bIsVisible() = bNewVisibility;
+
+	if (!ancestorsVisible)
+		return;
+
+	if (!bNewVisibility)
+	{
+		if (URootWindow* root = GetRootWindow())
+		{
+			for (UWindow* w = root->FocusWindow(); w; w = w->parentOwner())
+			{
+				if (w == this)
+				{
+					root->SetRootFocusWindow(parentOwner());
+					break;
+				}
+			}
+			for (UWindow* w = root->grabbedWindow(); w; w = w->parentOwner())
+			{
+				if (w == this)
+				{
+					root->grabbedWindow() = nullptr;
+					break;
+				}
+			}
+		}
+	}
+
+	NotifyVisibilityChanged(this, bNewVisibility);
+	AskParentForReconfigure();
 }
 
 void UWindow::SetClientObject(UObject* newClientObject)
@@ -976,12 +1048,7 @@ void UWindow::SetVisibilitySounds(std::optional<UObject*> visSound, std::optiona
 
 void UWindow::Show(std::optional<bool> bShow)
 {
-	bool show = !bShow || *bShow;
-	if (bIsVisible() != show)
-	{
-		bIsVisible() = show;
-		VisibilityChanged(show);
-	}
+	SetVisibility(!bShow || *bShow);
 }
 
 void UWindow::UngrabMouse()

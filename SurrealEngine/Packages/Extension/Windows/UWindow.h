@@ -227,6 +227,7 @@ public:
 	void SetBaselineData(std::optional<float> newBaselineOffset, std::optional<float> newUnderlineHeight);
 	void SetBoldFont(UObject* fn);
 	void SetChildVisibility(bool bNewVisibility);
+	void SetVisibility(bool show);
 	void SetClientObject(UObject* newClientObject);
 	void SetConfiguration(float newX, float newY, float newWidth, float NewHeight);
 	void SetCursorPos(float newMouseX, float newMouseY);
