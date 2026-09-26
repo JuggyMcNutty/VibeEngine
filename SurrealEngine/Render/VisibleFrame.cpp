@@ -512,11 +512,11 @@ void VisibleFrame::DrawPortals()
 			mat4 skyToView =
 				Coords::ViewToRenderDev().ToMatrix() *
 				ViewRotation.Inverse().ToMatrix() *
-				Coords::Rotation(portal.SkyZone->Rotation()).ToMatrix() *
+				Coords::Rotation(portal.SkyZone->Rotation()).Inverse().ToMatrix() *
 				Coords::Location(portal.SkyZone->Location()).ToMatrix();
 
 			VisibleFrame skyframe;
-			skyframe.Process(portal.SkyZone->Location(), skyToView, ViewRotation * Coords::Rotation(portal.SkyZone->Rotation()), MirrorFlag, PortalDepth + 1, portal.Spans);
+			skyframe.Process(portal.SkyZone->Location(), skyToView, ViewRotation * Coords::Rotation(portal.SkyZone->Rotation()).Inverse(), MirrorFlag, PortalDepth + 1, portal.Spans);
 			Device->SetSceneNode(&skyframe.Frame);
 			skyframe.Draw();
 			Device->ClearZ();
