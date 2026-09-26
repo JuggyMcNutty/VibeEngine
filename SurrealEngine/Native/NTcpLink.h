@@ -14,6 +14,6 @@ public:
 	static void Open(UObject* Self, const IpAddr& Addr, BitfieldBool& ReturnValue);
 	static void ReadBinary(UObject* Self, int Count, uint8_t& B, int& ReturnValue);
 	static void ReadText(UObject* Self, std::string& Str, int& ReturnValue);
-	static void SendBinary(UObject* Self, int Count, uint8_t B, int& ReturnValue);
+	static void SendBinary(UObject* Self, int Count, uint8_t& B, int& ReturnValue);
 	static void SendText(UObject* Self, const std::string& Str, int& ReturnValue);
 };

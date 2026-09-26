@@ -273,6 +273,10 @@ public:
 	virtual void Load(ObjectStream* stream);
 	virtual void Save(PackageStreamWriter* stream);
 
+	// A new object's own values over its class's defaults, as the original's
+	// C++ constructors set them after the defaults are copied in.
+	virtual void InitNativeDefaults() {}
+
 	bool HasProperty(const NameString& name) const;
 	void* GetProperty(const NameString& name);
 	const void* GetProperty(const NameString& name) const;

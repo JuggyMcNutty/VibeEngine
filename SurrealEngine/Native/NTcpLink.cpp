@@ -19,7 +19,7 @@ void NTcpLink::RegisterFunctions()
 
 void NTcpLink::BindPort(UObject* Self, std::optional<int> Port, std::optional<bool> bUseNextAvailable, int& ReturnValue)
 {
-	ReturnValue = UObject::Cast<UTcpLink>(Self)->BindPort(Port ? *Port : 7777, bUseNextAvailable ? *bUseNextAvailable : false);
+	ReturnValue = UObject::Cast<UTcpLink>(Self)->BindPort(Port ? *Port : 0, bUseNextAvailable ? *bUseNextAvailable : false);
 }
 
 void NTcpLink::Close(UObject* Self, BitfieldBool& ReturnValue)
@@ -44,7 +44,7 @@ void NTcpLink::Open(UObject* Self, const IpAddr& Addr, BitfieldBool& ReturnValue
 
 void NTcpLink::ReadBinary(UObject* Self, int Count, uint8_t& B, int& ReturnValue)
 {
-	ReturnValue = UObject::Cast<UTcpLink>(Self)->ReadBinary(Count, B);
+	ReturnValue = UObject::Cast<UTcpLink>(Self)->ReadBinary(Count, &B);
 }
 
 void NTcpLink::ReadText(UObject* Self, std::string& Str, int& ReturnValue)
@@ -52,9 +52,9 @@ void NTcpLink::ReadText(UObject* Self, std::string& Str, int& ReturnValue)
 	ReturnValue = UObject::Cast<UTcpLink>(Self)->ReadText(Str);
 }
 
-void NTcpLink::SendBinary(UObject* Self, int Count, uint8_t B, int& ReturnValue)
+void NTcpLink::SendBinary(UObject* Self, int Count, uint8_t& B, int& ReturnValue)
 {
-	ReturnValue = UObject::Cast<UTcpLink>(Self)->SendBinary(Count, B);
+	ReturnValue = UObject::Cast<UTcpLink>(Self)->SendBinary(Count, &B);
 }
 
 void NTcpLink::SendText(UObject* Self, const std::string& Str, int& ReturnValue)

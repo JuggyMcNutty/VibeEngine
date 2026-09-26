@@ -49,12 +49,10 @@ void NInternetLink::StringToIpAddr(UObject* Self, const std::string& Str, IpAddr
 
 void NInternetLink::ParseURL(UObject* Self, const std::string& URL, std::string& Addr, int& Port, std::string& LevelName, std::string& EntryName, BitfieldBool& ReturnValue)
 {
-	LogUnimplemented("InternetLink.ParseURL");
-	ReturnValue = false;
+	ReturnValue = Self->Cast<UInternetLink>(Self)->ParseURL(URL, Addr, Port, LevelName, EntryName);
 }
 
 void NInternetLink::Validate(UObject* Self, const std::string& ValidationString, const std::string& GameName, std::string& ReturnValue)
 {
-	LogUnimplemented("InternetLink.Validate");
-	ReturnValue = "";
+	ReturnValue = Self->Cast<UInternetLink>(Self)->Validate(ValidationString, GameName);
 }

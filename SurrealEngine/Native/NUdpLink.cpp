@@ -15,12 +15,12 @@ void NUdpLink::RegisterFunctions()
 
 void NUdpLink::BindPort(UObject* Self, std::optional<int> Port, std::optional<bool> bUseNextAvailable, int& ReturnValue)
 {
-	ReturnValue = UObject::Cast<UUdpLink>(Self)->BindPort(Port ? *Port : 7777, bUseNextAvailable ? *bUseNextAvailable : false);
+	ReturnValue = UObject::Cast<UUdpLink>(Self)->BindPort(Port ? *Port : 0, bUseNextAvailable ? *bUseNextAvailable : false);
 }
 
 void NUdpLink::ReadBinary(UObject* Self, IpAddr& Addr, int Count, uint8_t& B, int& ReturnValue)
 {
-	ReturnValue = UObject::Cast<UUdpLink>(Self)->ReadBinary(Addr, Count, B);
+	ReturnValue = UObject::Cast<UUdpLink>(Self)->ReadBinary(Addr, Count, &B);
 }
 
 void NUdpLink::ReadText(UObject* Self, IpAddr& Addr, std::string& Str, int& ReturnValue)
@@ -28,9 +28,9 @@ void NUdpLink::ReadText(UObject* Self, IpAddr& Addr, std::string& Str, int& Retu
 	ReturnValue = UObject::Cast<UUdpLink>(Self)->ReadText(Addr, Str);
 }
 
-void NUdpLink::SendBinary(UObject* Self, const IpAddr& Addr, int Count, uint8_t B, BitfieldBool& ReturnValue)
+void NUdpLink::SendBinary(UObject* Self, const IpAddr& Addr, int Count, uint8_t& B, BitfieldBool& ReturnValue)
 {
-	ReturnValue = UObject::Cast<UUdpLink>(Self)->SendBinary(Addr, Count, B);
+	ReturnValue = UObject::Cast<UUdpLink>(Self)->SendBinary(Addr, Count, &B);
 }
 
 void NUdpLink::SendText(UObject* Self, const IpAddr& Addr, const std::string& Str, BitfieldBool& ReturnValue)

@@ -98,6 +98,7 @@ UObject* Package::NewObject(const NameString& objname, UClass* objclass, ObjectF
 				obj->SetObject("Class", obj->Class);
 				obj->SetName("Name", obj->Name);
 				obj->SetInt("ObjectFlags", (int)obj->Flags);
+				obj->InitNativeDefaults();
 			}
 			return obj;
 		}
