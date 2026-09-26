@@ -5,6 +5,8 @@
 
 class RenderDevice;
 class UWindow;
+class URootWindow;
+struct TextureColor;
 class UFont;
 class UMover;
 class UViewportWindow;
@@ -25,6 +27,11 @@ public:
 
 	void DrawGame(float levelTimeElapsed);
 	void OnMapLoaded();
+
+	// The last frame drawn, as the device reads it back. Only between
+	// frames: a read inside one would end the frame the device is still
+	// recording. False when there is none to read.
+	bool ReadLastFrame(Array<TextureColor>& pixels, int& width, int& height);
 
 	void DrawActor(UActor* actor, bool WireFrame, bool ClearZ);
 	void DrawClippedActor(UActor* actor, bool WireFrame, int X, int Y, int XB, int YB, bool ClearZ);
@@ -119,6 +126,7 @@ private:
 	void RenderOverlays();
 	void PostRender();
 	void PostRenderFlash();
+	void DrawRawBackground(URootWindow* root);
 	void DrawTimedemoStats();
 	void DrawCollisionDebug();
 	void DrawTile(TextureInfo& texinfo, const Rectf& dest, const Rectf& src, const Rectf& clipBox, float Z, vec4 color, vec4 fog, uint32_t flags);
@@ -128,6 +136,9 @@ private:
 
 	float LevelTimeElapsed = 0.0f;
 	float AutoUV = 0.0f;
+
+	bool FrameInProgress = false;
+	bool FrameDrawn = false;
 
 	struct
 	{

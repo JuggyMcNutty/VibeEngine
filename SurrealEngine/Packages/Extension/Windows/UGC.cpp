@@ -676,6 +676,11 @@ void UGC::DrawTile(UTexture* tex, const Rectf& dest, const Rectf& src, const Col
 	if (dest.left >= dest.right || dest.top >= dest.bottom)
 		return;
 
+	// A texture whose pixels changed since it was last drawn goes to the
+	// device again (a snapshot taken into the same texture, for one).
+	texinfo.bRealtimeChanged = tex->TextureModified;
+	tex->TextureModified = false;
+
 	if (dest.left >= clipBox.left && dest.top >= clipBox.top && dest.right <= clipBox.right && dest.bottom <= clipBox.bottom)
 	{
 		engine->render->DrawTile(

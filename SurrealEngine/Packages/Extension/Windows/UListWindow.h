@@ -82,6 +82,8 @@ public:
 
 	void InitWindow() override;
 	void DrawWindow(UGC* gc) override;
+	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
+	void ParentRequestedGranularity(float& hGranularity, float& vGranularity) override;
 	bool MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks) override;
 	bool MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks) override;
 	bool VirtualKeyPressed(EInputKey key, bool bRepeat) override;

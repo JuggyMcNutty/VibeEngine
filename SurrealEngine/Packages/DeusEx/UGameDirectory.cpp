@@ -16,7 +16,6 @@ void UDXGameDirectory::GetGameDirectory()
 	{
 		currentDirectory = engine->packages->GetSaveFolderPath();
 		PopulateDirectoryList();
-		PopulateSaveInfoPointers();
 	}
 }
 
@@ -59,18 +58,34 @@ void UDXGameDirectory::SetDirFilter(const std::string& strFilter)
 	CurrentFilter() = strFilter;
 }
 
+// A slot's save info: -1 the quick save, -2 Current, else Save%04d.
 UDXSaveInfo* UDXGameDirectory::GetSaveInfo(int fileIndex)
 {
 	if (GameDirectoryType() != EGameDirectoryTypes::GD_SaveGames)
-		// We're not in the Save folder
 		return nullptr;
+	return LoadSaveInfo(GetSaveIndexFolderName(fileIndex));
+}
 
-	auto pkg = engine->packages->GetSaveInfoPackage(GetSaveIndexFolderName(fileIndex));
+// The save info of the listing's i-th directory -- its place in the list,
+// not its slot number (docs/re/deusex-dll.md, the save directory).
+UDXSaveInfo* UDXGameDirectory::GetSaveInfoFromDirectoryIndex(int DirectoryIndex)
+{
+	auto list = DirectoryList();
+	if (GameDirectoryType() != EGameDirectoryTypes::GD_SaveGames || DirectoryIndex < 0 || (size_t)DirectoryIndex >= list.size())
+		return nullptr;
+	return LoadSaveInfo(list[DirectoryIndex]);
+}
+
+// Loads a save directory's MyDeusExSaveInfo and keeps it, as the original
+// keeps it, so DeleteSaveInfo can let it go.
+UDXSaveInfo* UDXGameDirectory::LoadSaveInfo(const std::string& folderName)
+{
+	auto pkg = engine->packages->GetSaveInfoPackage(folderName);
 	if (!pkg)
 	{
 		// A save made this session is not scanned yet.
 		engine->packages->ScanSaveInfos();
-		pkg = engine->packages->GetSaveInfoPackage(GetSaveIndexFolderName(fileIndex));
+		pkg = engine->packages->GetSaveInfoPackage(folderName);
 	}
 	if (!pkg)
 		return nullptr;
@@ -78,7 +93,6 @@ UDXSaveInfo* UDXGameDirectory::GetSaveInfo(int fileIndex)
 	auto info = Cast<UDXSaveInfo>(pkg->GetUObject("DeusExSaveInfo", "MyDeusExSaveInfo"));
 	if (info)
 	{
-		// Kept, as the original keeps it, so DeleteSaveInfo can let it go.
 		auto list = LoadedSaveInfoPointers();
 		bool kept = false;
 		for (auto& it : list)
@@ -89,17 +103,16 @@ UDXSaveInfo* UDXGameDirectory::GetSaveInfo(int fileIndex)
 	return info;
 }
 
-UDXSaveInfo* UDXGameDirectory::GetSaveInfoFromDirectoryIndex(int DirectoryIndex)
-{
-	for (const auto& dxSaveInfo : LoadedSaveInfoPointers())
-		if (dxSaveInfo->DirectoryIndex() == DirectoryIndex)
-			return dxSaveInfo;
-
-	return nullptr;
-}
-
+// One transient save info, made the first time and kept: the Save Game
+// screen stamps the new save's row with its time (docs/re/deusex-dll.md,
+// the save directory).
 UDXSaveInfo* UDXGameDirectory::GetTempSaveInfo()
 {
+	if (!TempSaveInfo())
+	{
+		UClass* cls = engine->packages->FindClass("DeusEx.DeusExSaveInfo");
+		TempSaveInfo() = Cast<UDXSaveInfo>(engine->packages->GetTransientPackage()->NewObject("DeusExSaveInfo", cls, ObjectFlags::Transient));
+	}
 	return TempSaveInfo();
 }
 
@@ -115,7 +128,7 @@ void UDXGameDirectory::DeleteSaveInfo(UDXSaveInfo& saveInfo)
 			for (size_t j = i + 1; j < list.size(); j++)
 				list[j - 1] = list[j];
 			list.Array->Resize(list.size() - 1);
-			engine->packages->RemoveSaveInfoPackage(GetSaveIndexFolderName(saveInfo.DirectoryIndex()));
+			engine->packages->RemoveSaveInfoPackage(saveInfo.package->GetPackageName());
 			return;
 		}
 	}
@@ -128,32 +141,40 @@ void UDXGameDirectory::PurgeAllSaveInfo()
 	for (size_t i = 0; i < list.size(); i++)
 	{
 		if (list[i])
-			engine->packages->RemoveSaveInfoPackage(GetSaveIndexFolderName(list[i]->DirectoryIndex()));
+			engine->packages->RemoveSaveInfoPackage(list[i]->package->GetPackageName());
 	}
 	list.Array->Resize(0);
 }
 
+// The free space of the save path's drive and a slot's size, both in KB, as
+// the original's (docs/re/deusex-dll.md, the save directory). The screens
+// ask a directory object for the free space before it has read any
+// directory, so both go by the save path itself. Space that cannot be
+// read counts as plenty, where 0 would refuse every save.
 int UDXGameDirectory::GetSaveFreeSpace()
 {
-	// Returns a value in KBs, which limits us to ~2TB of "free space" max.
-	// Should be enough but still
-	const auto freeSpaceInKBs = static_cast<int>(fs::space(currentDirectory).free / 1024);
-	// Capped at 1TB
-	return std::min(freeSpaceInKBs, 1000 * 1024 * 1024);
+	const int capKB = 1000 * 1024 * 1024;
+	std::error_code ec;
+	fs::path path = engine->packages->GetSaveFolderPath();
+	fs::space_info info = fs::space(path, ec);
+	if (ec)
+		info = fs::space(path.parent_path(), ec);
+	if (ec)
+		return capKB;
+	return (int)std::min<uintmax_t>(info.available / 1024, (uintmax_t)capKB);
 }
 
 int UDXGameDirectory::GetSaveDirectorySize(int saveIndex)
 {
-	if (GameDirectoryType() != EGameDirectoryTypes::GD_SaveGames)
-		// We're not in the Save folder
-		return 0;
-
-	int size = 0;
-
-	for (auto& p : fs::directory_iterator(currentDirectory / GetSaveIndexFolderName(saveIndex)))
-		size += (int)p.file_size();
-
-	return size;
+	std::error_code ec;
+	uintmax_t size = 0;
+	for (auto& p : fs::directory_iterator(engine->packages->GetSaveFolderPath() / GetSaveIndexFolderName(saveIndex), ec))
+	{
+		uintmax_t fileSize = p.is_regular_file(ec) ? p.file_size(ec) : 0;
+		if (!ec)
+			size += fileSize;
+	}
+	return (int)(size / 1024);
 }
 
 std::string UDXGameDirectory::GetSaveIndexFolderName(int saveIndex)
@@ -187,22 +208,5 @@ void UDXGameDirectory::PopulateDirectoryList()
 			if (name.size() >= 5 && name.compare(0, 4, "Save") == 0 && name[4] >= '0' && name[4] <= '9')
 				list.push_back(name);
 		}
-	}
-}
-
-void UDXGameDirectory::PopulateSaveInfoPointers()
-{
-	engine->packages->ScanSaveInfos();
-
-	auto list = LoadedSaveInfoPointers();
-	list.Array->Resize(0);
-
-	for (auto& dir : DirectoryList())
-	{
-		auto pkg = engine->packages->GetSaveInfoPackage(dir);
-		if (!pkg)
-			continue;
-		if (auto info = Cast<UDXSaveInfo>(pkg->GetUObject("DeusExSaveInfo", "MyDeusExSaveInfo")))
-			list.push_back(info);
 	}
 }

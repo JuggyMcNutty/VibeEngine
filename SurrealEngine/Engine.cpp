@@ -1012,6 +1012,26 @@ void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 	}
 }
 
+// The original's SaveGame makes a texture beside the save info and has the
+// root window put a 160x120 snapshot in it -- none under its OpenGL driver
+// (docs/re/deusex-dll.md, travel and saving). The Save Game screen hides the
+// UI two frames before it asks, so the frame last drawn is the world alone.
+void Engine::TakeSaveSnapshot()
+{
+	if (!LaunchInfo.IsDeusEx() || !dxSaveInfo)
+		return;
+
+	std::string device = packages->GetIniValue("system", "Engine.Engine", "GameRenderDevice");
+	if (!dxRootWindow || StrTools::equals_ignore_case(device, "OpenGLDrv.OpenGLRenderDevice"))
+	{
+		dxSaveInfo->Snapshot() = nullptr;
+		return;
+	}
+
+	dxRootWindow->SetSnapshotSize(160.0f, 120.0f);
+	dxSaveInfo->Snapshot() = dxRootWindow->MakeSnapshot(dxSaveInfo->Snapshot(), dxSaveInfo->package);
+}
+
 std::string Engine::SaveSlotFolderName(int32_t slot) const
 {
 	if (slot == -1)
@@ -1517,6 +1537,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		}
 
 		SaveGameInfo.SaveGameSlot = slotNum;
+		TakeSaveSnapshot();
 
 		if (args.size() == 3)
 			SaveGameInfo.SaveGameDescription = args[2];

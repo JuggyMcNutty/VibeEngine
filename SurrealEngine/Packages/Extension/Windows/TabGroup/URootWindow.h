@@ -3,6 +3,7 @@
 #include "UModalWindow.h"
 
 class UTexture;
+class Package;
 
 class URootWindow : public UModalWindow
 {
@@ -12,6 +13,7 @@ public:
 	void EnablePositionalSound(std::optional<bool> bEnable);
 	void EnableRendering(std::optional<bool> bRender);
 	UObject* GenerateSnapshot(std::optional<bool> bFilter);
+	UTexture* MakeSnapshot(UTexture* texture, Package* package);
 	bool IsPositionalSoundEnabled();
 	bool IsRenderingEnabled();
 	void LockMouse(std::optional<bool> bLockMove, std::optional<bool> bLockButton);

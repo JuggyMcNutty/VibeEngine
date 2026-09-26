@@ -44,5 +44,5 @@ private:
 	fs::path currentDirectory;
 	std::string GetSaveIndexFolderName(int saveIndex);
 	void PopulateDirectoryList();
-	void PopulateSaveInfoPointers();
+	UDXSaveInfo* LoadSaveInfo(const std::string& folderName);
 };

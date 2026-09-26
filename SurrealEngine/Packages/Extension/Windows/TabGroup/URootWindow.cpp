@@ -12,6 +12,7 @@
 #include "Package/PackageManager.h"
 #include "Packages/DeusEx/UDeusExSaveInfo.h"
 #include "Packages/Engine/Resources/UPalette.h"
+#include "Render/RenderSubsystem.h"
 
 void URootWindow::EnablePositionalSound(std::optional<bool> bEnable)
 {
@@ -25,14 +26,113 @@ void URootWindow::EnableRendering(std::optional<bool> newRender)
 
 UObject* URootWindow::GenerateSnapshot(std::optional<bool> bFilter)
 {
-	// The original reads the rendered frame, averages it down to the size
-	// SetSnapshotSize gave, and stores it grey in an 8-bit texture
-	// (docs/re/extension-dll.md, save pictures). The fork's read-back
-	// (RenderDevice::ReadPixels) tears down the frame the renderer is
-	// overlapping, wherever it is called, so there is no picture yet --
-	// as the original itself saves none for its OpenGL driver. A capture
-	// point built into the renderer's own end of frame comes later.
-	return nullptr;
+	return MakeSnapshot(nullptr, engine->packages->GetTransientPackage());
+}
+
+// The original's (docs/re/extension-dll.md, save pictures): the frame last
+// drawn, averaged down to the size SetSnapshotSize gave -- each pixel the
+// mean of the box of pixels it covers, its channels scaled by 256/255 --
+// and kept as the mean of its three channels in an 8-bit texture with a
+// grey palette, its sizes rounded up to powers of two. Into the texture
+// given, or a new one in the package given.
+UTexture* URootWindow::MakeSnapshot(UTexture* texture, Package* package)
+{
+	int width = snapshotWidth();
+	int height = snapshotHeight();
+	if (width <= 0 || height <= 0)
+		return nullptr;
+
+	Array<TextureColor> pixels;
+	int srcWidth = 0, srcHeight = 0;
+	if (!engine->render || !engine->render->ReadLastFrame(pixels, srcWidth, srcHeight))
+		return nullptr;
+
+	if (!texture)
+	{
+		UClass* textureClass = engine->packages->FindClass("Engine.Texture");
+		texture = UObject::Cast<UTexture>(package->NewObject("Snapshot", textureClass, ObjectFlags::NoFlags));
+	}
+
+	UPalette* palette = texture->Palette();
+	if (!palette || palette->package != texture->package)
+	{
+		UClass* paletteClass = engine->packages->FindClass("Engine.Palette");
+		palette = UObject::Cast<UPalette>(texture->package->NewObject("SnapshotPalette", paletteClass, ObjectFlags::NoFlags));
+	}
+	palette->Colors.resize(256);
+	for (uint32_t i = 0; i < 256; i++)
+		palette->Colors[i] = i | (i << 8) | (i << 16) | 0xff000000;
+
+	int usize = 1, ubits = 0;
+	while (usize < width) { usize <<= 1; ubits++; }
+	int vsize = 1, vbits = 0;
+	while (vsize < height) { vsize <<= 1; vbits++; }
+
+	UnrealMipmap mip;
+	mip.Width = usize;
+	mip.Height = vsize;
+	mip.UBits = ubits;
+	mip.VBits = vbits;
+	mip.Data.resize((size_t)usize * vsize, 0);
+
+	// The box walks the frame in steps of the frame's size over the
+	// snapshot's, a step of whole pixels from where it truncates to.
+	float xStep = srcWidth / (float)width;
+	float yStep = srcHeight / (float)height;
+	int dstY = 0;
+	for (float srcY = 0.0f; srcY < (float)srcHeight; srcY += yStep, dstY++)
+	{
+		int dstX = 0;
+		for (float srcX = 0.0f; srcX < (float)srcWidth; srcX += xStep, dstX++)
+		{
+			if (dstX >= width || dstY >= height)
+				continue;
+
+			double sum[3] = {};
+			int count = 0;
+			for (int i = 0; (float)i < xStep; i++)
+			{
+				for (int j = 0; (float)j < yStep; j++)
+				{
+					if ((float)i + srcX < (float)srcWidth && (float)j + srcY < (float)srcHeight)
+					{
+						const TextureColor& p = pixels[((size_t)srcY + j) * srcWidth + (size_t)srcX + i];
+						sum[0] += p.R;
+						sum[1] += p.G;
+						sum[2] += p.B;
+						count++;
+					}
+				}
+			}
+			if (count == 0)
+				continue;
+
+			int grey = 0;
+			for (double channel : sum)
+			{
+				float scaled = (float)(channel / 255.0 / count) * 256.0f;
+				grey += std::clamp((int)std::nearbyint(scaled - 0.5f), 0, 255);
+			}
+			mip.Data[(size_t)dstY * usize + dstX] = (uint8_t)(grey / 3);
+		}
+	}
+
+	texture->Format() = (uint8_t)TextureFormat::P8;
+	texture->Palette() = palette;
+	texture->USize() = usize;
+	texture->VSize() = vsize;
+	texture->UBits() = (uint8_t)ubits;
+	texture->VBits() = (uint8_t)vbits;
+	texture->UClamp() = usize;
+	texture->VClamp() = vsize;
+	texture->MaxColor() = { 255, 255, 255, 255 };
+	texture->bRealtimeChanged() = true;
+	texture->UncompressedMipmaps.clear();
+	texture->UncompressedMipmaps.push_back(std::move(mip));
+	texture->UsedMipmaps = texture->UncompressedMipmaps;
+	texture->UsedFormat = TextureFormat::P8;
+	texture->TextureModified = true;
+	return texture;
 }
 
 bool URootWindow::IsPositionalSoundEnabled()

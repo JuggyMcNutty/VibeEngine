@@ -33,12 +33,71 @@ void RenderSubsystem::PostRenderWindows(UCanvas* canvas)
 	float realVirtualHeight = engine->viewport->ViewportHeight() / virtualScale;
 	engine->dxgc->ResetClip(engine->dxgc->ScaleRect(Rectf::xywh(0.0f, 0.0f, realVirtualWidth, realVirtualHeight)));
 
+	DrawRawBackground(engine->dxRootWindow);
 	DrawWindow(engine->dxRootWindow, 0.0f, 0.0f);
 
 	if (engine->getDXWindowDebugMode())
 	{
 		float curY = 100.0f;
 		DrawWindowInfo(engine->canvas->SmallFont(), engine->dxRootWindow, 0, curY);
+	}
+}
+
+// The root window's raw background -- DeusExRootWindow's snapshot under a
+// menu -- as the original draws it, before any window: over the root less
+// what the scene covers (all of it with rendering on and no render viewport,
+// nothing with rendering off, the viewport's rectangle with one set), each
+// piece left stretched from the background's own size or tiled from its
+// corner, in the raw colour and unsmoothed (docs/re/extension-dll.md, the
+// raw background). Every window lets it through, as every window of the
+// original's is made with bDrawRawBackground on.
+void RenderSubsystem::DrawRawBackground(URootWindow* root)
+{
+	UTexture* tex = root->rawBackground();
+	if (!tex)
+		return;
+
+	Rectf full = Rectf::xywh(0.0f, 0.0f, root->Width(), root->Height());
+	Array<Rectf> pieces;
+	if (!root->bRender())
+	{
+		pieces.push_back(full);
+	}
+	else if (root->RenderViewportSet)
+	{
+		// The original's clip list subtraction: above the viewport, below
+		// it, then left and right of it within its height.
+		float cutLeft = std::max(root->renderX(), full.left);
+		float cutTop = std::max(root->renderY(), full.top);
+		float cutRight = std::min(root->renderX() + root->renderWidth(), full.right);
+		float cutBottom = std::min(root->renderY() + root->renderHeight(), full.bottom);
+		if (cutRight <= cutLeft || cutBottom <= cutTop)
+		{
+			pieces.push_back(full);
+		}
+		else
+		{
+			pieces.push_back(Rectf(full.left, full.top, full.right, cutTop));
+			pieces.push_back(Rectf(full.left, cutBottom, full.right, full.bottom));
+			pieces.push_back(Rectf(full.left, cutTop, cutLeft, cutBottom));
+			pieces.push_back(Rectf(cutRight, cutTop, full.right, cutBottom));
+		}
+	}
+
+	ResetWindowGC(root, root->UsedX, root->UsedY);
+	engine->dxgc->SetStyle(EDrawStyle::Normal);
+	engine->dxgc->SetTileColor(root->rawColor());
+	engine->dxgc->EnableSmoothing(false);
+	for (const Rectf& piece : pieces)
+	{
+		float w = piece.right - piece.left;
+		float h = piece.bottom - piece.top;
+		if (w <= 0.0f || h <= 0.0f)
+			continue;
+		if (root->bStretchRawBackground())
+			engine->dxgc->DrawStretchedTexture(piece.left, piece.top, w, h, 0.0f, 0.0f, root->rawBackgroundWidth(), root->rawBackgroundHeight(), tex);
+		else
+			engine->dxgc->DrawPattern(piece.left, piece.top, w, h, piece.left, piece.top, tex);
 	}
 }
 

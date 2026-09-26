@@ -10,6 +10,7 @@
 #include "Packages/Engine/Resources/UPalette.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Packages/Engine/Resources/Level/UPolys.h"
+#include "Packages/Extension/Windows/TabGroup/URootWindow.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
 
@@ -40,14 +41,23 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 
 	Device->Brightness = engine->client->Brightness;
 	Device->Lock(vec4(flashScale, 1.0f), vec4(flashFog, 1.0f), vec4(0.0f), nullptr, nullptr);
+	FrameInProgress = true;
 
 	ResetCanvas();
 	PreRender();
 
 	if (engine->LaunchInfo.ue1Version <= 219 || engine->console->bNoDrawWorld() == false)
 	{
-		DrawScene();
-		RenderOverlays();
+		// With the root window's rendering off (a menu over the snapshot,
+		// the black background, the credits) the original's scene frame is
+		// empty: nothing of the world or the overlays is drawn, and the
+		// windows still are, from PostRenderFlash
+		// (docs/re/extension-dll.md, the raw background).
+		if (!engine->dxRootWindow || engine->dxRootWindow->bRender())
+		{
+			DrawScene();
+			RenderOverlays();
+		}
 		if (engine->LaunchInfo.IsDeusEx())
 			PostRenderFlash();
 		Device->EndFlash();
@@ -56,6 +66,23 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 	PostRender();
 
 	Device->Unlock(true);
+	FrameInProgress = false;
+	FrameDrawn = true;
+}
+
+bool RenderSubsystem::ReadLastFrame(Array<TextureColor>& pixels, int& width, int& height)
+{
+	if (FrameInProgress || !FrameDrawn)
+		return false;
+
+	width = Device->GetRenderWidth();
+	height = Device->GetRenderHeight();
+	if (width <= 0 || height <= 0)
+		return false;
+
+	pixels.resize((size_t)width * height);
+	Device->ReadPixels(pixels.data());
+	return true;
 }
 
 void RenderSubsystem::DrawEditorViewport()
@@ -70,6 +97,7 @@ void RenderSubsystem::DrawVideoFrame(TextureInfo* frame, TextureInfo* background
 	vec3 flashFog = vec3(0.0f, 0.0f, 0.0f);
 	Device->Brightness = 0.4f;// engine->client->Brightness;
 	Device->Lock(vec4(flashScale, 1.0f), vec4(flashFog, 1.0f), vec4(0.0f), nullptr, nullptr);
+	FrameInProgress = true;
 	ResetCanvas();
 	Device->SetSceneNode(&Canvas.Frame);
 
@@ -93,6 +121,7 @@ void RenderSubsystem::DrawVideoFrame(TextureInfo* frame, TextureInfo* background
 
 	Device->EndFlash();
 	Device->Unlock(true);
+	FrameInProgress = false;
 }
 
 void RenderSubsystem::UpdateTexture(UTexture* tex)
