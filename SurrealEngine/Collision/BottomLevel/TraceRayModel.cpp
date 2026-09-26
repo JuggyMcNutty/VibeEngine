@@ -3,10 +3,14 @@
 #include "TraceRayModel.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 
+// A model with no BSP (a brush never built) is hit by nothing, as the
+// original's.
 CollisionHitList TraceRayModel::Trace(UModel* model, const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, bool visibilityOnly)
 {
 	Model = model;
 	CollisionHitList hits;
+	if (!Model || Model->Nodes.empty())
+		return hits;
 	Trace(origin, tmin, dirNormalized, tmax, visibilityOnly, &Model->Nodes.front(), hits, 0.0, tmax);
 	hits.SortByFraction();
 	return hits;
@@ -15,6 +19,8 @@ CollisionHitList TraceRayModel::Trace(UModel* model, const dvec3& origin, double
 bool TraceRayModel::TraceAnyHit(UModel* model, const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, bool visibilityOnly)
 {
 	Model = model;
+	if (!Model || Model->Nodes.empty())
+		return false;
 	return TraceAnyHit(origin, tmin, dirNormalized, tmax, visibilityOnly, &Model->Nodes.front(), 0.0, tmax);
 }
 

@@ -31,7 +31,9 @@ void UActor::TickSwimming(float elapsed)
 	float timeLeft = elapsed;
 	vec3 vel = Velocity() + zone->ZoneVelocity() * elapsed * 25.0f;
 
-	vel.z += zone->ZoneGravity().z * (1.0f - Buoyancy() / Mass()) * elapsed;
+	// The mass floored at 1, as the original's falling in water has it: a
+	// massless pawn (Deus Ex's GeneratorScout) would make this 0/0.
+	vel.z += zone->ZoneGravity().z * (1.0f - Buoyancy() / std::max(Mass(), 1.0f)) * elapsed;
 
 	//required for "stepping out of water"
 	float gravityDirection = zone->ZoneGravity().z > 0.0f ? 1.0f : -1.0f;

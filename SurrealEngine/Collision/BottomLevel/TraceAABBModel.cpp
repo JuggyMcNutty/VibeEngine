@@ -7,6 +7,8 @@ CollisionHitList TraceAABBModel::Trace(UModel* model, const dvec3& origin, doubl
 {
 	Model = model;
 	CollisionHitList hits;
+	if (!Model || Model->Nodes.empty())
+		return hits;
 	Trace(origin, tmin, dirNormalized, tmax, extents, visibilityOnly, &Model->Nodes.front(), hits);
 	hits.SortByFraction();
 	return hits;

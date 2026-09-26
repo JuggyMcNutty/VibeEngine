@@ -267,7 +267,11 @@ static vec3 CylinderHitNormal(const dvec3& hitpos, UActor* actor, double boxHeig
 
 void TraceTester::TraceActor(UActor* actor, const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, double height, double radius, bool traceActors, bool traceWorld, bool visibilityOnly, CollisionHitList& hits)
 {
-	if (UMover* mover = UObject::TryCast<UMover>(actor))
+	// A mover with no brush (09_NYC_ShipBelow has one) collides as its
+	// cylinder: the original's primitive is the brush, else the mesh, else
+	// the engine's cylinder.
+	UMover* mover = UObject::TryCast<UMover>(actor);
+	if (mover && mover->Brush())
 	{
 		if (!traceWorld)
 			return;
