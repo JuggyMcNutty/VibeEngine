@@ -869,11 +869,13 @@ void PackageManager::LoadEngineIniFiles()
 	defaultIniFile = std::make_unique<IniFile>((gameSystemFolderPath / "Default.ini").string());
 
 	// --ini and --userini name the files outright, read and written back,
-	// as the original's INI= and USERINI= do.
+	// as the original's INI= and USERINI= do. The file named is the engine's
+	// own when it has the engine's sections; otherwise it is a game's, and
+	// the settings come from the game's sections, as without an SE- ini.
 	if (!launchInfo.systemIniPath.empty())
 	{
 		iniFiles[systemIniName] = std::make_unique<IniFile>(launchInfo.systemIniPath);
-		missing_se_system_ini = false;
+		missing_se_system_ini = iniFiles[systemIniName]->GetKeys("Engine.SurrealAudioDevice").empty();
 	}
 	else
 	{
