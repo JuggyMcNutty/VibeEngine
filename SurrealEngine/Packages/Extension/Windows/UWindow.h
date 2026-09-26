@@ -186,6 +186,7 @@ public:
 	UObject* GetPlayerPawn();
 	URootWindow* GetRootWindow();
 	UObject* GetTabGroupWindow();
+	UObject* MoveTabGroup(bool next);
 	float GetTickOffset();
 	UObject* GetTopChild(std::optional<bool> bVisibleOnly);
 	void GrabMouse();

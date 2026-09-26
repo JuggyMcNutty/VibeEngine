@@ -45,9 +45,13 @@ bool URootWindow::IsRenderingEnabled()
 	return bRender();
 }
 
+// With movement locked the pointer stays where it is; with buttons locked the
+// UI takes and ignores them. The Customize Keys screen locks movement while
+// it waits for a key (extension-dll.md, The root window).
 void URootWindow::LockMouse(std::optional<bool> bLockMove, std::optional<bool> bLockButton)
 {
-	LogUnimplemented("RootWindow.LockMouse");
+	bMouseMoveLocked() = bLockMove.value_or(false);
+	bMouseButtonLocked() = bLockButton.value_or(false);
 }
 
 void URootWindow::SetDefaultEditCursor(std::optional<UObject*> newEditCursor)
@@ -316,6 +320,9 @@ bool URootWindow::OnWindowMouseMove(const Point& pos)
 
 bool URootWindow::OnWindowMouseDown(const Point& pos, EInputKey key)
 {
+	if (bMouseButtonLocked())
+		return true;
+
 	float relativeX = 0.0f, relativeY = 0.0f;
 	UWindow* focus = GetCursorFocus(relativeX, relativeY);
 
@@ -346,6 +353,9 @@ bool URootWindow::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 
 bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)
 {
+	if (bMouseButtonLocked())
+		return true;
+
 	float relativeX = 0.0f, relativeY = 0.0f;
 	UWindow* focus = GetCursorFocus(relativeX, relativeY);
 
@@ -376,7 +386,7 @@ bool URootWindow::OnWindowMouseWheel(const Point& pos, EInputKey key)
 
 bool URootWindow::OnWindowRawMouseMove(int dx, int dy)
 {
-	if (IsCursorVisible())
+	if (IsCursorVisible() && !bMouseMoveLocked())
 	{
 		// Deltas are window pixels; the UI is laid out in render pixels
 		float mouseSpeed = engine->window->GetRenderDevice()->GetRenderScale() / GetVirtualScale();

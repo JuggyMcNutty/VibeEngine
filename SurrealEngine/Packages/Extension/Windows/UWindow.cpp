@@ -3,6 +3,7 @@
 #include "UWindow.h"
 #include "UGC.h"
 #include "TabGroup/URootWindow.h"
+#include "TabGroup/UTabGroupWindow.h"
 #include "Audio/AudioDevice.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
@@ -531,10 +532,14 @@ URootWindow* UWindow::GetRootWindow()
 	return UObject::TryCast<URootWindow>(cur);
 }
 
+// The nearest tab group at or above the window (extension-dll.md, Small).
 UObject* UWindow::GetTabGroupWindow()
 {
-	// Not called directly by script
-	LogUnimplemented("Window.GetTabGroupWindow");
+	for (UWindow* cur = this; cur; cur = cur->parentOwner())
+	{
+		if (UObject::TryCast<UTabGroupWindow>(cur))
+			return cur;
+	}
 	return nullptr;
 }
 
@@ -717,16 +722,65 @@ UObject* UWindow::MoveFocusUp()
 	// tbd
 }*/
 
+// The visible tab groups under a window, in tree order; a subtree hidden by
+// its own flag holds nothing focus can move to.
+static void CollectTabGroups(UWindow* window, Array<UTabGroupWindow*>& groups)
+{
+	for (UWindow* child = window->firstChild(); child; child = child->nextSibling())
+	{
+		if (!child->bIsVisible())
+			continue;
+		if (UTabGroupWindow* group = UObject::TryCast<UTabGroupWindow>(child))
+			groups.push_back(group);
+		CollectTabGroups(child, groups);
+	}
+}
+
+// The original moves the focus to the next or previous tab group; the root
+// window's script calls these for Tab and Shift+Tab (extension-dll.md,
+// Small). The groups are ordered by their tabGroupIndex, tree order breaking
+// ties, and the walk wraps.
+UObject* UWindow::MoveTabGroup(bool next)
+{
+	URootWindow* root = GetRootWindow();
+	if (!root)
+		return nullptr;
+
+	Array<UTabGroupWindow*> groups;
+	CollectTabGroups(root, groups);
+	if (groups.empty())
+		return nullptr;
+
+	std::stable_sort(groups.begin(), groups.end(),
+		[](UTabGroupWindow* a, UTabGroupWindow* b) { return a->tabGroupIndex() < b->tabGroupIndex(); });
+
+	size_t index = 0;
+	UWindow* focus = root->FocusWindow();
+	UTabGroupWindow* current = focus ? UObject::TryCast<UTabGroupWindow>(focus->GetTabGroupWindow()) : nullptr;
+	if (current)
+	{
+		for (size_t i = 0; i < groups.size(); i++)
+		{
+			if (groups[i] == current)
+			{
+				index = (i + (next ? 1 : groups.size() - 1)) % groups.size();
+				break;
+			}
+		}
+	}
+
+	root->SetRootFocusWindow(groups[index]);
+	return groups[index];
+}
+
 UObject* UWindow::MoveTabGroupNext()
 {
-	LogUnimplemented("Window.MoveTabGroupNext");
-	return nullptr;
+	return MoveTabGroup(true);
 }
 
 UObject* UWindow::MoveTabGroupPrev()
 {
-	LogUnimplemented("Window.MoveTabGroupPrev");
-	return nullptr;
+	return MoveTabGroup(false);
 }
 
 UObject* UWindow::NewChild(UObject* NewClass, std::optional<bool> bShow)

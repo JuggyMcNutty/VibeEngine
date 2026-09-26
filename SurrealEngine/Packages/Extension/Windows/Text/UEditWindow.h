@@ -48,6 +48,21 @@ public:
 	bool MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks) override;
 	void TextModifiedByScript() override;
 
+	// The undo list: each change a position, the text removed and the text
+	// put in (extension-dll.md, Small). Changes [0, undoIndex) are applied;
+	// what follows is what redo replays.
+	struct EditChange
+	{
+		int pos = 0;
+		std::string removed;
+		std::string inserted;
+	};
+	Array<EditChange> undoList;
+	int undoIndex = 0;
+
+	void AddUndo(int pos, std::string removed, std::string inserted);
+	void ApplyChange(int pos, const std::string& from, const std::string& to);
+
 	BitfieldBool bCursorShowing() { return BoolValue(PropOffsets_EditWindow.bCursorShowing); }
 	BitfieldBool bDragging() { return BoolValue(PropOffsets_EditWindow.bDragging); }
 	BitfieldBool bEditable() { return BoolValue(PropOffsets_EditWindow.bEditable); }

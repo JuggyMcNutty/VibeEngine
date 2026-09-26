@@ -6,20 +6,66 @@
 #include "Packages/Engine/Resources/UFont.h"
 #include "Packages/Engine/Resources/USound.h"
 
+// The original's undo is a list of changes -- each a position, the text
+// removed and the text put in -- capped at maxUndos, with typing straight
+// after the last change joining it; the script's Ctrl+Z and Ctrl+Y call Undo
+// and Redo (extension-dll.md, Small).
+void UEditWindow::AddUndo(int pos, std::string removed, std::string inserted)
+{
+	undoList.resize(undoIndex);   // a new change drops what redo held
+
+	if (!undoList.empty() && removed.empty() && !inserted.empty())
+	{
+		EditChange& last = undoList.back();
+		if (last.removed.empty() && pos == last.pos + (int)last.inserted.size())
+		{
+			last.inserted += inserted;
+			return;
+		}
+	}
+
+	undoList.push_back({ pos, std::move(removed), std::move(inserted) });
+	if (maxUndos() > 0 && (int)undoList.size() > maxUndos())
+		undoList.erase(undoList.begin());
+	undoIndex = (int)undoList.size();
+}
+
+void UEditWindow::ApplyChange(int pos, const std::string& from, const std::string& to)
+{
+	std::string text = Text();
+	if (pos < 0 || pos + (int)from.size() > (int)text.size())
+		return;
+	text = text.substr(0, pos) + to + text.substr(pos + from.size());
+	insertPos() = pos + (int)to.size();
+	selectStart() = insertPos();
+	selectEnd() = insertPos();
+	SetText(text);
+	SetTextChangedFlag(true);
+	DispatchTextChanged(true);
+}
+
 void UEditWindow::ClearUndo()
 {
-	// UNUSED from scripts.
-	LogUnimplemented("EditWindow.ClearUndo");
+	undoList.clear();
+	undoIndex = 0;
 }
 
 void UEditWindow::Redo()
 {
-	LogUnimplemented("EditWindow.Redo");
+	if (undoIndex >= (int)undoList.size())
+		return;
+	const EditChange& change = undoList[undoIndex];
+	undoIndex++;
+	ApplyChange(change.pos, change.removed, change.inserted);
 }
 
 void UEditWindow::Undo()
 {
-	LogUnimplemented("EditWindow.Undo");
+	if (undoIndex <= 0)
+		return;
+	undoIndex--;
+	const EditChange& change = undoList[undoIndex];
+	ApplyChange(change.pos, change.inserted, change.removed);
 }
 
 void UEditWindow::SetMaxUndos(int newMaxUndos)
@@ -58,10 +104,14 @@ void UEditWindow::Paste()
 void UEditWindow::DeleteChar(std::optional<bool> bBefore, std::optional<bool> bUndo)
 {
 	std::string text = Text();
+	std::string removed;
+	int removedPos = 0;
 	int selStart = 0, selCount = 0;
 	GetSelectedArea(selStart, selCount);
 	if (selCount > 0)
 	{
+		removed = text.substr(selStart, selCount);
+		removedPos = selStart;
 		text = text.substr(0, selStart) + text.substr(selStart + selCount);
 		if (insertPos() >= selStart + selCount)
 			insertPos() -= selCount;
@@ -71,19 +121,30 @@ void UEditWindow::DeleteChar(std::optional<bool> bBefore, std::optional<bool> bU
 	else if (bBefore.has_value() && bBefore.value())
 	{
 		if (insertPos() > 0)
+		{
+			removed = text.substr(insertPos() - 1, 1);
+			removedPos = insertPos() - 1;
 			text.erase(text.begin() + (insertPos() - 1));
-		insertPos()--;
+			insertPos()--;
+		}
 	}
 	else
 	{
 		if (insertPos() < (int)text.size())
+		{
+			removed = text.substr(insertPos(), 1);
+			removedPos = insertPos();
 			text.erase(text.begin() + insertPos());
+		}
 	}
 	selectStart() = insertPos();
 	selectEnd() = insertPos();
 	SetText(text);
 	SetTextChangedFlag(true);
 	DispatchTextChanged(true);
+
+	if (bUndo.value_or(false) && !removed.empty())
+		AddUndo(removedPos, std::move(removed), {});
 }
 
 void UEditWindow::EnableEditing(std::optional<bool> bEdit)
@@ -146,16 +207,19 @@ bool UEditWindow::InsertText(std::optional<std::string> InsertText, std::optiona
 		}
 
 		std::string text = Text();
+		std::string removed;
 		int selStart = 0, selCount = 0;
 		GetSelectedArea(selStart, selCount);
 		if (selCount > 0)
 		{
-			text = text.substr(0, selStart) + text.substr(selCount);
+			removed = text.substr(selStart, selCount);
+			text = text.substr(0, selStart) + text.substr(selStart + selCount);
 			if (insertPos() >= selStart + selCount)
 				insertPos() -= selCount;
 			else if (insertPos() > selStart)
 				insertPos() = selStart;
 		}
+		int changePos = insertPos();
 		text = text.substr(0, insertPos()) + InsertText.value() + text.substr(insertPos());
 		insertPos() += (int)InsertText.value().size();
 		selectStart() = insertPos();
@@ -163,6 +227,9 @@ bool UEditWindow::InsertText(std::optional<std::string> InsertText, std::optiona
 		SetText(text);
 		SetTextChangedFlag(true);
 		DispatchTextChanged(true);
+
+		if (bUndo.value_or(false))
+			AddUndo(changePos, std::move(removed), InsertText.value());
 	}
 
 	return true; // Unknown what this means. Script doesn't seem to use it for anything.
