@@ -34,10 +34,57 @@ void UGC::CopyGC(UObject* Copy)
 	LogUnimplemented("GC.CopyGC");
 }
 
+// The actor draws through the renderer into the scene being drawn: with the
+// GC's style, the glow and unlit given, its draw scale multiplied and a given
+// skin replacing every skin, as if not hidden, over the depth buffer when
+// bClearZ asks -- and all of it put back afterwards (extension-dll.md, Actors
+// in a window). The vision augmentation passes no skin (its script swaps the
+// skins itself), never constrains and never clears; bConstrain is not
+// honoured, the augmentation's calls covering the whole view.
 void UGC::DrawActor(UObject* Actor, std::optional<bool> bClearZ, std::optional<bool> bConstrain, std::optional<bool> bUnlit, std::optional<float> DrawScale, std::optional<float> ScaleGlow, std::optional<UObject*> Skin)
 {
-	// Only used by ActorDisplayWindow.DrawWindow, AugmentationDisplayWindow.DrawWindow
-	LogUnimplemented("GC.DrawActor");
+	if (!bDrawEnabled())
+		return;
+
+	UActor* actor = UObject::TryCast<UActor>(Actor);
+	if (!actor)
+		return;
+
+	// UActor::Style() reads by value; the write goes through the property.
+	uint8_t& actorStyle = actor->Value<uint8_t>(PropOffsets_Actor.Style);
+	uint8_t oldStyle = actorStyle;
+	float oldScaleGlow = actor->ScaleGlow();
+	bool oldUnlit = actor->bUnlit();
+	float oldDrawScale = actor->DrawScale();
+	UTexture* oldSkin = actor->Skin();
+	UTexture* oldMultiSkins[8];
+	for (int i = 0; i < 8; i++)
+		oldMultiSkins[i] = actor->MultiSkins()[i];
+
+	actorStyle = Style();
+	if (ScaleGlow)
+		actor->ScaleGlow() = *ScaleGlow;
+	if (bUnlit)
+		actor->bUnlit() = *bUnlit;
+	if (DrawScale)
+		actor->DrawScale() *= *DrawScale;
+	if (Skin && *Skin)
+	{
+		UTexture* tex = UObject::TryCast<UTexture>(*Skin);
+		actor->Skin() = tex;
+		for (int i = 0; i < 8; i++)
+			actor->MultiSkins()[i] = tex;
+	}
+
+	engine->render->DrawActor(actor, false, bClearZ.value_or(false));
+
+	actorStyle = oldStyle;
+	actor->ScaleGlow() = oldScaleGlow;
+	actor->bUnlit() = oldUnlit;
+	actor->DrawScale() = oldDrawScale;
+	actor->Skin() = oldSkin;
+	for (int i = 0; i < 8; i++)
+		actor->MultiSkins()[i] = oldMultiSkins[i];
 }
 
 void UGC::DrawText(float DestX, float DestY, float destWidth, float destHeight, const std::string& textStr)

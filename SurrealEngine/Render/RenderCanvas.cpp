@@ -121,11 +121,14 @@ void RenderSubsystem::DrawActor(UActor* actor, bool WireFrame, bool ClearZ)
 	if (ClearZ)
 		Device->ClearZ();
 
+	// The actor draws as if not hidden; a visible one (the vision
+	// augmentation's heat sources) keeps its own flag afterwards.
+	bool oldHidden = actor->bHidden();
 	actor->bHidden() = false;
 	VisibleMesh vismesh;
 	if (vismesh.DrawMesh(&MainFrame, actor, WireFrame, false))
 		vismesh.DrawMesh(&MainFrame, actor, WireFrame, true);
-	actor->bHidden() = true;
+	actor->bHidden() = oldHidden;
 
 	Device->SetSceneNode(&Canvas.Frame);
 }
@@ -154,11 +157,14 @@ void RenderSubsystem::DrawClippedActor(UActor* actor, bool WireFrame, int X, int
 	if (ClearZ)
 		Device->ClearZ();
 
+	// The actor draws as if not hidden; a visible one (the vision
+	// augmentation's heat sources) keeps its own flag afterwards.
+	bool oldHidden = actor->bHidden();
 	actor->bHidden() = false;
 	VisibleMesh vismesh;
 	if (vismesh.DrawMesh(&MainFrame, actor, WireFrame, false))
 		vismesh.DrawMesh(&MainFrame, actor, WireFrame, true);
-	actor->bHidden() = true;
+	actor->bHidden() = oldHidden;
 
 	Device->SetSceneNode(&Canvas.Frame);
 }
