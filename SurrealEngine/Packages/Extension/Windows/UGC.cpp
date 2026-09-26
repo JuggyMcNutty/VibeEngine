@@ -75,11 +75,17 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 	if (!bDrawEnabled())
 		return;
 
-	if (leftMargin != 0.0f || rightMargin != 0.0f || TopMargin != 0.0f || BottomMargin != 0.0f || bStretchHorizontally || bStretchVertically)
+	if (leftMargin != 0.0f || rightMargin != 0.0f || TopMargin != 0.0f || BottomMargin != 0.0f)
 	{
-		// margins are always zero from script. bStretchHorizontally and bStretchVertically are never specified.
+		// margins are always zero from the game's script (extension-dll.md, Borders)
 		LogUnimplemented("GC.DrawBorders");
 	}
+
+	// The edges and the centre tile at one texel a pixel, as the original's
+	// DrawIconPattern with a source size of 0, unless stretching is asked for
+	// across or down; the game never asks (extension-dll.md, Borders).
+	bool stretchAcross = bStretchHorizontally && *bStretchHorizontally;
+	bool stretchDown = bStretchVertically && *bStretchVertically;
 
 	UTexture* tl = UObject::Cast<UTexture>(borders[0]);
 	UTexture* tr = UObject::Cast<UTexture>(borders[1]);
@@ -134,12 +140,11 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 
 		float swidth = (float)tex->USize();
 		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(
-			DestX + gridX[0],
-			DestY + gridY[0],
-			std::max(destWidth - gridX[0] - gridX[1], 0.0f),
-			std::max(destHeight - gridY[0] - gridY[1], 0.0f));
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		float dwidth = std::max(destWidth - gridX[0] - gridX[1], 0.0f);
+		float dheight = std::max(destHeight - gridY[0] - gridY[1], 0.0f);
+		Rectf dest = Rectf::xywh(DestX + gridX[0], DestY + gridY[0], dwidth, dheight);
+		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : dwidth, stretchDown ? sheight : dheight);
+		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
 	}
 	if (auto tex = tl) // top left corner
 	{
@@ -182,28 +187,32 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float swidth = (float)tex->USize();
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX, tlY, swidth, blY - tlY);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		Rectf src = Rectf::xywh(0.0f, 0.0f, swidth, stretchDown ? sheight : blY - tlY);
+		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
 	}
 	if (auto tex = right) // right side
 	{
 		float swidth = (float)tex->USize();
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, trY, swidth, brY - trY);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		Rectf src = Rectf::xywh(0.0f, 0.0f, swidth, stretchDown ? sheight : brY - trY);
+		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
 	}
 	if (auto tex = top) // top side
 	{
 		float swidth = (float)tex->USize();
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(tlX, DestY, trX - tlX, sheight);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : trX - tlX, sheight);
+		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
 	}
 	if (auto tex = bottom) // bottom side
 	{
 		float swidth = (float)tex->USize();
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(tlX, DestY + destHeight - sheight, brX - blX, sheight);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : brX - blX, sheight);
+		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
 	}
 }
 
