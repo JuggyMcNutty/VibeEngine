@@ -5,11 +5,12 @@
 // float, an int, a bool, an enum byte, and a GET the multiplayer Host screen
 // makes) logged with what GET gives; then SETs of a bare class name's
 // value, a value with spaces and a value the player has too, each read
-// back; then an exit.
+// back; then the main menu opened and shot 2 s later, its pointer drawn,
+// and an exit.
 //=============================================================================
 class GetConsole extends Console;
 
-var float MenuTime;
+var float MenuTime, ShotTime;
 var bool bDone;
 
 function LogGet(PlayerPawn P, string Setting)
@@ -28,6 +29,17 @@ event Tick(float Delta)
 	MenuTime += Delta;
 	if (MenuTime < 3.0)
 		return;
+	if (ShotTime > 0)
+	{
+		if (MenuTime > ShotTime)
+		{
+			P.ConsoleCommand("shot");
+			Log("DXGET: exiting");
+			bDone = true;
+			P.ConsoleCommand("exit");
+		}
+		return;
+	}
 
 	LogGet(P, "DeusExMPGame VictoryCondition");
 	Log("DXGET: the default itself '" $ class'DeusExMPGame'.default.VictoryCondition $ "', a deathmatch's '" $ class'DeathMatchGame'.default.VictoryCondition $ "'");
@@ -46,7 +58,7 @@ event Tick(float Delta)
 	LogGet(P, "GameReplicationInfo ServerName");
 	P.ConsoleCommand("set PlayerPawn MouseSensitivity 5.5");
 	Log("DXGET: the player's MouseSensitivity after a set " $ P.MouseSensitivity);
-	Log("DXGET: exiting");
-	bDone = true;
-	P.ConsoleCommand("exit");
+	if (DeusExPlayer(P) != None)
+		DeusExPlayer(P).ShowMainMenu();
+	ShotTime = MenuTime + 2.0;
 }

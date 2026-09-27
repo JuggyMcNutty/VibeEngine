@@ -711,6 +711,13 @@ checks:
 
 ### The UI
 
+- **The pointer.** Landed (2026-09-27): drawn while a modal window is up,
+  as before, and only while `ShowCursor` has not hidden it, as the
+  original's ([the pointer](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#showing-and-hiding)) -- the fork
+  ignored `ShowCursor`, and drew it over a conversation, the credits, a
+  key waiting to be bound and the multiplayer windows. Checked: the main
+  menu keeps its pointer (`GetConsole`); over "Connection failed" in the
+  Entry level only the crosshair is left, as in the original's frame.
 - **Keys held under a menu.** Landed (2026-09-25): when the UI takes a
   key, every key the input holds down is released -- the tracked buttons
   false, the axes zero -- and when it takes a mouse button, only `bFire`

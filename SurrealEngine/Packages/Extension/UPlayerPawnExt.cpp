@@ -21,6 +21,9 @@ void UPlayerPawnExt::InitRootWindow()
 		// A root starts with the world drawn, as the original's init sets it;
 		// only the snapshot and black backgrounds and the credits turn it off.
 		engine->dxRootWindow->bRender() = true;
+		// And with its pointer shown, as the original's init sets it
+		// (XRootWindow::Init): a window may hide it (ShowCursor).
+		engine->dxRootWindow->bCursorVisible() = true;
 		engine->dxRootWindow->InitWindow();
 	}
 }

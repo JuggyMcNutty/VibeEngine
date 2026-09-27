@@ -62,7 +62,8 @@ The console classes:
   under a steady glow (`FlashScale` 0.5, a red fog), each flash logged.
 - **`GetConsole`**: the console's `GET` and `SET` as the game's menus use
   them -- a class default of each kind of property read, then three
-  `SET`s read back --, from the menu map.
+  `SET`s read back --, from the menu map; then the main menu opened and
+  shot, pointer and all.
 - **`NetConsole`**: the scripts' sockets -- conversions and GameSpy answers
   logged, 333networks' master server asked for Deus Ex's servers and five
   of them pinged, then the game's own Join Internet screen opened (the

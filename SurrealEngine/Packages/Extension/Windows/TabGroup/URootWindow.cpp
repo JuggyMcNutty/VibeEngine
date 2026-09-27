@@ -226,7 +226,12 @@ void URootWindow::WindowReady()
 
 bool URootWindow::IsCursorVisible()
 {
-	// To do: is this correct? There is also URootWindow::ShowCursor - it isn't called by unrealscript when a modal is shown
+	// The pointer is drawn while a window takes the mouse -- a modal one,
+	// here -- and ShowCursor has not hidden it, as the original's
+	// XRootWindow::PaintWindows draws it (dx-reverse-info/extension-dll.md):
+	// the multiplayer message window hides it while it is up.
+	if (!bCursorVisible())
+		return false;
 	for (UWindow* cur = firstChild(); cur; cur = cur->nextSibling())
 	{
 		if (UObject::TryCast<UModalWindow>(cur))
