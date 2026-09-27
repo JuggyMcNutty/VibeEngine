@@ -110,6 +110,15 @@ public:
 	// the player the server spawns for it.
 	void BeginConnect(const UnrealURL& url);
 	void TickPendingLevel(float realTimeElapsed);
+	// The join given up (the CANCEL command's): the server told, the level
+	// playing on.
+	void CancelPending();
+	// Two lines the game shows the player for the seconds given; -1 seconds
+	// is the game's upgrade menu (the original's SetProgress).
+	void SetProgress(const std::string& line1, const std::string& line2, float seconds);
+	// While joining, what shows when nothing else does: the server's address
+	// and map, for a minute at a time (the original's each frame).
+	void UpdateConnectingMessage();
 	void SetEngineVersion();
 	void LoadClientMap(NetPendingLevel* pending);
 	void HandleClientPlayer(NetConnection* connection, UPlayerPawn* pawn);

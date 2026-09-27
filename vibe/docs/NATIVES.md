@@ -984,8 +984,9 @@ handshake the original's; the map loads as a client's; the package map
 numbers as the original's; actor channels spawn or find the server's actors,
 take their properties and run the server's calls, `PostNetReceive`'s moves
 and unpacking with them; the server's pawn is possessed. Until it arrives the
-fork draws no world. A lost or refusing server takes the fork back to the
-menu's map; quitting or leaving closes the connection.
+fork draws no world. A server lost after the join takes the fork back to the
+menu's map; a join refused or failing leaves it in the level it was in,
+showing why; quitting or leaving closes the connection.
 
 Checked against the original, run as a listen server on DXMP_Cathedral
 (`ServeConsole`): the fork joined twice, the server logging `Join succeeded`
@@ -1052,11 +1053,38 @@ Server"): the fork's ini reader takes an empty value for a missing one. The
 uplinks, which the game's own ini lists for three master servers, were not
 run: announcing a server to the master servers is the owner's call.
 
-Not yet, of a client: downloads (a package missing or different from the
-server's ends the join) and the world-stats checksum (`NoChecksum` always).
-Of a server: the uplinks' first announcement (above), travel, and serving
-downloads. Each bunch goes on its own: the original merges one into the
-last when both are the same channel's, which only saves bits.
+Downloads go both ways (2026-09-27), as
+[the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#downloads): at `WELCOME`
+each package is found on the paths by its name or in the cache by its GUID
+-- then loaded from there under its name --, and the rest are downloaded
+one after another over file channels, when the client allows downloads
+(`[IpDrv.TcpNetDriver] AllowDownloads`) and the server flags the package
+downloadable, each into the cache as its GUID with `CacheExt` (`.uxx`, as
+the original writes). A package of the same name but another GUID ends the
+join as a version mismatch before the map loads, and the level plays on;
+each join finds its packages afresh. The cache is cleaned as the engine
+starts. A server sends any package of its list flagged downloadable; its
+list is the map's, the `ServerPackages` and the game class's package, as
+the original's. A join shows the original's lines -- connecting, receiving
+with the size and the share done, each failure -- in the game's message
+window; F10 there cancels it (`CANCEL`); `DISCONNECT`, `RECONNECT`,
+`NETSPEED` and `LANSPEED` are the original's.
+
+Checked on live servers (2026-09-27, the owner's go-ahead): the fork
+downloaded from original servers -- 23 packages, some 23 MB in about a
+minute, from an ANNA server, and a custom map and two packages from
+another --, loaded their mods and joined; on a DXMTL server, with the stock
+console, it stayed in the game, took the server's calls and position
+corrections and drew the map with the HUD. The original downloaded a map it
+lacked from the fork's server, then joined and walked, and the fork did the
+same against its own server. With a scripted console the game's console
+check (above) disconnects the run seconds in, on every server
+([live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
+
+Not yet, of a client: the world-stats checksum (`NoChecksum` always). Of a
+server: the uplinks' first announcement (above) and travel. Each bunch goes
+on its own: the original merges one into the last when both are the same
+channel's, which only saves bits.
 
 The scripts' sockets are the original's now (2026-09-26,
 [the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)): `InternetLink`'s

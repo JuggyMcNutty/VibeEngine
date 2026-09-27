@@ -7,17 +7,26 @@
 #include <string>
 
 // A join under way (Engine's UNetPendingLevel, dx-reverse-info/network.md): the
-// connection to the server and the handshake up to WELCOME. The engine then
-// loads the map as a client, takes the driver over and sends JOIN.
+// connection to the server, the handshake up to WELCOME, and the packages
+// this side lacks downloaded one after another. The engine then loads the
+// map as a client, takes the driver over and sends JOIN.
 class NetPendingLevel : public NetNotify
 {
 public:
 	explicit NetPendingLevel(const UnrealURL& url);
+	~NetPendingLevel();
 
 	void Tick(float deltaTime);
+	// The server told it is left: its control channel closed.
+	void Close();
+	// Whether what loads under each package's name is the server's: its GUID
+	// the same (Core's check as the original's LoadMap verifies them).
+	bool VerifyPackages(std::string& error);
 
 	bool NotifyAcceptingChannel(NetChannel* channel) override;
 	void NotifyReceivedText(NetConnection* connection, const std::string& text) override;
+	void NotifyReceivedFile(NetConnection* connection, int packageIndex, const std::string& error) override;
+	void NotifyProgress(const std::string& line1, const std::string& line2, float seconds) override;
 
 	// A USES line: a package the server's level needs, in the server's order.
 	struct UsedPackage
@@ -35,6 +44,12 @@ public:
 	std::string Error;
 	bool Success = false;
 	bool LonePlayer = false;
+	// The downloads still to come (the packages flagged Need): the map
+	// loads once there are none.
+	int FilesNeeded = 0;
+
+private:
+	void ReceiveNextFile(NetConnection* connection);
 };
 
 // A client's level: what its connection to the server may open, what the

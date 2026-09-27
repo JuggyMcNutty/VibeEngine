@@ -1,11 +1,26 @@
 #pragma once
 
 #include "NetConnection.h"
+#include <initializer_list>
 #include <memory>
 #include <string>
 
 class NetChannel;
 class UPlayerPawn;
+
+// A message from a package's .int file ([section] key, else the fallback
+// given), its %s, %i and %f filled in turn (Core's Localize and appSprintf).
+struct LocalizeArg
+{
+	LocalizeArg(const std::string& text) : Text(text), IsText(true) {}
+	LocalizeArg(const char* text) : Text(text), IsText(true) {}
+	LocalizeArg(int number) : Number(number) {}
+	LocalizeArg(double number) : Number(number) {}
+	std::string Text;
+	double Number = 0.0;
+	bool IsText = false;
+};
+std::string LocalizeMessage(const char* package, const char* section, const char* key, const char* fallback, std::initializer_list<LocalizeArg> args = {});
 
 // What a driver tells its owner: the pending level while joining, the level
 // once in (Engine's FNetworkNotify).
@@ -22,6 +37,14 @@ public:
 	virtual void NotifyClientPlayer(NetConnection* connection, UPlayerPawn* pawn) {}
 	// A server's connection closed: its player leaves.
 	virtual void NotifyConnectionClosed(NetConnection* connection) {}
+	// Whether the other side may have the package it asks for by its GUID:
+	// a server's clients may, a server may not.
+	virtual bool NotifySendingFile(NetConnection* connection, const std::string& guid) { return false; }
+	// A client's: a package's download ended, with its error or none.
+	virtual void NotifyReceivedFile(NetConnection* connection, int packageIndex, const std::string& error) {}
+	// Two lines for the player, shown for the seconds given (the engine's
+	// SetProgress).
+	virtual void NotifyProgress(const std::string& line1, const std::string& line2, float seconds) {}
 };
 
 // The UDP socket and its connections (IpDrv's TcpNetDriver over Engine's
@@ -60,6 +83,8 @@ public:
 	int MaxClientRate = 20000;
 	int DynamicUpdateRate = 40;
 	int StaticUpdateRate = 12;
+	// A client's: whether it fetches a package it lacks from the server.
+	bool AllowDownloads = true;
 
 private:
 	void LoadSettings();

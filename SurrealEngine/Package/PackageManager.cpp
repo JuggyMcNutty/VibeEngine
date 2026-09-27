@@ -7,7 +7,10 @@
 #include "PackageWriter.h"
 #include "Utils/File.h"
 #include "Utils/StrTools.h"
+#include "Utils/Logger.h"
 #include "VM/NativeFunc.h"
+#include <chrono>
+#include <fstream>
 #include "Packages/ConSys/UConAudioList.h"
 #include "Packages/ConSys/UConCamera.h"
 #include "Packages/ConSys/UConChoice.h"
@@ -416,6 +419,131 @@ Package* PackageManager::LoadMap(const std::string& path)
 		absolute_path.replace_extension(GetMapExtension());
 
 	return GC::Alloc<Package>(this, mapFilename.stem().string(), absolute_path.string());
+}
+
+Package* PackageManager::LoadMapFile(const NameString& name, const std::string& path)
+{
+	return GC::Alloc<Package>(this, name, path);
+}
+
+std::string PackageManager::FindPackageFile(const NameString& name, const std::string& guid)
+{
+	auto it = packageFilenames.find(name);
+	if (it != packageFilenames.end())
+		return it->second;
+	if (!guid.empty())
+	{
+		std::string cached = GetCachedPackagePath(guid);
+		std::error_code ec;
+		if (fs::exists(cached, ec))
+		{
+			// Used now: not purged as outdated for another PurgeCacheDays.
+			fs::last_write_time(cached, fs::file_time_type::clock::now(), ec);
+			return cached;
+		}
+	}
+	return {};
+}
+
+std::string PackageManager::GetCachedPackagePath(const std::string& guid) const
+{
+	std::string ext = const_cast<PackageManager*>(this)->GetIniValue("System", "Core.System", "CacheExt", ".uxx");
+	return (gameCacheFolderPath / (guid + ext)).string();
+}
+
+std::string PackageManager::ReadPackageGuid(const std::string& path)
+{
+	std::ifstream file(path, std::ios::binary);
+	uint8_t header[52] = {};
+	if (!file.read((char*)header, sizeof(header)))
+		return {};
+	auto u32 = [&](int offset) { return (uint32_t)header[offset] | ((uint32_t)header[offset + 1] << 8) | ((uint32_t)header[offset + 2] << 16) | ((uint32_t)header[offset + 3] << 24); };
+	if (u32(0) != 0x9E2A83C1)
+		return {};
+	int version = header[4] | (header[5] << 8);
+	uint8_t guid[16] = {};
+	if (version < 68)
+	{
+		// An older file's GUID is the last of its heritage.
+		uint32_t heritageCount = u32(36);
+		uint32_t heritageOffset = u32(40);
+		if (heritageCount == 0)
+			return {};
+		file.seekg(heritageOffset + (heritageCount - 1) * 16);
+		if (!file.read((char*)guid, 16))
+			return {};
+	}
+	else
+	{
+		memcpy(guid, header + 36, 16);
+	}
+	char text[33];
+	uint32_t d[4];
+	for (int i = 0; i < 4; i++)
+		d[i] = guid[i * 4] | (guid[i * 4 + 1] << 8) | (guid[i * 4 + 2] << 16) | ((uint32_t)guid[i * 4 + 3] << 24);
+	snprintf(text, sizeof(text), "%08X%08X%08X%08X", d[0], d[1], d[2], d[3]);
+	return text;
+}
+
+bool PackageManager::IsPackageLoaded(const NameString& name) const
+{
+	auto it = packages.find(name);
+	return it != packages.end() && it->second;
+}
+
+void PackageManager::UsePackageFile(const NameString& name, const std::string& path)
+{
+	if (replacedPackageFilenames.find(name) == replacedPackageFilenames.end())
+	{
+		auto it = packageFilenames.find(name);
+		replacedPackageFilenames[name] = it != packageFilenames.end() ? it->second : std::string();
+	}
+	packageFilenames[name] = path;
+}
+
+void PackageManager::RestorePackageFiles()
+{
+	for (const auto& replaced : replacedPackageFilenames)
+	{
+		// A package already loaded from its download stays what it is.
+		if (IsPackageLoaded(replaced.first))
+			continue;
+		if (replaced.second.empty())
+			packageFilenames.erase(replaced.first);
+		else
+			packageFilenames[replaced.first] = replaced.second;
+	}
+	replacedPackageFilenames.clear();
+}
+
+void PackageManager::CleanFileCache()
+{
+	std::error_code ec;
+	if (!fs::is_directory(gameCacheFolderPath, ec))
+		return;
+	std::string ext = GetIniValue("System", "Core.System", "CacheExt", ".uxx");
+	int purgeDays = std::atoi(GetIniValue("System", "Core.System", "PurgeCacheDays", "0").c_str());
+	auto now = fs::file_time_type::clock::now();
+	for (const auto& entry : fs::directory_iterator(gameCacheFolderPath, ec))
+	{
+		if (!entry.is_regular_file(ec))
+			continue;
+		std::string fileExt = entry.path().extension().string();
+		if (StrTools::equals_ignore_case(fileExt, ".tmp"))
+		{
+			LogMessage("Deleting temporary file " + entry.path().string());
+			fs::remove(entry.path(), ec);
+		}
+		else if (purgeDays > 0 && StrTools::equals_ignore_case(fileExt, ext))
+		{
+			auto age = std::chrono::duration_cast<std::chrono::hours>(now - entry.last_write_time(ec)).count() / 24;
+			if (age > purgeDays)
+			{
+				LogMessage("Purging outdated file " + entry.path().string() + " (" + std::to_string(age) + " days)");
+				fs::remove(entry.path(), ec);
+			}
+		}
+	}
 }
 
 void PackageManager::UnloadPackage(Package* package)

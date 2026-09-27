@@ -86,7 +86,22 @@ client, `DXCAP:` player positions on the server --, and a server's LAN
 beacon and GameSpy query answers are asked with
 `vibe/tools/dxcap/netquery.py`, the same questions for either engine, for a diff.
 
-**A crash** in a fork run gives no stack: the build is `Release`. A copy
+**Live servers** (the owner's go-ahead, 2026-09-27; which are up, and how
+full, in 333networks' list: `https://master.333networks.com/json/deusex`):
+`fork ProveConsole <address>` joins one, downloading what the fork lacks
+into the game's `Cache`, but every server's game disconnects a player whose
+console is not the stock one (`Invalid Console class, disconnecting`,
+[the check](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#deus-exs-additions)), so the run is back in
+the menu seconds after joining. To stay in, a run takes the stock console
+(`Console=Engine.Console` in a copy of the run's ini, the engine started
+as `cmd_fork` starts it) and a [temporary hook](#temporary-debug-hooks)
+for its shots and exit. Pick an empty server.
+
+**A crash** in a fork run leaves a core, which systemd keeps:
+`coredumpctl dump <pid> --output=<scratchpad>/core` and `gdb -batch -ex bt
+<workspace>/build/linux-x86_64/engine/SurrealEngine <scratchpad>/core` name
+the functions on the stack, the `Release` build keeping its symbols' names
+but no lines. For lines, a copy
 built with symbols in the scratchpad (`cmake -S engine/SurrealEngine -B
 <scratchpad>/dbg -C launcher/linux-x86_64/ports/linux-x86_64/engine.cmake
 -DCMAKE_BUILD_TYPE=RelWithDebInfo`, then `cmake --build <scratchpad>/dbg

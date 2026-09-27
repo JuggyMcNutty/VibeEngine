@@ -372,6 +372,12 @@ bool NetConnection::IsNetReady(bool saturate)
 	return QueuedBytes + Out.GetNumBytes() <= 0;
 }
 
+int NetConnection::MaxSendBytes() const
+{
+	int bits = MaxPacket * 8 - (Out.GetNumBits() ? 0 : MaxPacketHeaderBits) - Out.GetNumBits() - MaxPacketTrailerBits - MaxBunchHeaderBits;
+	return std::max(bits / 8, 0);
+}
+
 NetChannel* NetConnection::CreateChannel(ChannelType type, bool openedLocally, int chIndex)
 {
 	if (chIndex == -1)

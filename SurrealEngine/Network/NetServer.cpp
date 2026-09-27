@@ -192,7 +192,28 @@ NetConnection* NetConnectionOfPlayer(UObject* player)
 
 NetServerLevel::NetServerLevel(Package* level) : Level(level)
 {
-	AddPackage(level);
+}
+
+void NetServerLevel::BuildMasterMap(UObject* game)
+{
+	Packages.clear();
+	AddPackage(Level);
+	std::string gameEngine = engine->packages->GetIniValue("system", "Engine.Engine", "GameEngine", "Engine.GameEngine");
+	for (const std::string& name : engine->packages->GetIniValues("system", gameEngine, "ServerPackages"))
+	{
+		LogMessage("Server Package: " + name);
+		if (!engine->packages->HasPackage(name))
+		{
+			LogMessage("   (not found)");
+			continue;
+		}
+		Package* package = engine->packages->GetPackage(name);
+		if (((uint32_t)package->GetFlags() & (uint32_t)PackageFlags::ServerSideOnly) != 0)
+			LogMessage("   (server-side only)");
+		AddPackage(package);
+	}
+	if (game && game->Class && game->Class->package)
+		AddPackage(game->Class->package);
 }
 
 NetServerLevel::~NetServerLevel()
@@ -234,8 +255,15 @@ bool NetServerLevel::NotifyAcceptingConnection()
 
 bool NetServerLevel::NotifyAcceptingChannel(NetChannel* channel)
 {
-	// A client opens the control channel; downloads the fork does not serve.
-	return channel->ChType == ChannelType::Control;
+	// A client opens the control channel, and one for each package it
+	// downloads.
+	return (channel->ChType == ChannelType::Control && channel->ChIndex == 0) || channel->ChType == ChannelType::File;
+}
+
+bool NetServerLevel::NotifySendingFile(NetConnection* connection, const std::string& guid)
+{
+	LogMessage("Net: client requested file: allowed");
+	return true;
 }
 
 void NetServerLevel::NotifyReceivedText(NetConnection* connection, const std::string& text)

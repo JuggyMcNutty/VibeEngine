@@ -5,6 +5,7 @@
 #include "Package/PackageManager.h"
 #include "Packages/Engine/Actors/UActor.h"
 #include "Utils/Logger.h"
+#include "Utils/StrTools.h"
 #include "Engine.h"
 #include <algorithm>
 
@@ -51,6 +52,49 @@ namespace
 	}
 }
 
+std::string LocalizeMessage(const char* package, const char* section, const char* key, const char* fallback, std::initializer_list<LocalizeArg> args)
+{
+	std::string format = engine->packages->Localize(package, section, key);
+	if (format.empty())
+		format = fallback;
+
+	std::string result;
+	auto arg = args.begin();
+	for (size_t i = 0; i < format.size(); i++)
+	{
+		if (format[i] != '%')
+		{
+			result += format[i];
+			continue;
+		}
+		size_t end = format.find_first_not_of("0123456789.-+ #", i + 1);
+		if (end == std::string::npos)
+			break;
+		char conversion = format[end];
+		std::string spec = format.substr(i, end - i + 1);
+		i = end;
+		if (conversion == '%')
+		{
+			result += '%';
+			continue;
+		}
+		if (arg == args.end())
+			continue;
+		char buffer[256] = {};
+		if (conversion == 's')
+			result += arg->IsText ? arg->Text : std::string();
+		else if (conversion == 'f' || conversion == 'g' || conversion == 'e')
+			snprintf(buffer, sizeof(buffer), spec.c_str(), arg->Number);
+		else if (conversion == 'x' || conversion == 'X' || conversion == 'u')
+			snprintf(buffer, sizeof(buffer), spec.c_str(), (unsigned int)(int64_t)arg->Number);
+		else
+			snprintf(buffer, sizeof(buffer), (spec.substr(0, spec.size() - 1) + "d").c_str(), (int)arg->Number);
+		result += buffer;
+		++arg;
+	}
+	return result;
+}
+
 NetDriver::NetDriver()
 {
 	LoadSettings();
@@ -76,6 +120,9 @@ void NetDriver::LoadSettings()
 	MaxClientRate = IniInt("IpDrv.TcpNetDriver", "MaxClientRate", MaxClientRate);
 	DynamicUpdateRate = IniInt("IpDrv.TcpNetDriver", "DynamicUpdateRate", DynamicUpdateRate);
 	StaticUpdateRate = IniInt("IpDrv.TcpNetDriver", "StaticUpdateRate", StaticUpdateRate);
+	std::string allowDownloads = engine->packages->GetIniValue("system", "IpDrv.TcpNetDriver", "AllowDownloads");
+	if (!allowDownloads.empty())
+		AllowDownloads = StrTools::equals_ignore_case(allowDownloads, "True") || allowDownloads == "1";
 }
 
 bool NetDriver::InitConnect(NetNotify* notify, const std::string& host, int port, std::string& error)

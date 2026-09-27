@@ -57,13 +57,35 @@ public:
 	void SendText(const std::string& text);
 };
 
-// Downloads, which the fork does not do: a server that opens one is refused.
+// A package's file, a bunch at a time (Engine's UFileChannel): a client opens
+// one for a package it lacks, its GUID the first bunch; the server sends the
+// file as the connection has room and closes the channel with its end, and
+// the client keeps it in the cache under the GUID.
 class NetFileChannel : public NetChannel
 {
 public:
 	NetFileChannel(NetConnection* connection, int chIndex, bool openedLocally);
+	~NetFileChannel();
 
-	void ReceivedBunch(NetInBunch& bunch) override {}
+	// A client's request for the package at that place in the server's list
+	// (the original's UNetConnection::ReceiveFile); a channel not to be had
+	// is the download's failure.
+	static void Request(NetConnection* connection, int packageIndex, const std::string& name, const std::string& guid, int fileSize);
+
+	void ReceivedBunch(NetInBunch& bunch) override;
+	void Tick() override;
+	void CleanUp() override;
+
+private:
+	int PackageIndex = -1;
+	std::string PackageName;
+	std::string Guid;
+	int FileSize = 0;
+	int Transferred = 0;
+	// The client's temporary file in the cache, or the server's package.
+	std::string Filename;
+	FILE* File = nullptr;
+	std::string Error;
 };
 
 // An actor's replication: on a client, the actor the server's bunches spawn

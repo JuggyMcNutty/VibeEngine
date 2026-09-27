@@ -162,6 +162,10 @@ void Engine::Run()
 	LogMessage("Loaded key bindings");
 	LogGamePackageSHA1Sums();
 
+	// Downloads left unfinished, and those unused too long (the original
+	// cleans its cache as the engine starts).
+	packages->CleanFileCache();
+
 	OpenWindow();
 
 	audiodev->InitDevice();
@@ -218,6 +222,8 @@ void Engine::Run()
 		// A join under way; its map may load here, before the level's time.
 		if (PendingLevel)
 			TickPendingLevel(realTimeElapsed);
+		if (PendingLevel)
+			UpdateConnectingMessage();
 
 		float entryLevelElapsed = EntryLevel ? realTimeElapsed * clamp(EntryLevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f) : 0.0f;
 		float levelElapsed = realTimeElapsed * clamp(LevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f);
@@ -765,7 +771,11 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		}
 	}
 	if (!LevelPackage)
-		LevelPackage = packages->LoadMap(url.Map);
+	{
+		// A client's map may be a download, in the cache under its GUID.
+		std::string file = asClient ? packages->FindPackageFile(url.Map, {}) : std::string();
+		LevelPackage = !file.empty() ? packages->LoadMapFile(url.Map, file) : packages->LoadMap(url.Map);
+	}
 
 	GetLevelInfoObject();
 
@@ -847,6 +857,9 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	Level->ActorsVersion++;
 
 	LevelInfo->Game() = GameInfo;
+
+	if (ServerLevel)
+		ServerLevel->BuildMasterMap(GameInfo);
 
 	BeginPlay(url);
 }
@@ -1477,10 +1490,17 @@ void Engine::LoginPlayer()
 
 void Engine::BeginConnect(const UnrealURL& url)
 {
+	CancelPending();
 	LogMessage("Net: joining " + url.Host + ":" + std::to_string(url.Port));
+
+	// Each join finds its packages afresh: another server's downloads are
+	// not this one's.
+	packages->RestorePackageFiles();
+
 	PendingLevel = std::make_unique<NetPendingLevel>(url);
 	if (!PendingLevel->Error.empty())
 	{
+		SetProgress("Networking Failed", PendingLevel->Error, 6.0f);
 		LogMessage("Net: could not join: " + PendingLevel->Error);
 		PendingLevel.reset();
 	}
@@ -1489,16 +1509,57 @@ void Engine::BeginConnect(const UnrealURL& url)
 void Engine::TickPendingLevel(float realTimeElapsed)
 {
 	PendingLevel->Tick(realTimeElapsed);
-	if (!PendingLevel->Error.empty())
+
+	// Refused, lost, or a package not to be had: the level plays on.
+	std::string error = PendingLevel->Error;
+	if (error.empty() && PendingLevel->Success && PendingLevel->FilesNeeded == 0)
+		PendingLevel->VerifyPackages(error);
+	if (!error.empty())
 	{
-		LogMessage("Net: could not join: " + PendingLevel->Error);
-		PendingLevel.reset();
+		SetProgress(LocalizeMessage("Engine", "Errors", "ConnectionFailed", "Connection failed"), error, 4.0f);
+		LogMessage("Net: " + LocalizeMessage("Engine", "Errors", "Pending", "Pending connect to '%s' failed; %s", { PendingLevel->URL.ToString(), error }));
+		CancelPending();
 	}
-	else if (PendingLevel->Success)
+	else if (PendingLevel->Success && PendingLevel->FilesNeeded == 0)
 	{
 		std::unique_ptr<NetPendingLevel> pending = std::move(PendingLevel);
 		LoadClientMap(pending.get());
 	}
+}
+
+void Engine::CancelPending()
+{
+	if (!PendingLevel)
+		return;
+	PendingLevel->Close();
+	PendingLevel.reset();
+}
+
+void Engine::SetProgress(const std::string& line1, const std::string& line2, float seconds)
+{
+	// Set through the pawn's own functions: the lines, white, and until
+	// when.
+	UPlayerPawn* pawn = viewport ? viewport->Actor() : nullptr;
+	if (!pawn)
+		return;
+	if (seconds == -1.0f)
+		CallEvent(pawn, "ShowUpgradeMenu");
+	Color white = { 255, 255, 255, 0 };
+	CallEvent(pawn, "SetProgressMessage", { ExpressionValue::StringValue(line1), ExpressionValue::IntValue(0) });
+	CallEvent(pawn, "SetProgressColor", { ExpressionValue::ColorValue(white), ExpressionValue::IntValue(0) });
+	CallEvent(pawn, "SetProgressMessage", { ExpressionValue::StringValue(line2), ExpressionValue::IntValue(1) });
+	CallEvent(pawn, "SetProgressColor", { ExpressionValue::ColorValue(white), ExpressionValue::IntValue(1) });
+	CallEvent(pawn, "SetProgressTime", { ExpressionValue::FloatValue(seconds) });
+}
+
+void Engine::UpdateConnectingMessage()
+{
+	UPlayerPawn* pawn = viewport ? viewport->Actor() : nullptr;
+	if (!PendingLevel || !pawn || !LevelInfo || pawn->ProgressTimeOut() >= LevelInfo->TimeSeconds())
+		return;
+	std::string line1 = LocalizeMessage("Engine", "Progress", "ConnectingText", "Connecting (F10 Cancels):");
+	std::string line2 = LocalizeMessage("Engine", "Progress", "ConnectingURL", "unreal://%s/%s", { PendingLevel->URL.Host, PendingLevel->URL.Map });
+	SetProgress(line1, line2, 60.0f);
 }
 
 void Engine::LoadClientMap(NetPendingLevel* pending)
@@ -1518,7 +1579,7 @@ void Engine::LoadClientMap(NetPendingLevel* pending)
 	NetConnection* connection = LevelNetDriver->ServerConnection.get();
 
 	// Objects by number in the server's order of packages; the map is the
-	// level just loaded, and has to be the server's.
+	// level just loaded (checked as the server's before it loaded).
 	NetPackageMap& map = connection->PackageMap;
 	map.List.clear();
 	for (const NetPendingLevel::UsedPackage& used : pending->Uses)
@@ -1531,8 +1592,6 @@ void Engine::LoadClientMap(NetPendingLevel* pending)
 		info.Flags = used.Flags;
 		info.FileSize = used.Size;
 		info.RemoteGeneration = used.Generation;
-		if (isLevel && !StrTools::equals_ignore_case(LevelPackage->GetGuidString(), used.Guid))
-			NetFailure = "Map " + used.Name.ToString() + " differs from the server's";
 		map.List.push_back(info);
 	}
 	map.Compute();
@@ -1946,6 +2005,43 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		}
 
 		LogMessage("Couldn't find map " + maparg);
+	}
+	else if ((command == "netspeed" || command == "lanspeed") && args.size() == 2)
+	{
+		// The rate asked of servers, kept for the next join; on a server of
+		// that kind (?LAN or not), asked now (the original's viewport's).
+		// Both keep it as the internet speed, as the original's both do.
+		int rate = std::atoi(args[1].c_str());
+		bool lan = command == "lanspeed";
+		packages->SetIniValue("system", "Engine.Player", "ConfiguredInternetSpeed", std::to_string(rate));
+		NetConnection* connection = LevelNetDriver ? LevelNetDriver->ServerConnection.get() : nullptr;
+		if (rate >= 500 && connection && LevelInfo->URL.HasOption("LAN") == lan)
+		{
+			connection->CurrentNetSpeed = std::min(rate, LevelNetDriver->MaxClientRate);
+			viewport->CurrentNetSpeed() = connection->CurrentNetSpeed;
+			connection->SendText("NETSPEED " + std::to_string(rate));
+		}
+	}
+	else if (command == "cancel")
+	{
+		// A join given up (the progress window's F10).
+		if (PendingLevel)
+			SetProgress(LocalizeMessage("Engine", "Progress", "CancelledConnect", "Cancelled Connect Attempt"), "", 2.0f);
+		else
+			SetProgress("", "", 0.0f);
+		CancelPending();
+	}
+	else if (command == "disconnect")
+	{
+		// Back to the menu's map, the server told as the level goes (Deus
+		// Ex's own goes to dx.dx).
+		ClientTravel(LaunchInfo.IsDeusEx() ? "dx.dx" : packages->GetIniValue("system", "URL", "LocalMap"), ETravelType::TRAVEL_Absolute, false);
+	}
+	else if (command == "reconnect")
+	{
+		// The level's URL again: a client's is its server's.
+		if (LevelInfo)
+			ClientTravel(LevelInfo->URL.ToString(), ETravelType::TRAVEL_Absolute, false);
 	}
 	else if (command == "switchlevel" && args.size() == 2)
 	{

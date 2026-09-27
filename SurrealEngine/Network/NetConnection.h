@@ -95,7 +95,13 @@ public:
 	void SendText(const std::string& text);
 
 	int SendRawBunch(NetOutBunch& bunch, bool allowMerge);
+	// The bytes a bunch can still carry in the packet being built (Engine's
+	// UChannel::MaxSendBytes).
+	int MaxSendBytes() const;
 	void SendAck(int packetId, bool firstTime = true);
+	// A packet goes at the end of this tick, whatever it holds: a download's
+	// acks go each tick.
+	void SetTimeSensitive() { TimeSensitive = true; }
 
 	NetDriver* Driver = nullptr;
 	uint32_t RemoteAddr = 0;

@@ -61,7 +61,27 @@ public:
 	std::map<NameString, Package*> GetSaveInfoPackages() const { return saveInfos; };
 
 	Package* LoadMap(const std::string& path);
+	// A map from a file of any name, as the package of the name given: a
+	// download kept in the cache.
+	Package* LoadMapFile(const NameString& name, const std::string& path);
 	void UnloadPackage(Package* package);
+
+	// A package's file for a net game, as Core's appFindPackageFile finds
+	// one: the search paths' by name, else a download kept in the cache by
+	// its GUID, whose date is then brought up to now; "" for none.
+	std::string FindPackageFile(const NameString& name, const std::string& guid);
+	// Where a download of that GUID is kept: the cache, the GUID, CacheExt.
+	std::string GetCachedPackagePath(const std::string& guid) const;
+	// A package file's GUID from its header alone, as Package gives it.
+	static std::string ReadPackageGuid(const std::string& path);
+	bool IsPackageLoaded(const NameString& name) const;
+	// A package of a net game found under its name in this file -- a download
+	// in the cache --, until RestorePackageFiles.
+	void UsePackageFile(const NameString& name, const std::string& path);
+	void RestorePackageFiles();
+	// The cache's downloads left unfinished, and those unused for more than
+	// PurgeCacheDays (Core's appCleanFileCache).
+	void CleanFileCache();
 
 	void CloseStreams();
 
@@ -132,6 +152,8 @@ private:
 	int delayLoadActive = 0;
 
 	std::map<NameString, std::string> packageFilenames;
+	// What UsePackageFile replaced: a name's file before, "" for none.
+	std::map<NameString, std::string> replacedPackageFilenames;
 	std::map<NameString, GCRoot<Package>> packages;
 	std::map<NameString, std::unique_ptr<IniFile>> iniFiles;
 	std::map<NameString, std::unique_ptr<IniFile>> intFiles;

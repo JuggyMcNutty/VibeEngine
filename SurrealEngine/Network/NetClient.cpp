@@ -3,6 +3,7 @@
 #include "NetClient.h"
 #include "NetChannel.h"
 #include "Package/PackageManager.h"
+#include "Package/PackageFlags.h"
 #include "Utils/Logger.h"
 #include "Utils/StrTools.h"
 #include "Packages/Engine/UConsole.h"
@@ -90,6 +91,42 @@ NetPendingLevel::NetPendingLevel(const UnrealURL& url) : URL(url)
 	connection->FlushNet();
 }
 
+NetPendingLevel::~NetPendingLevel()
+{
+	// Its connection goes with it, telling it nothing more.
+	if (Driver)
+		Driver->Notify = nullptr;
+	Driver.reset();
+}
+
+void NetPendingLevel::Close()
+{
+	NetConnection* connection = Driver ? Driver->ServerConnection.get() : nullptr;
+	if (!connection)
+		return;
+	if (NetChannel* control = connection->Channels[0])
+		control->Close();
+	connection->FlushNet();
+}
+
+bool NetPendingLevel::VerifyPackages(std::string& error)
+{
+	for (const UsedPackage& package : Uses)
+	{
+		std::string guid;
+		if (engine->packages->IsPackageLoaded(package.Name))
+			guid = engine->packages->GetPackage(package.Name)->GetGuidString();
+		else
+			guid = PackageManager::ReadPackageGuid(engine->packages->FindPackageFile(package.Name, package.Guid));
+		if (!StrTools::equals_ignore_case(guid, package.Guid))
+		{
+			error = LocalizeMessage("Core", "Errors", "PackageVersion", "Package '%s' version mismatch", { package.Name.ToString() });
+			return false;
+		}
+	}
+	return true;
+}
+
 void NetPendingLevel::Tick(float deltaTime)
 {
 	if (!Driver || !Error.empty())
@@ -118,12 +155,21 @@ void NetPendingLevel::NotifyReceivedText(NetConnection* connection, const std::s
 	std::string rest, value;
 	if (NetParseCommand(text, "UPGRADE"))
 	{
-		Error = "The server needs a newer version of the game";
+		// A server too old for this side, or this side too old for it (the
+		// game's upgrade menu).
+		int minVer = 0;
+		if (NetParseValue(text, "MINVER=", value))
+			minVer = std::atoi(value.c_str());
+		if (minVer <= 1100)
+			Error = LocalizeMessage("Engine", "Errors", "ServerOutdated", "Server's version is outdated");
+		else
+			engine->SetProgress("", "", -1.0f);
 		connection->State = ConnectionState::Closed;
 	}
 	else if (NetParseCommand(text, "FAILURE", &rest))
 	{
-		Error = rest.empty() ? "Rejected by the server" : rest;
+		engine->SetProgress("Rejected By Server", rest, 10.0f);
+		Error = "Rejected By Server: " + rest;
 		connection->State = ConnectionState::Closed;
 	}
 	else if (NetParseCommand(text, "FAILCODE", &rest))
@@ -156,32 +202,40 @@ void NetPendingLevel::NotifyReceivedText(NetConnection* connection, const std::s
 		if (NetParseValue(text, "GEN=", value))
 			package.Generation = std::atoi(value.c_str());
 		Uses.push_back(package);
-
-		// The fork does not download: a package must be here, as the server
-		// has it. A map is checked when it loads.
-		if (!engine->packages->HasPackage(package.Name))
-		{
-			Error = "Missing package " + package.Name.ToString();
-			connection->State = ConnectionState::Closed;
-		}
-		else if (!engine->packages->IsMapPackage(package.Name))
-		{
-			Package* local = engine->packages->GetPackage(package.Name);
-			if (!StrTools::equals_ignore_case(local->GetGuidString(), package.Guid))
-			{
-				Error = "Package " + package.Name.ToString() + " differs from the server's";
-				connection->State = ConnectionState::Closed;
-			}
-		}
 	}
 	else if (NetParseCommand(text, "WELCOME"))
 	{
+		LogMessage("Net: welcomed by server: " + text);
 		if (NetParseValue(text, "LEVEL=", value))
 			URL.Map = value;
 		if (NetParseValue(text, "LONE=", value))
-			LonePlayer = std::atoi(value.c_str()) != 0;
+			LonePlayer = std::atoi(value.c_str()) != 0 || StrTools::equals_ignore_case(value, "True");
+
+		// Each package is on the paths by its name, or in the cache by its
+		// GUID -- then loaded from there under its name --, or it is to be
+		// downloaded: if this side allows downloads and the server lets
+		// that package go.
+		for (UsedPackage& package : Uses)
+		{
+			bool onPaths = engine->packages->HasPackage(package.Name);
+			std::string file = engine->packages->FindPackageFile(package.Name, package.Guid);
+			if (!file.empty())
+			{
+				if (!onPaths)
+					engine->packages->UsePackageFile(package.Name, file);
+				continue;
+			}
+			FilesNeeded++;
+			package.Flags |= (uint32_t)PackageFlags::Need;
+			if (!Driver->AllowDownloads || (package.Flags & (uint32_t)PackageFlags::AllowDownload) == 0)
+			{
+				Error = "Downloading '" + package.Name.ToString() + "' not allowed";
+				connection->State = ConnectionState::Closed;
+				return;
+			}
+		}
+		ReceiveNextFile(connection);
 		Success = true;
-		LogMessage("Net: welcomed by server: " + text);
 	}
 	else if (NetParseCommand(text, "CHALLENGE"))
 	{
@@ -224,6 +278,43 @@ void NetPendingLevel::NotifyReceivedText(NetConnection* connection, const std::s
 	{
 		connection->UserFlags = std::atoi(rest.c_str());
 	}
+}
+
+void NetPendingLevel::ReceiveNextFile(NetConnection* connection)
+{
+	for (size_t i = 0; i < Uses.size(); i++)
+	{
+		const UsedPackage& package = Uses[i];
+		if ((package.Flags & (uint32_t)PackageFlags::Need) != 0)
+		{
+			NetFileChannel::Request(connection, (int)i, package.Name.ToString(), package.Guid, package.Size);
+			return;
+		}
+	}
+}
+
+void NetPendingLevel::NotifyReceivedFile(NetConnection* connection, int packageIndex, const std::string& error)
+{
+	if (packageIndex < 0 || packageIndex >= (int)Uses.size())
+		return;
+	UsedPackage& package = Uses[packageIndex];
+	if (!error.empty())
+	{
+		if (Error.empty())
+			Error = LocalizeMessage("Engine", "Errors", "DownloadFailed", "Downloading package '%s' failed: %s", { package.Name.ToString(), error });
+		return;
+	}
+
+	// In the cache now, and loaded from there under its name.
+	package.Flags &= ~(uint32_t)PackageFlags::Need;
+	FilesNeeded--;
+	engine->packages->UsePackageFile(package.Name, engine->packages->GetCachedPackagePath(package.Guid));
+	ReceiveNextFile(connection);
+}
+
+void NetPendingLevel::NotifyProgress(const std::string& line1, const std::string& line2, float seconds)
+{
+	engine->SetProgress(line1, line2, seconds);
 }
 
 /////////////////////////////////////////////////////////////////////////////

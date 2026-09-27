@@ -24,12 +24,16 @@
 #include "Packages/Engine/Actors/Info/UPlayerReplicationInfo.h"
 #include "Packages/Engine/Actors/Inventory/UInventory.h"
 #include "Packages/Engine/UViewport.h"
+#include "Package/PackageManager.h"
+#include "Package/PackageFlags.h"
 #include "Utils/Logger.h"
+#include "Utils/StrTools.h"
 #include "VM/Frame.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 NetChannel::NetChannel(NetConnection* connection, int chIndex, bool openedLocally, ChannelType type) :
 	Connection(connection), ChIndex(chIndex), OpenedLocally(openedLocally), ChType(type)
@@ -202,9 +206,230 @@ void NetControlChannel::SendText(const std::string& text)
 
 /////////////////////////////////////////////////////////////////////////////
 
+namespace
+{
+	// A GUID's text, as the USES lines and the cache's names have it, and the
+	// four words a bunch carries (Core's FGuid).
+	void GuidToWords(const std::string& guid, uint32_t words[4])
+	{
+		for (int i = 0; i < 4; i++)
+			words[i] = (uint32_t)std::strtoul(guid.substr(std::min<size_t>(i * 8, guid.size()), 8).c_str(), nullptr, 16);
+	}
+
+	std::string WordsToGuid(const uint32_t words[4])
+	{
+		char text[33];
+		snprintf(text, sizeof(text), "%08X%08X%08X%08X", words[0], words[1], words[2], words[3]);
+		return text;
+	}
+
+	// Core's appCreateTempFilename: the first NNNN.tmp in the folder not
+	// already holding something.
+	std::string CreateTempFilename(const fs::path& folder)
+	{
+		static int counter = 0;
+		std::error_code ec;
+		for (int tries = 0; tries < 0x10000; tries++)
+		{
+			char name[16];
+			snprintf(name, sizeof(name), "%04X.tmp", counter++ & 0xffff);
+			fs::path path = folder / name;
+			if (!fs::exists(path, ec) || fs::file_size(path, ec) == 0)
+				return path.string();
+		}
+		return {};
+	}
+}
+
 NetFileChannel::NetFileChannel(NetConnection* connection, int chIndex, bool openedLocally) :
 	NetChannel(connection, chIndex, openedLocally, ChannelType::File)
 {
+}
+
+NetFileChannel::~NetFileChannel()
+{
+	// Gone with its connection: a download not finished is dropped.
+	if (File)
+	{
+		fclose(File);
+		File = nullptr;
+		if (OpenedLocally && !Filename.empty())
+		{
+			std::error_code ec;
+			fs::remove(Filename, ec);
+		}
+	}
+}
+
+void NetFileChannel::Request(NetConnection* connection, int packageIndex, const std::string& name, const std::string& guid, int fileSize)
+{
+	auto channel = static_cast<NetFileChannel*>(connection->CreateChannel(ChannelType::File, true));
+	if (!channel)
+	{
+		if (connection->Driver->Notify)
+			connection->Driver->Notify->NotifyReceivedFile(connection, packageIndex, LocalizeMessage("Engine", "Errors", "ChAllocate", "Couldn't allocate channel"));
+		return;
+	}
+	channel->PackageIndex = packageIndex;
+	channel->PackageName = name;
+	channel->Guid = guid;
+	channel->FileSize = fileSize;
+
+	uint32_t words[4];
+	GuidToWords(guid, words);
+	NetOutBunch bunch(channel, false);
+	bunch.bReliable = true;
+	for (uint32_t word : words)
+		bunch.Data.WriteInt32((int32_t)word);
+	channel->SendBunch(bunch, false);
+}
+
+void NetFileChannel::ReceivedBunch(NetInBunch& bunch)
+{
+	NetNotify* notify = Connection->Driver->Notify;
+	if (OpenedLocally)
+	{
+		// The client: the file's bytes, into a file of its own in the cache.
+		if (Transferred == 0 && !File)
+		{
+			LogMessage("Net: receiving package '" + PackageName + "'");
+			fs::path cache = engine->packages->GetCacheFolderPath();
+			std::error_code ec;
+			fs::create_directories(cache, ec);
+			Filename = CreateTempFilename(cache);
+			File = !Filename.empty() ? fopen(Filename.c_str(), "wb") : nullptr;
+		}
+		if (!File)
+		{
+			Error = LocalizeMessage("Engine", "Errors", "NetOpen", "Error opening file");
+			Close();
+			return;
+		}
+
+		int numBytes = (bunch.Data.GetNumBits() - bunch.Data.GetPosBits()) / 8;
+		std::vector<uint8_t> data(std::max(numBytes, 0));
+		if (numBytes > 0)
+			bunch.Data.ReadBytes(data.data(), numBytes);
+		if (numBytes > 0 && fwrite(data.data(), 1, numBytes, File) != (size_t)numBytes)
+		{
+			Error = LocalizeMessage("Engine", "Errors", "NetWrite", "Error writing to file", { Filename });
+			Close();
+			return;
+		}
+		Transferred += std::max(numBytes, 0);
+		if (notify)
+		{
+			std::string line1 = LocalizeMessage("Engine", "Progress", "ReceiveFile", "Receiving '%s'", { PackageName });
+			std::string line2 = LocalizeMessage("Engine", "Progress", "ReceiveSize", "Size %iK, Complete %3.1f%%", { FileSize / 1024, FileSize > 0 ? Transferred * 100.0 / FileSize : 100.0 });
+			notify->NotifyProgress(line1, line2, 4.0f);
+		}
+	}
+	else
+	{
+		// The server: a client asks for a package by its GUID. One it may
+		// download (AllowDownload) goes if the level agrees; anything else,
+		// the channel closes empty.
+		uint32_t words[4] = {};
+		for (uint32_t& word : words)
+			word = (uint32_t)bunch.Data.ReadInt32();
+		if (!bunch.Data.IsError())
+		{
+			std::string guid = WordsToGuid(words);
+			const Array<NetPackageMap::PackageInfo>& list = Connection->PackageMap.List;
+			for (size_t i = 0; i < list.size(); i++)
+			{
+				const NetPackageMap::PackageInfo& info = list[i];
+				if (!info.Pkg || (info.Flags & (uint32_t)PackageFlags::AllowDownload) == 0 || !StrTools::equals_ignore_case(info.Guid, guid))
+					continue;
+				Filename = info.Pkg->GetPackageFilePath();
+				if (notify && notify->NotifySendingFile(Connection, guid))
+				{
+					File = fopen(Filename.c_str(), "rb");
+					if (File)
+					{
+						LogMessage("Net: " + LocalizeMessage("Engine", "Progress", "NetSend", "Sending '%s'", { Filename }));
+						PackageIndex = (int)i;
+						PackageName = info.Name.ToString();
+						FileSize = info.FileSize;
+						return;
+					}
+				}
+			}
+		}
+		LogMessage("Net: " + LocalizeMessage("Engine", "Errors", "NetInvalid", "Received invalid file request"));
+		Close();
+	}
+}
+
+void NetFileChannel::Tick()
+{
+	NetChannel::Tick();
+
+	// Each tick sends a packet while a file goes: the client's acks keep
+	// the server's reliable buffer draining.
+	Connection->SetTimeSensitive();
+
+	// The server: a reliable bunch as big as the packet has room for, and
+	// the packet sent, until the reliable buffer is full; the file's end
+	// closes the channel.
+	while (File && !OpenedLocally && IsNetReady(true))
+	{
+		int size = Connection->MaxSendBytes();
+		if (size == 0)
+			break;
+		int remaining = FileSize - Transferred;
+		NetOutBunch bunch(this, size >= remaining);
+		size = std::max(std::min(size, remaining), 0);
+		std::vector<uint8_t> data(size);
+		if (size > 0 && fread(data.data(), 1, size, File) != (size_t)size)
+			LogMessage("Net: error reading " + Filename);
+		Transferred += size;
+		if (size > 0)
+			bunch.Data.WriteBytes(data.data(), size);
+		bunch.bReliable = true;
+		SendBunch(bunch, false);
+		Connection->FlushNet();
+		if (bunch.bClose)
+		{
+			fclose(File);
+			File = nullptr;
+		}
+	}
+}
+
+void NetFileChannel::CleanUp()
+{
+	if (File)
+	{
+		fclose(File);
+		File = nullptr;
+	}
+	if (!OpenedLocally)
+		return;
+
+	// The client: the whole file, moved into the cache under its GUID; or
+	// why not, the server having sent nothing, too little or too much.
+	std::error_code ec;
+	if (Error.empty() && Transferred == 0)
+		Error = LocalizeMessage("Engine", "Errors", "NetRefused", "Server refused to send '%s'", { PackageName });
+	if (Error.empty() && (int64_t)fs::file_size(Filename, ec) != FileSize)
+		Error = LocalizeMessage("Engine", "Errors", "NetSize", "File size mismatch");
+	if (Error.empty())
+	{
+		fs::rename(Filename, engine->packages->GetCachedPackagePath(Guid), ec);
+		if (ec)
+			Error = LocalizeMessage("Engine", "Errors", "NetMove", "Error moving file");
+	}
+	if (!Error.empty() && !Filename.empty())
+		fs::remove(Filename, ec);
+	Filename.clear();
+
+	NetNotify* notify = Connection->Driver->Notify;
+	if (!notify)
+		return;
+	if (Error.empty())
+		notify->NotifyProgress("Success", "Received '" + PackageName + "'", 4.0f);
+	notify->NotifyReceivedFile(Connection, PackageIndex, Error);
 }
 
 /////////////////////////////////////////////////////////////////////////////

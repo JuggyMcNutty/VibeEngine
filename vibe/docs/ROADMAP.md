@@ -208,11 +208,12 @@ be.
       and `JOIN`, with the original as the server (2026-09-26).
 - [x] The package map and actor channels: objects by package and index,
       actors spawned and their properties replicated -- a live server's
-      world seen from the fork (2026-09-26; the original's listen server's,
-      the live servers' still to see).
+      world seen from the fork (2026-09-26 the original's listen server's;
+      2026-09-27 a live DXMTL server's).
 - [x] Remote functions and the player's moves: playing on a live server
-      (2026-09-26; on the original's listen server, the live servers still
-      to try).
+      (2026-09-26 on the original's listen server; 2026-09-27 on a live
+      server the server's calls and corrections taken, standing -- moving
+      there still to try).
 - [x] The server: accepting, relevancy and priority, replication out --
       the original joining the fork (2026-09-26).
 - [x] The server's calls to its clients: `ClientAdjustPosition`'s
@@ -223,5 +224,6 @@ be.
       already, not yet run against them: [open decision
       5](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
 - [ ] Travel: a server's next map, its clients following it.
-- [ ] Downloads: a package a client lacks fetched from the server, and a
-      fork server serving them.
+- [x] Downloads: a package a client lacks fetched from the server, and a
+      fork server serving them (2026-09-27: from live servers, and between
+      the fork and the original both ways).

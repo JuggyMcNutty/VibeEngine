@@ -18,18 +18,24 @@ public:
 	explicit NetServerLevel(Package* level);
 	~NetServerLevel();
 
+	// The packages the clients are told of: the level's, the ServerPackages
+	// the game engine's section lists, and the game's (Engine's
+	// UGameEngine::BuildServerMasterMap), each with what it imports.
+	void BuildMasterMap(UObject* game);
+
 	bool NotifyAcceptingConnection() override;
 	bool NotifyAcceptingChannel(NetChannel* channel) override;
 	void NotifyReceivedText(NetConnection* connection, const std::string& text) override;
 	void NotifyConnectionClosed(NetConnection* connection) override;
+	bool NotifySendingFile(NetConnection* connection, const std::string& guid) override;
 
 	// Each tick, before the packets go: what each client is sent of the
 	// level (ULevel::TickNetServer).
 	void TickNetServer(float deltaSeconds);
 
 	// The packages the clients are told of, in the order both sides number
-	// them: the map's, then what it imports, depth first, less what is only
-	// the server's.
+	// them: each package, then what it imports, depth first, less what is
+	// only the server's.
 	Array<NetPackageMap::PackageInfo> Packages;
 
 private:
