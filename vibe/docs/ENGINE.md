@@ -931,3 +931,7 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   darker at the GOG build's 0.6 ([brightness](NATIVES.md#brightness)).
   **Checked:** against `D3DDrv.dll`'s ramp as read; the harness's shots,
   which carry no gamma here, unchanged.
+- [**an object's path name**](https://github.com/JuggyMcNutty/VibeEngine/commit/4ed78c7db9ff06c739646c07e07c2a267419b11f) --
+  `string(Object)` starts with the package even for an object in a group
+  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `LaserConsole`'s logs print
+  the laser's texture and iterator as the original's.
