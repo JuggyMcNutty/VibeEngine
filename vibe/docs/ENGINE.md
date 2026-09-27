@@ -985,3 +985,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   map, else with "Connection failed" ([multiplayer](NATIVES.md#multiplayer)).
   **Checked:** a travel's second in `Entry.dx` as the original's; both
   engines' clients alike after their server was killed.
+- [**the pointer and ShowCursor**](https://github.com/JuggyMcNutty/VibeEngine/commit/ca204337a19c7cedc16e78abffde2a86c8898546) --
+  the pointer drawn while a modal window is up only when `ShowCursor`
+  has not hidden it, as the original's -- gone from conversations, the
+  credits, key binding and the multiplayer windows ([the UI](NATIVES.md#the-ui)).
+  **Checked:** the main menu's pointer kept; the lost server's Entry frame
+  as the original's.
