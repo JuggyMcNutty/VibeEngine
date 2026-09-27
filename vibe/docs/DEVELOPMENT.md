@@ -50,6 +50,10 @@ The console classes:
   start, the Dragon's Tooth given as the game gives its starting items and
   put in hand, the HUD hidden, its look logged and shot three times, a
   second apart.
+- **`CoronaConsole`**: Liberty Island's lamps' glows from `CaptureConsole`'s
+  shot 7 (three lamps in view), the player held there as that console holds
+  it, the HUD hidden: each corona light near logged with its draw scale,
+  hue, saturation and skin, two marked shots.
 - **`LaserConsole`**: Liberty Island's first laser tripwire looked into from
   where `CaptureConsole` shoots it, the HUD hidden: the trigger's, its
   emitter's and its proxy's state logged each second, two marked shots.

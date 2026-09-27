@@ -15,7 +15,6 @@
 #include "Packages/Engine/Resources/UPalette.h"
 #include "Packages/Engine/Resources/Textures/UTexture.h"
 #include "Packages/Engine/UViewport.h"
-#include "Math/hsb.h"
 #include "Packages/Extension/Windows/UViewportWindow.h"
 #include "Packages/Extension/Windows/TabGroup/URootWindow.h"
 
@@ -100,8 +99,11 @@ void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 	UActor* viewerPawn = engine->viewport->Actor();
 	vec3 eye = frame->ViewLocation.xyz();
 
-	// The viewer's leaf
-	int leaf = model->FindLeafAt(eye);
+	// The viewer's leaf: its pawn's, as the original reads the viewport
+	// actor's region; where there is none, the eye's
+	int leaf = viewerPawn ? viewerPawn->Region().BspLeaf : -1;
+	if (leaf < 0)
+		leaf = model->FindLeafAt(eye);
 
 	// Which lights, this frame
 	Array<UActor*> candidates;
@@ -214,7 +216,15 @@ void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 		float width = (float)skin->UsedMipmaps.front().Width;
 		float height = (float)skin->UsedMipmaps.front().Height;
 		float size = light->DrawScale() * frame->Frame.FX * 0.2f;
-		vec3 lightcolor = hsbtorgb(light->LightHue(), light->LightSaturation(), 255) * state.Brightness;
+		// The hue's colour, whitened by the saturation, times the fade -- as
+		// DrawFrame works it out itself, with none of the light maps'
+		// brightness curve (FGetHSV)
+		uint8_t hue = light->LightHue();
+		vec3 huecolor = hue < 86 ? vec3((85 - hue) / 85.0f, hue / 85.0f, 0.0f) :
+			hue < 171 ? vec3(0.0f, (170 - hue) / 85.0f, (hue - 85) / 85.0f) :
+			vec3((hue - 170) / 85.0f, 0.0f, (255 - hue) / 84.0f);
+		float saturation = light->LightSaturation() / 255.0f;
+		vec3 lightcolor = (huecolor + saturation * (vec3(1.0f) - huecolor)) * state.Brightness;
 
 		frame->Device->DrawTile(
 			&frame->Frame,

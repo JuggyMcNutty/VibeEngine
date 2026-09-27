@@ -469,9 +469,19 @@ list below), and a lamp's glow coming up and going over about a third of
 a second as a corner hides and shows it.
 
 Captured (2026-09-26), from the same places near and far from four of
-Liberty Island's lamps: the fork's glows are smaller and dimmer than the
-original's, and a lamp at the frame's right edge glows in the original and
-not in the fork -- open.
+Liberty Island's lamps: the fork's glows were smaller and dimmer than the
+original's, and a lamp at the frame's right edge glowed in the original and
+not in the fork. Two causes, read in `Render.dll` (2026-09-27,
+`CoronaConsole`): the colour -- the fork took the light maps' colour for
+the hue and saturation, some 40% of the original's, which whitens the hue
+by the saturation itself -- and the lights -- the fork's came from the leaf
+the eye is in, the original's from the one the player stands in. With both
+as the original's, the three lamps from CaptureConsole's shot 7 glow in
+both, where each glow's core is and as bright; further out the fork's
+follows the texture's falloff times the colour exactly, while the
+original's frames on Xvfb run brighter there, more so the fainter the
+texel, which the capture renderer (OpenGL on Xvfb, not the game's D3D)
+may account for -- not settled.
 
 ### Mesh detail
 
