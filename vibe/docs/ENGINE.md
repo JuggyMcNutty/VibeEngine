@@ -1004,3 +1004,13 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   **Checked:** `StandConsole`'s start 0.05 from the original's, where it
   was 3.75 lower; a client's place 0.05 from the original server's view;
   proving runs on three maps clean.
+- [**saves the original loads**](https://github.com/JuggyMcNutty/VibeEngine/commit/b8e3abb0b3cbeab9003d32b642adfb59436494ca) --
+  a save written as the original's: every export with the load context,
+  the level's URL and the rest of its data, the event manager in the
+  original's layout, the flag base's hash, a latent action by its poll
+  native's number and a state frame's nodes as the original's; the
+  original's saves read whole in turn
+  ([saving](NATIVES.md#saving-loading-and-travel)). **Checked:**
+  `SaveConsole` and `LoadConsole` -- a fork save played on by the original
+  with its census alike; every listener kept both ways; a proving run
+  clean.
