@@ -950,3 +950,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   **Checked:** `FlashConsole`'s glow as the formula gives in the fork's
   shots and, through their gamma, in the original's frames; a proving run
   on Liberty Island is clean.
+- [**an empty config value**](https://github.com/JuggyMcNutty/VibeEngine/commit/22bb8a55c24e33af10b2cc2cdb7e080702baccd6) --
+  a config key with an empty value is a value, as the original's: a
+  string empty, a name, object or class None, a float 0, an int, byte or
+  bool its default ([mods](NATIVES.md#mods)). **Checked:** a fork
+  server's beacon and GameSpy answers the original's word for word, the
+  empty `ServerName=` included.
