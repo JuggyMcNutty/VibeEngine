@@ -997,3 +997,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   server's package of that name then loads ([multiplayer](NATIVES.md#multiplayer)).
   **Checked:** two servers' versions of one package joined one after the
   other, as the original's client does; without it a version mismatch.
+- [**walking over the floor**](https://github.com/JuggyMcNutty/VibeEngine/commit/690900fee2733aacfc1dcc057879fd116ea4d7b1) --
+  a walking pawn floats 2.1 over where the original's step-down trace
+  stops, 4.8 over the floor for a `MaxStepHeight` of 25, the level its
+  base on the world's floor, as the original's ([small](NATIVES.md#small)).
+  **Checked:** `StandConsole`'s start 0.05 from the original's, where it
+  was 3.75 lower; a client's place 0.05 from the original server's view;
+  proving runs on three maps clean.
