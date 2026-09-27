@@ -870,7 +870,9 @@ what changed, what stays the fork's own, and its by-hand check:
     check by hand with the rest of M3's AI.
   - **Conversions**: a bool prints `True`/`False` and reads back as one; a
     vector or rotator reads what is there, a missing part 0; a rotator
-    prints its parts unwrapped; an object prints its path name.
+    prints its parts unwrapped; an object prints its path name, its
+    package first even when it sits in a group (`Effects.Laser.LaserBeam1`,
+    which printed as `Laser.LaserBeam1` before 2026-09-27).
   - **`Object.VRand` 252** (70 call sites): the points kept are those
     inside the unit sphere, which lean nowhere.
   - **`Actor.RandomBiasedRotation` 717**: the offsets spread over the

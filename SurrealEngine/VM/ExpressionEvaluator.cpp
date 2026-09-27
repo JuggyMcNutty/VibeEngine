@@ -728,11 +728,17 @@ void ExpressionEvaluator::Expr(ObjectToStringExpression* expr)
 		*Out = ExpressionValue::StringValue("None");
 		return;
 	}
+	// A package itself has no object here, so the outermost one's package
+	// heads the path: a texture in a group reads Effects.Laser.LaserBeam1.
 	std::string path = obj->Name.ToString();
+	UObject* outermost = obj;
 	for (UObject* outer = obj->Outer(); outer; outer = outer->Outer())
+	{
 		path = outer->Name.ToString() + "." + path;
-	if (!obj->Outer() && obj->package)
-		path = obj->package->GetPackageName().ToString() + "." + path;
+		outermost = outer;
+	}
+	if (outermost->package)
+		path = outermost->package->GetPackageName().ToString() + "." + path;
 	*Out = ExpressionValue::StringValue(path);
 }
 
