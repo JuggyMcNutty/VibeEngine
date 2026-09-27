@@ -4,6 +4,7 @@
 #include "UFlag.h"
 #include "Engine.h"
 #include "Package/PackageManager.h"
+#include "Utils/StrTools.h"
 #include "Packages/Extension/Flags/UFlagBool.h"
 #include "Packages/Extension/Flags/UFlagByte.h"
 #include "Packages/Extension/Flags/UFlagFloat.h"
@@ -12,33 +13,14 @@
 #include "Packages/Extension/Flags/UFlagRotator.h"
 #include "Packages/Extension/Flags/UFlagVector.h"
 
-// A CRC of the flag's name in upper case, as the original hashes it: the
-// buckets are the CRC modulo 64, and each chain is kept in order of hash,
-// then type, so there is no limit to the flags. The original's exact CRC
-// polynomial was not read; it only matters for reading the original game's
-// own saved flag chains, to be pinned when those saves load at all.
+// The flag's name hashed as the original hashes it (Extension.dll's
+// XFlagBase::FindName, 0x10024e60: appStrihash): the buckets are the hash's
+// low six bits, and each chain is kept in order of hash, then type, so there
+// is no limit to the flags. The same hash as the original's, so each engine
+// finds the other's saved flags in their buckets.
 static uint32_t FlagNameCrc(const NameString& name)
 {
-	static uint32_t table[256];
-	static bool made = false;
-	if (!made)
-	{
-		for (uint32_t i = 0; i < 256; i++)
-		{
-			uint32_t c = i;
-			for (int k = 0; k < 8; k++)
-				c = (c & 1) ? 0xEDB88320u ^ (c >> 1) : c >> 1;
-			table[i] = c;
-		}
-		made = true;
-	}
-	uint32_t crc = 0xFFFFFFFFu;
-	for (char ch : name.ToString())
-	{
-		uint8_t c = (uint8_t)std::toupper((unsigned char)ch);
-		crc = table[(crc ^ c) & 0xFF] ^ (crc >> 8);
-	}
-	return ~crc;
+	return StrTools::ue1_strihash(name.ToString());
 }
 
 UFlag* UFlagBase::GetFlag(const NameString& flagName, uint8_t flagType)
@@ -275,13 +257,14 @@ T* UFlagBase::GetOrCreateFlag(const NameString& FlagName, std::optional<bool> bA
 		flag->flagHash() = (int)crc;
 		flag->expiration() = newExpiration;
 
-		// The chain is kept in order of hash, then type.
+		// The chain is kept in order of hash, then type, the hashes compared
+		// as the signed numbers the original's are.
 		auto table = hashTable();
 		UFlag* prev = nullptr;
 		for (UFlag* it = table[bucket]; it; prev = it, it = it->nextFlag())
 		{
-			if ((uint32_t)it->flagHash() > crc ||
-				((uint32_t)it->flagHash() == crc && it->flagType() > (uint8_t)flagType))
+			if (it->flagHash() > (int)crc ||
+				(it->flagHash() == (int)crc && it->flagType() > (uint8_t)flagType))
 				break;
 		}
 		if (prev)

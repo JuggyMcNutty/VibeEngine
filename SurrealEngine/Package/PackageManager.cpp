@@ -1604,6 +1604,10 @@ void PackageManager::RegisterNativeClasses()
 		RegisterNativeClass<UComputerWindow>(extensionPackage, "ComputerWindow", "Window");
 		RegisterNativeClass<UBorderWindow>(extensionPackage, "BorderWindow", "Window");
 		RegisterNativeClass<UEventManager>(enginePackage, "EventManager", "Object");
+		RegisterNativeClass<UAIEventType>(enginePackage, "AIEventType", "Object");
+		RegisterNativeClass<UAIEvent>(enginePackage, "AIEvent", "Object");
+		RegisterNativeClass<UAISenderEvent>(enginePackage, "AISenderEvent", "AIEvent");
+		RegisterNativeClass<UAIReceiverEvent>(enginePackage, "AIReceiverEvent", "AIEvent");
 		RegisterNativeClass<UDeusExPlayer>(deusExPackage, "DeusExPlayer", "PlayerPawnExt");
 		RegisterNativeClass<UScriptedPawn>(deusExPackage, "ScriptedPawn", "Pawn");
 		RegisterNativeClass<UDeusExDecoration>(deusExPackage, "DeusExDecoration", "Decoration");

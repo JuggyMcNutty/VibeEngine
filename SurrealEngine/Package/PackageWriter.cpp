@@ -6,6 +6,7 @@
 #include "PackageManager.h"
 #include "Packages/Core/UObject.h"
 #include "Packages/Core/UClass.h"
+#include "Packages/Engine/Actors/UActor.h"
 #include "Utils/File.h"
 
 PackageWriter::PackageWriter(Package* package) : Source(package)
@@ -216,7 +217,17 @@ int PackageWriter::GetObjectReference(UObject* obj)
 		else
 			entry.ObjClass = GetObjectReference(obj->Class);
 		entry.ObjName = GetNameIndex(obj->Name);
-		entry.ObjFlags = obj->Flags;
+		// As the original's SavePackage writes an export: the flags a load
+		// reads (RF_Load), with the load context -- client, server, editor --
+		// its objects made at play carry, and by which its linker makes an
+		// export at all (Package::GetUObject); an actor transactional, as its
+		// SpawnActor makes one. The fork's spawned actors had neither, and
+		// its transient flag, so the original's load of a fork save left out
+		// the player, the game and all else spawned.
+		ObjectFlags flags = (obj->Flags & ObjectFlags::Load) | ObjectFlags::LoadContextFlags;
+		if (UObject::TryCast<UActor>(obj))
+			flags |= ObjectFlags::Transactional;
+		entry.ObjFlags = flags;
 		entry.ObjOuter = GetObjectReference(obj->Outer());
 
 		ExportTable.push_back(entry);

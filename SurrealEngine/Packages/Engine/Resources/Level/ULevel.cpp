@@ -54,6 +54,22 @@ void ULevel::Save(PackageStreamWriter* stream)
 		stream->WriteInt32(spec.reachFlags);
 		stream->WriteInt8(spec.bPruned);
 	}
+
+	// The rest of the original's ULevel::Serialize (Engine.dll 0x1039d560),
+	// which its load of a save reads on: the level's time as a float, the
+	// first deleted actor, sixteen text blocks and the travel info. The fork
+	// wrote none of it, and the original's load read on into the next export.
+	ULevelInfo* levelInfo = Actors.empty() ? nullptr : UObject::TryCast<ULevelInfo>(Actors[0]);
+	stream->WriteFloat(levelInfo ? levelInfo->TimeSeconds() : 0.0f);
+	stream->WriteObject(nullptr);
+	for (int i = 0; i < 16; i++)
+		stream->WriteObject(nullptr);
+	stream->WriteIndex((int)TravelInfo.size());
+	for (const auto& info : TravelInfo)
+	{
+		stream->WriteString(info.first);
+		stream->WriteString(info.second);
+	}
 }
 
 void ULevel::TickActor(float elapsed, UActor* actor)

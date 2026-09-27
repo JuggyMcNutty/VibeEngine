@@ -11,8 +11,9 @@ class ULevelInfo;
 // original is Engine.dll's UEventManager, a C++ class with no script; the
 // game's dx-reverse-info/engine-dll.md has the read. One lives in each level's
 // package (LevelInfo.EventManager), so a save keeps every listener and
-// event; the original's own saved layout is not read yet, so a save of the
-// original game carries a manager this Load recognizes and skips.
+// event, in the original's layout: its event types, senders and receivers
+// objects of their own (UAIEventType and the rest, below), which a save
+// makes from the manager's lists and a load turns back into them.
 class UEventManager : public UObject
 {
 public:
@@ -99,6 +100,8 @@ public:
 	int SlotIndex = 0;
 
 private:
+	// The fork's own saved layout, before the original's (2026-09-27).
+	void LoadForkLayout(ObjectStream* stream);
 	EventType& GetEventType(const NameString& name);
 	Sender* FindSender(EventType& type, UActor* actor, bool create);
 	Receiver* FindReceiver(EventType& type, UActor* actor);
@@ -107,4 +110,73 @@ private:
 	void ComputeSenseDetection(Receiver& receiver, UActor* senderActor, const SenseLevels& peak, float& visibility, float& volume, float& smell);
 	void CallListener(EventType& type, Receiver& receiver, uint8_t state);
 	void CleanupEvents();
+};
+
+// The original's saved event manager keeps its parts as objects of their
+// own in the level's package, its C++ classes (Engine's UnEventManager.h,
+// XAIEventType and the rest), in the layouts below. Only a save's form: the
+// manager works on its own lists.
+class UAIEventType : public UObject
+{
+public:
+	using UObject::UObject;
+
+	void Load(ObjectStream* stream) override;
+	void Save(PackageStreamWriter* stream) override;
+
+	NameString EventName;
+	int32_t EventHash = 0;
+	UObject* Senders = nullptr;
+	UObject* Receivers = nullptr;
+	UObject* NextEventType = nullptr;
+};
+
+class UAIEvent : public UObject
+{
+public:
+	using UObject::UObject;
+
+	void Load(ObjectStream* stream) override;
+	void Save(PackageStreamWriter* stream) override;
+
+	UObject* EventType = nullptr;
+	UActor* EventActor = nullptr;
+	int32_t bBeingDestroyed = 0;
+	UObject* NextEvent = nullptr;
+};
+
+class UAISenderEvent : public UAIEvent
+{
+public:
+	using UAIEvent::UAIEvent;
+
+	void Load(ObjectStream* stream) override;
+	void Save(PackageStreamWriter* stream) override;
+
+	UEventManager::SenseLevels Settings[UEventManager::NumSlots];
+	UEventManager::SenseLevels CurrentSettings;
+};
+
+class UAIReceiverEvent : public UAIEvent
+{
+public:
+	using UAIEvent::UAIEvent;
+
+	void Load(ObjectStream* stream) override;
+	void Save(PackageStreamWriter* stream) override;
+
+	NameString Callback;
+	NameString ScoreCallback;
+	int32_t bInvokeCallback = 0;
+	uint8_t EventState = 0;
+	int32_t bCheckVisibility = 0;
+	int32_t bCheckDir = 0;
+	int32_t bCheckCylinder = 0;
+	int32_t bCheckLOS = 0;
+	int32_t bEventOn = 0;
+	float BestScore = 0.0f;
+	UActor* BestSender = nullptr;
+	int32_t NextSlot = 0;
+	UObject* NextProcess = nullptr;
+	UObject* PrevProcess = nullptr;
 };

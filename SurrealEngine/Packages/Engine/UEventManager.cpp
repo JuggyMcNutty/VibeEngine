@@ -16,11 +16,14 @@
 #include "VM/ScriptCall.h"
 #include "VM/Frame.h"
 #include "Utils/Logger.h"
+#include "Utils/StrTools.h"
 #include "Engine.h"
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 
-// The fork's own layout of the saved manager; an original game's save
-// carries the original's, which is not read yet and is skipped.
+// The fork's own layout of the saved manager, which its saves before
+// 2026-09-27 carry; the original's is read and written since.
 static const int32_t EventManagerMagic = 0x4D454941; // 'AIEM'
 
 static PropertyDataOffset EventManagerPropOffset(ULevelInfo* info)
@@ -535,15 +538,92 @@ void UEventManager::Load(ObjectStream* stream)
 {
 	UObject::Load(stream);
 
-	if (stream->Remaining() < 8 || stream->ReadInt32() != EventManagerMagic)
+	// A save the fork made before 2026-09-27 has the fork's own layout.
+	uint32_t start = stream->Tell();
+	if (stream->Remaining() >= 8 && stream->ReadInt32() == EventManagerMagic)
 	{
-		// The original game's saved manager: its layout is not read yet.
-		LogMessage("A saved event manager with an unknown layout was skipped; its listeners are lost");
-		stream->Skip(stream->Remaining());
+		LoadForkLayout(stream);
 		return;
 	}
-	stream->ReadInt32(); // version
+	stream->Seek(start);
 
+	// The original's layout (UEventManager::Serialize, Engine.dll
+	// 0x103825f0): its level, three counters, the receiver the process ring
+	// starts at, and 256 hash buckets of event types.
+	stream->ReadObject<UObject>(); // level
+	stream->ReadInt32(); // refProcessing
+	stream->ReadInt32(); // deleteCount
+	int32_t currentSlot = stream->ReadInt32();
+	UAIReceiverEvent* firstProcess = stream->ReadObject<UAIReceiverEvent>();
+	UAIEventType* buckets[256];
+	for (int i = 0; i < 256; i++)
+		buckets[i] = stream->ReadObject<UAIEventType>();
+	stream->ThrowIfNotEnd();
+
+	SlotIndex = currentSlot & (NumSlots - 1);
+
+	// Each type's senders and receivers into the manager's lists, the ring
+	// then in the original's process order.
+	std::map<UAIReceiverEvent*, std::pair<EventType*, Receiver*>> made;
+	for (UAIEventType* savedType : buckets)
+	{
+		for (int guard = 0; savedType && guard < 4096; guard++)
+		{
+			savedType->LoadNow();
+			EventType& type = GetEventType(savedType->EventName);
+			for (UAISenderEvent* saved = UObject::TryCast<UAISenderEvent>(savedType->Senders); saved; saved = UObject::TryCast<UAISenderEvent>(saved->NextEvent))
+			{
+				saved->LoadNow();
+				if (saved->bBeingDestroyed || !saved->EventActor)
+					continue;
+				Sender* sender = FindSender(type, saved->EventActor, true);
+				for (int i = 0; i < NumSlots; i++)
+					sender->Slots[i] = saved->Settings[i];
+				sender->Current = saved->CurrentSettings;
+			}
+			for (UAIReceiverEvent* saved = UObject::TryCast<UAIReceiverEvent>(savedType->Receivers); saved; saved = UObject::TryCast<UAIReceiverEvent>(saved->NextEvent))
+			{
+				saved->LoadNow();
+				if (saved->bBeingDestroyed || !saved->EventActor)
+					continue;
+				SetEventCallback(saved->EventActor, type.Name, saved->Callback, saved->ScoreCallback, saved->bCheckVisibility, saved->bCheckDir, saved->bCheckCylinder, saved->bCheckLOS);
+				Receiver* receiver = FindReceiver(type, saved->EventActor);
+				receiver->EventOn = saved->bEventOn != 0;
+				receiver->BestActor = saved->BestSender;
+				receiver->BestScore = saved->BestScore;
+				// Its next turn weighs the slots from its nextSlot on.
+				receiver->LastTurnFrame = FrameCounter - ((SlotIndex - saved->NextSlot) & (NumSlots - 1));
+				made[saved] = { &type, receiver };
+			}
+			savedType = UObject::TryCast<UAIEventType>(savedType->NextEventType);
+		}
+	}
+
+	if (firstProcess && made.find(firstProcess) != made.end())
+	{
+		std::vector<std::pair<EventType*, Receiver*>> ring;
+		UAIReceiverEvent* cur = firstProcess;
+		for (size_t guard = 0; cur && guard <= made.size(); guard++)
+		{
+			auto it = made.find(cur);
+			if (it == made.end())
+				break;
+			ring.push_back(it->second);
+			cur = UObject::TryCast<UAIReceiverEvent>(cur->NextProcess);
+			if (cur == firstProcess)
+				break;
+		}
+		if (ring.size() == Ring.size())
+		{
+			Ring = std::move(ring);
+			RingPos = 0;
+		}
+	}
+}
+
+void UEventManager::LoadForkLayout(ObjectStream* stream)
+{
+	stream->ReadInt32(); // version
 	int typeCount = stream->ReadIndex();
 	for (int i = 0; i < typeCount; i++)
 	{
@@ -599,49 +679,243 @@ void UEventManager::Save(PackageStreamWriter* stream)
 {
 	UObject::Save(stream);
 
-	stream->WriteInt32(EventManagerMagic);
-	stream->WriteInt32(1);
+	// Saved in the original's layout, so either engine loads the other's
+	// save: the marked events go first, as the original's Serialize cleans
+	// them up; each type, sender and receiver becomes an object of its own,
+	// owned by the manager.
+	CleanupEvents();
 
-	stream->WriteIndex((int)Events.size());
+	Package* pkg = package;
+	UClass* typeClass = engine->packages->GetPackage("Engine")->GetClass("AIEventType");
+	UClass* senderClass = engine->packages->GetPackage("Engine")->GetClass("AISenderEvent");
+	UClass* receiverClass = engine->packages->GetPackage("Engine")->GetClass("AIReceiverEvent");
+	// Named as the original names them, by class and a count of each.
+	static int typeCount = 0, senderCount = 0, receiverCount = 0;
+	auto make = [&](UClass* cls, int& count) -> UObject*
+	{
+		UObject* obj = pkg->NewObject(NameString(cls->Name.ToString() + std::to_string(count++)), cls, ObjectFlags::LoadContextFlags);
+		obj->Outer() = this;
+		return obj;
+	};
+
+	// A type in its bucket by the original's hash, the bucket's types in the
+	// order of their names, case aside as its _wcsicmp does, in lowercase
+	// (FindEvent, 0x103834b0); each list's events in the order they came.
+	std::map<Receiver*, UAIReceiverEvent*> savedReceivers;
+	std::vector<std::pair<std::string, UAIEventType*>> bucketTypes[256];
 	for (auto& [name, type] : Events)
 	{
-		stream->WriteName(name);
+		UAIEventType* savedType = UObject::Cast<UAIEventType>(make(typeClass, typeCount));
+		savedType->EventName = type.Name;
+		uint32_t hash = StrTools::ue1_strihash(type.Name.ToString());
+		savedType->EventHash = (int32_t)hash;
 
-		int senderCount = 0;
-		for (auto& sender : type.Senders)
-			if (!sender->Delete && sender->Actor)
-				senderCount++;
-		stream->WriteIndex(senderCount);
+		UAIEvent* last = nullptr;
 		for (auto& sender : type.Senders)
 		{
 			if (sender->Delete || !sender->Actor)
 				continue;
-			stream->WriteObject(sender->Actor);
-			stream->WriteFloat(sender->Current.Visual);
-			stream->WriteFloat(sender->Current.Audio);
-			stream->WriteFloat(sender->Current.AudioRadius);
-			stream->WriteFloat(sender->Current.Smell);
+			UAISenderEvent* saved = UObject::Cast<UAISenderEvent>(make(senderClass, senderCount));
+			saved->EventType = savedType;
+			saved->EventActor = sender->Actor;
+			for (int i = 0; i < NumSlots; i++)
+				saved->Settings[i] = sender->Slots[i];
+			saved->CurrentSettings = sender->Current;
+			if (last)
+				last->NextEvent = saved;
+			else
+				savedType->Senders = saved;
+			last = saved;
 		}
 
-		int receiverCount = 0;
-		for (auto& receiver : type.Receivers)
-			if (!receiver->Delete && receiver->Actor)
-				receiverCount++;
-		stream->WriteIndex(receiverCount);
+		last = nullptr;
 		for (auto& receiver : type.Receivers)
 		{
 			if (receiver->Delete || !receiver->Actor)
 				continue;
-			stream->WriteObject(receiver->Actor);
-			stream->WriteName(receiver->Callback);
-			stream->WriteName(receiver->ScoreCallback);
-			uint8_t flags = (receiver->bCheckVisibility ? 1 : 0) | (receiver->bCheckDir ? 2 : 0) | (receiver->bCheckCylinder ? 4 : 0) | (receiver->bCheckLOS ? 8 : 0) | (receiver->EventOn ? 16 : 0);
-			stream->WriteUInt8(flags);
-			stream->WriteObject(receiver->BestActor);
-			stream->WriteFloat(receiver->BestScore);
-			stream->WriteFloat(receiver->BestVisibility);
-			stream->WriteFloat(receiver->BestVolume);
-			stream->WriteFloat(receiver->BestSmell);
+			UAIReceiverEvent* saved = UObject::Cast<UAIReceiverEvent>(make(receiverClass, receiverCount));
+			saved->EventType = savedType;
+			saved->EventActor = receiver->Actor;
+			saved->Callback = receiver->Callback;
+			saved->ScoreCallback = receiver->ScoreCallback;
+			saved->bCheckVisibility = receiver->bCheckVisibility;
+			saved->bCheckDir = receiver->bCheckDir;
+			saved->bCheckCylinder = receiver->bCheckCylinder;
+			saved->bCheckLOS = receiver->bCheckLOS;
+			saved->bEventOn = receiver->EventOn;
+			saved->BestScore = receiver->BestScore;
+			saved->BestSender = receiver->BestActor;
+			// The first slot its next turn weighs: the current one for a
+			// receiver that had its turn in the last frame.
+			int behind = std::clamp(FrameCounter - receiver->LastTurnFrame, 0, NumSlots - 1);
+			saved->NextSlot = (SlotIndex - behind) & (NumSlots - 1);
+			savedReceivers[receiver.get()] = saved;
+			if (last)
+				last->NextEvent = saved;
+			else
+				savedType->Receivers = saved;
+			last = saved;
 		}
+
+		bucketTypes[hash & 255].push_back({ type.Name.ToString(), savedType });
 	}
+
+	UAIEventType* buckets[256] = {};
+	for (int i = 0; i < 256; i++)
+	{
+		auto& types = bucketTypes[i];
+		std::sort(types.begin(), types.end(), [](const auto& a, const auto& b)
+		{
+			const std::string& x = a.first;
+			const std::string& y = b.first;
+			for (size_t k = 0; k < x.size() && k < y.size(); k++)
+			{
+				int cx = std::tolower((unsigned char)x[k]);
+				int cy = std::tolower((unsigned char)y[k]);
+				if (cx != cy)
+					return cx < cy;
+			}
+			return x.size() < y.size();
+		});
+		for (size_t k = 0; k < types.size(); k++)
+			types[k].second->NextEventType = k + 1 < types.size() ? types[k + 1].second : nullptr;
+		buckets[i] = types.empty() ? nullptr : types.front().second;
+	}
+
+	// The process ring, from where the manager resumes.
+	UAIReceiverEvent* firstProcess = nullptr;
+	std::vector<UAIReceiverEvent*> ring;
+	for (size_t k = 0; k < Ring.size(); k++)
+	{
+		auto it = savedReceivers.find(Ring[(RingPos + k) % Ring.size()].second);
+		if (it != savedReceivers.end())
+			ring.push_back(it->second);
+	}
+	for (size_t k = 0; k < ring.size(); k++)
+	{
+		ring[k]->NextProcess = ring[(k + 1) % ring.size()];
+		ring[k]->PrevProcess = ring[(k + ring.size() - 1) % ring.size()];
+	}
+	if (!ring.empty())
+		firstProcess = ring.front();
+
+	// Its level: the original's AIProcess does nothing without one.
+	ULevel* level = engine->Level && engine->Level->package == package ? engine->Level : nullptr;
+	if (!level)
+		LogMessage("An event manager was saved without its level; the original's NPCs would not sense its events");
+	stream->WriteObject(level);
+	stream->WriteInt32(0); // refProcessing
+	stream->WriteInt32(0); // deleteCount
+	stream->WriteInt32(SlotIndex);
+	stream->WriteObject(firstProcess);
+	for (int i = 0; i < 256; i++)
+		stream->WriteObject(buckets[i]);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void UAIEventType::Load(ObjectStream* stream)
+{
+	UObject::Load(stream);
+	EventName = stream->ReadName();
+	EventHash = stream->ReadInt32();
+	Senders = stream->ReadObject<UObject>();
+	Receivers = stream->ReadObject<UObject>();
+	NextEventType = stream->ReadObject<UObject>();
+}
+
+void UAIEventType::Save(PackageStreamWriter* stream)
+{
+	UObject::Save(stream);
+	stream->WriteName(EventName);
+	stream->WriteInt32(EventHash);
+	stream->WriteObject(Senders);
+	stream->WriteObject(Receivers);
+	stream->WriteObject(NextEventType);
+}
+
+void UAIEvent::Load(ObjectStream* stream)
+{
+	UObject::Load(stream);
+	EventType = stream->ReadObject<UObject>();
+	EventActor = stream->ReadObject<UActor>();
+	bBeingDestroyed = stream->ReadInt32();
+	NextEvent = stream->ReadObject<UObject>();
+}
+
+void UAIEvent::Save(PackageStreamWriter* stream)
+{
+	UObject::Save(stream);
+	stream->WriteObject(EventType);
+	stream->WriteObject(EventActor);
+	stream->WriteInt32(bBeingDestroyed);
+	stream->WriteObject(NextEvent);
+}
+
+void UAISenderEvent::Load(ObjectStream* stream)
+{
+	UAIEvent::Load(stream);
+	auto read = [&](UEventManager::SenseLevels& levels)
+	{
+		levels.Visual = stream->ReadFloat();
+		levels.Audio = stream->ReadFloat();
+		levels.AudioRadius = stream->ReadFloat();
+		levels.Smell = stream->ReadFloat();
+	};
+	for (auto& settings : Settings)
+		read(settings);
+	read(CurrentSettings);
+}
+
+void UAISenderEvent::Save(PackageStreamWriter* stream)
+{
+	UAIEvent::Save(stream);
+	auto write = [&](const UEventManager::SenseLevels& levels)
+	{
+		stream->WriteFloat(levels.Visual);
+		stream->WriteFloat(levels.Audio);
+		stream->WriteFloat(levels.AudioRadius);
+		stream->WriteFloat(levels.Smell);
+	};
+	for (const auto& settings : Settings)
+		write(settings);
+	write(CurrentSettings);
+}
+
+void UAIReceiverEvent::Load(ObjectStream* stream)
+{
+	UAIEvent::Load(stream);
+	Callback = stream->ReadName();
+	ScoreCallback = stream->ReadName();
+	bInvokeCallback = stream->ReadInt32();
+	EventState = stream->ReadUInt8();
+	bCheckVisibility = stream->ReadInt32();
+	bCheckDir = stream->ReadInt32();
+	bCheckCylinder = stream->ReadInt32();
+	bCheckLOS = stream->ReadInt32();
+	bEventOn = stream->ReadInt32();
+	BestScore = stream->ReadFloat();
+	BestSender = stream->ReadObject<UActor>();
+	NextSlot = stream->ReadInt32();
+	NextProcess = stream->ReadObject<UObject>();
+	PrevProcess = stream->ReadObject<UObject>();
+}
+
+void UAIReceiverEvent::Save(PackageStreamWriter* stream)
+{
+	UAIEvent::Save(stream);
+	stream->WriteName(Callback);
+	stream->WriteName(ScoreCallback);
+	stream->WriteInt32(bInvokeCallback);
+	stream->WriteUInt8(EventState);
+	stream->WriteInt32(bCheckVisibility);
+	stream->WriteInt32(bCheckDir);
+	stream->WriteInt32(bCheckCylinder);
+	stream->WriteInt32(bCheckLOS);
+	stream->WriteInt32(bEventOn);
+	stream->WriteFloat(BestScore);
+	stream->WriteObject(BestSender);
+	stream->WriteInt32(NextSlot);
+	stream->WriteObject(NextProcess);
+	stream->WriteObject(PrevProcess);
 }

@@ -25,6 +25,35 @@ static const int stricmptable[] =
 	0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
 };
 
+uint32_t StrTools::ue1_strihash(const std::string_view& str)
+{
+	static uint32_t table[256];
+	static bool made = false;
+	if (!made)
+	{
+		for (uint32_t i = 0; i < 256; i++)
+		{
+			uint32_t c = i << 24;
+			for (int j = 0; j < 8; j++)
+				c = (c & 0x80000000u) ? (c << 1) ^ 0x04C11DB7u : (c << 1);
+			table[i] = c;
+		}
+		made = true;
+	}
+	uint32_t hash = 0;
+	for (char ch : str)
+	{
+		// A character of the fork's strings is one byte; the original's are
+		// two, the second 0 here.
+		uint16_t c = (uint8_t)ch;
+		if (c >= 'a' && c <= 'z')
+			c -= 'a' - 'A';
+		hash = (hash >> 8) ^ table[(c & 0xFF) ^ (hash & 0xFF)];
+		hash = (hash >> 8) ^ table[(c >> 8) ^ (hash & 0xFF)];
+	}
+	return hash;
+}
+
 bool StrTools::equals_ignore_case(const std::string_view& str1, const std::string_view& str2)
 {
 	if (str1.size() != str2.size())

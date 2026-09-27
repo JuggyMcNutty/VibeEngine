@@ -90,6 +90,15 @@ The console classes:
 - **`StandConsole`**: where a walking player rests over the floor -- at
   Liberty Island's start and after two short walks, its place, collision
   height and base and the floor a line down finds logged.
+- **`SaveConsole`** and **`LoadConsole`**, either engine: a save one engine
+  makes for the other to load -- the first opens Liberty Island from the
+  menu map, logs 8 s in what the level holds (the player's place, health
+  and inventory, the game, how many actors, pawns and inventory items) and
+  saves to slot 9 through a `SaveHelper` actor, as the original's console
+  ticks inside a draw where a save's own draw stops it; the second loads
+  slot 9 from the menu map and logs the same 5 s into the level. The helper
+  is in the save and gone at its first tick after a load. Both use the
+  game's own `Save\Save0009` and `Save\Current`: delete them after.
 - **`TravelServeConsole`** and **`TravelJoinConsole`**, either engine:
   server travel -- the server as `ServeConsole`'s, which `servertravel`s to
   DXMP_Smuggler once another player has been in 10 s, logging its map and

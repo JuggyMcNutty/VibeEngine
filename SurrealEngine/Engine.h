@@ -104,6 +104,7 @@ public:
 	void DeusExPreTravel(const UnrealURL& url);
 	void PruneTravelActors() const;
 	void SaveCurrentLevel(int32_t slot) const;
+	void SetLevelURLForSave() const;
 	int32_t DeusExMissionNumber(const std::string& mapName) const;
 	void UnloadMap();
 	void LoginPlayer();

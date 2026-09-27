@@ -52,7 +52,11 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	// To do: find unique new name in the package
 	static std::map<NameString, int> nextIndex;
 	NameString name = SpawnClass->Name.ToString() + std::to_string(nextIndex[SpawnClass->Name]++);
-	UActor* actor = UObject::Cast<UActor>(engine->LevelPackage->NewObject(name, UObject::Cast<UClass>(SpawnClass), ObjectFlags::Transient, true));
+	// Made as the original's SpawnActor makes one: transactional, for any
+	// context -- client, server, editor -- and with a state frame
+	// (InitExecution); a save then writes it as the original's does, which
+	// the original's load needs to make it at all.
+	UActor* actor = UObject::Cast<UActor>(engine->LevelPackage->NewObject(name, UObject::Cast<UClass>(SpawnClass), ObjectFlags::Transactional | ObjectFlags::LoadContextFlags | ObjectFlags::HasStack, true));
 
 	// An actor the server owns and this client copies has the roles turned.
 	if (remoteOwned)

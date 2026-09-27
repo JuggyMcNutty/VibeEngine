@@ -116,10 +116,36 @@ commands and showed three of these. The rest is read from the code:
   does what the original's `Browse` does: the slot's `SaveInfo` names the
   map, `Current` is emptied, the slot copied in, and the map loads from
   `Current`. The original game's saves load too (2026-09-25, seen: the
-  reference Liberty Island save loads and plays): their saved event manager
-  is recognized and skipped, its listeners lost
-  ([hearing](#hearing-the-ai-event-system)); what its NPCs still do is to
-  check by hand.
+  reference Liberty Island save loads and plays), and since 2026-09-27 with
+  every listener of their event manager
+  ([hearing](#hearing-the-ai-event-system)): after a load of the reference
+  save the same four terrorists attack the player in both engines.
+- **The original loads the fork's saves** (2026-09-27, seen: a Liberty
+  Island save the fork made, which the original loads and plays on 5 s
+  with the same player -- place, health, inventory -- and the same 2,604
+  actors, 75 pawns and 228 items; the fork's reads its own back alike).
+  What it took, each as the original's saves have it:
+  - every export with the three load contexts -- client, server, editor --
+    and a spawned actor transactional, with a state frame: the original
+    makes no export without a context, so its load left out the player,
+    the game and all else spawned;
+  - the save info public, and the game named as the original's spawn
+    names it (`DeusExGameInfo0`);
+  - the level's URL the one it was entered by -- the map as travelled to,
+    its options and port --, where the fork's kept the map file's
+    (`Index.dx`), and the rest of the original's level after the reach
+    specs: its time, the first deleted actor, 16 text blocks and the travel
+    info, where the original's load read on into the next export;
+  - the event manager in the original's layout
+    ([hearing](#hearing-the-ai-event-system));
+  - a state frame's latent action by the number of the native that polls
+    it (`Sleep` 384, `FinishAnim` 385), where the fork's own (257 and 262)
+    ran no native in the original, which stopped at the first sleeping NPC
+    with "Unknown code token"; the fork's load of an original save cut that
+    sleep or animation short. And the state as the original writes it: its
+    most derived state beside the one whose code runs, and the class for
+    an object in no state, whose name the original reads at the object's
+    next `GotoState` (the fork wrote none).
 - **Deleting** works: the screens' `DeleteGame N` console command removes
   the slot, and `DeleteSaveInfo` lets go of a kept info without touching
   the disk, as the original's does. To check by hand.
@@ -138,9 +164,8 @@ commands and showed three of these. The rest is read from the code:
 
 **The fix:** the original's travel and save logic, all of it read and in
 the fork (2026-09-26, the picture last). The fork reads its own saves back
-(2026-09-24), and the original game's load past their saved event manager
-now (2026-09-25), the manager skipped and its listeners lost until its
-exact bytes are read ([hearing](#hearing-the-ai-event-system)).
+(2026-09-24) and the original game's (2026-09-25, whole since 2026-09-27),
+and the original reads the fork's (2026-09-27).
 
 ## Flags
 
@@ -157,8 +182,12 @@ and the mission scripts set their events' flags
   criteria, and `GetExpiration` answers -1 for a flag that is not there
   and reads the flag's own type. A typed flag is found again: the fork
   wrote every flag's type as bool, so an int or float flag could be set
-  but never read. The original's exact CRC polynomial is unread; it
-  matters only for reading the original game's own saved chains.
+  but never read. The hash is the original's since 2026-09-27, UE1's
+  `appStrihash`
+  ([names](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)),
+  and the chains are in order of it as a signed number: each engine finds
+  the other's saved flags. With its own CRC the fork looked for an
+  original save's flag in another bucket and missed it.
 - **Kept and carried** (2026-09-25, seen: 21 flags set across the buckets,
   travelled and loaded back). The flag base and its flags live in the
   level package, so a save keeps them, and they cross a travel in the
@@ -331,10 +360,22 @@ and a quick save carried 10 event types and 325 listeners through a load.
 To check by hand: a shot fired around a corner turning guards, a thrown
 body found ([open decision 1](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
 
-The fork saves the manager in a layout of its own. The original game's
-saved manager -- its exact bytes unread -- is recognized and skipped on
-load with a message, its listeners lost: what an original save's NPCs
-still hear is to be checked when those bytes are read.
+Saved in the original's layout (2026-09-27;
+[the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#saved)):
+its event types, senders and listeners each an object of the original's
+classes, the types in its hash buckets, the listeners in its ring from
+where it resumes, so each engine loads the other's saves with every
+listener. Seen: an original Liberty Island save's 10 event types, 55
+senders and 261 listeners kept through the fork's load, and the fork's own
+48 and 318 through its load and the original's. The fork's saves before
+then have its own layout, still read; the original's were skipped, their
+listeners lost.
+
+Not yet as the original: the fork calls each listener as it has its turn,
+where the original calls them all after the pass, the senders' slots moved
+on first. A pulse a listener's call raises lands in the next frame's slot
+there, heard by every listener; here in this frame's, missed by the
+listeners that had their turn before it.
 
 ### Moving: wandering and tactical movement
 
@@ -1060,7 +1101,8 @@ What a mod needs of the engine is the original's loader (2026-09-27):
   original's linker has it: the live servers' anti-cheat packages (ANNA,
   DXNMS) point their classes' `ScriptText` at such exports, where the fork
   used to make them and fail. A save's exports are all made whatever their
-  flags: the fork's own saves write spawned actors without them.
+  flags: the fork's saves before 2026-09-27 wrote spawned actors without
+  them ([saving](#saving-loading-and-travel)).
 - **Config files.** A class's config file that is not there is empty -- its
   properties keep their defaults -- until the class writes it, as the
   original's ([configuration](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)):

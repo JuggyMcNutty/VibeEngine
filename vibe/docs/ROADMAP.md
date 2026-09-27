@@ -76,8 +76,9 @@ All read; the inventory is
       [lists](NATIVES.md#lists), [the UI](NATIVES.md#the-ui)).
 - [x] Acceptance: our own saves round-trip (a slot and the quick save,
       2026-09-24); the original's reference saves load and play
-      (2026-09-25), their saved event manager skipped
-      ([hearing](NATIVES.md#hearing-the-ai-event-system)).
+      (2026-09-25), their listeners kept since 2026-09-27; the original
+      loads and plays ours (2026-09-27;
+      [saving](NATIVES.md#saving-loading-and-travel)).
 
 ## M2 -- the story stays intact
 

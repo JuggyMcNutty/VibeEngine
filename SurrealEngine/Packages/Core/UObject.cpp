@@ -71,6 +71,14 @@ void UObject::Load(ObjectStream* stream)
 		if (func)
 			offset = stream->ReadIndex();
 
+		// An object in no state has its class for both, as the original's
+		// state frame starts (UObject::InitExecution).
+		if (UObject::TryCast<UClass>(func) || UObject::TryCast<UClass>(state))
+		{
+			func = nullptr;
+			state = nullptr;
+		}
+
 		if (func && state)
 		{
 			if (offset != -1)
@@ -131,11 +139,27 @@ void UObject::Save(PackageStreamWriter* stream)
 {
 	if (AllFlags(Flags, ObjectFlags::HasStack))
 	{
-		// func and state: in this engine's VM, a StateFrame can only ever be suspended in
-		// state code, so func (raw StateFrame->Func) and state (StateFrame->Func cast to
-		// UState) always point at the same object here.
+		// As the original's state frame is written: the state whose code runs
+		// (in this engine's VM a StateFrame is only ever suspended in state
+		// code, StateFrame->Func), then the state the object is in, the most
+		// derived of that name from its class, as the original's FindState
+		// finds it -- its functions are the ones the original calls. An
+		// object in no state has its class for both, as the original's frame
+		// starts: the original reads that state's name at its next GotoState.
 		UStruct* func = StateFrame ? StateFrame->Func : nullptr;
-		UState* state = StateFrame ? UObject::TryCast<UState>(StateFrame->Func) : nullptr;
+		UState* state = nullptr;
+		if (func)
+		{
+			for (UClass* cls = Class; cls && !state; cls = static_cast<UClass*>(cls->BaseStruct))
+				state = cls->GetState(func->Name);
+			if (!state)
+				state = UObject::TryCast<UState>(func);
+		}
+		else
+		{
+			func = Class;
+			state = Class;
+		}
 		int32_t latentAction = 0;
 		int offset = -1;
 
@@ -145,8 +169,8 @@ void UObject::Save(PackageStreamWriter* stream)
 		// A StateFrame can outlive its state: GotoState("") (what a bTriggerOnceOnly mover does
 		// once it has fired) keeps the frame but sets Func to null, while LatentState is left at
 		// whatever it was - and defaults to Continue, never Stop. Func must be checked, or this
-		// dereferences null; Func->Code can likewise be null for a state with no bytecode. Both
-		// cases write a null func below, which is what Load needs to restore the actor dormant.
+		// dereferences null; Func->Code can likewise be null for a state with no bytecode. The
+		// first writes the class above, the second no code offset: Load restores either dormant.
 		if (StateFrame && StateFrame->Func && StateFrame->LatentState != LatentRunState::Stop)
 		{
 			auto it = NativeFunctions::IndexForLatentAction.find(StateFrame->LatentState);

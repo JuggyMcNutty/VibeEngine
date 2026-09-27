@@ -116,7 +116,9 @@ Engine::Engine(GameLaunchInfo launchinfo) : LaunchInfo(launchinfo)
 		// (transient stopped every save), and saving it from package DeusEx
 		// exported the DeusExSaveInfo class into SaveInfo.dxs, whose load
 		// then re-registered the class's natives, a fatal error.
-		dxSaveInfo = UObject::Cast<UDXSaveInfo>(packages->CreateEmptyPackage("SaveInfo")->NewObject("MyDeusExSaveInfo", deusExPackage->GetClass("DeusExSaveInfo"), ObjectFlags::NoFlags));
+		// Public, as the original's: its load of a save finds the object by
+		// its name in the save's SaveInfo.
+		dxSaveInfo = UObject::Cast<UDXSaveInfo>(packages->CreateEmptyPackage("SaveInfo")->NewObject("MyDeusExSaveInfo", deusExPackage->GetClass("DeusExSaveInfo"), ObjectFlags::Public));
 
 		// The AI event manager's class is the original Engine.dll's own,
 		// with no script -- Engine.u only declares LevelInfo's property of
@@ -962,7 +964,9 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		Exception::Throw("Could not find any gameinfo class!");
 
 	// Spawn GameInfo actor
-	GameInfo = UObject::Cast<UGameInfo>(LevelPackage->NewObject("gameinfo", gameInfoClass, ObjectFlags::NoFlags));
+	// Named and flagged as the original's spawned game: DeusExGameInfo0, and
+	// the flags any spawned actor has (UActor::Spawn).
+	GameInfo = UObject::Cast<UGameInfo>(LevelPackage->NewObject(gameInfoClass->Name.ToString() + "0", gameInfoClass, ObjectFlags::Transactional | ObjectFlags::LoadContextFlags | ObjectFlags::HasStack));
 	GameInfo->XLevel() = Level;
 	GameInfo->Level() = LevelInfo;
 	Level->Collision.AddToCollision(GameInfo);
@@ -1257,6 +1261,7 @@ void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 	{
 		const std::string saveFileName = "Save" + std::to_string(slotNum) + "." + packages->GetSaveExtension();
 		const std::string saveFileFullPath = (saveFolderPath / saveFileName).string();
+		SetLevelURLForSave();
 		LevelPackage->Save(Level, saveFileFullPath);
 
 		// The save package is later reloaded by its slot filename ("SaveN"), not by the original
@@ -1497,7 +1502,28 @@ void Engine::SaveCurrentLevel(int32_t slot) const
 		fs::create_directories(folder);
 	const auto levelName = Level->package->GetPackageName().ToString() + "." + packages->GetSaveExtension();
 	fs::remove(folder / levelName);
+	SetLevelURLForSave();
 	LevelPackage->Save(Level, (folder / levelName).string());
+}
+
+// The level's own URL as the original's is when saved: the one it was
+// entered by -- the map named as travelled to, its options and port --, where
+// the fork's kept what the map file had (Index.dx).
+void Engine::SetLevelURLForSave() const
+{
+	if (!Level || !LevelInfo)
+		return;
+	const UnrealURL& url = LevelInfo->URL;
+	Level->Protocol = packages->GetIniValue("system", "URL", "Protocol", url.Protocol);
+	Level->Host = url.Host;
+	Level->Map = url.Map;
+	std::string ext = "." + packages->GetMapExtension();
+	if (Level->Map.size() > ext.size() && StrTools::equals_ignore_case(Level->Map.substr(Level->Map.size() - ext.size()), ext))
+		Level->Map.resize(Level->Map.size() - ext.size());
+	Level->Portal = url.Portal;
+	Level->Options = url.Options;
+	Level->Port = url.Port;
+	Level->Unknown = 1;
 }
 
 std::map<std::string, std::string> Engine::CreateTravelInfo(bool transferItems)

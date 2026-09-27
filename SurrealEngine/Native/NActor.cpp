@@ -81,7 +81,14 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_2("Actor", "SetRotation", &NActor::SetRotation, 299);
 	RegisterVMNativeFunc_2("Actor", "SetTimer", &NActor::SetTimer, 280);
 	RegisterVMNativeFunc_1("Actor", "Sleep", &NActor::Sleep, 256);
-	RegisterLatentAction(257, LatentRunState::Sleep);
+	// A latent action is saved as the number of the native that polls it,
+	// as the original's state frame keeps it: execPollSleep is 384 and
+	// execPollFinishAnim 385 (Engine.dll registers them so). The fork had
+	// 257 and 262 (SetCollision's), so the original's load of a fork save
+	// ran no native for a sleeping or animating actor and stopped with
+	// "Unknown code token", and the fork's of an original save cut the
+	// sleep or the animation short.
+	RegisterLatentAction(384, LatentRunState::Sleep);
 	RegisterVMNativeFunc_6("Actor", "Spawn", &NActor::Spawn, 278);
 	RegisterVMNativeFunc_2("Actor", "TouchingActors", &NActor::TouchingActors, 307);
 	if (engine->LaunchInfo.IsUnreal1_227())
@@ -162,7 +169,7 @@ void NActor::RegisterFunctions()
 		RegisterVMNativeFunc_2("Actor", "StopSound", &NActor::StopSound_HP, 568);
 		RegisterVMNativeFunc_2("Actor", "IsAnimating", &NActor::IsAnimating_HP, 282);
 		RegisterVMNativeFunc_1("Actor", "FinishAnim", &NActor::FinishAnim_HP, 261);
-		RegisterLatentAction(262, LatentRunState::FinishAnim);
+		RegisterLatentAction(385, LatentRunState::FinishAnim);
 	}
 	else
 	{
@@ -170,7 +177,7 @@ void NActor::RegisterFunctions()
 		RegisterVMNativeFunc_4("Actor", "LoopAnim", &NActor::LoopAnim, 260);
 		RegisterVMNativeFunc_1("Actor", "IsAnimating", &NActor::IsAnimating, 282);
 		RegisterVMNativeFunc_0("Actor", "FinishAnim", &NActor::FinishAnim, 261);
-		RegisterLatentAction(262, LatentRunState::FinishAnim);
+		RegisterLatentAction(385, LatentRunState::FinishAnim);
 	}
 }
 
