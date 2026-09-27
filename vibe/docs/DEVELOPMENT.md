@@ -57,6 +57,9 @@ The console classes:
 - **`LaserConsole`**: Liberty Island's first laser tripwire looked into from
   where `CaptureConsole` shoots it, the HUD hidden: the trigger's, its
   emitter's and its proxy's state logged each second, two marked shots.
+- **`FlashConsole`**: the screen flash -- the player stood where
+  `CoronaConsole` stands it, the HUD hidden, a shot with no flash and one
+  under a steady glow (`FlashScale` 0.5, a red fog), each flash logged.
 - **`NetConsole`**: the scripts' sockets -- conversions and GameSpy answers
   logged, 333networks' master server asked for Deus Ex's servers and five
   of them pinged, then the game's own Join Internet screen opened (the
@@ -141,8 +144,10 @@ its run draws through `OpenGLDrv` on a hidden X display -- Xvfb on `:99`, in
 the container -- which `vibe/tools/dxcap/grab.py` reads five times a second,
 keeping each frame whose corner carries the console's mark: a magenta block,
 then the shot's number in eight black or white blocks. The original's
-brightness is a gamma ramp, which the hidden display lacks: its shots are
-darker than the fork's, and brightness is not compared.
+frames carry its brightness -- its `OpenGLDrv`'s gamma ramp, a gamma of
+1.5 at the runs' Brightness of 0.6 --, the fork's shots none: a fork shot
+takes that gamma (`magick <shot> -gamma 1.5 <out>`) before its brightness
+is compared ([brightness](NATIVES.md#brightness)).
 
 **Recording.** `DXCAP_RECORD=1` sends the engine's sound to a private null
 sink on the desktop's sound server (`PULSE_SINK`) and records the sink with

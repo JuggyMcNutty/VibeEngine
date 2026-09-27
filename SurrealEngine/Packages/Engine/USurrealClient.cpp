@@ -25,6 +25,7 @@ void USurrealClient::LoadProperties(const NameString& from)
 		UseJoystick = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "UseJoystick", UseJoystick);
 		UseDirectInput = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "UseDirectInput", UseDirectInput);
 		MinDesiredFrameRate = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "MinDesiredFrameRate", MinDesiredFrameRate);
+		ScreenFlashes = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "ScreenFlashes", ScreenFlashes);
 		Decals = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "Decals", Decals);
 		NoDynamicLights = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "NoDynamicLights", NoDynamicLights);
 		TextureDetail = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "TextureDetail", TextureDetail);
@@ -47,6 +48,7 @@ void USurrealClient::SaveConfig()
 		engine->packages->SetIniValue("System", Class, "UseJoystick", IniPropertyConverter<bool>::ToString(UseJoystick));
 		engine->packages->SetIniValue("System", Class, "UseDirectInput", IniPropertyConverter<bool>::ToString(UseDirectInput));
 		engine->packages->SetIniValue("System", Class, "MinDesiredFrameRate", IniPropertyConverter<int>::ToString(MinDesiredFrameRate));
+		engine->packages->SetIniValue("System", Class, "ScreenFlashes", IniPropertyConverter<bool>::ToString(ScreenFlashes));
 		engine->packages->SetIniValue("System", Class, "Decals", IniPropertyConverter<bool>::ToString(Decals));
 		engine->packages->SetIniValue("System", Class, "NoDynamicLights", IniPropertyConverter<bool>::ToString(NoDynamicLights));
 		engine->packages->SetIniValue("System", Class, "TextureDetail", TextureDetail);
@@ -80,6 +82,8 @@ std::string USurrealClient::GetPropertyAsString(const NameString& propertyName) 
 		return IniPropertyConverter<bool>::ToString(UseDirectInput);
 	else if (propertyName == "MinDesiredFrameRate")
 		return IniPropertyConverter<int>::ToString(MinDesiredFrameRate);
+	else if (propertyName == "ScreenFlashes")
+		return IniPropertyConverter<bool>::ToString(ScreenFlashes);
 	else if (propertyName == "Decals")
 		return IniPropertyConverter<bool>::ToString(Decals);
 	else if (propertyName == "NoDynamicLights")
@@ -115,6 +119,8 @@ void USurrealClient::SetPropertyFromString(const NameString& propertyName, const
 		UseDirectInput = IniPropertyConverter<bool>::FromString(value);
 	else if (propertyName == "MinDesiredFrameRate")
 		MinDesiredFrameRate = IniPropertyConverter<int>::FromString(value);
+	else if (propertyName == "ScreenFlashes")
+		ScreenFlashes = IniPropertyConverter<bool>::FromString(value);
 	else if (propertyName == "Decals")
 		Decals = IniPropertyConverter<bool>::FromString(value);
 	else if (propertyName == "NoDynamicLights")

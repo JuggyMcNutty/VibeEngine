@@ -563,8 +563,31 @@ darker picture at the same setting (mid-grey about 11% darker at 0.6). The
 light maps already doubled as the original's do. The launcher's other
 gamma mode (XOpenGL's curve) takes the same product. A screenshot shows
 the gamma only with the engine's `GammaCorrectScreenshots`, which this
-machine's settings leave off -- so the scripted runs' shots, and the
-original's frames on Xvfb, are compared without it.
+machine's settings leave off, so the scripted runs' shots carry none. The
+original's frames on Xvfb do carry theirs (measured 2026-09-27,
+[the screen flash](#the-screen-flash)): the ramp its `OpenGLDrv` sets
+shows in what the grabber reads, a gamma of 1.5 at the runs' Brightness of
+0.6 -- so a fork shot takes the same gamma before its brightness is
+compared with them.
+
+### The screen flash
+
+The flash -- a grenade's blast, the healing augmentation, the vision
+augmentation's glare, `FadeViewTrigger`'s fades, the drunk colours, a
+zone's tint -- is the original's (2026-09-27): the player's `FlashScale`
+and `FlashFog` go to the
+device as Deus Ex's game engine hands them over, the scale halved and both
+clamped to 0-1, none at all with the client's `ScreenFlashes` off (on in
+the game's ini), which a net game overrides
+([the screen flash](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-rest-of-a-frame)). The fork handed the
+scale over whole, so a flash dimmed the picture half as much as the
+original's -- a `FlashScale` of 0.5 not at all --; its test for a flash
+leaned on a wrong four-component inequality to pass. Checked with
+`FlashConsole` against the original: a steady glow (`FlashScale` 0.5, a
+red fog of 0.2) halves the picture and adds the fog in the fork's shots
+as the formula gives, and the original's frames fit the same formula
+through their gamma ([brightness](#brightness)) to a unit across the
+whole range.
 
 ### Fire, water and ice textures
 

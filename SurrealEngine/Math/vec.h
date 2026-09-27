@@ -262,7 +262,7 @@ template<typename T> bool operator==(const vec4T<T> &a, const vec4T<T> &b) { ret
 
 template<typename T> bool operator!=(const vec2T<T> &a, const vec2T<T> &b) { return a.x != b.x || a.y != b.y; }
 template<typename T> bool operator!=(const vec3T<T> &a, const vec3T<T> &b) { return a.x != b.x || a.y != b.y || a.z != b.z; }
-template<typename T> bool operator!=(const vec4T<T> &a, const vec4T<T> &b) { return a.x != b.x || a.y != b.y || a.z != b.z || a.w == b.w; }
+template<typename T> bool operator!=(const vec4T<T> &a, const vec4T<T> &b) { return a.x != b.x || a.y != b.y || a.z != b.z || a.w != b.w; }
 
 typedef vec2T<float> vec2;
 typedef vec3T<float> vec3;

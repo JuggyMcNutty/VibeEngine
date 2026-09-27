@@ -7,6 +7,7 @@
 #include "Packages/Engine/UConsole.h"
 #include "Packages/Engine/UViewport.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
+#include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Resources/UPalette.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Packages/Engine/Resources/Level/UPolys.h"
@@ -32,18 +33,26 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 	Stats.Actors = 0;
 	Stats.LightmapsUpdated = 0;
 
+	// The screen flash as the original's game engine hands it to the
+	// device: the viewport's player's, the scale halved, both clamped to 0-1
+	// with no fourth component -- none with the client's ScreenFlashes off,
+	// which a net game overrides (dx-reverse-info/d3ddrv-dll.md, the screen
+	// flash). The devices draw nothing for a scale of 0.5 and a black fog.
 	vec3 flashScale = 0.5f;
 	vec3 flashFog = vec3(0.0f, 0.0f, 0.0f);
 
-	UPlayerPawn* player = UObject::TryCast<UPlayerPawn>(engine->CameraActor);
-	if (player)
+	UPlayerPawn* player = engine->viewport ? engine->viewport->Actor() : nullptr;
+	bool flashes = engine->client->ScreenFlashes || (engine->LevelInfo && engine->LevelInfo->NetMode() != NM_Standalone);
+	if (player && flashes)
 	{
-		flashScale = player->FlashScale();
-		flashFog = player->FlashFog();
+		vec3 scale = player->FlashScale() * 0.5f;
+		vec3 fog = player->FlashFog();
+		flashScale = vec3(clamp(scale.x, 0.0f, 1.0f), clamp(scale.y, 0.0f, 1.0f), clamp(scale.z, 0.0f, 1.0f));
+		flashFog = vec3(clamp(fog.x, 0.0f, 1.0f), clamp(fog.y, 0.0f, 1.0f), clamp(fog.z, 0.0f, 1.0f));
 	}
 
 	Device->Brightness = engine->client->Brightness;
-	Device->Lock(vec4(flashScale, 1.0f), vec4(flashFog, 1.0f), vec4(0.0f), nullptr, nullptr);
+	Device->Lock(vec4(flashScale, 0.0f), vec4(flashFog, 0.0f), vec4(0.0f), nullptr, nullptr);
 	FrameInProgress = true;
 
 	ResetCanvas();
@@ -100,7 +109,7 @@ void RenderSubsystem::DrawVideoFrame(TextureInfo* frame, TextureInfo* background
 	vec3 flashScale = 0.5f;
 	vec3 flashFog = vec3(0.0f, 0.0f, 0.0f);
 	Device->Brightness = 0.4f;// engine->client->Brightness;
-	Device->Lock(vec4(flashScale, 1.0f), vec4(flashFog, 1.0f), vec4(0.0f), nullptr, nullptr);
+	Device->Lock(vec4(flashScale, 0.0f), vec4(flashFog, 0.0f), vec4(0.0f), nullptr, nullptr);
 	FrameInProgress = true;
 	ResetCanvas();
 	Device->SetSceneNode(&Canvas.Frame);

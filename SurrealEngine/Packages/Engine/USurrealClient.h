@@ -19,6 +19,7 @@ public:
 	bool UseJoystick = false;
 	bool UseDirectInput = true;
 	int MinDesiredFrameRate = 200;
+	bool ScreenFlashes = true;
 	bool Decals = true;
 	bool NoDynamicLights = false;
 	std::string TextureDetail = "High";
