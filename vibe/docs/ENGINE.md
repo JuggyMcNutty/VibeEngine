@@ -918,3 +918,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the fork's server
   travelled with the original following it, and the original's with the
   fork following it.
+- [**a dedicated server**](https://github.com/JuggyMcNutty/VibeEngine/commit/dd92c38d8ba29fe36c8ba9cd491d6d6aeddffc95) --
+  M7's last item: `--server` (the original's `-SERVER`) serves the `--url`
+  map with no window, sound or player, at the original's server tick rate;
+  an empty URL's port is the game's, as any URL's
+  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** both engines
+  joined it and walked; its beacon and query answerer replied; it idled at
+  under 1% of a core; a Liberty Island proving run is clean.
