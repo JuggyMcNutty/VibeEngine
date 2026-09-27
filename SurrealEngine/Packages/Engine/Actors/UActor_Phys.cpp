@@ -264,8 +264,10 @@ bool UActor::TryStepToGround(vec3 stepDownDelta)
 	// move is made with it. (A dry run that traced nothing -- a static actor,
 	// too small a step -- cannot have found a floor.)
 	floorHit = FinishMove(stepDownDelta, hits, floorHit);
+	// The world's floor is the level's, as the original's traces give the
+	// level for it: a pawn on the ground has its level for a base.
 	if (floorHit.Fraction != 1.0f)
-		SetBase(floorHit.Actor, true);
+		SetBase(floorHit.Actor ? floorHit.Actor : Level(), true);
 	return true;
 }
 

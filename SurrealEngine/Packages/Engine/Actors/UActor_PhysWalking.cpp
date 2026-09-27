@@ -175,6 +175,22 @@ void UActor::TickWalking(float elapsed)
 		}
 	}
 
+	// Still walking, the pawn stands where the step down left it: at the
+	// floor, short of it by the unit the fork's traces keep. The original's
+	// physWalking floats a pawn over its floor: its trace down, MaxStepHeight
+	// + 2 long, stops a tenth of its length short (UModel::LineCheck's
+	// backoff for a box), and a pawn that trace finds nearer than 1.9 goes
+	// up to 2.1 -- so it stands 2.1 and a tenth of the trace over the floor
+	// (dx-reverse-info/engine-dll.md, walking), 3.8 over where the fork's
+	// step down leaves it for MaxStepHeight 25.
+	if (Physics() == PHYS_Walking)
+	{
+		float floatHeight = 0.1f * (pawn->MaxStepHeight() + 2.0f) + 2.1f;
+		const float traceMargin = 1.0f;
+		if (floatHeight > traceMargin)
+			TryMove(vec3(0.0f, 0.0f, -gravityDirection * (floatHeight - traceMargin)));
+	}
+
 	RecomputeVelocityFromDisplacement(elapsed);
 	Velocity().z = 0.0f;
 }

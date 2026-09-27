@@ -87,6 +87,9 @@ The console classes:
   `127.0.0.1:7790`, disconnects to the menu map 6 s into the game, opens it
   again 30 s later (another server there by then) and logs whether that
   join comes in.
+- **`StandConsole`**: where a walking player rests over the floor -- at
+  Liberty Island's start and after two short walks, its place, collision
+  height and base and the floor a line down finds logged.
 - **`TravelServeConsole`** and **`TravelJoinConsole`**, either engine:
   server travel -- the server as `ServeConsole`'s, which `servertravel`s to
   DXMP_Smuggler once another player has been in 10 s, logging its map and

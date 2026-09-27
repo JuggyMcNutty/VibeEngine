@@ -898,6 +898,14 @@ what changed, what stays the fork's own, and its by-hand check:
   [what the player reads](#what-the-player-reads) and [coronas](#coronas).
 - **`DeusExPlayer.GetDeusExVersion`.** The fork's own string, by choice; the
   original's is "Mon Mar 19 12:06:14 2001 v1.112fm".
+- **The traces' margin.** The fork's traces stop a unit short of what they
+  hit; the original's line checks half a unit short, its box checks a tenth
+  of the trace short ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)). A script's
+  `Trace` down finds the floor half a unit higher in the fork (−303.0
+  where the original's gives −303.5 at Liberty Island's start), and a box
+  moved against a wall stops a unit short of it where the original's stops
+  a tenth of the move short. Walking's float is the original's all the
+  same (below, [small](#small)).
 - **`LevelInfo`'s clock.** The fork's main loop fills `Year` counted from 1900
   and `Month` from 0, as in its save dates; the original's are the full year
   and 1 to 12. In Deus Ex only `StatLog` reads them.
@@ -1012,6 +1020,16 @@ All landed 2026-09-25:
   volume falls back to full, the native default unread. To check by
   hand: with positional sound on, a click at a screen's left edge
   sounding from the left.
+- **Walking over the floor** (2026-09-27): a walking pawn floats over its
+  floor as the original's does -- 2.1 over where the original's trace down
+  of `MaxStepHeight` + 2 stops, a tenth of it short: 4.8 for a
+  `MaxStepHeight` of 25 --, its base the level on the world's floor
+  ([walking](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)), where the fork's
+  stood on the floor, short of it only by the unit its traces keep, with no
+  base. Checked with `StandConsole`: at Liberty Island's start the player
+  stands at Z −256.20 in the fork and −256.25 in the original, both on
+  `LevelInfo0`, where the fork's stood at −260.00; proving runs on Liberty
+  Island, UNATCO HQ and Battery Park are clean.
 - **The console's `GET` and `SET`** (2026-09-27), as the original's
   ([`GET` and `SET`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)): a class found by
   its name alone in any package loaded, where the fork wanted its package
@@ -1093,9 +1111,11 @@ the frame rate is capped at the speed over 64. Checked the same way: the
 fork's player walked into a wall and slid along it, and the server's log
 ended with it at the fork's position exactly, no correction sent; the
 host's player, walking to and fro in front of it, moved smoothly on the
-fork between the server's updates. At rest the fork's player stands 3.75
-units lower than the original's server has it, X and Y exact -- in every
-run pair so far, not yet looked into.
+fork between the server's updates. At rest the fork's player stood 3.75
+units lower than the original's server had it, X and Y exact: the
+original's walking floats a pawn over the floor, which the fork's does too
+since 2026-09-27 ([walking over the floor](#small)) -- the fork's player at
+Z −64.20 and the original's server's view of it at −64.25.
 
 The fork serves too (2026-09-26): a map opened with `?listen` listens on
 `[URL]`'s port before its game begins; the handshake's server side is the
