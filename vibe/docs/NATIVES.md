@@ -938,6 +938,34 @@ All landed 2026-09-25:
   hand: with positional sound on, a click at a screen's left edge
   sounding from the left.
 
+## Mods
+
+What a mod needs of the engine is the original's loader (2026-09-27):
+
+- **Its folders.** A mod's packages and maps are found by the `Paths` of
+  its own ini (`--ini`), relative to `System` and written with backslashes
+  as the game's are, and by their extensions in any case, as the original
+  finds them in any case
+  ([a package's file](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#packages-and-linkers)).
+- **Protected packages.** An export whose flags give it no context --
+  client, server or editor -- is never made, a reference to it None, as the
+  original's linker has it: the live servers' anti-cheat packages (ANNA,
+  DXNMS) point their classes' `ScriptText` at such exports, where the fork
+  used to make them and fail. A save's exports are all made whatever their
+  flags: the fork's own saves write spawned actors without them.
+- **Config files.** A class's config file that is not there is empty -- its
+  properties keep their defaults -- until the class writes it, as the
+  original's ([configuration](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)):
+  DXMTL's classes read a `DXMTL.ini` no player without the mod has, where
+  the fork failed.
+
+Checked: a mod laid out as Deus Ex's are -- its own folder with `System`
+and `Maps`, named by relative, backslashed `Paths` in its own ini -- holding
+a custom map and its two packages as a live server had sent them
+(`DXMB_Mini_Dust`, `CDX_154`, `MapDirectorV1`): the fork played the map
+standalone, its textures found; and the live servers' mods loaded on the
+fork as their client ([below](#multiplayer)).
+
 ## Multiplayer
 
 The fork joins a server and sees its world (2026-09-26): a client's side of

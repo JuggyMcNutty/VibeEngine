@@ -64,6 +64,8 @@ public:
 	IniFile(const IniFile& other);
 
 	bool IsModified() const { return isModified; }
+	// Where SaveTo() writes: for a file not there yet, begun empty.
+	void SetPath(const std::string& filename) { ini_file_path = filename; }
 
 	Array<NameString> GetKeys(const NameString& sectionName) const;
 	std::string GetValue(const NameString& sectionName, const NameString& keyName, const std::string& defaultValue = "", const int index = 0) const;

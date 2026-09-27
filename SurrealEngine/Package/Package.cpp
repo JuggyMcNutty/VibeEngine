@@ -5,6 +5,7 @@
 #include "PackageStream.h"
 #include "PackageManager.h"
 #include "Utils/File.h"
+#include "Utils/StrTools.h"
 #include "Packages/Core/UObject.h"
 #include "Packages/Core/UClass.h"
 
@@ -175,8 +176,16 @@ UObject* Package::GetUObject(int objref)
 	{
 		int index = objref - 1;
 
-		if ((size_t)index > ExportObjects.size())
+		if ((size_t)index >= ExportObjects.size())
 			Exception::Throw("Invalid object reference");
+
+		// A file's export for no context -- client, server or editor -- is
+		// never made, a reference to it None (Core's
+		// ULinkerLoad::CreateExport): protected packages point their
+		// classes' ScriptText at such. The fork's own saves wrote spawned
+		// actors without these flags, so a save's exports are all made.
+		if (!ExportObjects[index] && index < FileExportCount && !AnyFlags(ExportTable[index].ObjFlags, ObjectFlags::LoadContextFlags) && !IsSaveFile())
+			return nullptr;
 
 		if (!ExportObjects[index])
 			LoadExportObject(index);
@@ -222,6 +231,14 @@ UObject* Package::GetUObject(int objref)
 	{
 		return nullptr;
 	}
+}
+
+bool Package::IsSaveFile() const
+{
+	std::string ext = Packages->GetSaveExtension();
+	if (!ext.empty() && ext.front() != '.')
+		ext = "." + ext;
+	return !ext.empty() && StrTools::equals_ignore_case(FileExtension, ext);
 }
 
 UObject* Package::GetUObject(const NameString& className, const NameString& objectName, const NameString& group, bool ignoreGroup)

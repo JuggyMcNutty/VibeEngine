@@ -69,6 +69,10 @@ public:
 private:
 	GCAllocation* Mark(GCAllocation* marklist) override;
 
+	// A savegame, by its extension: its exports are made whatever their
+	// flags.
+	bool IsSaveFile() const;
+
 	void ReadTables();
 	std::unique_ptr<ObjectStream> OpenObjectStream(int index, const NameString& name, UClass* base);
 	void LoadExportObject(int index);

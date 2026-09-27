@@ -479,7 +479,8 @@ void PackageManager::ScanFolder(const std::string& packagedir, const std::string
 			// Do not add the package again if it exists
 			// This is useful for example when you have HD textures installed in a different folder
 			// And you wish to load them instead of the original ones
-			if (dir_entry.is_regular_file() && dir_entry.path().extension() == searchExt)
+			// Extensions matched as Windows matches them, whatever their case.
+			if (dir_entry.is_regular_file() && StrTools::equals_ignore_case(dir_entry.path().extension().string(), searchExt.string()))
 			{
 				NameString fileNameString(dir_entry.path().stem().string());
 				auto it = packageFilenames.find(fileNameString);
@@ -722,8 +723,19 @@ std::unique_ptr<IniFile>& PackageManager::LoadIniFile(NameString iniName)
 	auto& ini = iniFiles[iniName];
 	if (!ini)
 	{
+		// A class's config file not written yet is empty, as the original's
+		// is, until its SaveConfig writes it (a mod's, as DXMTL.ini).
 		const auto iniFilePath = gameSystemFolderPath / (iniName.ToString() + ".ini");
-		ini = std::make_unique<IniFile>(iniFilePath.string());
+		std::error_code ec;
+		if (fs::exists(iniFilePath, ec))
+		{
+			ini = std::make_unique<IniFile>(iniFilePath.string());
+		}
+		else
+		{
+			ini = std::make_unique<IniFile>();
+			ini->SetPath(iniFilePath.string());
+		}
 	}
 
 	return ini;
