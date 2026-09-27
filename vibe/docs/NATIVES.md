@@ -703,6 +703,13 @@ checks:
   the world was drawn under every menu whatever the option. To check by
   hand: the option's three settings under the main menu, and the credits
   over black.
+- **Text with no width.** Landed (2026-09-27): a width of 0 or less is no
+  limit to a line, as the original's line breaking has it
+  ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)), so
+  `GetTextExtent(0, ...)` measures each line whole. The multiplayer message
+  window measures its progress lines that way and draws them in a box that
+  wide: the fork broke them a word to a line. Checked: a join's
+  Connecting lines drawn whole and centred, in a run's shot.
 - **Keys.** Landed (2026-09-25): `EditWindow.Undo` and `Redo` walk a real
   change list -- typing joins, `maxUndos` caps, Ctrl+Z and Ctrl+Y call
   them -- with two edit bugs fixed on the way (inserting over a selection

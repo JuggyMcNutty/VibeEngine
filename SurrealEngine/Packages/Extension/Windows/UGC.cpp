@@ -750,6 +750,9 @@ Sizef UGC::DrawText(UFont* font, float orgX, float orgY, float destWidth, const 
 	if (!bWordWrap())
 		destWidth = 100000.0f;
 
+	// No width is no limit to a line (Extension's XGC::ParseLine): what
+	// GetTextExtent(0, ...) measures, as the progress window's.
+	float wrapWidth = destWidth > 0.0f ? destWidth : 500000.0f;
 
 	// Remove the | and & escapes for now
 	/*
@@ -810,7 +813,7 @@ Sizef UGC::DrawText(UFont* font, float orgX, float orgY, float destWidth, const 
 		else
 		{
 			vec2 blockSize = GetTextSize(font, textBlocks[pos].text);
-			if (lineWidth + blockSize.x > destWidth)
+			if (lineWidth + blockSize.x > wrapWidth)
 			{
 				float centerX = 0;
 				if (halign == EHAlign::Center || halign == EHAlign::Full)
