@@ -46,6 +46,10 @@ The console classes:
 - **`CaptureConsole`**: M0's pictures -- Liberty Island's lasers and coronas,
   a tripwire walked into, and in Brooklyn a conversation whose jump lands on
   a comment's label, played through.
+- **`ViewConsole`**: the player's own weapon in view -- at Liberty Island's
+  start, the Dragon's Tooth given as the game gives its starting items and
+  put in hand, the HUD hidden, its look logged and shot three times, a
+  second apart.
 - **`NetConsole`**: the scripts' sockets -- conversions and GameSpy answers
   logged, 333networks' master server asked for Deus Ex's servers and five
   of them pinged, then the game's own Join Internet screen opened (the
@@ -129,6 +133,10 @@ What it takes to run the original there, each found the hard way:
 - **No Wine desktop**: `explorer /desktop` fails to set its display up on
   Xvfb and exits without starting the game, so the game runs straight on the
   hidden display, where the grabber finds its frames by their mark.
+- **Its window goes where Wine puts it** -- a step further on each run while
+  Wine's server stays up, which IDA's headless server keeps up -- and the
+  grabber reads the view from the display's corner: the script moves the
+  window there once it is up (`xdotool`, in the container).
 - **Only its own process is stopped** at the end: the prefix may hold IDA
   too.
 - **Runs of both engines at once** (the net tests) lose the fork's shots:

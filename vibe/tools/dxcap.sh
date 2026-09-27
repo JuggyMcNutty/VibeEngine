@@ -185,6 +185,7 @@ cmd_original() {
     [ -f "$CAP/System/DXCapture.u" ] || die "vibe/tools/dxcap.sh compile first"
     command -v Xvfb >/dev/null || die "Xvfb is needed for the original's display"
     command -v import >/dev/null || die "ImageMagick's import is needed to grab the original's display"
+    command -v xdotool >/dev/null || die "xdotool is needed to place the original's window"
     local ini="$CAP/System/Original.ini" userini="$CAP/System/OriginalUser.ini"
     local dir="$CAP/runs/original-$console-$(date +%H%M%S)"
     make_ini original "$console" "$ini"
@@ -215,6 +216,11 @@ cmd_original() {
         wine_run DeusEx.exe DX.dx "INI=$(winpath "$ini")" "USERINI=$(winpath "$userini")" > "$dir/wine.log" 2>&1 &
         i=0
         while [ $i -lt 60 ] && ! pgrep -f "^DeusEx.exe" > /dev/null; do sleep 1; i=$((i+1)); done
+        # Wine places a new window a step further on each time while its
+        # server stays up (IDA's keeps it up), and the grabber reads the view
+        # from the display's corner: the window goes there once it is up.
+        i=0
+        while [ $i -lt 30 ] && ! xdotool search --onlyvisible --name '^Deus Ex$' windowmove 0 0 > /dev/null 2>&1; do sleep 1; i=$((i+1)); done
         i=0
         while [ $i -lt "$secs" ] && pgrep -f "^DeusEx.exe" > /dev/null; do sleep 1; i=$((i+1)); done
         if pgrep -f "^DeusEx.exe" > /dev/null; then
