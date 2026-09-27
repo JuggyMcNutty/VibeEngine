@@ -442,7 +442,15 @@ electricity arcing on a damaged panel; a weapon's laser sight in play.
 
 Captured (2026-09-26), from the original's own places 70 units off Liberty
 Island's four tripwires: the original draws each beam as a red dashed line,
-the fork draws none -- open. Walked into, a tripwire sounds its alarm in both.
+the fork drew none. The beam's texture, `LaserBeam1`, is a fire texture
+(64 × 8, spark kind 27), which the fork left black until it drew them as
+`Fire.dll` does ([fire, water and ice textures](#fire-water-and-ice-textures)):
+since, it draws the beams (2026-09-27, `LaserConsole`), both engines' logs
+agreeing on the emitter, its iterator and its proxy -- a translucent sprite
+of that texture, moved along the beam --, the dashes where the original's
+are and as far apart, but fainter, over a floor the fork draws about twice
+as bright as the original's frames on Xvfb show it, so the two are not yet
+compared for brightness. Walked into, a tripwire sounds its alarm in both.
 
 ### Coronas
 

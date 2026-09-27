@@ -50,6 +50,9 @@ The console classes:
   start, the Dragon's Tooth given as the game gives its starting items and
   put in hand, the HUD hidden, its look logged and shot three times, a
   second apart.
+- **`LaserConsole`**: Liberty Island's first laser tripwire looked into from
+  where `CaptureConsole` shoots it, the HUD hidden: the trigger's, its
+  emitter's and its proxy's state logged each second, two marked shots.
 - **`NetConsole`**: the scripts' sockets -- conversions and GameSpy answers
   logged, 333networks' master server asked for Deus Ex's servers and five
   of them pinged, then the game's own Join Internet screen opened (the
