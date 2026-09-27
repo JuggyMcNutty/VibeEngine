@@ -16,6 +16,9 @@
 
 RenderSubsystem::RenderSubsystem(RenderDevice* renderdevice) : Device(renderdevice)
 {
+	// Deus Ex's brightness is its D3DDrv's gamma ramp: 2.5 x Brightness.
+	if (engine->LaunchInfo.IsDeusEx())
+		Device->GammaScale = 2.5f;
 }
 
 void RenderSubsystem::DrawGame(float levelTimeElapsed)

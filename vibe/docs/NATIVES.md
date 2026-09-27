@@ -543,6 +543,19 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   under a street lamp, one walking from light into shadow (the fade), and
   a fire's glow on a face.
 
+### Brightness
+
+The Brightness slider is the original's display gamma (2026-09-27): the
+picture raised to 1 / (2.5 × Brightness), as Deus Ex's `D3DDrv` sets its
+ramp ([gamma](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#gamma)) -- 0.4 is neutral, the GOG
+build's 0.6 a gamma of 1.5 --, where the fork took 2 × Brightness, a
+darker picture at the same setting (mid-grey about 11% darker at 0.6). The
+light maps already doubled as the original's do. The launcher's other
+gamma mode (XOpenGL's curve) takes the same product. A screenshot shows
+the gamma only with the engine's `GammaCorrectScreenshots`, which this
+machine's settings leave off -- so the scripted runs' shots, and the
+original's frames on Xvfb, are compared without it.
+
 ### Fire, water and ice textures
 
 The fractal textures are the original's now (2026-09-27): Fire.dll's fire,

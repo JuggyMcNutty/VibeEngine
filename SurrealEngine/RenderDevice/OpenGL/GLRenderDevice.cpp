@@ -1032,7 +1032,7 @@ GLPresentPushConstants GLRenderDevice::GetGLPresentPushConstants()
 	}
 	else
 	{
-		float brightness = clamp(Brightness * 2.0f, 0.05f, 2.99f);
+		float brightness = clamp(Brightness * GammaScale, 0.05f, 2.99f);
 
 		if (GammaMode == 0)
 		{
@@ -1643,7 +1643,7 @@ vec4 GLRenderDevice::ApplyInverseGamma(vec4 color)
 {
 	if (IsOrtho)
 		return color;
-	float brightness = clamp(Brightness * 2.0f, 0.05f, 2.99f);
+	float brightness = clamp(Brightness * GammaScale, 0.05f, 2.99f);
 	float gammaRed = std::max(brightness + GammaOffset + GammaOffsetRed, 0.001f);
 	float gammaGreen = std::max(brightness + GammaOffset + GammaOffsetGreen, 0.001f);
 	float gammaBlue = std::max(brightness + GammaOffset + GammaOffsetBlue, 0.001f);

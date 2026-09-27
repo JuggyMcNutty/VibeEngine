@@ -148,6 +148,10 @@ public:
 	Widget* Viewport = nullptr;
 	bool PrecacheOnFlip = false;
 	float Brightness = 0.5f;
+	// The display gamma a brightness gives: GammaScale x Brightness. Deus
+	// Ex's D3DDrv makes it 2.5, so 0.4 is neutral (dx-reverse-info's
+	// d3ddrv-dll.md, gamma).
+	float GammaScale = 2.0f;
 
 	// 2D rendering
 	bool IsOrtho = false;
