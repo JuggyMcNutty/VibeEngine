@@ -153,6 +153,14 @@ stand, shots at the stops, out at 25 s --, or the file in
 other pawn's are logged (`DXLIVE` lines), and a run dropped to the menu
 exits. Pick an empty server.
 
+**A crash in an original run** leaves its "Critical Error" dialog waiting
+on the hidden display, and the run hangs until the harness kills it, its
+log cut short (the game writes it only as it exits). Dismissed, the game
+writes the crash's history -- the error and the calls under it -- into its
+log and exits: `DISPLAY=:99 xdotool search --name 'Critical Error'` finds
+the dialog, then `xdotool windowfocus --sync <window>` and `xdotool key
+Return` (with no window manager there, `windowactivate` fails).
+
 **A crash** in a fork run leaves a core, which systemd keeps:
 `coredumpctl dump <pid> --output=<scratchpad>/core` and `gdb -batch -ex bt
 <workspace>/build/linux-x86_64/engine/SurrealEngine <scratchpad>/core` name
