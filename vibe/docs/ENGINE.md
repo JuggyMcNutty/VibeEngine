@@ -1022,3 +1022,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `bHidden` alone ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the
   original's client saw the fork server's pawns animate, where they ran
   frozen; a fork client alike.
+- [**the harness's live mode**](https://github.com/JuggyMcNutty/VibeEngine/commit/d3bd44aa3c742daf32cf5b0e8648ae91546318a5) --
+  `--timeline=<file>`: keys and console commands at set times, from the
+  start or into a net game, and each second the player's place and the
+  other pawns' logged, so a run keeps the stock console a live server's
+  game wants (`dxcap.sh live`, [live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
+  **Checked:** a walk with the stock console on the original's server here
+  and on a live server, the server's corrections taken.
