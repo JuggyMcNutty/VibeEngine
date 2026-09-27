@@ -1,0 +1,159 @@
+# Working on the engine
+
+How VibeEngine is changed, run and checked. It is worked on inside the
+[Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina) workspace,
+where this clone is `engine/SurrealEngine`, beside the game install
+(`gamefiles/`), the SDK (`reference/`) and the builds (`build/`). A `vibe/`
+command runs from this clone's root, anything else from the workspace's. The
+workspace itself -- its cold start, this machine, commits and the docs rules
+-- is its
+[`DEVELOPMENT.md`](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md).
+How the fork is kept, run and profiled, and what it changes, is
+[`ENGINE.md`](ENGINE.md).
+
+## Temporary debug hooks
+
+Temporary debug hooks (screenshots from the renderer, extra logging)
+carry a `TEMPORARY DEBUG TOOL` comment and are reverted before committing --
+by replacing their exact text, never by a looser scripted cut: one such cut
+took live main-loop code with it, the build still compiled, and the engine
+died half a minute into a run. A slice's proving run goes 60 s or more --
+25 s once hid exactly that -- and looks at what was drawn:
+`vibe/tools/dxcap.sh prove <map>` ([scripted runs](#scripted-runs-of-both-engines)).
+A clean log once hid a world that was not drawn at all.
+
+## Scripted runs of both engines
+
+`vibe/tools/dxcap.sh` runs the original game (under Proton's wine, in this
+container) and the engine fork alike, each driven by a console class of the DXCapture package --
+UnrealScript in `vibe/tools/dxcap`, compiled by the SDK's `UCC.exe`
+(`reference/ReleaseSDK1112f`) into `build/dxcap`. Each run gets a private ini
+made from the game's own, naming the console class, with a 1280x720 window;
+both engines take the game's settings from it, and the game's inis are never
+written. A run's shots, log and recording land in `build/dxcap/runs/`.
+
+```sh
+vibe/tools/dxcap.sh setup && vibe/tools/dxcap.sh compile   # once, and after changing vibe/tools/dxcap
+vibe/tools/dxcap.sh prove 01_NYC_UNATCOIsland.dx            # the fork: shots at 20 s and 60 s, checked, exit at 65 s
+vibe/tools/dxcap.sh fork <console> <map>                    # the fork with any console class
+vibe/tools/dxcap.sh original <console>                      # the original, from its menu map
+DXCAP_RECORD=1 vibe/tools/dxcap.sh ...                      # either, its audio recorded into the run's audio.wav
+```
+
+The console classes:
+
+- **`ProveConsole`**: the proving run.
+- **`CaptureConsole`**: M0's pictures -- Liberty Island's lasers and coronas,
+  a tripwire walked into, and in Brooklyn a conversation whose jump lands on
+  a comment's label, played through.
+- **`NetConsole`**: the scripts' sockets -- conversions and GameSpy answers
+  logged, 333networks' master server asked for Deus Ex's servers and five
+  of them pinged, then the game's own Join Internet screen opened (the
+  run's ini names that master server: the game's names GameSpy's, closed).
+- **`ServeConsole`**, either engine: a listen server for the other to join -- a
+  deathmatch on DXMP_Cathedral, never on the master servers' lists (the
+  run's ini has no uplink), in the package's own `CapDeathMatch`: the game's
+  check that a joining player's console is the stock one would disconnect
+  `JoinConsole`. Once another player is in, the host's own player stands in
+  its sight -- in front of it where there is room -- and walks to and fro
+  across its view; where each player stands is logged every 2 s. It exits
+  after 290 s: give the original's run 300 s.
+- **`JoinConsole`**, either engine: the joining side -- from the menu map it
+  opens `127.0.0.1:7790`, stands its player 5 s, walks it forward 5 s and
+  stands again, logging each second where it and every other pawn stand, and
+  shots at the stops. It exits 25 s into the game, or back in the menu --
+  dropped, or never in after 40 s --, since the original's log comes only
+  at its exit. The original's server answers some 13 s after it starts.
+- **`SoundConsole`**: M0's sounds -- a steady sound heard in the open and from
+  behind a wall, shots in a reverb zone and out of it, and beeps from the
+  right, the left and ahead. It silences the level first (ambient sounds,
+  pawns, whatever watches for the player, datalinks) and starts each part
+  with three beeps; `vibe/tools/dxcap/sound.py <run>` lays the recording against
+  the log by them and measures.
+
+**Net tests** pair the two consoles, one engine each side, on this machine:
+start the server (`original ServeConsole 300` in the background, or `fork
+ServeConsole DX.dx`), wait until its game port is bound (`ss -uln | grep
+:7790`), then run the client (`fork JoinConsole DX.dx`, or `original
+JoinConsole`). Never start a second server before the first has exited: it
+cannot bind the port ("Net: cannot listen" in its log) and the client joins
+the old one. Each side's log then says what it saw -- `DXNET:` lines on the
+client, `DXCAP:` player positions on the server --, and a server's LAN
+beacon and GameSpy query answers are asked with
+`vibe/tools/dxcap/netquery.py`, the same questions for either engine, for a diff.
+
+**A crash** in a fork run gives no stack: the build is `Release`. A copy
+built with symbols in the scratchpad (`cmake -S engine/SurrealEngine -B
+<scratchpad>/dbg -C launcher/linux-x86_64/ports/linux-x86_64/engine.cmake
+-DCMAKE_BUILD_TYPE=RelWithDebInfo`, then `cmake --build <scratchpad>/dbg
+--target SurrealEngine`; some two and a half minutes) runs under `gdb -batch
+-ex run -ex bt --args <scratchpad>/dbg/SurrealEngine --no-launcher <workspace>/gamefiles
+--ini=<workspace>/build/dxcap/System/Fork.ini
+--userini=<workspace>/build/dxcap/System/ForkUser.ini --url=<map>`, started in
+`gamefiles`, with the ini the harness wrote for its last fork run (so that
+run's console). The scratchpad is cleared when a session restarts, and the
+copy with it.
+
+The classes stand the player where the original's searches did, written into
+them: the two engines' `SetLocation`s fit the player in differently
+([engine-dll.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#teleporting-an-actor)), so a search would
+stand them apart.
+
+**Shots.** The fork's `shot` writes the next free `ShotNNNN.bmp`. The
+original's own `shot` gives noise (D3D) or black (the others) under Proton, so
+its run draws through `OpenGLDrv` on a hidden X display -- Xvfb on `:99`, in
+the container -- which `vibe/tools/dxcap/grab.py` reads five times a second,
+keeping each frame whose corner carries the console's mark: a magenta block,
+then the shot's number in eight black or white blocks. The original's
+brightness is a gamma ramp, which the hidden display lacks: its shots are
+darker than the fork's, and brightness is not compared.
+
+**Recording.** `DXCAP_RECORD=1` sends the engine's sound to a private null
+sink on the desktop's sound server (`PULSE_SINK`) and records the sink with
+`parecord`; the run's ini turns the music off.
+
+What it takes to run the original there, each found the hard way:
+
+- **It boots its menu map** whatever map its command line or ini names; a
+  console class travels with `open <map>` itself.
+- **UCC needs a short base directory** (a long one crashes it while it reads
+  its ini) and both `UCC.ini` and `DeusEx.ini`; hence `build/dxcap`.
+- **A stale `Running.ini` opens the recovery wizard**, which waits for a
+  click: the script removes it first. Every run of the original overwrites
+  `System/DeusEx.log`, as any launch of it does.
+- **It runs in this container, never on the host**: the Proton build's own
+  `wine` with the prefix, as IDA's headless server runs
+  ([`tools/ida/idalib-mcp.sh`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/tools/ida/idalib-mcp.sh)); the two share
+  a wineserver, which nothing stops. The 32-bit game needs the container's
+  32-bit libraries ([this machine](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#this-machine)).
+- **No Wine desktop**: `explorer /desktop` fails to set its display up on
+  Xvfb and exits without starting the game, so the game runs straight on the
+  hidden display, where the grabber finds its frames by their mark.
+- **Only its own process is stopped** at the end: the prefix may hold IDA
+  too.
+- **Runs of both engines at once** (the net tests) lose the fork's shots:
+  the original's run deletes every shot that appears in the game's folder
+  while it runs, its own being black.
+
+The fork's window opens on this machine's desktop, as any run's does; the
+original's, on the hidden display.
+
+## Gotchas
+
+The engine's own; the workspace's are in its
+[gotchas](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#gotchas-that-cost-time).
+
+- **The engine takes `--url=<map>` only** and **ignores SIGTERM**
+  ([running it](ENGINE.md#running-it)). `-u <map>` silently loads the intro,
+  which is how a whole round of "Liberty Island" profiling measured the intro.
+- **Profile the handheld on the handheld.** Its Cortex-A53 pays far more for a
+  cache miss than the desktop, so the costs come in a different order
+  (`CycleActors` was ~6% of the desktop's game tick and ~18% of the device's).
+  Its kernel has no perf events; the hooks' own sampler does it
+  ([the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance)).
+- **The profiling hooks go off before changing the engine**: a commit made with
+  them on carries them ([the profiling hooks](ENGINE.md#the-profiling-hooks)).
+- **An unattended run tests no AI.** Liberty Island starts the player 7,000 to
+  20,000 units from every NSF, and no NPC reacts to a player it cannot see: to
+  check AI on the desktop, move the player in front of one with a temporary
+  hook.

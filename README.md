@@ -21,24 +21,28 @@ are included.
   runs the game, with work on its speed under way; aarch64 Linux, Android and
   the Xbox 360 are planned.
 
-Where it stands: [the roadmap](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/ROADMAP.md).
-What it changes from Surreal Engine, commit by commit:
-[what the fork changes](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/ENGINE.md#what-the-fork-changes).
+Where it stands: [the roadmap](vibe/docs/ROADMAP.md). What it changes from
+Surreal Engine, commit by commit:
+[what the fork changes](vibe/docs/ENGINE.md#what-the-fork-changes). What it
+still lacks of the original: [`NATIVES.md`](vibe/docs/NATIVES.md).
 
 ## The fork and Surreal Engine
 
 It does not follow upstream: newer Surreal Engine work is merged in only when
 chosen, and nothing goes back. The source keeps upstream's names -- the
 `SurrealEngine` executable and its folders -- and [`Docs/`](Docs/) is
-upstream's documentation, about Surreal Engine rather than this fork.
+upstream's documentation, about Surreal Engine rather than this fork. The
+fork's own docs and tools are in [`vibe/`](vibe/), where merging upstream
+never reaches them: how it is kept, run and profiled
+([`ENGINE.md`](vibe/docs/ENGINE.md)), and how to work on it
+([`DEVELOPMENT.md`](vibe/docs/DEVELOPMENT.md)).
 
 ## Building and running
 
-Port Ex Machina builds it for each of its ports and starts it; its
-[engine doc](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/ENGINE.md#running-it)
-has the command line. On its own it builds with CMake as
-[`Docs/Building.md`](Docs/Building.md) says, from a clone of this repository.
-Only Linux builds are made and tested here.
+Port Ex Machina builds it for each of its ports and starts it;
+[running it](vibe/docs/ENGINE.md#running-it) has the command line. On its own
+it builds with CMake as [`Docs/Building.md`](Docs/Building.md) says, from a
+clone of this repository. Only Linux builds are made and tested here.
 
 ## License
 
