@@ -26,6 +26,11 @@ event Tick(float Delta)
 		MenuTime += Delta;
 		if (Step == 0 && MenuTime > 3.0)
 		{
+			// What a login's world stats checksum is made of.
+			if (P.PlayerReplicationInfo != None)
+				Log("DXNET: name '" $ P.PlayerReplicationInfo.PlayerName $ "' stats password '" $ P.ngWorldSecret $ "'");
+			else
+				Log("DXNET: no name, stats password '" $ P.ngWorldSecret $ "'");
 			Log("DXNET: opening 127.0.0.1:7790");
 			P.ConsoleCommand("open 127.0.0.1:7790");
 			Step = 1;

@@ -25,6 +25,9 @@
 # DXCAP_UPLINK=<host>:<port> has a run's server announce itself there -- a
 # master on this machine (vibe/tools/dxcap/fakemaster.py), its uplink's
 # DoUplink set --, where it otherwise announces itself nowhere.
+# DXCAP_STATS=<password> has a run's server log world stats (bWorldLog) and
+# its player hold that world stats password, so a join carries the player's
+# checksum (the server logs the login's URL).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../../.." && pwd)}"
@@ -36,7 +39,7 @@ CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
-usage() { sed -n '2,27p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.
@@ -116,6 +119,11 @@ def one_uplink(m):
 s, n = re.subn(r'^ServerActors=IpServer\.UdpServerUplink.*\r?\n', one_uplink, s, flags=re.M)
 if n == 0:
     sys.exit('no ServerActors=IpServer.UdpServerUplink in ' + src)
+# A run's server logs world stats only with DXCAP_STATS.
+if os.environ.get('DXCAP_STATS'):
+    s, n = re.subn(r'^\[Engine\.GameInfo\]\r?\n', lambda m: m.group(0) + 'bWorldLog=True' + nl, s, count=1, flags=re.M)
+    if n != 1:
+        sys.exit('no [Engine.GameInfo] in ' + src)
 # Both engines take the game's settings from it; both run in a window of
 # the same size.
 put('WindowedViewportX', '1280')
@@ -124,6 +132,26 @@ put('StartupFullscreen', 'False')
 if engine == 'original':
     put('GameRenderDevice', 'OpenGLDrv.OpenGLRenderDevice')
 open(out, 'w', encoding='latin1', newline='').write(s)
+EOF
+}
+
+# user_ini <out>: the game's User.ini, with DXCAP_STATS's world stats
+# password for the player.
+user_ini() {
+    cp "$GAME/System/User.ini" "$1"
+    [ -n "${DXCAP_STATS:-}" ] || return 0
+    python3 - "$1" "$DXCAP_STATS" <<'EOF'
+import re, sys
+path, secret = sys.argv[1:]
+s = open(path, encoding='latin1', newline='').read()
+nl = '\r\n' if '\r\n' in s else '\n'
+# The game's User.ini has both keys, empty: set in place, as a second
+# key's value would not count in the original (its last one does).
+for key, value in (('ngWorldSecret', secret), ('ngSecretSet', 'True')):
+    s, n = re.subn(r'^%s=[^\r\n]*' % key, lambda m: '%s=%s' % (key, value), s, count=1, flags=re.M)
+    if n != 1:
+        sys.exit('no %s= in %s' % (key, path))
+open(path, 'w', encoding='latin1', newline='').write(s)
 EOF
 }
 
@@ -201,7 +229,7 @@ cmd_original() {
     local ini="$CAP/System/Original.ini" userini="$CAP/System/OriginalUser.ini"
     local dir="$CAP/runs/original-$console-$(date +%H%M%S)"
     make_ini original "$console" "$ini"
-    cp "$GAME/System/User.ini" "$userini"
+    user_ini "$userini"
     mkdir -p "$dir"
     local before; before="$(shots_before)"
 
@@ -268,7 +296,7 @@ cmd_fork() {
     local ini="$CAP/System/Fork.ini" userini="$CAP/System/ForkUser.ini"
     local dir="$CAP/runs/fork-$console-$(date +%H%M%S)"
     make_ini fork "$console" "$ini"
-    cp "$GAME/System/User.ini" "$userini"
+    user_ini "$userini"
     local before; before="$(shots_before)"
     mkdir -p "$dir"
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_start "$dir/audio.wav"

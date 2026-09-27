@@ -73,7 +73,8 @@ The console classes:
   across its view; where each player stands is logged every 2 s. It exits
   after 290 s: give the original's run 300 s.
 - **`JoinConsole`**, either engine: the joining side -- from the menu map it
-  opens `127.0.0.1:7790`, stands its player 5 s, walks it forward 5 s and
+  logs its player's name and world stats password, opens
+  `127.0.0.1:7790`, stands its player 5 s, walks it forward 5 s and
   stands again, logging each second where it and every other pawn stand, and
   shots at the stops. It exits 25 s into the game, or back in the menu --
   dropped, or never in after 40 s --, since the original's log comes only
@@ -105,6 +106,10 @@ A server's uplink is checked the same way: `vibe/tools/dxcap/fakemaster.py`
 listens as a master on this machine (UDP 27900) and asks each server that
 announces itself what a master asks, and `DXCAP_UPLINK=127.0.0.1:27900` in
 front of a server's run has its uplink announce it there, `DoUplink` set.
+A login's world stats checksum likewise: `DXCAP_STATS=<password>` in
+front of both runs has the server log world stats (`bWorldLog`) and the
+client's player hold that password, and the server's log shows the login's
+URL (`login request`).
 
 **Live servers** (the owner's go-ahead, 2026-09-27; which are up, and how
 full, in 333networks' list: `https://master.333networks.com/json/deusex`):

@@ -6,7 +6,11 @@
 #include "Package/PackageFlags.h"
 #include "Utils/Logger.h"
 #include "Utils/StrTools.h"
+#include "Utils/MD5.h"
 #include "Packages/Engine/UConsole.h"
+#include "Packages/Engine/UViewport.h"
+#include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
+#include "Packages/Engine/Actors/Info/UPlayerReplicationInfo.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
 #include <algorithm>
@@ -29,6 +33,34 @@ namespace
 	float RateInterval(int rate)
 	{
 		return rate != 0 ? std::clamp(1.0f / (float)rate, 0.01f, 1.0f) : 0.0f;
+	}
+
+	// The world stats checksum a login carries to a server that logs world
+	// stats, as the original's pending level makes it (Engine.dll,
+	// 0x1040a880): the MD5 of the player's name and its world stats password
+	// (ngWorldSecret), each as the original's two-byte characters without a
+	// terminator, in lowercase hex -- NoChecksum without a password.
+	std::string WorldStatsChecksum()
+	{
+		UPlayerPawn* player = engine->viewport ? engine->viewport->Actor() : nullptr;
+		if (!player || player->ngWorldSecret().empty())
+			return "Checksum=NoChecksum";
+
+		MD5 md5;
+		auto hash = [&](const std::string& text)
+		{
+			for (char c : text)
+			{
+				uint8_t wide[2] = { (uint8_t)c, 0 };
+				md5.Update(wide, 2);
+			}
+		};
+		if (player->PlayerReplicationInfo())
+			hash(player->PlayerReplicationInfo()->PlayerName());
+		hash(player->ngWorldSecret());
+		uint8_t digest[16];
+		md5.Final(digest);
+		return "Checksum=" + MD5::Hex(digest);
 	}
 
 }
@@ -245,11 +277,7 @@ void NetPendingLevel::NotifyReceivedText(NetConnection* connection, const std::s
 			connection->Challenge = (int)std::strtol(value.c_str(), nullptr, 10);
 		bool stats = NetParseValue(text, "STATS=", value) && std::atoi(value.c_str()) == 1;
 		if (stats)
-		{
-			// A player with a world stats password sends a checksum of it;
-			// the fork has none to send.
-			URL.AddOrReplaceOption("Checksum=NoChecksum");
-		}
+			URL.AddOrReplaceOption(WorldStatsChecksum());
 
 		// The URL the server logs in: the map and options, without the
 		// server's own address or a game type.

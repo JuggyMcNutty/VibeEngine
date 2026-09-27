@@ -661,22 +661,25 @@ void Engine::ClientTravel(const std::string& newURL, ETravelType travelType, boo
 	UnrealURL url(newURL);
 
 	// If the URL doesn't contain the player info, add them here.
-	// As they have to persist somehow
+	// As they have to persist somehow. Only the keys the ini has, as the
+	// original's default URL takes them (FURL::LoadURLConfig): a login's
+	// URL carries no empty team= or skin= the player never set.
 	for (std::string optionKey : { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" })
 	{
+		std::string value;
 		if (engine->LaunchInfo.ue1Version > 219)
 		{
 			if (url.HasOption(optionKey))
 				engine->packages->SetIniValue("User", "DefaultPlayer", optionKey, url.GetOption(optionKey));
-			else
-				url.AddOrReplaceOption(optionKey + "=" + packages->GetIniValue("user", "DefaultPlayer", optionKey));
+			else if (packages->FindIniValue("user", "DefaultPlayer", optionKey, value))
+				url.AddOrReplaceOption(optionKey + "=" + value);
 		}
 		else
 		{
 			if (url.HasOption(optionKey))
 				engine->packages->SetIniValue("System", "URL", optionKey, url.GetOption(optionKey));
-			else
-				url.AddOrReplaceOption(optionKey + "=" + packages->GetIniValue("System", "URL", optionKey));
+			else if (packages->FindIniValue("System", "URL", optionKey, value))
+				url.AddOrReplaceOption(optionKey + "=" + value);
 		}
 	}
 
@@ -730,7 +733,9 @@ UnrealURL Engine::GetDefaultURL(const std::string& map)
 		url.Portal = teleporterTag;
 	for (std::string optionKey : { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" })
 	{
-		url.Options.push_back(optionKey + "=" + packages->GetIniValue("user", "DefaultPlayer", optionKey));
+		std::string value;
+		if (packages->FindIniValue("user", "DefaultPlayer", optionKey, value))
+			url.Options.push_back(optionKey + "=" + value);
 	}
 	return url;
 }

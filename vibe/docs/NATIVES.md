@@ -1181,9 +1181,21 @@ map. Checked: the original and the fork joined the fork's dedicated
 DXMP_Cathedral and walked; its LAN beacon and query answerer replied
 (`listenserver` False) on their ports; it idled at under 1% of a core.
 
-Not yet, of a client: the world-stats checksum (`NoChecksum` always). Each
-bunch goes on its own: the original merges one into the last when both are
-the same channel's, which only saves bits.
+A client's login is the original's to the byte (2026-09-27): to a server
+that logs world stats (`STATS=1`) it carries the player's checksum -- the
+MD5 of its name and its world stats password (`ngWorldSecret`), each as
+the original's two-byte characters, in lowercase hex, or `NoChecksum`
+without a password, where the fork sent `NoChecksum` always --, and its
+URL the player options the user ini's `[DefaultPlayer]` has, as the
+original's default URL takes them, where the fork added seven, the unset
+ones empty (`team=`, `skin=`, `Face=`, `Voice=`, `OverrideClass=`).
+Checked with `DXCAP_STATS` ([net tests](DEVELOPMENT.md#scripted-runs-of-both-engines)) against a fork
+server logging world stats: the original's login and the fork's alike,
+`Index.dx?Name=Player?Class=DeusEx.JCDentonMale?Checksum=2a08f7474acf9013c4ec638e29b1997c`,
+the MD5 the formula gives.
+
+Not yet, of a client: each bunch goes on its own, where the original merges
+one into the last when both are the same channel's, which only saves bits.
 
 The scripts' sockets are the original's now (2026-09-26,
 [the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)): `InternetLink`'s

@@ -64,6 +64,8 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Utils/JsonValue.h
 	SurrealEngine/Utils/SHA1Sum.cpp
 	SurrealEngine/Utils/SHA1Sum.h
+	SurrealEngine/Utils/MD5.cpp
+	SurrealEngine/Utils/MD5.h
 	SurrealEngine/Utils/StrTools.cpp
 	SurrealEngine/Utils/StrTools.h
 	SurrealEngine/Utils/Random.cpp
