@@ -879,3 +879,32 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   versions are 1100; the computer name is the machine's
   ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the LAN beacon
   and the query answerer replied as the original's, but for the host name.
+- [**a client's level gives no travel info**](https://github.com/JuggyMcNutty/VibeEngine/commit/50dca82dfcf5c9d9c6c59ea16b743fa9ac24f809) --
+  leaving a server no longer reads the local pawn's
+  `PlayerReplicationInfo`, which may not have come: a net client's player
+  is the server's, and nothing of it travels. **Checked:** a live server's
+  game disconnected the scripted client, which had segfaulted in
+  `CreateTravelInfo`; it now goes back to `dx.dx` and exits cleanly.
+- [**mods load as the original loads them**](https://github.com/JuggyMcNutty/VibeEngine/commit/1c752ab071582886b5004fdf90de0b559e168b05) --
+  an export with no context flags is None, as Core's linker leaves it
+  (protected mods' `ScriptText`), save files aside; a class's config file
+  not there is empty; path extensions match in any case
+  ([mods](NATIVES.md#mods)). **Checked:** live servers' ANNA, DXNMS and
+  DXMTL packages load on the fork as their client; a mod's folder, named by
+  relative backslashed `Paths` in its own ini, played a custom map
+  standalone.
+- [**a text width of none is no limit**](https://github.com/JuggyMcNutty/VibeEngine/commit/7ce972175ac67f8f9ecc921c2f01fa2d99b24ef1) --
+  `GetTextExtent(0, ...)` measures a line whole, as Extension's line
+  breaking does ([the UI](NATIVES.md#the-ui)). **Checked:** the
+  multiplayer window's progress lines whole and centred in a shot, where
+  they went a word to a line.
+- [**downloads**](https://github.com/JuggyMcNutty/VibeEngine/commit/af63a856fedf11e9ba3dd24cde8f783cab305339) --
+  M7's: a client fetches the packages it lacks over file channels into the
+  cache and loads them under their names; a server sends its downloadable
+  packages, its list the map's, the `ServerPackages` and the game class's
+  package; the cache cleaned at start; the join's messages, `CANCEL`,
+  `DISCONNECT`, `RECONNECT`, `NETSPEED` and `LANSPEED` the original's
+  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** downloads from
+  live ANNA and CDX servers and a join that stayed in on a DXMTL server;
+  the original downloading a map from the fork's server and walking, and
+  the fork from its own.
