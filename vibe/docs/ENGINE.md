@@ -477,8 +477,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   Pulse and ChangeBest to the listeners' script
   ([hearing](NATIVES.md#hearing-the-ai-event-system)). The manager's
   class is synthesized into the Engine package, so a save's import of it
-  resolves; the original game's saved manager is recognized and skipped,
-  which is what lets the original's saves load now. **Checked:** a
+  resolves; the original game's saved manager was recognized and skipped,
+  which let the original's saves load (read whole since 2026-09-27: the
+  saves the original loads, below). **Checked:** a
   temporary hook stood the player beside a terrorist and raised
   WeaponFire -- distress seen by sight, footsteps heard fading, HandleShot
   fired, and the terrorists' own gunfire became senders; a quick save

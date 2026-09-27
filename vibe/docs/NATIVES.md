@@ -5,10 +5,9 @@ wrong, what the player sees of it, and the work that would fill it. What each
 original function does is in its DLL's doc ([the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#the-binaries));
 what each patch changed is in [what the fork changes](ENGINE.md#what-the-fork-changes).
 Which item is taken up, and when, is the owner's call; the decided order is
-[`ROADMAP.md`](ROADMAP.md). With M0-M6's code landed (2026-09-25), most
-sections record what changed and its by-hand check; what stays the fork's
-own is noted in place, and [multiplayer](#multiplayer) is the one whole
-area left.
+[`ROADMAP.md`](ROADMAP.md). With M0-M6's code landed (2026-09-25) and M7's,
+[multiplayer](#multiplayer) (2026-09-27), most sections record what changed
+and its by-hand check; what stays the fork's own is noted in place.
 
 ## How it is known
 
