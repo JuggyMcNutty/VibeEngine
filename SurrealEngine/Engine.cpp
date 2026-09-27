@@ -1363,10 +1363,13 @@ void Engine::SaveCurrentLevel(int32_t slot) const
 std::map<std::string, std::string> Engine::CreateTravelInfo(bool transferItems)
 {
 	auto travelInfo = Level->TravelInfo;
+	// A net client's player is the server's: nothing of it travels.
+	if (LevelInfo->NetMode() == NM_Client)
+		return travelInfo;
 	for (UActor* actor : Level->Actors)
 	{
 		UPlayerPawn* pawn = UObject::TryCast<UPlayerPawn>(actor);
-		if (pawn && pawn->Player())
+		if (pawn && pawn->Player() && (engine->LaunchInfo.ue1Version <= 219 || pawn->PlayerReplicationInfo()))
 		{
 			std::string playerName = engine->LaunchInfo.ue1Version > 219 ? pawn->PlayerReplicationInfo()->PlayerName() : std::string("Player"); // To do: how to get the travel player name?
 			travelInfo[playerName] = ActorTravelInfo::Create(pawn, transferItems);
