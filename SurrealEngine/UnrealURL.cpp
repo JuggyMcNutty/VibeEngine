@@ -53,7 +53,8 @@ UnrealURL::UnrealURL(std::string urlString)
 
 		auto nextParamPos = StrTools::find_first_of_any(allParams, "?/#");
 
-		do
+		// Every part, the last included.
+		for (;;)
 		{
 			if (paramType == '#' || paramType == '/')
 				Portal = allParams.substr(0, nextParamPos);
@@ -63,12 +64,13 @@ UnrealURL::UnrealURL(std::string urlString)
 				AddOrReplaceOption(optionStr);
 			}
 
-			if (nextParamPos != std::string::npos)
-				paramType = allParams[nextParamPos];
+			if (nextParamPos == std::string::npos)
+				break;
 
+			paramType = allParams[nextParamPos];
 			allParams = allParams.substr(nextParamPos + 1);
 			nextParamPos = StrTools::find_first_of_any(allParams, "?/#");
-		} while (nextParamPos != std::string::npos);
+		}
 	}
 }
 

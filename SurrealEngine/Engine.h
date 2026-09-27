@@ -59,6 +59,7 @@ class UGC;
 class NetPendingLevel;
 class NetDriver;
 class NetClientLevel;
+class NetServerLevel;
 class NetConnection;
 struct TextureInfo;
 struct SceneNode;
@@ -112,6 +113,13 @@ public:
 	void LoadClientMap(NetPendingLevel* pending);
 	void HandleClientPlayer(NetConnection* connection, UPlayerPawn* pawn);
 	void CloseNetDriver();
+
+	// A server's (docs/re/network.md): listening on a map opened with
+	// ?listen, the game's PreLogin, and a player spawned and possessed as the
+	// original's SpawnPlayActor does.
+	void Listen(const UnrealURL& url);
+	bool PreLogin(const std::string& options, const std::string& address, std::string& error, std::string& failcode);
+	UPlayerPawn* SpawnPlayActor(UObject* player, uint8_t remoteRole, const UnrealURL& url, std::string& error);
 
 	UObject* FindObject(NameString name, NameString className);
 
@@ -197,6 +205,7 @@ public:
 	std::unique_ptr<NetPendingLevel> PendingLevel;
 	std::unique_ptr<NetDriver> LevelNetDriver;
 	std::unique_ptr<NetClientLevel> ClientLevel;
+	std::unique_ptr<NetServerLevel> ServerLevel;
 	std::string NetFailure;
 	struct
 	{

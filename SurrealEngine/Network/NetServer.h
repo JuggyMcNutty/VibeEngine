@@ -1,0 +1,42 @@
+#pragma once
+
+#include "NetDriver.h"
+#include "UnrealURL.h"
+#include <map>
+#include <string>
+
+class Package;
+class UObject;
+class UPlayerPawn;
+
+// A server's level (ULevel's side of the network, docs/re/network.md):
+// which connections and channels it takes, the handshake's server side, the
+// player each client is given, and the packages a client needs.
+class NetServerLevel : public NetNotify
+{
+public:
+	explicit NetServerLevel(Package* level);
+	~NetServerLevel();
+
+	bool NotifyAcceptingConnection() override;
+	bool NotifyAcceptingChannel(NetChannel* channel) override;
+	void NotifyReceivedText(NetConnection* connection, const std::string& text) override;
+	void NotifyConnectionClosed(NetConnection* connection) override;
+
+	// The packages the clients are told of, in the order both sides number
+	// them: the map's, then what it imports, depth first, less what is only
+	// the server's.
+	Array<NetPackageMap::PackageInfo> Packages;
+
+private:
+	void AddPackage(Package* package);
+	void Welcome(NetConnection* connection);
+	void Join(NetConnection* connection);
+
+	Package* Level = nullptr;
+	std::map<NetConnection*, UnrealURL> RequestURLs;
+};
+
+// A client's player on a server is its connection, a Player object for the
+// scripts (Engine.NetConnection); which connection each one is.
+NetConnection* NetConnectionOfPlayer(UObject* player);

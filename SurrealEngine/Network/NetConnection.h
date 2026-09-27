@@ -12,6 +12,7 @@ class NetChannel;
 class NetControlChannel;
 class NetActorChannel;
 class UActor;
+class UObject;
 class UPlayerPawn;
 
 enum class ChannelType : int
@@ -113,6 +114,8 @@ public:
 	float DynamicUpdateInterval = 0.0f;
 	float StaticUpdateInterval = 0.0f;
 	UPlayerPawn* Actor = nullptr;
+	// On a server, the Player object the scripts see for this client.
+	UObject* PlayerObject = nullptr;
 
 	double LastReceiveTime = 0.0;
 	double LastSendTime = 0.0;

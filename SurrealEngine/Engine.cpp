@@ -55,6 +55,7 @@
 #include "Utils/Convert.h"
 #include "Network/NetClient.h"
 #include "Network/NetChannel.h"
+#include "Network/NetServer.h"
 #include <chrono>
 #include <set>
 #include <thread>
@@ -340,7 +341,7 @@ void Engine::Run()
 		}
 
 		// Lost the server, or refused by it: back to the menu's map.
-		if (LevelNetDriver && (!NetFailure.empty() || LevelNetDriver->ServerConnection->State == ConnectionState::Closed))
+		if (LevelNetDriver && LevelNetDriver->ServerConnection && (!NetFailure.empty() || LevelNetDriver->ServerConnection->State == ConnectionState::Closed))
 		{
 			LogMessage("Net: disconnected" + (NetFailure.empty() ? std::string() : ": " + NetFailure));
 			NetFailure.clear();
@@ -750,7 +751,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	if (LaunchInfo.ue1Version > 219)
 		LevelInfo->MinNetVersion() = LaunchInfo.gameVersionString + " SE";
 	LevelInfo->bHighDetailMode() = true;
-	LevelInfo->NetMode() = asClient ? NM_Client : NM_Standalone;
+	LevelInfo->NetMode() = asClient ? NM_Client : url.HasOption("listen") ? NM_ListenServer : NM_Standalone;
 	LevelInfo->DefaultTexture() = engine->DefaultTexture;
 
 	LevelInfo->URL = url;
@@ -795,6 +796,10 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		BeginPlay(url);
 		return;
 	}
+
+	// A server listens before its game begins, so the game's scripts see it.
+	if (url.HasOption("listen"))
+		Listen(url);
 
 	// Find the game info class
 	UClass* gameInfoClass = packages->FindClass(LevelInfo->URL.GetOption("game"));
@@ -1546,15 +1551,99 @@ void Engine::CloseNetDriver()
 {
 	if (!LevelNetDriver)
 		return;
-	if (NetConnection* connection = LevelNetDriver->ServerConnection.get())
-	{
-		// The server hears the close with the control channel's.
+	// The other side hears the close with the control channel's.
+	auto close = [](NetConnection* connection) {
 		if (NetChannel* control = connection->Channels[0])
 			control->Close();
 		connection->FlushNet();
-	}
+	};
+	if (NetConnection* connection = LevelNetDriver->ServerConnection.get())
+		close(connection);
+	for (auto& connection : LevelNetDriver->ClientConnections)
+		close(connection.get());
 	LevelNetDriver.reset();
 	ClientLevel.reset();
+	ServerLevel.reset();
+}
+
+void Engine::Listen(const UnrealURL& url)
+{
+	int port = std::atoi(packages->GetIniValue("system", "URL", "Port", "7777").c_str());
+	ServerLevel = std::make_unique<NetServerLevel>(LevelPackage);
+	LevelNetDriver = std::make_unique<NetDriver>();
+	std::string error;
+	if (!LevelNetDriver->InitListen(ServerLevel.get(), port, error))
+	{
+		LogMessage("Net: cannot listen: " + error);
+		LevelNetDriver.reset();
+		ServerLevel.reset();
+		LevelInfo->NetMode() = NM_Standalone;
+		return;
+	}
+	LogMessage("Net: listening on port " + std::to_string(port));
+}
+
+bool Engine::PreLogin(const std::string& options, const std::string& address, std::string& error, std::string& failcode)
+{
+	auto stringProp = GC::Alloc<UStringProperty>("", nullptr, ObjectFlags::NoFlags);
+	UFunction* func = FindEventFunction(LevelInfo->Game(), "PreLogin");
+	if (func && Frame::CallParms(func).size() >= 4)
+	{
+		CallEvent(LevelInfo->Game(), EventName::PreLogin, {
+			ExpressionValue::StringValue(options),
+			ExpressionValue::StringValue(address),
+			ExpressionValue::Variable(&error, stringProp),
+			ExpressionValue::Variable(&failcode, stringProp),
+			});
+	}
+	else
+	{
+		CallEvent(LevelInfo->Game(), EventName::PreLogin, {
+			ExpressionValue::StringValue(options),
+			ExpressionValue::Variable(&error, stringProp),
+			ExpressionValue::Variable(&failcode, stringProp),
+			});
+	}
+	return error.empty() && failcode.empty();
+}
+
+UPlayerPawn* Engine::SpawnPlayActor(UObject* player, uint8_t remoteRole, const UnrealURL& url, std::string& error)
+{
+	auto stringProp = GC::Alloc<UStringProperty>("", nullptr, ObjectFlags::NoFlags);
+	std::string playerPawnClass = url.GetOption("Class");
+	if (playerPawnClass.empty())
+		playerPawnClass = packages->GetIniValue("system", "URL", "Class");
+	UClass* pawnClass = packages->FindClass(playerPawnClass);
+
+	UPlayerPawn* pawn = UObject::Cast<UPlayerPawn>(CallEvent(LevelInfo->Game(), EventName::Login, {
+		ExpressionValue::StringValue(url.GetPortal()),
+		ExpressionValue::StringValue(url.GetOptions()),
+		ExpressionValue::Variable(&error, stringProp),
+		ExpressionValue::ObjectValue(pawnClass)
+		}).ToObject());
+	if (!pawn)
+	{
+		LogMessage("Net: login failed: " + error);
+		return nullptr;
+	}
+	EnsureFlagBase(pawn);
+
+	// Possessed by its player, the server's own with its connection's roles.
+	if (UPlayer* p = UObject::Cast<UPlayer>(player))
+		p->Actor() = pawn;
+	pawn->Player() = UObject::Cast<UPlayer>(player);
+	CallEvent(pawn, EventName::Possess);
+	LogMessage("Net: possessed " + pawn->Name.ToString());
+	pawn->Role() = ROLE_Authority;
+	pawn->RemoteRole() = remoteRole;
+	pawn->ShowFlags() = 0x480c;
+	pawn->RendMap() = 5;
+
+	CallEvent(pawn, EventName::TravelPreAccept);
+	CallEvent(LevelInfo->Game(), EventName::AcceptInventory, { ExpressionValue::ObjectValue(pawn) });
+	CallEvent(pawn, EventName::TravelPostAccept);
+	CallEvent(LevelInfo->Game(), EventName::PostLogin, { ExpressionValue::ObjectValue(pawn) });
+	return pawn;
 }
 
 UZoneInfo* Engine::GetZoneActor(int zoneIndex)

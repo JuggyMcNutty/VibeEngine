@@ -60,6 +60,9 @@ public:
 	int GetExportCount() const { return FileExportCount; }
 	int GetNameCount() const { return FileNameCount; }
 	bool IsExportObject(const UObject* obj, int index) const { return index >= 0 && (size_t)index < ExportObjects.size() && ExportObjects[index] == obj; }
+	PackageFlags GetFlags() const { return Flags; }
+	// The packages this one imports from, in its import table's order.
+	Array<NameString> GetImportedPackages() const;
 
 	template<class T> Array<T*> GetAllObjects();
 

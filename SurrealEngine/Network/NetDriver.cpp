@@ -57,6 +57,7 @@ NetDriver::NetDriver()
 NetDriver::~NetDriver()
 {
 	ServerConnection.reset();
+	ClientConnections.clear();
 	if (Socket != NoSocket)
 		CloseSocket(Socket);
 }
@@ -68,6 +69,8 @@ void NetDriver::LoadSettings()
 	AckTimeout = IniFloat("AckTimeout", AckTimeout);
 	KeepAliveTime = IniFloat("KeepAliveTime", KeepAliveTime);
 	MaxClientRate = IniInt("IpDrv.TcpNetDriver", "MaxClientRate", MaxClientRate);
+	DynamicUpdateRate = IniInt("IpDrv.TcpNetDriver", "DynamicUpdateRate", DynamicUpdateRate);
+	StaticUpdateRate = IniInt("IpDrv.TcpNetDriver", "StaticUpdateRate", StaticUpdateRate);
 }
 
 bool NetDriver::InitConnect(NetNotify* notify, const std::string& host, int port, std::string& error)
@@ -87,6 +90,25 @@ bool NetDriver::InitConnect(NetNotify* notify, const std::string& host, int port
 	uint32_t addr = ntohl(((sockaddr_in*)info->ai_addr)->sin_addr.s_addr);
 	freeaddrinfo(info);
 
+	if (!OpenSocket(0, error))
+		return false;
+
+	// The speed the client asks for: [Engine.Player]'s for the internet,
+	// its LAN one with ?LAN in the URL (the caller's to choose).
+	int netSpeed = IniInt("Engine.Player", "ConfiguredInternetSpeed", 2600);
+	ServerConnection = std::make_unique<NetConnection>(this, addr, port, netSpeed);
+	ServerConnection->CreateChannel(ChannelType::Control, true, 0);
+	return true;
+}
+
+bool NetDriver::InitListen(NetNotify* notify, int port, std::string& error)
+{
+	Notify = notify;
+	return OpenSocket(port, error);
+}
+
+bool NetDriver::OpenSocket(int port, std::string& error)
+{
 	Socket = (intptr_t)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (Socket == NoSocket)
 	{
@@ -98,24 +120,30 @@ bool NetDriver::InitConnect(NetNotify* notify, const std::string& host, int port
 	sockaddr_in local = {};
 	local.sin_family = AF_INET;
 	local.sin_addr.s_addr = htonl(INADDR_ANY);
-	local.sin_port = 0;
+	local.sin_port = htons((uint16_t)port);
 	if (bind((decltype(socket(0, 0, 0)))Socket, (sockaddr*)&local, sizeof(local)) != 0)
 	{
-		error = "Could not bind a socket";
+		error = "Could not bind port " + std::to_string(port);
 		return false;
 	}
-
-	// The speed the client asks for: [Engine.Player]'s for the internet,
-	// its LAN one with ?LAN in the URL (the caller's to choose).
-	int netSpeed = IniInt("Engine.Player", "ConfiguredInternetSpeed", 2600);
-	ServerConnection = std::make_unique<NetConnection>(this, addr, port, netSpeed);
-	ServerConnection->CreateChannel(ChannelType::Control, true, 0);
 	return true;
 }
 
 void NetDriver::TickDispatch(float deltaTime)
 {
 	Time += deltaTime;
+
+	// A server lets go of the connections that closed, and their players.
+	for (size_t i = ClientConnections.size(); i-- > 0;)
+	{
+		if (ClientConnections[i]->State == ConnectionState::Closed)
+		{
+			std::unique_ptr<NetConnection> connection = std::move(ClientConnections[i]);
+			ClientConnections.erase(ClientConnections.begin() + i);
+			if (Notify)
+				Notify->NotifyConnectionClosed(connection.get());
+		}
+	}
 
 	if (Socket == NoSocket)
 		return;
@@ -136,8 +164,26 @@ void NetDriver::TickDispatch(float deltaTime)
 			break;
 		}
 
-		NetConnection* connection = ServerConnection.get();
-		if (connection && ntohl(from.sin_addr.s_addr) == connection->RemoteAddr && ntohs(from.sin_port) == connection->RemotePort)
+		uint32_t addr = ntohl(from.sin_addr.s_addr);
+		int port = ntohs(from.sin_port);
+		NetConnection* connection = nullptr;
+		if (ServerConnection && addr == ServerConnection->RemoteAddr && port == ServerConnection->RemotePort)
+			connection = ServerConnection.get();
+		for (size_t i = 0; !connection && i < ClientConnections.size(); i++)
+		{
+			if (addr == ClientConnections[i]->RemoteAddr && port == ClientConnections[i]->RemotePort)
+				connection = ClientConnections[i].get();
+		}
+
+		// A new client, when the level takes it.
+		if (!connection && !ServerConnection && Notify && Notify->NotifyAcceptingConnection())
+		{
+			ClientConnections.push_back(std::make_unique<NetConnection>(this, addr, port, IniInt("Engine.Player", "ConfiguredInternetSpeed", 2600)));
+			connection = ClientConnections.back().get();
+			LogMessage("Net: open " + std::to_string(addr >> 24) + "." + std::to_string((addr >> 16) & 255) + "." + std::to_string((addr >> 8) & 255) + "." + std::to_string(addr & 255) + ":" + std::to_string(port));
+		}
+
+		if (connection)
 			connection->ReceivedRawPacket(data, size);
 	}
 }
@@ -146,6 +192,8 @@ void NetDriver::TickFlush()
 {
 	if (ServerConnection)
 		ServerConnection->Tick();
+	for (auto& connection : ClientConnections)
+		connection->Tick();
 }
 
 void NetDriver::LowLevelSend(NetConnection* connection, const uint8_t* data, int count)

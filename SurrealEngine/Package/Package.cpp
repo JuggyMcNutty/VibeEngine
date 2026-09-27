@@ -470,6 +470,17 @@ std::string Package::GetExportName(int objref)
 	return objname;
 }
 
+Array<NameString> Package::GetImportedPackages() const
+{
+	Array<NameString> result;
+	for (const ImportTableEntry& entry : ImportTable)
+	{
+		if (entry.ObjOuter == 0 && GetName(entry.ClassName) == "Package")
+			result.push_back(GetName(entry.ObjName));
+	}
+	return result;
+}
+
 std::string Package::GetGuidString() const
 {
 	char text[33];

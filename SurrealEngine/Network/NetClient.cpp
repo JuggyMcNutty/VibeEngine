@@ -30,12 +30,12 @@ namespace
 		return rate != 0 ? std::clamp(1.0f / (float)rate, 0.01f, 1.0f) : 0.0f;
 	}
 
-	// The engine's answer to a server's challenge.
-	int ChallengeResponse(int challenge)
-	{
-		uint32_t c = (uint32_t)challenge;
-		return (int)((c * 237u) ^ (uint32_t)(challenge >> 16) ^ (c << 16) ^ 0x93fe92ceu);
-	}
+}
+
+int NetChallengeResponse(int challenge)
+{
+	uint32_t c = (uint32_t)challenge;
+	return (int)((c * 237u) ^ (uint32_t)(challenge >> 16) ^ (c << 16) ^ 0x93fe92ceu);
 }
 
 bool NetParseCommand(const std::string& text, const char* command, std::string* rest)
@@ -209,7 +209,7 @@ void NetPendingLevel::NotifyReceivedText(NetConnection* connection, const std::s
 			loginURL += "#" + URL.Portal;
 
 		connection->SendText("NETSPEED " + std::to_string(connection->CurrentNetSpeed));
-		connection->SendText("LOGIN RESPONSE=" + std::to_string(ChallengeResponse(connection->Challenge)) + " URL=" + loginURL);
+		connection->SendText("LOGIN RESPONSE=" + std::to_string(NetChallengeResponse(connection->Challenge)) + " URL=" + loginURL);
 		connection->FlushNet();
 	}
 	else if (NetParseCommand(text, "DYNAMICRATE", &rest))

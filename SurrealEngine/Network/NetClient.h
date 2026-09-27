@@ -47,6 +47,9 @@ public:
 	void NotifyClientPlayer(NetConnection* connection, UPlayerPawn* pawn) override;
 };
 
+// The engine's answer to a server's challenge.
+int NetChallengeResponse(int challenge);
+
 // The handshake's text: a leading command word, a KEY=value anywhere.
 bool NetParseCommand(const std::string& text, const char* command, std::string* rest = nullptr);
 bool NetParseValue(const std::string& text, const char* key, std::string& value);
