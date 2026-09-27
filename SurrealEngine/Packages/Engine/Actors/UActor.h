@@ -485,6 +485,7 @@ public:
 	void TweenBlendAnim(const NameString& sequenceName, float time, int blendSlot);
 	void LoopAnim(const NameString& sequence, float rate, float tweenTime, float minRate);
 	void TweenAnim(const NameString& sequence, float tweenTime);
+	void PackSimAnim(float last);
 
 	void MakeNoise(float loudness);
 	bool PlayerCanSeeMe();
@@ -738,7 +739,7 @@ public:
 	Rotator& Rotation() { return Value<Rotator>(PropOffsets_Actor.Rotation); }
 	Rotator& RotationRate() { return Value<Rotator>(PropOffsets_Actor.RotationRate); }
 	float& ScaleGlow() { return Value<float>(PropOffsets_Actor.ScaleGlow); }
-	//Plane& SimAnim() { return Value<Plane>(PropOffsets_Actor.SimAnim); }
+	vec4& SimAnim() { return Value<vec4>(PropOffsets_Actor.SimAnim); } // a Plane: X, Y, Z, W
 	UAnimation*& SkelAnim() { return Value<UAnimation*>(PropOffsets_Actor.SkelAnim); }
 	UTexture*& Skin() { return Value<UTexture*>(PropOffsets_Actor.Skin); }
 	uint8_t& SoundPitch() { return Value<uint8_t>(PropOffsets_Actor.SoundPitch); }

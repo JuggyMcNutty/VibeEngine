@@ -41,6 +41,9 @@ public:
 	{
 		UField* Field = nullptr;
 		int FieldNetIndex = 0;
+		// A replicated property's first element among its class's
+		// replicated elements (what a server keeps per element).
+		int RepIndex = -1;
 	};
 
 	struct ClassNetCache
@@ -49,6 +52,11 @@ public:
 		UClass* Class = nullptr;
 		int FieldsBase = 0;
 		Array<FieldNetCache> Fields;
+
+		// The replicated properties, the parent's first, and each of their
+		// elements by its RepIndex.
+		Array<FieldNetCache*> RepProperties;
+		Array<std::pair<FieldNetCache*, int>> RepElements;
 
 		int GetMaxIndex() const { return FieldsBase + (int)Fields.size(); }
 		FieldNetCache* GetFromIndex(int index);
@@ -64,9 +72,14 @@ public:
 	uint32_t GetMaxObjectIndex() const { return MaxObjectIndex; }
 
 	// Loading and saving an object reference: a dynamic actor by its
-	// channel on the connection, anything else by its number.
+	// channel on the connection, anything else by its number. Saving says
+	// whether the other side can resolve it yet.
 	UObject* ReadObject(NetBitReader& reader);
 	bool WriteObject(NetBitWriter& writer, UObject* obj);
+
+	// Whether a reference can be sent at all: a dynamic actor only once it
+	// has a channel here (Engine's UPackageMapLevel::CanSerializeObject).
+	bool CanSerializeObject(UObject* obj);
 
 	NameString ReadName(NetBitReader& reader);
 	void WriteName(NetBitWriter& writer, const NameString& name);

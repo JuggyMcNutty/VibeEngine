@@ -2,6 +2,7 @@
 #include "Precomp.h"
 #include "NetChannel.h"
 #include "NetDriver.h"
+#include "NetRemote.h"
 #include "NetSerialize.h"
 #include "Packages/Core/UClass.h"
 #include "Packages/Core/UEnum.h"
@@ -21,11 +22,13 @@
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/Info/UPlayerReplicationInfo.h"
+#include "Packages/Engine/Actors/Inventory/UInventory.h"
 #include "Packages/Engine/UViewport.h"
 #include "Utils/Logger.h"
 #include "VM/Frame.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
+#include <algorithm>
 #include <cmath>
 
 NetChannel::NetChannel(NetConnection* connection, int chIndex, bool openedLocally, ChannelType type) :
@@ -244,14 +247,9 @@ namespace
 		bool CollideActors;
 		float CollisionRadius;
 		float CollisionHeight;
-		float SimAnim[4];
+		vec4 SimAnim;
 		vec3 SimInterpolate;
 	};
-
-	float* SimAnim(UActor* actor)
-	{
-		return static_cast<float*>(actor->PropertyData.Ptr(PropOffsets_Actor.SimAnim.DataOffset));
-	}
 
 	ReceivedState PreNetReceive(UActor* actor)
 	{
@@ -262,8 +260,7 @@ namespace
 		saved.CollideActors = actor->bCollideActors();
 		saved.CollisionRadius = actor->CollisionRadius();
 		saved.CollisionHeight = actor->CollisionHeight();
-		for (int i = 0; i < 4; i++)
-			saved.SimAnim[i] = SimAnim(actor)[i];
+		saved.SimAnim = actor->SimAnim();
 		if (UMover* mover = UObject::TryCast<UMover>(actor))
 			saved.SimInterpolate = mover->SimInterpolate();
 		return saved;
@@ -303,13 +300,13 @@ namespace
 			}
 		}
 
-		float* sim = SimAnim(actor);
-		if (sim[0] != old.SimAnim[0] || sim[1] != old.SimAnim[1] || sim[2] != old.SimAnim[2] || sim[3] != old.SimAnim[3])
+		vec4 sim = actor->SimAnim();
+		if (!(sim == old.SimAnim))
 		{
-			actor->AnimFrame() = sim[0] * 0.0001f;
-			actor->AnimRate() = sim[1] * 0.0002f;
-			actor->TweenRate() = sim[2] * 0.001f;
-			actor->AnimLast() = sim[3] * 0.0001f;
+			actor->AnimFrame() = sim.x * 0.0001f;
+			actor->AnimRate() = sim.y * 0.0002f;
+			actor->TweenRate() = sim.z * 0.001f;
+			actor->AnimLast() = sim.w * 0.0001f;
 			if (actor->AnimLast() < 0.0f)
 			{
 				actor->AnimLast() = -actor->AnimLast();
@@ -396,11 +393,272 @@ NetActorChannel::NetActorChannel(NetConnection* connection, int chIndex, bool op
 {
 }
 
+NetActorChannel::~NetActorChannel()
+{
+	if (uint8_t* recent = Recent())
+	{
+		for (UProperty* prop : ActorClass->Properties)
+			prop->DestructArray(recent + prop->DataOffset.DataOffset);
+	}
+}
+
 void NetActorChannel::SetChannelActor(UActor* actor)
 {
 	Actor = actor;
 	ActorClass = actor->Class;
 	Connection->ActorChannels[actor] = this;
+
+	// A server keeps what this client last got of each replicated value.
+	// It starts as the class's defaults, as a client's new copy does,
+	// less the config values, which may differ from the client's own and
+	// so always go.
+	if (Connection->Driver->ServerConnection)
+		return;
+	NetPackageMap::ClassNetCache* cache = Connection->PackageMap.GetClassNetCache(ActorClass);
+	Sent.resize(cache ? cache->RepElements.size() : 0);
+	if (actor->bNetTemporary())
+		return;
+	RecentData.reset(new uint64_t[(ActorClass->StructSize + 7) / 8 + 1]());
+	uint8_t* recent = Recent();
+	for (UProperty* prop : ActorClass->Properties)
+	{
+		void* value = recent + prop->DataOffset.DataOffset;
+		if (AnyFlags(prop->PropFlags, PropertyFlags::Config | PropertyFlags::GlobalConfig))
+			prop->ConstructArray(value);
+		else
+			prop->CopyConstructArray(value, ActorClass->PropertyData.Ptr(prop));
+	}
+}
+
+void NetActorChannel::ReplicateActor()
+{
+	NetPackageMap& map = Connection->PackageMap;
+	UActor* actor = Actor;
+
+	// No room for another reliable bunch: nothing goes this tick.
+	NetOutBunch bunch(this, false);
+	if (bunch.Data.GetMaxBits() == 0)
+		return;
+
+	NetPackageMap::ClassNetCache* cache = map.GetClassNetCache(ActorClass);
+	if (!cache)
+		return;
+
+	// The first bunch opens the channel with the actor's state, in order
+	// (reliable) -- unless the actor is sent once to keep, whose bunch closes
+	// the channel as it opens it.
+	bool initial = OpenPacketId == -1;
+	actor->bNetInitial() = initial;
+	if (initial)
+	{
+		bunch.bClose = actor->bNetTemporary();
+		bunch.bReliable = !actor->bNetTemporary();
+	}
+	else if (!SpawnAcked && OpenAcked)
+	{
+		// What went unreliably before the client had the actor goes again:
+		// it may have come first and been dropped.
+		SpawnAcked = true;
+		for (int i = (int)Sent.size() - 1; i >= 0; i--)
+		{
+			if (Sent[i].OutPacketId != -1 && !Sent[i].Reliable)
+				AddDirty(i);
+		}
+	}
+
+	actor->bNetOwner() = NetOwnedHere(actor, Connection);
+
+	// The opening bunch names the actor: a map's by reference, any other by
+	// class and place.
+	if (initial && OpenedLocally)
+	{
+		if (actor->bStatic() || actor->bNoDelete())
+		{
+			map.WriteObject(bunch.Data, actor);
+		}
+		else
+		{
+			map.WriteObject(bunch.Data, ActorClass);
+			vec3 location = actor->Location();
+			bunch.Data.WriteFloat(location.x);
+			bunch.Data.WriteFloat(location.y);
+			bunch.Data.WriteFloat(location.z);
+			if (uint8_t* recent = Recent())
+				*reinterpret_cast<vec3*>(recent + PropOffsets_Actor.Location.DataOffset) = location;
+		}
+	}
+
+	// A player's pawn is autonomous on its own client only; the others
+	// simulate it (so does an actor whose instigator is not this client's).
+	uint8_t remoteRole = actor->RemoteRole();
+	if (remoteRole == ROLE_AutonomousProxy)
+	{
+		UPawn* instigator = actor->Instigator();
+		if (instigator && !instigator->bNetOwner() && !actor->bNetOwner())
+			actor->RemoteRole() = ROLE_SimulatedProxy;
+	}
+	actor->bSimulatedPawn() = actor->bIsPawn() && actor->RemoteRole() == ROLE_SimulatedProxy;
+
+	// An always-relevant inventory item sends the values of the classes
+	// the engine does not replicate itself only in its first bunch.
+	bool scriptClassesToo = !(UObject::TryCast<UInventory>(actor) && actor->bAlwaysRelevant()) || initial;
+
+	// What goes: each replicated element whose value is not what this
+	// client last got and whose replication statement holds, each
+	// statement evaluated once. A reference to an actor the client has no
+	// channel for yet counts as none until it has one.
+	const uint8_t* recent = Recent() ? Recent() : static_cast<const uint8_t*>(ActorClass->PropertyData.Data);
+	std::map<std::pair<UClass*, uint16_t>, bool> conditions;
+	Array<int> reps;
+	for (NetPackageMap::FieldNetCache* field : cache->RepProperties)
+	{
+		UProperty* prop = static_cast<UProperty*>(field->Field);
+		UClass* owner = UObject::TryCast<UClass>(prop->Outer());
+		if (!scriptClassesToo && !(owner && (owner->ClsFlags & ClassFlags::NativeReplication) != 0))
+			continue;
+		bool objectProp = UObject::TryCast<UObjectProperty>(prop) != nullptr;
+		for (int i = 0; i < prop->ArrayDimension; i++)
+		{
+			const void* value = prop->GetElement(actor->PropertyData.Ptr(prop), i);
+			const void* last = prop->GetElement(recent + prop->DataOffset.DataOffset, i);
+			bool same;
+			if (objectProp && !map.CanSerializeObject(*static_cast<UObject* const*>(value)))
+				same = *static_cast<UObject* const*>(last) == nullptr;
+			else
+				same = prop->CompareElement(last, value);
+			if (same)
+				continue;
+
+			auto key = std::make_pair(owner, prop->ReplicationOffset);
+			auto it = conditions.find(key);
+			if (it == conditions.end())
+				it = conditions.emplace(key, NetReplicationCondition(owner, prop->ReplicationOffset, actor)).first;
+			if (it->second)
+				reps.push_back(field->RepIndex + i);
+		}
+	}
+
+	// Then those whose packet was lost, not going already.
+	for (int i = (int)Dirty.size() - 1; i >= 0; i--)
+	{
+		if (std::find(reps.begin(), reps.end(), Dirty[i]) == reps.end())
+			reps.push_back(Dirty[i]);
+	}
+
+	// Written until the bunch is full. Role and RemoteRole each go as the
+	// other, the roles as the client has them.
+	static UProperty* roleProp = nullptr;
+	static UProperty* remoteRoleProp = nullptr;
+	if (!roleProp)
+	{
+		roleProp = ActorClass->GetProperty("Role");
+		remoteRoleProp = ActorClass->GetProperty("RemoteRole");
+	}
+	bool complete = true;
+	size_t count = 0;
+	for (; count < reps.size(); count++)
+	{
+		auto [field, element] = cache->RepElements[reps[count]];
+		UProperty* prop = static_cast<UProperty*>(field->Field);
+		NetPackageMap::FieldNetCache* sendAs = field;
+		if (prop == roleProp)
+			sendAs = cache->GetFromField(remoteRoleProp);
+		else if (prop == remoteRoleProp)
+			sendAs = cache->GetFromField(roleProp);
+		if (!sendAs)
+			sendAs = field;
+
+		int mark = bunch.Data.GetNumBits();
+		bunch.Data.WriteInt(sendAs->FieldNetIndex, cache->GetMaxIndex());
+		if (prop->ArrayDimension != 1)
+			bunch.Data.WriteByte((uint8_t)element);
+		void* value = prop->GetElement(actor->PropertyData.Ptr(prop), element);
+		bool mapped = NetWriteItem(prop, bunch.Data, map, value);
+		if (bunch.Data.IsError())
+		{
+			bunch.Data.SetNumBits(mark);
+			complete = false;
+			break;
+		}
+
+		// A reference the client could not resolve yet goes again.
+		if (uint8_t* recentValues = Recent())
+		{
+			void* last = prop->GetElement(recentValues + prop->DataOffset.DataOffset, element);
+			if (mapped)
+			{
+				prop->CopyElement(last, value);
+			}
+			else
+			{
+				prop->DestructElement(last);
+				prop->ConstructElement(last);
+			}
+		}
+	}
+	reps.resize(count);
+
+	if (bunch.Data.GetNumBits() > 0)
+	{
+		int packetId = SendBunch(bunch, true);
+		for (int rep : reps)
+		{
+			Dirty.erase(std::remove(Dirty.begin(), Dirty.end(), rep), Dirty.end());
+			if (rep < (int)Sent.size())
+				Sent[rep] = { packetId, bunch.bReliable };
+		}
+		if (actor->bNetTemporary())
+			Connection->SentTemporaries.push_back(actor);
+	}
+
+	if (complete)
+		LastUpdateTime = Connection->Driver->Time;
+	actor->bNetOwner() = false;
+	actor->RemoteRole() = remoteRole;
+}
+
+bool NetActorChannel::WantedFromClient(UClass* cls, uint16_t replicationOffset)
+{
+	std::swap(Actor->Role(), Actor->RemoteRole());
+	bool wanted = NetReplicationCondition(cls, replicationOffset, Actor);
+	std::swap(Actor->Role(), Actor->RemoteRole());
+	return wanted && Actor->bNetOwner();
+}
+
+void NetActorChannel::AddDirty(int repIndex)
+{
+	if (std::find(Dirty.begin(), Dirty.end(), repIndex) == Dirty.end())
+		Dirty.push_back(repIndex);
+}
+
+void NetActorChannel::ReceivedNak(int nakPacketId)
+{
+	NetChannel::ReceivedNak(nakPacketId);
+
+	// Values lost in an unreliable bunch go again.
+	for (int i = (int)Sent.size() - 1; i >= 0; i--)
+	{
+		if (Sent[i].OutPacketId == nakPacketId && !Sent[i].Reliable)
+			AddDirty(i);
+	}
+}
+
+void NetActorChannel::Close()
+{
+	NetChannel::Close();
+	Actor = nullptr;
+}
+
+void NetActorChannel::SetClosingFlag()
+{
+	// A closing channel is no longer the actor's here.
+	if (Actor)
+	{
+		auto it = Connection->ActorChannels.find(Actor);
+		if (it != Connection->ActorChannels.end() && it->second == this)
+			Connection->ActorChannels.erase(it);
+	}
+	NetChannel::SetClosingFlag();
 }
 
 void NetActorChannel::ReceivedBunch(NetInBunch& bunch)
@@ -447,17 +705,10 @@ void NetActorChannel::ReceivedBunch(NetInBunch& bunch)
 		return;
 	}
 
-	// Owned here: its top owner a player pawn a viewport of this machine
-	// plays.
-	Actor->bNetOwner() = false;
-	UActor* top = Actor;
-	while (top->Owner())
-		top = top->Owner();
-	if (UPlayerPawn* topPawn = UObject::TryCast<UPlayerPawn>(top))
-	{
-		if (topPawn->Player() && UObject::TryCast<UViewport>(topPawn->Player()))
-			Actor->bNetOwner() = true;
-	}
+	// Owned here: on a client, its top owner the pawn a viewport of this
+	// machine plays; on a server, the pawn this client plays.
+	Actor->bNetOwner() = NetOwnedHere(Actor, Connection);
+	bool server = Connection->Driver->ServerConnection.get() != Connection;
 
 	auto nextField = [&]() -> NetPackageMap::FieldNetCache* {
 		uint32_t repIndex = reader.ReadInt(cache->GetMaxIndex());
@@ -478,10 +729,18 @@ void NetActorChannel::ReceivedBunch(NetInBunch& bunch)
 			if (prop->ArrayDimension != 1)
 				element = reader.ReadByte();
 
-			// A value older than one already taken is read and dropped.
+			// A value older than one already taken is read and dropped; so
+			// is one a server does not take from this client: the value's
+			// replication statement, with the roles as the client has them,
+			// must hold for an actor the client owns.
 			auto it = Retirement.find({ prop, element });
 			int lastPacketId = it != Retirement.end() ? it->second : -1;
 			bool take = bunch.PacketId >= lastPacketId && element < prop->ArrayDimension;
+			if (take && server && !WantedFromClient(UObject::TryCast<UClass>(prop->Outer()), prop->ReplicationOffset))
+			{
+				LogMessage("Net: received unwanted property value " + prop->Name.ToString() + " in " + Actor->Name.ToString());
+				take = false;
+			}
 			if (take)
 			{
 				Retirement[{ prop, element }] = bunch.PacketId;
@@ -536,6 +795,22 @@ void NetActorChannel::ReceiveFunction(UFunction* declared, NetInBunch& bunch)
 	if (!function)
 		function = declared;
 
+	// A server runs a client's call only as its first declaration's
+	// replication statement allows it, on an actor the client owns; the
+	// parameters are read either way.
+	bool call = true;
+	if (Connection->Driver->ServerConnection.get() != Connection)
+	{
+		UFunction* root = function;
+		while (UFunction* super = UObject::TryCast<UFunction>(root->BaseField))
+			root = super;
+		if (!WantedFromClient(UObject::TryCast<UClass>(root->Outer()), root->ReplicationOffset))
+		{
+			LogMessage("Net: received unwanted function " + root->Name.ToString() + " in " + Actor->Name.ToString());
+			call = false;
+		}
+	}
+
 	// The parameters in the order declared, until the first that is not
 	// one; a bool is its bit, any other a bit for whether it was sent.
 	size_t words = ((size_t)function->StructSize + 7) / 8 + 1;
@@ -561,7 +836,7 @@ void NetActorChannel::ReceiveFunction(UFunction* declared, NetInBunch& bunch)
 			NetReadItem(prop, reader, map, data + prop->DataOffset.DataOffset);
 	}
 
-	if (!reader.IsError() && !Actor->bDeleteMe())
+	if (call && !reader.IsError() && !Actor->bDeleteMe())
 	{
 		Array<ExpressionValue> args;
 		for (UProperty* prop : Frame::CallParms(function))
@@ -586,8 +861,17 @@ void NetActorChannel::CleanUp()
 		Connection->ActorChannels.erase(it);
 
 	// A client lets go of the actor with its channel, unless it was sent
-	// once to keep (bNetTemporary). A map's actor stays either way.
-	if (Connection->Driver->ServerConnection.get() == Connection && !Actor->bNetTemporary())
-		Actor->Destroy();
+	// once to keep (bNetTemporary). A map's actor stays either way. A
+	// server whose one-time send never arrived sends it again.
+	if (Connection->Driver->ServerConnection.get() == Connection)
+	{
+		if (!Actor->bNetTemporary())
+			Actor->Destroy();
+	}
+	else if (!OpenAcked)
+	{
+		auto& sent = Connection->SentTemporaries;
+		sent.erase(std::remove(sent.begin(), sent.end(), Actor), sent.end());
+	}
 	Actor = nullptr;
 }

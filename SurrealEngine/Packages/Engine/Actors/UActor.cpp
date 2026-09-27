@@ -13,6 +13,7 @@
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Packages/Engine/Subsystems/USurrealAudioDevice.h"
 #include "Utils/Logger.h"
+#include "Network/NetDriver.h"
 #include "Engine.h"
 #include "VM/ScriptCall.h"
 #include "VM/Frame.h"
@@ -181,6 +182,10 @@ bool UActor::Destroy()
 		BasedActors.back()->SetBase(nullptr, true);
 	}
 
+	// A server's clients' channels for it close.
+	if (engine->LevelNetDriver)
+		engine->LevelNetDriver->NotifyActorDestroyed(this);
+
 	if (Index == -1)
 		throw std::runtime_error("Actor index was never set!");
 	level->Actors[Index] = nullptr;
@@ -311,10 +316,14 @@ void UActor::Tick(float elapsed)
 		return;
 	}
 
+	// A server's copy of a client's own pawn runs its state code and timer,
+	// nothing more: it moves by the client's moves (ServerMove).
+	bool clientsPawn = netGame && Role() == ROLE_Authority && RemoteRole() == ROLE_AutonomousProxy;
+
 	float thinkElapsed = elapsed;
 	bool think = ThinkThisFrame(elapsed, thinkElapsed);
 
-	if (think && Role() >= ROLE_SimulatedProxy && IsEventEnabled(EventName::Tick))
+	if (think && !clientsPawn && Role() >= ROLE_SimulatedProxy && IsEventEnabled(EventName::Tick))
 	{
 		CallEvent(this, EventName::Tick, { ExpressionValue::FloatValue(thinkElapsed) });
 	}
@@ -339,7 +348,7 @@ void UActor::Tick(float elapsed)
 		}
 	}
 
-	if (!(netGame && Role() == ROLE_AutonomousProxy))
+	if (!(netGame && Role() == ROLE_AutonomousProxy) && !clientsPawn)
 		TickPhysics(elapsed);
 
 	if (TimerRate() > 0.0f) // Role() == ROLE_Authority && RemoteRole() == ROLE_AutonomousProxy

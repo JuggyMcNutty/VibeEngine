@@ -103,8 +103,25 @@ void UActor::PlayAnim(const NameString& sequence, float rate, float tweenTime)
 
 			bAnimLoop() = false;
 			bAnimFinished() = false;
+
+			// The same animation again still changes it, so it goes again.
+			vec4 old = SimAnim();
+			PackSimAnim(AnimLast());
+			if (SimAnim() == old)
+				SimAnim().w += 1.0f;
 		}
 	}
+}
+
+// The animation as a server sends it for a client to play (SimAnim, which
+// the client unpacks; docs/re/network.md, animation): its frame, rate and
+// tween rate scaled to whole numbers, and its end, negative for a loop.
+void UActor::PackSimAnim(float last)
+{
+	SimAnim().x = AnimFrame() * 10000.0f;
+	SimAnim().y = std::min(AnimRate() * 5000.0f, 32767.0f);
+	SimAnim().z = TweenRate() * 1000.0f;
+	SimAnim().w = last * 10000.0f;
 }
 
 void UActor::PlayBlendAnim(const NameString& sequenceName, float rate, float tweenTime, int blendSlot)
@@ -250,6 +267,13 @@ void UActor::LoopAnim(const NameString& sequence, float rate, float tweenTime, f
 					TweenRate() = tweenTime > 0.0f ? 1.0f / (tweenTime * seq->NumFrames) : 0.0f;
 					OldAnimRate() = AnimRate();
 				}
+
+				// The loop goes on at its new rate; unchanged, it goes again.
+				vec4 old = SimAnim();
+				SimAnim().y = AnimRate() * 5000.0f;
+				SimAnim().w = (1.0f - 1.0f / seq->NumFrames) * -10000.0f;
+				if (SimAnim() == old)
+					SimAnim().w += 1.0f;
 			}
 			else
 			{
@@ -280,6 +304,7 @@ void UActor::LoopAnim(const NameString& sequence, float rate, float tweenTime, f
 				}
 				bAnimFinished() = false;
 				bAnimLoop() = true;
+				PackSimAnim(-AnimLast());
 			}
 		}
 	}
@@ -304,6 +329,7 @@ void UActor::TweenAnim(const NameString& sequence, float tweenTime)
 			bAnimNotify() = false;
 			bAnimFinished() = false;
 			bAnimLoop() = false;
+			PackSimAnim(0.0f);
 		}
 	}
 }
@@ -420,6 +446,14 @@ void UActor::TickAnimation(float elapsed)
 					StateFrame->LatentState = LatentRunState::Continue;
 
 				CallEvent(this, EventName::AnimEnd);
+
+				// A client that does not simulate the actor (a weapon
+				// aside) is told where its animation stopped.
+				if (RemoteRole() < ROLE_SimulatedProxy && !IsA("Weapon"))
+				{
+					SimAnim().x = AnimFrame() * 10000.0f;
+					SimAnim().y = std::min(AnimRate() * 5000.0f, 32767.0f);
+				}
 			}
 		}
 		else

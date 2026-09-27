@@ -309,7 +309,8 @@ void NetConnection::Tick()
 
 	UpdateStats();
 
-	float timeout = (State == ConnectionState::Open) ? Driver->ConnectionTimeout : Driver->InitialConnectTimeout;
+	// The long wait lasts until the connection has its player.
+	float timeout = (State != ConnectionState::Pending && Actor) ? Driver->ConnectionTimeout : Driver->InitialConnectTimeout;
 	if (State != ConnectionState::Closed && Driver->Time - LastReceiveTime > timeout)
 	{
 		LogMessage("Net: connection timed out after " + std::to_string(Driver->Time - LastReceiveTime) + " s");

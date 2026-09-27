@@ -6,15 +6,23 @@
 #include "Package/Package.h"
 #include "Package/PackageManager.h"
 #include "Packages/Core/UClass.h"
+#include "Packages/Core/UFunction.h"
 #include "Packages/Core/Properties/UProperty.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/Info/UGameInfo.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
+#include "Packages/Engine/Actors/Inventory/UWeapon.h"
+#include "Packages/Engine/Resources/Level/ULevel.h"
+#include "Collision/TopLevel/CollisionSystem.h"
+#include "Math/coords.h"
 #include "Utils/Logger.h"
 #include "Utils/StrTools.h"
+#include "VM/Frame.h"
+#include "VM/ScriptCall.h"
 #include "Engine.h"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 
 namespace
 {
@@ -31,6 +39,148 @@ namespace
 		connection->SendText(text);
 		connection->FlushNet();
 		connection->State = ConnectionState::Closed;
+	}
+
+	// A value the fork has no accessor for, found by name once; none when
+	// the class has no such property.
+	template<typename T>
+	T* FindValue(UObject* obj, const char* name, UProperty*& prop, bool& looked)
+	{
+		if (!looked)
+		{
+			looked = true;
+			for (UProperty* p : obj->PropertyData.Class->Properties)
+			{
+				if (p->Name == name)
+					prop = p;
+			}
+		}
+		return prop && obj->PropertyData.Size > prop->DataOffset.DataOffset ? static_cast<T*>(obj->PropertyData.Ptr(prop)) : nullptr;
+	}
+
+	// Deus Ex's: the distance within which the viewer has every pawn.
+	float RelevantRadius(UActor* viewer)
+	{
+		static UProperty* prop = nullptr;
+		static bool looked = false;
+		float* value = FindValue<float>(viewer, "RelevantRadius", prop, looked);
+		return value ? *value : 0.0f;
+	}
+
+	// The first of a player's extra views (a remote camera, say).
+	UActor* AdditionalView(UPlayerPawn* player)
+	{
+		static UProperty* prop = nullptr;
+		static bool looked = false;
+		UActor** value = FindValue<UActor*>(player, "AdditionalViews", prop, looked);
+		return value ? value[0] : nullptr;
+	}
+
+	bool IsOwnedBy(UActor* actor, UActor* owner)
+	{
+		for (UActor* a = actor; a; a = a->Owner())
+		{
+			if (a == owner)
+				return true;
+		}
+		return false;
+	}
+
+	// Whether an actor matters to a client viewing from a place
+	// (AActor::IsNetRelevantFor, docs/re/network.md, relevancy).
+	bool IsNetRelevantFor(UActor* actor, UPlayerPawn* realViewer, UActor* viewer, const vec3& srcLocation)
+	{
+		if (actor->bAlwaysRelevant())
+			return true;
+		for (;;)
+		{
+			if (IsOwnedBy(actor, viewer) || IsOwnedBy(actor, realViewer))
+				return true;
+			vec3 toViewer = actor->Location() - viewer->Location();
+			float distSq = dot(toViewer, toViewer);
+			if (actor->AmbientSound())
+			{
+				float reach = 25.0f * (actor->SoundRadius() + 1);
+				if (distSq < reach * reach * 0.3f)
+					return true;
+			}
+			float radius = RelevantRadius(viewer);
+			if (radius > 0.0f && actor->bIsPawn() && distSq < radius * radius)
+				return true;
+
+			// A pawn's weapon matters as the pawn does.
+			UPawn* owner = UObject::TryCast<UPawn>(actor->Owner());
+			if (!owner || !owner->bIsPawn() || static_cast<UActor*>(owner->Weapon()) != actor)
+				break;
+			actor = owner;
+			if (actor->bAlwaysRelevant())
+				return true;
+		}
+
+		if ((actor->bHidden() || actor->bOnlyOwnerSee()) && !actor->bBlockPlayers() && !actor->AmbientSound())
+			return false;
+
+		// Otherwise in sight through the world: a pawn at its feet or eyes.
+		if (actor->FastTrace(srcLocation, actor->Location()))
+			return true;
+		UPawn* pawn = UObject::TryCast<UPawn>(actor);
+		if (!pawn || !actor->bIsPawn())
+			return false;
+		return actor->FastTrace(srcLocation, actor->Location() + vec3(0.0f, 0.0f, pawn->EyeHeight()));
+	}
+
+	template<typename T>
+	const T& SentValue(const uint8_t* sent, PropertyDataOffset offset)
+	{
+		return *reinterpret_cast<const T*>(sent + offset.DataOffset);
+	}
+
+	bool SentBool(const uint8_t* sent, PropertyDataOffset offset)
+	{
+		return (SentValue<uint32_t>(sent, offset) & offset.BitfieldMask) != 0;
+	}
+
+	// How much an actor is worth sending: the time since it last went, by
+	// its NetPriority; a walking player the more for how far it has moved
+	// from where the client last had it, both predicted ahead
+	// (GetNetPriority).
+	float GetNetPriority(UActor* actor, const uint8_t* sent, float time, float lag)
+	{
+		UPawn* pawn = UObject::TryCast<UPawn>(actor);
+		if (pawn && pawn->bIsPlayer() && sent && !SentBool(sent, PropOffsets_Actor.bNetOwner) &&
+			pawn->Weapon() == SentValue<UWeapon*>(sent, PropOffsets_Pawn.Weapon) &&
+			(bool)pawn->bHidden() == SentBool(sent, PropOffsets_Actor.bHidden) && pawn->Physics() == PHYS_Walking)
+		{
+			vec3 now = pawn->Location() + pawn->Velocity() * (lag * 0.5f);
+			vec3 then = SentValue<vec3>(sent, PropOffsets_Actor.Location) + SentValue<vec3>(sent, PropOffsets_Actor.Velocity) * (time + lag * 0.5f);
+			time = 2.0f * length(now - then) / pawn->GroundSpeed() + time * 0.5f;
+		}
+		return time * actor->NetPriority();
+	}
+
+	struct ActorPriority
+	{
+		int Priority = 0;
+		UActor* Actor = nullptr;
+		NetActorChannel* Channel = nullptr;
+	};
+
+	// An actor's place in this tick's order: its worth, the more the nearer
+	// it lies to where the client looks; an optional one far down.
+	ActorPriority Prioritize(UActor* actor, const vec3& viewLocation, const vec3& viewDir, NetConnection* connection)
+	{
+		ActorPriority result;
+		result.Actor = actor;
+		result.Channel = connection->FindActorChannel(actor);
+		float time = result.Channel ? (float)(connection->Driver->Time - result.Channel->LastUpdateTime) : connection->Driver->SpawnPrioritySeconds;
+		vec3 dir = actor->Location() - viewLocation;
+		float lengthSq = dot(dir, dir);
+		dir = lengthSq >= 1e-8f ? dir * (1.0f / std::sqrt(lengthSq)) : vec3(0.0f);
+		float worth = GetNetPriority(actor, result.Channel ? result.Channel->Recent() : nullptr, time, connection->BestLag);
+		result.Priority = (int)std::lrint((dot(dir, viewDir) + 3.0f) * worth * 65536.0f);
+		if (actor->bNetOptional())
+			result.Priority -= 100000;
+		return result;
 	}
 }
 
@@ -213,6 +363,146 @@ void NetServerLevel::Join(NetConnection* connection)
 	}
 	connection->Actor = pawn;
 	LogMessage("Net: join succeeded: " + RequestURLs[connection].GetOption("Name"));
+}
+
+void NetServerLevel::TickNetServer(float deltaSeconds)
+{
+	auto& connections = engine->LevelNetDriver->ClientConnections;
+	for (size_t i = connections.size(); i-- > 0;)
+		ServerTickClient(connections[i].get());
+}
+
+int NetServerLevel::ServerTickClient(NetConnection* connection)
+{
+	if (!connection->Actor || !connection->IsNetReady(false) || connection->State != ConnectionState::Open)
+		return 0;
+	NetDriver* driver = connection->Driver;
+	NetPackageMap& map = connection->PackageMap;
+
+	NetTag++;
+	connection->TickCount++;
+	for (UActor* sent : connection->SentTemporaries)
+		sent->NetTag() = NetTag;
+
+	// Where the client sees from: its player's view (PlayerCalcView)...
+	UPlayerPawn* realViewer = connection->Actor;
+	UActor* viewer = realViewer;
+	vec3 viewLocation = realViewer->Location();
+	Rotator viewRotation = realViewer->ViewRotation();
+	if (UFunction* calcView = FindEventFunction(realViewer, "PlayerCalcView"))
+	{
+		// The out parameters in a frame of the function's own layout.
+		Array<UProperty*> parms = Frame::CallParms(calcView);
+		if (parms.size() >= 3)
+		{
+			std::unique_ptr<uint64_t[]> frame(new uint64_t[((size_t)calcView->StructSize + 7) / 8 + 1]());
+			uint8_t* data = reinterpret_cast<uint8_t*>(frame.get());
+			for (UProperty* prop : parms)
+				prop->ConstructArray(data + prop->DataOffset.DataOffset);
+			*reinterpret_cast<UObject**>(data + parms[0]->DataOffset.DataOffset) = viewer;
+			*reinterpret_cast<vec3*>(data + parms[1]->DataOffset.DataOffset) = viewLocation;
+			*reinterpret_cast<Rotator*>(data + parms[2]->DataOffset.DataOffset) = viewRotation;
+			CallEvent(realViewer, EventName::PlayerCalcView, {
+				ExpressionValue::Variable(data, parms[0]),
+				ExpressionValue::Variable(data, parms[1]),
+				ExpressionValue::Variable(data, parms[2])
+				});
+			viewer = UObject::TryCast<UActor>(*reinterpret_cast<UObject**>(data + parms[0]->DataOffset.DataOffset));
+			viewLocation = *reinterpret_cast<vec3*>(data + parms[1]->DataOffset.DataOffset);
+			viewRotation = *reinterpret_cast<Rotator*>(data + parms[2]->DataOffset.DataOffset);
+			for (UProperty* prop : parms)
+				prop->DestructArray(data + prop->DataOffset.DataOffset);
+		}
+	}
+	if (!viewer)
+		viewer = realViewer;
+
+	// ...every other tick from where it will be: 0.9 s ahead, or 0.4 s
+	// every fourth tick, along the viewer's and its base's velocity, short
+	// of the world.
+	if (connection->TickCount & 1)
+	{
+		float ahead = (connection->TickCount & 2) ? 0.4f : 0.9f;
+		vec3 delta = viewer->Velocity() * ahead;
+		if (UActor* base = viewer->ActorBase())
+			delta += base->Velocity() * ahead;
+		vec3 end = viewLocation + delta;
+		TraceFlags flags;
+		flags.world = true;
+		CollisionHit hit = viewer->XLevel()->Collision.TraceFirstHit(viewLocation, end, nullptr, vec3(0.0f), flags);
+		viewLocation = hit.Fraction < 1.0f ? viewLocation + (end - viewLocation) * hit.Fraction : end;
+	}
+
+	// The actors due: each at its NetUpdateFrequency, on a clock 0.023 s
+	// further on for each actor, so they do not all fall due together.
+	Array<ActorPriority> due;
+	vec3 viewDir = Coords::Rotation(realViewer->ViewRotation()).XAxis;
+	double lastRep = connection->LastRepTime;
+	double now = driver->Time;
+	const Array<UActor*>& actors = viewer->XLevel()->Actors;
+	for (size_t i = 0; i < actors.size(); i++)
+	{
+		UActor* actor = actors[i];
+		if (!actor)
+			continue;
+		if (((i >= 2 && !actor->bStatic()) || actor->bAlwaysRelevant()) && actor->NetTag() != NetTag && actor->RemoteRole() != ROLE_None && !actor->bDeleteMe())
+		{
+			float frequency = actor->NetUpdateFrequency();
+			if (std::lrint((float)(frequency * lastRep)) != std::lrint((float)(frequency * now)))
+			{
+				actor->NetTag() = NetTag;
+				due.push_back(Prioritize(actor, viewer->Location(), viewDir, connection));
+			}
+		}
+		lastRep += 0.023;
+		now += 0.023;
+	}
+	connection->LastRepTime = driver->Time;
+
+	std::sort(due.begin(), due.end(), [](const ActorPriority& a, const ActorPriority& b) { return a.Priority > b.Priority; });
+
+	// Most worth first, while the connection has room: a relevant actor is
+	// replicated, on a channel opened for it if need be; one that has not
+	// been relevant for RelevantTimeout loses its channel.
+	int updated = 0;
+	for (size_t j = 0; j < due.size() && connection->IsNetReady(false); j++)
+	{
+		UActor* actor = due[j].Actor;
+		NetActorChannel* channel = due[j].Channel;
+
+		bool relevant = IsNetRelevantFor(actor, realViewer, viewer, viewLocation);
+		bool otherView = false;
+		if (!relevant)
+		{
+			if (UActor* other = AdditionalView(realViewer))
+				otherView = IsNetRelevantFor(actor, realViewer, other, other->Location());
+		}
+
+		if (relevant || otherView || (channel && driver->Time - channel->RelevantTime < driver->RelevantTimeout))
+		{
+			if (!channel)
+			{
+				if (map.ObjectToIndex(actor->Class) == -1)
+					continue;
+				channel = static_cast<NetActorChannel*>(connection->CreateChannel(ChannelType::Actor, true));
+				if (!channel)
+					continue;
+				channel->SetChannelActor(actor);
+			}
+			if (relevant)
+				channel->RelevantTime = driver->Time;
+			if (channel->IsNetReady(false))
+			{
+				channel->ReplicateActor();
+				updated++;
+			}
+		}
+		else if (channel)
+		{
+			channel->Close();
+		}
+	}
+	return updated;
 }
 
 void NetServerLevel::NotifyConnectionClosed(NetConnection* connection)

@@ -135,7 +135,7 @@ void NetReadItem(UProperty* prop, NetBitReader& reader, NetPackageMap& map, void
 	}
 }
 
-void NetWriteItem(UProperty* prop, NetBitWriter& writer, NetPackageMap& map, const void* data)
+bool NetWriteItem(UProperty* prop, NetBitWriter& writer, NetPackageMap& map, const void* data)
 {
 	if (auto boolProp = UObject::TryCast<UBoolProperty>(prop))
 	{
@@ -159,7 +159,7 @@ void NetWriteItem(UProperty* prop, NetBitWriter& writer, NetPackageMap& map, con
 	}
 	else if (UObject::TryCast<UObjectProperty>(prop))
 	{
-		map.WriteObject(writer, *static_cast<UObject* const*>(data));
+		return map.WriteObject(writer, *static_cast<UObject* const*>(data));
 	}
 	else if (UObject::TryCast<UNameProperty>(prop))
 	{
@@ -208,20 +208,23 @@ void NetWriteItem(UProperty* prop, NetBitWriter& writer, NetPackageMap& map, con
 		}
 		else
 		{
+			bool mapped = true;
 			for (UField* field = s->Children; field; field = field->Next)
 			{
 				UProperty* member = UObject::TryCast<UProperty>(field);
 				if (!member || map.ObjectToIndex(member) == -1)
 					continue;
 				for (int i = 0; i < member->ArrayDimension; i++)
-					NetWriteItem(member, writer, map, member->GetElement(static_cast<const uint8_t*>(data) + member->DataOffset.DataOffset, i));
+					mapped = NetWriteItem(member, writer, map, member->GetElement(static_cast<const uint8_t*>(data) + member->DataOffset.DataOffset, i)) && mapped;
 			}
+			return mapped;
 		}
 	}
 	else
 	{
 		LogMessage("Net: cannot send a " + prop->Class->Name.ToString() + " (" + prop->Name.ToString() + ")");
 	}
+	return true;
 }
 
 bool NetIsZero(UProperty* prop, const void* data)

@@ -2,6 +2,7 @@
 #include "Precomp.h"
 #include "UPlayerPawn.h"
 #include "UCamera.h"
+#include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Engine.h"
 #include "Package/PackageManager.h"
 #include "Package/IniProperty.h"
@@ -30,7 +31,10 @@ void UPlayerPawn::Tick(float elapsed)
 {
 	UPawn::Tick(elapsed);
 
-	if (Role() >= ROLE_SimulatedProxy)
+	// A server's copy of a client's pawn reads no input here; the client
+	// does, and sends its moves.
+	bool clientsPawn = Level()->NetMode() != NM_Standalone && Role() == ROLE_Authority && RemoteRole() == ROLE_AutonomousProxy;
+	if (Role() >= ROLE_SimulatedProxy && !clientsPawn)
 	{
 		if (Player() && !UObject::TryCast<UCamera>(this))
 		{

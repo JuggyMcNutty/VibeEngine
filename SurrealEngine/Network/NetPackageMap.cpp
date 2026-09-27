@@ -112,6 +112,14 @@ bool NetPackageMap::WriteObject(NetBitWriter& writer, UObject* obj)
 	return obj == nullptr;
 }
 
+bool NetPackageMap::CanSerializeObject(UObject* obj)
+{
+	UActor* actor = UObject::TryCast<UActor>(obj);
+	if (!actor || actor->bStatic() || actor->bNoDelete())
+		return true;
+	return Connection && Connection->FindActorChannel(actor);
+}
+
 NameString NetPackageMap::ReadName(NetBitReader& reader)
 {
 	uint32_t index = reader.ReadInt(MaxNameIndex + 1);
@@ -174,7 +182,11 @@ NetPackageMap::ClassNetCache* NetPackageMap::GetClassNetCache(UClass* cls)
 	{
 		result->Super = GetClassNetCache(super);
 		if (result->Super)
+		{
 			result->FieldsBase = result->Super->GetMaxIndex();
+			result->RepProperties = result->Super->RepProperties;
+			result->RepElements = result->Super->RepElements;
+		}
 	}
 
 	// The class's own replicated fields -- its properties marked for the
@@ -204,6 +216,17 @@ NetPackageMap::ClassNetCache* NetPackageMap::GetClassNetCache(UClass* cls)
 			f.Field = field;
 			f.FieldNetIndex = result->GetMaxIndex();
 			result->Fields.push_back(f);
+		}
+	}
+
+	for (FieldNetCache& f : result->Fields)
+	{
+		if (UProperty* prop = UObject::TryCast<UProperty>(f.Field))
+		{
+			f.RepIndex = (int)result->RepElements.size();
+			for (int i = 0; i < prop->ArrayDimension; i++)
+				result->RepElements.push_back({ &f, i });
+			result->RepProperties.push_back(&f);
 		}
 	}
 	return result;

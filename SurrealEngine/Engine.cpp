@@ -244,6 +244,9 @@ void Engine::Run()
 			EntryLevel->Tick(entryLevelElapsed, m_GamePaused);
 		Level->Tick(levelElapsed, m_GamePaused);
 
+		// A server replicates to its clients before the packets go.
+		if (LevelNetDriver && !LevelNetDriver->ServerConnection && ServerLevel)
+			ServerLevel->TickNetServer(levelElapsed);
 		if (LevelNetDriver)
 			LevelNetDriver->TickFlush();
 
@@ -1386,6 +1389,11 @@ void Engine::LoginPlayer()
 	viewport->Actor() = pawn;
 	viewport->Actor()->Player() = viewport;
 	CallEvent(viewport->Actor(), EventName::Possess);
+
+	// The local player is the authority, simulated on any client, as the
+	// original's SpawnPlayActor for a viewport has it.
+	pawn->Role() = ROLE_Authority;
+	pawn->RemoteRole() = ROLE_SimulatedProxy;
 
 	// Transfer travel actors to the new map
 

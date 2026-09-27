@@ -41,6 +41,9 @@ public:
 
 	void LowLevelSend(NetConnection* connection, const uint8_t* data, int count);
 
+	// A server's actor is gone: each client's channel for it closes.
+	void NotifyActorDestroyed(UActor* actor);
+
 	NetNotify* Notify = nullptr;
 	std::unique_ptr<NetConnection> ServerConnection;
 	Array<std::unique_ptr<NetConnection>> ClientConnections;
@@ -51,6 +54,8 @@ public:
 	float InitialConnectTimeout = 500.0f;
 	float AckTimeout = 1.0f;
 	float KeepAliveTime = 1.0f;
+	float RelevantTimeout = 5.0f;
+	float SpawnPrioritySeconds = 1.0f;
 	int MaxClientRate = 20000;
 	int DynamicUpdateRate = 40;
 	int StaticUpdateRate = 12;

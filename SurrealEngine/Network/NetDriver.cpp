@@ -3,8 +3,10 @@
 #include "NetDriver.h"
 #include "NetChannel.h"
 #include "Package/PackageManager.h"
+#include "Packages/Engine/Actors/UActor.h"
 #include "Utils/Logger.h"
 #include "Engine.h"
+#include <algorithm>
 
 #ifdef WIN32
 #include <WinSock2.h>
@@ -68,6 +70,8 @@ void NetDriver::LoadSettings()
 	InitialConnectTimeout = IniFloat("InitialConnectTimeout", InitialConnectTimeout);
 	AckTimeout = IniFloat("AckTimeout", AckTimeout);
 	KeepAliveTime = IniFloat("KeepAliveTime", KeepAliveTime);
+	RelevantTimeout = IniFloat("RelevantTimeout", RelevantTimeout);
+	SpawnPrioritySeconds = IniFloat("SpawnPrioritySeconds", SpawnPrioritySeconds);
 	MaxClientRate = IniInt("IpDrv.TcpNetDriver", "MaxClientRate", MaxClientRate);
 	DynamicUpdateRate = IniInt("IpDrv.TcpNetDriver", "DynamicUpdateRate", DynamicUpdateRate);
 	StaticUpdateRate = IniInt("IpDrv.TcpNetDriver", "StaticUpdateRate", StaticUpdateRate);
@@ -175,11 +179,13 @@ void NetDriver::TickDispatch(float deltaTime)
 				connection = ClientConnections[i].get();
 		}
 
-		// A new client, when the level takes it.
+		// A new client, when the level takes it; its connection is open
+		// from the first packet.
 		if (!connection && !ServerConnection && Notify && Notify->NotifyAcceptingConnection())
 		{
 			ClientConnections.push_back(std::make_unique<NetConnection>(this, addr, port, IniInt("Engine.Player", "ConfiguredInternetSpeed", 2600)));
 			connection = ClientConnections.back().get();
+			connection->State = ConnectionState::Open;
 			LogMessage("Net: open " + std::to_string(addr >> 24) + "." + std::to_string((addr >> 16) & 255) + "." + std::to_string((addr >> 8) & 255) + "." + std::to_string(addr & 255) + ":" + std::to_string(port));
 		}
 
@@ -194,6 +200,21 @@ void NetDriver::TickFlush()
 		ServerConnection->Tick();
 	for (auto& connection : ClientConnections)
 		connection->Tick();
+}
+
+void NetDriver::NotifyActorDestroyed(UActor* actor)
+{
+	for (size_t i = ClientConnections.size(); i-- > 0;)
+	{
+		NetConnection* connection = ClientConnections[i].get();
+		if (actor->bNetTemporary())
+		{
+			auto& sent = connection->SentTemporaries;
+			sent.erase(std::remove(sent.begin(), sent.end(), actor), sent.end());
+		}
+		if (NetActorChannel* channel = connection->FindActorChannel(actor))
+			channel->Close();
+	}
 }
 
 void NetDriver::LowLevelSend(NetConnection* connection, const uint8_t* data, int count)

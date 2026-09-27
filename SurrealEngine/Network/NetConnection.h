@@ -120,6 +120,11 @@ public:
 	double LastReceiveTime = 0.0;
 	double LastSendTime = 0.0;
 	double LastTickTime = 0.0;
+	// A server's: when this client was last replicated to, its count of
+	// those ticks, and the actors sent to it once to keep (bNetTemporary).
+	double LastRepTime = 0.0;
+	int TickCount = 0;
+	Array<UActor*> SentTemporaries;
 	int QueuedBytes = 0;
 
 	int InPacketId = -1;

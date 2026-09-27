@@ -23,6 +23,10 @@ public:
 	void NotifyReceivedText(NetConnection* connection, const std::string& text) override;
 	void NotifyConnectionClosed(NetConnection* connection) override;
 
+	// Each tick, before the packets go: what each client is sent of the
+	// level (ULevel::TickNetServer).
+	void TickNetServer(float deltaSeconds);
+
 	// The packages the clients are told of, in the order both sides number
 	// them: the map's, then what it imports, depth first, less what is only
 	// the server's.
@@ -32,9 +36,12 @@ private:
 	void AddPackage(Package* package);
 	void Welcome(NetConnection* connection);
 	void Join(NetConnection* connection);
+	int ServerTickClient(NetConnection* connection);
 
 	Package* Level = nullptr;
 	std::map<NetConnection*, UnrealURL> RequestURLs;
+	// Marks the actors one client's tick has looked at.
+	int NetTag = 0;
 };
 
 // A client's player on a server is its connection, a Player object for the

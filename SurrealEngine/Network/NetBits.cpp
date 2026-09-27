@@ -82,7 +82,7 @@ void NetBitWriter::WriteString(const std::string& text)
 
 void NetBitWriter::SetNumBits(int numBits)
 {
-	if (numBits >= NumBits)
+	if (numBits > NumBits)
 		return;
 	NumBits = numBits;
 	Buffer.resize((NumBits + 7) >> 3);

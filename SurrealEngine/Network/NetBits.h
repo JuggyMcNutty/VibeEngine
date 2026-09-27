@@ -31,7 +31,8 @@ public:
 	bool IsError() const { return Error; }
 	int GetMaxBits() const { return MaxBits; }
 
-	// Back to a shorter length, the bits after it cleared.
+	// Back to an earlier length, the bits after it cleared and an overflow
+	// since forgotten (Core's FBitWriterMark::Pop).
 	void SetNumBits(int numBits);
 
 private:

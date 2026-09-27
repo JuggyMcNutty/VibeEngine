@@ -10,22 +10,40 @@
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
+#include "Packages/Engine/UViewport.h"
 #include "Utils/Logger.h"
 #include "VM/Bytecode.h"
 #include "VM/ExpressionEvaluator.h"
 #include "VM/Frame.h"
 #include "Engine.h"
 
-bool NetReplicationCondition(UFunction* rootFunction, UActor* actor)
+bool NetReplicationCondition(UClass* cls, uint16_t replicationOffset, UActor* actor)
 {
-	UClass* cls = UObject::TryCast<UClass>(rootFunction->Outer());
 	if (!cls || !cls->Code)
 		return false;
-	int index = cls->Code->FindStatementIndex(rootFunction->ReplicationOffset);
+	int index = cls->Code->FindStatementIndex(replicationOffset);
 	if (index < 0)
 		return false;
 	ExpressionEvalResult result = ExpressionEvaluator::Eval(cls->Code->Statements[index], actor, actor, nullptr);
 	return result.Value.GetType() != ExpressionValueType::Nothing && result.Value.ToBool();
+}
+
+bool NetReplicationCondition(UFunction* rootFunction, UActor* actor)
+{
+	return NetReplicationCondition(UObject::TryCast<UClass>(rootFunction->Outer()), rootFunction->ReplicationOffset, actor);
+}
+
+bool NetOwnedHere(UActor* actor, NetConnection* connection)
+{
+	UActor* top = actor;
+	while (top->Owner())
+		top = top->Owner();
+	UPlayerPawn* pawn = UObject::TryCast<UPlayerPawn>(top);
+	if (!pawn || !pawn->Player())
+		return false;
+	if (connection->Driver->ServerConnection.get() == connection)
+		return UObject::TryCast<UViewport>(pawn->Player()) != nullptr;
+	return connection->PlayerObject && static_cast<UObject*>(pawn->Player()) == connection->PlayerObject;
 }
 
 bool NetProcessRemoteFunction(UFunction* function, UObject* instance, CallArguments& args)
