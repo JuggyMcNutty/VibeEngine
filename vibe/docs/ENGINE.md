@@ -15,11 +15,11 @@ the original, [`NATIVES.md`](NATIVES.md); how to work on it,
 
 **Pinned in the workspace.** Port Ex Machina's `ENGINE-PIN.txt` names this
 repository, its branch and the one commit its ports build. Its
-`scripts/engine.sh fetch` clones the fork into the workspace's
-`engine/SurrealEngine` and checks that commit out, on any machine; `check`
-proves the clone is at it. After a fork commit is pushed, `pin` moves the
-file, and the move is committed there. Builds go to the workspace's
-`build/<port>/engine`, never into the clone.
+`scripts/engine.sh fetch` clones the fork beside the workspace, as
+`VibeEngine/` in the parent folder of its repositories, and checks that commit
+out, on any machine; `check` proves the clone is at it. After a fork commit is
+pushed, `pin` moves the file, and the move is committed there. Builds go to
+`build/<port>/engine` in that parent folder, never into the clone.
 
 **Not upstream's.** The fork sends nothing upstream (owner, 2026-09-26), and
 does not follow upstream: its new commits reach the fork only when someone
@@ -45,7 +45,7 @@ scripts/engine.sh build <port>              # build/<port>/engine, from the port
 ```sh
 vibe/tools/perf/perf.sh on|off|save         # the profiling hooks (below)
 vibe/tools/upgrade.sh [<ref>]               # merge upstream in (below); status, --continue, --abort
-vibe/tools/host-tools.sh                    # perf and the validation layer, into the workspace's deps/
+vibe/tools/host-tools.sh                    # perf and the validation layer, into the repositories' deps/
 vibe/tools/natives_audit.py                 # the original's natives against the fork's (NATIVES.md)
 vibe/tools/dxcap.sh                         # scripted runs of both engines (DEVELOPMENT.md)
 ```
@@ -159,10 +159,11 @@ so can a quick CPU profile -- but the desktop's proportions are not the
 handheld's (its Cortex-A53 pays far more for a cache miss), so what to work on
 next is decided by the handheld's own samples. `vibe/tools/host-tools.sh`
 unpacks pinned copies of Linux `perf` and the Khronos validation layer into the
-workspace's `deps/` without installing anything. From the workspace's root:
+`deps/` beside the repositories without installing anything. From their
+parent folder:
 
 ```sh
-engine/SurrealEngine/vibe/tools/host-tools.sh
+VibeEngine/vibe/tools/host-tools.sh
 cd gamefiles    # the engine is started from the game's directory
 # CPU profile of Liberty Island, recording from 25 s in (after the load):
 LD_LIBRARY_PATH=../deps/perf/usr/lib ../deps/perf/usr/bin/perf record -F 2000 --delay=25000 -o /tmp/se.data -- \

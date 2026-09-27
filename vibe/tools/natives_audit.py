@@ -26,8 +26,8 @@ cannot make -- whether an implemented native does what the original does --
 is vibe/docs/NATIVES.md's.
 
 It reads the game's packages with dx-reverse-info's tools/ida/ue1_types.py,
-from the Port Ex Machina workspace this clone sits in (engine/SurrealEngine,
-beside re/ and gamefiles/): $DX_ROOT, or two directories above the clone.
+from beside this clone in the parent folder of Port Ex Machina's repositories
+(dx-reverse-info/ and gamefiles/): $DX_ROOT, or the folder the clone is in.
 """
 import argparse
 import glob
@@ -37,10 +37,10 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
-WORKSPACE = os.environ.get("DX_ROOT") or os.path.normpath(os.path.join(REPO, "..", ".."))
+DX_ROOT = os.environ.get("DX_ROOT") or os.path.normpath(os.path.join(REPO, ".."))
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, os.path.join(WORKSPACE, "re", "tools", "ida"))
+sys.path.insert(0, os.path.join(DX_ROOT, "dx-reverse-info", "tools", "ida"))
 import ue1_types as u  # noqa: E402
 
 DEUS_EX_PACKAGES = ["Core", "Engine", "Extension", "ConSys", "DeusExText", "DeusEx", "IpDrv", "Fire"]
@@ -363,7 +363,7 @@ def main(argv):
     import signal
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)   # quiet under | head
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--game", default=os.path.join(WORKSPACE, "gamefiles"))
+    ap.add_argument("--game", default=os.path.join(DX_ROOT, "gamefiles"))
     ap.add_argument("--engine", default=os.path.join(REPO, "SurrealEngine"))
     ap.add_argument("--tsv", metavar="FILE", help="every native, as tab-separated values")
     ap.add_argument("--runs", nargs="*", default=[], metavar="LOG", help="engine logs: which stubs fired")

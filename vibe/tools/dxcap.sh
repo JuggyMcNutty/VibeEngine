@@ -14,9 +14,9 @@
 #                                                  game wants, driven by a timeline (the fork's --timeline):
 #                                                  DXCAP_TIMELINE=<file>, else JoinConsole's walk
 #
-# The workspace is Port Ex Machina's, where this clone is engine/SurrealEngine
-# ($DX_ROOT, or two directories above the clone): the game, the SDK and the
-# builds are there. A run's shots and log land in
+# The workspace is Port Ex Machina's: this clone sits in its repositories'
+# parent folder ($DX_ROOT, or the one the clone is in), with the game, the SDK
+# and the builds beside it. A run's shots and log land in
 # build/dxcap/runs/<engine>-<console>-<time>/.
 # The original runs in this container, never on the host, under the Proton
 # build's own wine; DXCAP_PREFIX (default ~/Games/umu/umu-default) and
@@ -35,7 +35,7 @@
 # so that a client, whose paths lack <dir>, downloads them.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../../.." && pwd)}"
+DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../.." && pwd)}"
 say() { printf '%s\n' "$*" >&2; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 

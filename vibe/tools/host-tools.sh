@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# Tools for engine work on an x86_64 Linux host, unpacked into the Port Ex
-# Machina workspace's deps/ -- nothing is installed on the machine. Pinned Arch
-# Linux packages, like the sysroot's headers; vibe/docs/ENGINE.md says how they
-# are used. The workspace is $DX_ROOT, or two directories above this clone.
+# Tools for engine work on an x86_64 Linux host, unpacked into the deps/ that
+# Port Ex Machina's repositories share -- nothing is installed on the machine.
+# Pinned Arch Linux packages, like the sysroot's headers; vibe/docs/ENGINE.md
+# says how they are used. The repositories' parent folder is $DX_ROOT, or the
+# one this clone is in; the workspace is its port-ex-machina/.
 #
 #   deps/perf           Linux perf and the four libraries it needs
 #   deps/vulkan-layers  the Khronos validation layer, with a manifest in
 #                       layers/ that points at it by absolute path
 set -euo pipefail
-DX_ROOT="${DX_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}"
-[ -f "$DX_ROOT/scripts/lib/common.sh" ] ||
-    { echo "error: no Port Ex Machina workspace at $DX_ROOT (set DX_ROOT)" >&2; exit 1; }
-. "$DX_ROOT/scripts/lib/common.sh"
+DX_ROOT="${DX_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+[ -f "$DX_ROOT/port-ex-machina/scripts/lib/common.sh" ] ||
+    { echo "error: no Port Ex Machina workspace at $DX_ROOT/port-ex-machina (set DX_ROOT)" >&2; exit 1; }
+. "$DX_ROOT/port-ex-machina/scripts/lib/common.sh"
 
 perf="$DX_DEPS/perf"
 say "perf -> $perf"

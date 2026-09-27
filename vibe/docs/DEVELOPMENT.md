@@ -1,12 +1,12 @@
 # Working on the engine
 
-How VibeEngine is changed, run and checked. It is worked on inside the
-[Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina) workspace,
-where this clone is `engine/SurrealEngine`, beside the game install
-(`gamefiles/`), the SDK (`reference/`) and the builds (`build/`). A `vibe/`
-command runs from this clone's root, anything else from the workspace's. The
-workspace itself -- its cold start, this machine, commits and the docs rules
--- is its
+How VibeEngine is changed, run and checked. It is worked on beside the
+[Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina) workspace:
+this clone is `VibeEngine/` in the parent folder of its repositories
+(`<parent>` below), beside the game install (`gamefiles/`), the SDK
+(`reference/`) and the builds (`build/`). A `vibe/` command runs from this
+clone's root, anything else from the parent folder. The workspace itself --
+its cold start, this machine, commits and the docs rules -- is its
 [`DEVELOPMENT.md`](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md).
 How the fork is kept, run and profiled, and what it changes, is
 [`ENGINE.md`](ENGINE.md).
@@ -163,16 +163,16 @@ Return` (with no window manager there, `windowactivate` fails).
 
 **A crash** in a fork run leaves a core, which systemd keeps:
 `coredumpctl dump <pid> --output=<scratchpad>/core` and `gdb -batch -ex bt
-<workspace>/build/linux-x86_64/engine/SurrealEngine <scratchpad>/core` name
+<parent>/build/linux-x86_64/engine/SurrealEngine <scratchpad>/core` name
 the functions on the stack, the `Release` build keeping its symbols' names
 but no lines. For lines, a copy
-built with symbols in the scratchpad (`cmake -S engine/SurrealEngine -B
-<scratchpad>/dbg -C launcher/linux-x86_64/ports/linux-x86_64/engine.cmake
+built with symbols in the scratchpad (`cmake -S VibeEngine -B
+<scratchpad>/dbg -C deusex-launcher/linux-x86_64/ports/linux-x86_64/engine.cmake
 -DCMAKE_BUILD_TYPE=RelWithDebInfo`, then `cmake --build <scratchpad>/dbg
 --target SurrealEngine`; some two and a half minutes) runs under `gdb -batch
--ex run -ex bt --args <scratchpad>/dbg/SurrealEngine --no-launcher <workspace>/gamefiles
---ini=<workspace>/build/dxcap/System/Fork.ini
---userini=<workspace>/build/dxcap/System/ForkUser.ini --url=<map>`, started in
+-ex run -ex bt --args <scratchpad>/dbg/SurrealEngine --no-launcher <parent>/gamefiles
+--ini=<parent>/build/dxcap/System/Fork.ini
+--userini=<parent>/build/dxcap/System/ForkUser.ini --url=<map>`, started in
 `gamefiles`, with the ini the harness wrote for its last fork run (so that
 run's console). The scratchpad is cleared when a session restarts, and the
 copy with it.
