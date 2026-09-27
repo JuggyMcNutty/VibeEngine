@@ -3,11 +3,13 @@
 // it opens 127.0.0.1:7790 (TravelServeConsole's server) and logs each second
 // the map it is in, its net mode and where it stands; once it is a client in
 // a map other than the first it joined, it logs that, shoots 8 s later and
-// exits -- or at 150 s, however far it got.
+// exits -- or at 150 s, however far it got. Out of the game 2 s or more once
+// in it (a travel's Entry level lasts a moment), it takes the server as
+// lost: a shot 4 s in, marked for the original's grabber, and an exit.
 //=============================================================================
 class TravelJoinConsole extends Console;
 
-var float RunTime, LogTime, SecondTime;
+var float RunTime, LogTime, SecondTime, LostTime;
 var int Step;
 var string FirstMap;
 
@@ -52,6 +54,30 @@ event Tick(float Delta)
 		LogTime = RunTime;
 		Log("DXNET: t=" $ int(RunTime) $ " in " $ MapOf(P) $ " net mode " $ P.Level.NetMode $ " at " $ P.Location);
 	}
+	if (P.Level.NetMode != NM_Client && FirstMap != "" && Step < 2)
+	{
+		if (LostTime == 0)
+			LostTime = RunTime;
+		else if (Step == 1 && RunTime - LostTime > 2.0)
+		{
+			Log("DXNET: the server lost, in " $ MapOf(P));
+			Step = 4;
+		}
+	}
+	else if (Step < 2)
+		LostTime = 0;
+	if (Step == 4 && RunTime - LostTime > 4.0)
+	{
+		Log("DXCAP: shot 1 in " $ MapOf(P));
+		P.ConsoleCommand("shot");
+		Step = 5;
+	}
+	else if (Step == 5 && RunTime - LostTime > 5.0)
+	{
+		Log("DXNET: exiting in " $ MapOf(P));
+		P.ConsoleCommand("exit");
+		Step = 3;
+	}
 	if (P.Level.NetMode == NM_Client)
 	{
 		Map = MapOf(P);
@@ -79,5 +105,36 @@ event Tick(float Delta)
 		Log("DXNET: out of time, in " $ MapOf(P));
 		P.ConsoleCommand("exit");
 		Step = 3;
+	}
+}
+
+// The lost server's frame marked as CaptureConsole marks its shots: a
+// magenta block, then shot 1's number in eight blocks.
+event PostRender(canvas C)
+{
+	local int i;
+
+	Super.PostRender(C);
+	if (Step != 4 || RunTime - LostTime < 3.0)
+		return;
+	C.Style = 1;
+	C.SetPos(0, 0);
+	C.DrawColor.R = 255;
+	C.DrawColor.G = 0;
+	C.DrawColor.B = 255;
+	C.DrawRect(Texture'Solid', 12, 12);
+	for (i = 0; i < 8; i++)
+	{
+		C.DrawColor.R = 0;
+		C.DrawColor.G = 0;
+		C.DrawColor.B = 0;
+		if (i == 0)
+		{
+			C.DrawColor.R = 255;
+			C.DrawColor.G = 255;
+			C.DrawColor.B = 255;
+		}
+		C.SetPos(12 + 12 * i, 0);
+		C.DrawRect(Texture'Solid', 12, 12);
 	}
 }

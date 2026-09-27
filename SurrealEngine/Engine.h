@@ -78,6 +78,10 @@ public:
 	void ClientTravel(const std::string& URL, ETravelType travelType, bool transferItems);
 	UnrealURL GetDefaultURL(const std::string& map);
 	void LoadEntryMap();
+	// The Entry level made the level played, a new player spawned in it, as
+	// the original's browse to ?failed or ?entry: a lost server, or one that
+	// refused the player after the join, sends a client there.
+	void ReturnToEntry(bool failed);
 	void LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo = {}, bool asClient = false);
 	void LoadFromSaveFile(const UnrealURL& url);
 	void SaveGameToSlot(int32_t slotNum, const std::string& saveDescription) const;
@@ -199,6 +203,7 @@ public:
 	ULevel* EntryLevel = nullptr;
 	UGameInfo* EntryGameInfo = nullptr;
 	Package* EntryLevelPackage = nullptr;
+	UDeusExLevelInfo* EntryDeusExLevelInfo = nullptr;
 
 	double TotalTime = 0.0;
 

@@ -1067,8 +1067,8 @@ handshake the original's; the map loads as a client's; the package map
 numbers as the original's; actor channels spawn or find the server's actors,
 take their properties and run the server's calls, `PostNetReceive`'s moves
 and unpacking with them; the server's pawn is possessed. Until it arrives the
-fork draws no world. A server lost after the join takes the fork back to the
-menu's map; a join refused or failing leaves it in the level it was in,
+fork draws no world. A server lost after the join, or one that refuses the
+player then, takes the fork to its Entry level (below); a join refused or failing leaves it in the level it was in,
 showing why; quitting or leaving closes the connection.
 
 Checked against the original, run as a listen server on DXMP_Cathedral
@@ -1176,13 +1176,22 @@ A server travels, and its clients follow (2026-09-27), as
 and a game's own map change send each client a relative `ClientTravel`,
 which a client takes relative to its server's address; the server takes no
 one new until its countdown runs out, then loads the next map, listening
-again with the same options. A client whose old connection closes while its
-join to the next map is pending stays in the old level until the next map
-loads, where the original goes to its Entry level meanwhile. Checked both
-ways: the fork's server travelled from DXMP_Cathedral to DXMP_Smuggler with
-the original following, and the original's with the fork following, each
-client in the next map and playing (`TravelServeConsole`,
-`TravelJoinConsole`).
+again with the same options. Checked both ways: the fork's server travelled
+from DXMP_Cathedral to DXMP_Smuggler with the original following, and the
+original's with the fork following, each client in the next map and playing
+(`TravelServeConsole`, `TravelJoinConsole`).
+
+A client whose server connection closes, or whose server sends `FAILURE`
+after the join, goes to its Entry level, a new player spawned there, as
+the original's client browses `?failed` (2026-09-27; its `?entry` alike):
+in a travel only until its join to the next map loads, which it then
+does; with no join pending, "Connection failed" shows for 6 s and the
+player stays there. The fork kept the old level through a travel's join,
+and went back to the menu's map for a lost server. Checked: in a travel the
+fork's client spent a second in `Entry.dx` between the maps, as the
+original's does; with its fork server killed mid-game each engine's client
+timed out into the Entry level with "Connection failed" over the HUD, the
+two frames alike but for the fork's stats.
 
 A dedicated server too (2026-09-27): `--server`, as the original's
 `-SERVER` ([the network](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#packets)): no window,

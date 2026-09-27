@@ -87,7 +87,8 @@ The console classes:
   DXMP_Smuggler once another player has been in 10 s, logging its map and
   players every 2 s and exiting after 150 s; the client joins it, logs its
   map, net mode and place each second, and exits 8 s after it is a client
-  in a second map (a shot first), or at 150 s.
+  in a second map (a shot first), or at 150 s; out of the game 2 s once in
+  it, it takes its server as lost, shoots 4 s in (marked) and exits.
 - **`SoundConsole`**: M0's sounds -- a steady sound heard in the open and from
   behind a wall, shots in a reverb zone and out of it, and beeps from the
   right, the left and ahead. It silences the level first (ambient sounds,

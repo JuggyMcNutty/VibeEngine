@@ -238,7 +238,7 @@ void Engine::Run()
 
 		TotalTime += realTimeElapsed;
 
-		if (EntryLevel)
+		if (EntryLevel && EntryLevel != Level)
 			EntryLevelInfo->TimeSeconds() += entryLevelElapsed;
 		LevelInfo->TimeSeconds() += levelElapsed;
 		Logger::Get()->SetTimeSeconds(LevelInfo->TimeSeconds());
@@ -277,7 +277,7 @@ void Engine::Run()
 		if (LevelNetDriver)
 			LevelNetDriver->TickDispatch(levelElapsed);
 
-		if (EntryLevel)
+		if (EntryLevel && EntryLevel != Level)
 			EntryLevel->Tick(entryLevelElapsed, m_GamePaused);
 		Level->Tick(levelElapsed, m_GamePaused);
 
@@ -388,15 +388,16 @@ void Engine::Run()
 			PossessSavedPlayer();
 		}
 
-		// Lost the server, or refused by it: back to the menu's map -- but not
-		// while a join is pending: a server that travels closes the old
-		// connection as its clients join it again.
-		if (LevelNetDriver && LevelNetDriver->ServerConnection && !PendingLevel && (!NetFailure.empty() || LevelNetDriver->ServerConnection->State == ConnectionState::Closed))
+		// Lost the server, or refused by it after the join: to the Entry
+		// level, as the original's client level browses ?failed
+		// (ULevel::TickNetClient, NotifyReceivedText) -- a join pending or
+		// not: a server that travels closes the old connection as its clients
+		// join it again, and the join then loads the next map.
+		if (LevelNetDriver && LevelNetDriver->ServerConnection && (!NetFailure.empty() || LevelNetDriver->ServerConnection->State == ConnectionState::Closed))
 		{
 			LogMessage("Net: disconnected" + (NetFailure.empty() ? std::string() : ": " + NetFailure));
 			NetFailure.clear();
-			LoadMap(GetDefaultURL(packages->GetIniValue("system", "URL", "LocalMap")));
-			LoginPlayer();
+			ReturnToEntry(true);
 		}
 
 		if (!ClientTravelInfo.URL.Host.empty())
@@ -784,15 +785,58 @@ void Engine::LoadEntryMap()
 	LoadMap(GetDefaultURL(entryMapName));
 	EntryLevelInfo = LevelInfo;
 	EntryLevel = Level;
+	EntryDeusExLevelInfo = DeusExLevelInfo;
 	EntryLevelPackage = std::move(LevelPackage);
 	LevelInfo = nullptr;
 	Level = nullptr;
 	viewport->Actor() = nullptr;
 }
 
+void Engine::ReturnToEntry(bool failed)
+{
+	// UGameEngine::Browse's ?failed and ?entry (Engine.dll 0x1038ad30): the
+	// level left, the Entry level played with no level action, a player
+	// spawned there for the viewport; a failure with no join pending says so
+	// for 6 s.
+	LogMessage(LocalizeMessage("Engine", "Errors", "AbortToEntry", "Failed; returning to Entry"));
+	if (!EntryLevel)
+		return;
+	if (Level)
+		CallEvent(console, EventName::NotifyLevelChange);
+	if (!LaunchInfo.dedicatedServer)
+		audiodev->StopSounds();
+	UnloadMap();
+	Level = EntryLevel;
+	LevelInfo = EntryLevelInfo;
+	if (packages->IsDeusEx())
+		DeusExLevelInfo = EntryDeusExLevelInfo;
+	LevelInfo->LevelAction() = LEVACT_None;
+	LoginPlayer();
+	if (failed && !PendingLevel)
+		SetProgress(LocalizeMessage("Engine", "Errors", "ConnectionFailed", "Connection failed"), "", 6.0f);
+}
+
 void Engine::UnloadMap()
 {
 	CloseNetDriver();
+
+	// The Entry level stays; the player it was given goes, as the original's
+	// LoadMap destroys each viewport's actor where it stands.
+	if (Level && Level == EntryLevel)
+	{
+		if (UPlayerPawn* pawn = viewport->Actor())
+		{
+			pawn->Player() = nullptr;
+			viewport->Actor() = nullptr;
+			pawn->Destroy();
+		}
+		LevelInfo = nullptr;
+		if (packages->IsDeusEx())
+			DeusExLevelInfo = nullptr;
+		Level = nullptr;
+		dxRootWindow = nullptr;
+		return;
+	}
 
 	if (!LevelPackage)
 		return;
@@ -812,11 +856,14 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 {
 	ClientTravelInfo.URL.Clear();
 
+	if (url.HasOption("entry") || url.HasOption("failed"))
+	{
+		ReturnToEntry(url.HasOption("failed"));
+		return;
+	}
+
 	if (Level)
 		CallEvent(console, EventName::NotifyLevelChange);
-
-	if (url.HasOption("entry")) // Not sure what the purpose of this kind of travel is - do nothing for now.
-		return;
 
 	if (!LaunchInfo.dedicatedServer)
 		audiodev->StopSounds();
