@@ -925,3 +925,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ([multiplayer](NATIVES.md#multiplayer)). **Checked:** both engines
   joined it and walked; its beacon and query answerer replied; it idled at
   under 1% of a core; a Liberty Island proving run is clean.
+- [**brightness as D3DDrv's**](https://github.com/JuggyMcNutty/VibeEngine/commit/fdb0e8e29428ff412522e02f2bde4241ceacc6d7) --
+  the Brightness slider a gamma of 2.5 × Brightness, as Deus Ex's display
+  driver sets its ramp, where the fork took 2 × -- mid grey about 11%
+  darker at the GOG build's 0.6 ([brightness](NATIVES.md#brightness)).
+  **Checked:** against `D3DDrv.dll`'s ramp as read; the harness's shots,
+  which carry no gamma here, unchanged.
