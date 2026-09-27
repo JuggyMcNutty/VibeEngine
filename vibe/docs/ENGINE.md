@@ -973,3 +973,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   saved, as the original's -- the multiplayer Host screen's settings read
   and set at last ([small](NATIVES.md#small)). **Checked:** `GetConsole`
   alike in both engines, gets, sets and the inis written.
+- [**merged bunches**](https://github.com/JuggyMcNutty/VibeEngine/commit/32e9873e97d2bd3b21a564d1c96aa5d3559e0d2c) --
+  a channel's bunch goes into the last one sent while that ends the
+  packet being built, one header for both, as the original's
+  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** joins and walks
+  both ways with the original, merges counted on each side.
