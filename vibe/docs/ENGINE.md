@@ -978,3 +978,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   packet being built, one header for both, as the original's
   ([multiplayer](NATIVES.md#multiplayer)). **Checked:** joins and walks
   both ways with the original, merges counted on each side.
+- [**the Entry level for a lost server**](https://github.com/JuggyMcNutty/VibeEngine/commit/7cd6760e5dbc8452df5b05e4a7319d8af95deb0e) --
+  a client whose server connection closes, or which the server refuses
+  after the join, goes to its Entry level with a new player, as the
+  original's `?failed` -- through a travel until the join loads the next
+  map, else with "Connection failed" ([multiplayer](NATIVES.md#multiplayer)).
+  **Checked:** a travel's second in `Entry.dx` as the original's; both
+  engines' clients alike after their server was killed.
