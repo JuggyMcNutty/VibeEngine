@@ -56,6 +56,7 @@ public:
 	float KeepAliveTime = 1.0f;
 	float RelevantTimeout = 5.0f;
 	float SpawnPrioritySeconds = 1.0f;
+	float ServerTravelPause = 4.0f;
 	int MaxClientRate = 20000;
 	int DynamicUpdateRate = 40;
 	int StaticUpdateRate = 12;

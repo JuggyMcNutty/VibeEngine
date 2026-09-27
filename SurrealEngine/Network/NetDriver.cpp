@@ -72,6 +72,7 @@ void NetDriver::LoadSettings()
 	KeepAliveTime = IniFloat("KeepAliveTime", KeepAliveTime);
 	RelevantTimeout = IniFloat("RelevantTimeout", RelevantTimeout);
 	SpawnPrioritySeconds = IniFloat("SpawnPrioritySeconds", SpawnPrioritySeconds);
+	ServerTravelPause = IniFloat("ServerTravelPause", ServerTravelPause);
 	MaxClientRate = IniInt("IpDrv.TcpNetDriver", "MaxClientRate", MaxClientRate);
 	DynamicUpdateRate = IniInt("IpDrv.TcpNetDriver", "DynamicUpdateRate", DynamicUpdateRate);
 	StaticUpdateRate = IniInt("IpDrv.TcpNetDriver", "StaticUpdateRate", StaticUpdateRate);

@@ -25,8 +25,17 @@ UnrealURL::UnrealURL(const UnrealURL& baseURL, const UnrealURL& nextURL)
 	*/
 }
 
+// The game's [URL] Port: any URL's port unless it names another, as the
+// original's FURL defaults it.
+static int DefaultPort()
+{
+	return engine ? std::atoi(engine->packages->GetIniValue("system", "URL", "Port", "7777").c_str()) : 7777;
+}
+
 UnrealURL::UnrealURL(std::string urlString)
 {
+	Port = DefaultPort();
+
 	// Expected url format on a local game:
 	// mapname[#teleporttag][?key1=value1[?key2=value2]...]
 	// Or in case of Klingon Honor Guard
@@ -125,7 +134,6 @@ void UnrealURL::ParseAddress(std::string& urlString)
 
 	if (!protocol.empty())
 		Protocol = protocol;
-	Port = engine ? std::atoi(engine->packages->GetIniValue("system", "URL", "Port", "7777").c_str()) : 7777;
 	size_t portPos = host.find(':');
 	if (portPos != std::string::npos)
 	{
@@ -247,7 +255,7 @@ std::string UnrealURL::ToString() const
 			result += "//";
 	}
 
-	if (!Host.empty() || Port != 7777)
+	if (!Host.empty() || Port != DefaultPort())
 	{
 		result += Host;
 		result += ":";

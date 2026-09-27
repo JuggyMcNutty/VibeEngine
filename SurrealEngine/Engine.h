@@ -110,6 +110,7 @@ public:
 	// the player the server spawns for it.
 	void BeginConnect(const UnrealURL& url);
 	void TickPendingLevel(float realTimeElapsed);
+	void SetEngineVersion();
 	void LoadClientMap(NetPendingLevel* pending);
 	void HandleClientPlayer(NetConnection* connection, UPlayerPawn* pawn);
 	void CloseNetDriver();

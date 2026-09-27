@@ -59,6 +59,27 @@
 #include <chrono>
 #include <set>
 #include <thread>
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+// The machine's name, as the original's LevelInfo.ComputerName has it
+// (Windows' computer name: the host name in capitals).
+static std::string ComputerName()
+{
+	std::string result;
+#ifdef WIN32
+	if (const char* name = std::getenv("COMPUTERNAME"))
+		result = name;
+#else
+	char name[256] = {};
+	if (gethostname(name, sizeof(name) - 1) == 0)
+		result = name;
+#endif
+	for (char& c : result)
+		c = (char)std::toupper((unsigned char)c);
+	return result.empty() ? "MyComputer" : result;
+}
 
 Engine* engine = nullptr;
 
@@ -748,11 +769,9 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 
 	GetLevelInfoObject();
 
-	LevelInfo->ComputerName() = "MyComputer";
+	LevelInfo->ComputerName() = ComputerName();
 	LevelInfo->HubStackLevel() = 0; // To do: handle level hubs
-	LevelInfo->EngineVersion() = LaunchInfo.gameVersionString + " SE";
-	if (LaunchInfo.ue1Version > 219)
-		LevelInfo->MinNetVersion() = LaunchInfo.gameVersionString + " SE";
+	SetEngineVersion();
 	LevelInfo->bHighDetailMode() = true;
 	LevelInfo->NetMode() = asClient ? NM_Client : url.HasOption("listen") ? NM_ListenServer : NM_Standalone;
 	LevelInfo->DefaultTexture() = engine->DefaultTexture;
@@ -929,11 +948,9 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 
 	// Same as LoadMap: these are session/engine identity, not save data, and must be
 	// re-established on every load regardless of what the package/save file contains.
-	LevelInfo->ComputerName() = "MyComputer";
+	LevelInfo->ComputerName() = ComputerName();
 	LevelInfo->HubStackLevel() = 0; // To do: handle level hubs
-	LevelInfo->EngineVersion() = LaunchInfo.gameVersionString + " SE";
-	if (LaunchInfo.ue1Version > 219)
-		LevelInfo->MinNetVersion() = LaunchInfo.gameVersionString + " SE";
+	SetEngineVersion();
 	LevelInfo->bHighDetailMode() = true;
 	LevelInfo->NetMode() = 0; // NM_StandAlone
 	LevelInfo->DefaultTexture() = engine->DefaultTexture;
@@ -964,6 +981,22 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 // one, so the flag would carry into the first level and eat the player's
 // first real attempt to open the menu. Nothing else sets it; clear it once a
 // level is running.
+// The level's engine and net versions: Deus Ex's 1100 for both, which a
+// server's query answer reports and the Join screens compare with their own;
+// the game's version and the fork's mark otherwise.
+void Engine::SetEngineVersion()
+{
+	if (LaunchInfo.IsDeusEx())
+	{
+		LevelInfo->EngineVersion() = "1100";
+		LevelInfo->MinNetVersion() = "1100";
+		return;
+	}
+	LevelInfo->EngineVersion() = LaunchInfo.gameVersionString + " SE";
+	if (LaunchInfo.ue1Version > 219)
+		LevelInfo->MinNetVersion() = LaunchInfo.gameVersionString + " SE";
+}
+
 static void ClearIgnoreNextShowMenu(UObject* player)
 {
 	if (!player)
@@ -1589,6 +1622,58 @@ void Engine::Listen(const UnrealURL& url)
 		return;
 	}
 	LogMessage("Net: listening on port " + std::to_string(port));
+
+	// The game engine's ServerActors -- in the section of the class
+	// [Engine.Engine] GameEngine names --, each a class and then its config
+	// values as Key=Value: the LAN beacon, the query answerer, the master
+	// servers' uplinks.
+	std::string gameEngine = packages->GetIniValue("system", "Engine.Engine", "GameEngine", "Engine.GameEngine");
+	for (const std::string& entry : packages->GetIniValues("system", gameEngine, "ServerActors"))
+	{
+		Array<std::string> tokens;
+		for (size_t pos = 0; pos < entry.size();)
+		{
+			pos = entry.find_first_not_of(" \t", pos);
+			if (pos == std::string::npos)
+				break;
+			std::string token;
+			while (pos < entry.size() && entry[pos] != ' ' && entry[pos] != '\t')
+			{
+				if (entry[pos] == '"')
+				{
+					size_t end = entry.find('"', pos + 1);
+					token += entry.substr(pos + 1, end == std::string::npos ? std::string::npos : end - pos - 1);
+					pos = end == std::string::npos ? entry.size() : end + 1;
+				}
+				else
+				{
+					token += entry[pos++];
+				}
+			}
+			tokens.push_back(token);
+		}
+		if (tokens.empty())
+			continue;
+
+		LogMessage("Net: spawning " + tokens[0]);
+		UClass* cls = packages->FindClass(tokens[0]);
+		UActor* actor = cls ? LevelInfo->Spawn(cls, nullptr, NameString(), vec3(0.0f), Rotator(0, 0, 0)) : nullptr;
+		if (!actor)
+			continue;
+		for (size_t i = 1; i < tokens.size(); i++)
+		{
+			size_t equals = tokens[i].find('=');
+			if (equals == std::string::npos)
+				continue;
+			NameString key = tokens[i].substr(0, equals);
+			for (UProperty* prop : actor->PropertyData.Class->Properties)
+			{
+				if (prop->Name == key && AnyFlags(prop->PropFlags, PropertyFlags::Config))
+					prop->SetValueFromString(actor->PropertyData.Ptr(prop), tokens[i].substr(equals + 1));
+			}
+		}
+	}
+	LevelInfo->NextSwitchCountdown() = LevelNetDriver->ServerTravelPause;
 }
 
 bool Engine::PreLogin(const std::string& options, const std::string& address, std::string& error, std::string& failcode)
