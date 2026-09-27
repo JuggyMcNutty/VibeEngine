@@ -606,6 +606,21 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   animated add alone, shadows held, the wall's brightness alternating
   with the flicker across frame dumps; 75 s runs on both maps after the
   hooks' exact-text removal are clean.
+- [**fractal textures**](https://github.com/JuggyMcNutty/VibeEngine/commit/eb97215ea939c7d8154b88b93f6a84392492839e) --
+  a late M4 item: `Fire.dll`'s fire, water, wet, wave and ice textures as
+  the original steps and draws them (`FireEngine.cpp`), paced as its
+  `UTexture::Tick` paces them -- those with no `MaxFrameRate` at most 60
+  steps a second, where the original steps them every frame; a mesh's
+  textures chosen, animated and masked as the original's, and sent to the
+  GPU again when they change, which patch 0019's batching had stopped for
+  any texture drawn on a run of two faces or more
+  ([fire, water and ice textures](NATIVES.md#fire-water-and-ice-textures)).
+  **[perf]** a fire or water step is the original's work now; to measure
+  on the Smart Pro. **Checked:** against the DLL's own routines in an
+  emulator, byte for byte
+  ([how](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md#how-it-was-checked));
+  the Dragon's Tooth in hand matches the original's in both engines'
+  shots; a 65 s proving run on Liberty Island is clean.
 - [**loudness**](https://github.com/JuggyMcNutty/VibeEngine/commit/f8d46930a679474967358626ccfefa1f3b1e0a6c) --
   M5's first item: Deus Ex plays the script's volume -- no rescale
   toward 1, no halving -- with fall-off linear from the sound to its
