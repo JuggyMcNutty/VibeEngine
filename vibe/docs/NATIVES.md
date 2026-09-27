@@ -1005,6 +1005,21 @@ All landed 2026-09-25:
   volume falls back to full, the native default unread. To check by
   hand: with positional sound on, a click at a screen's left edge
   sounding from the left.
+- **The console's `GET` and `SET`** (2026-09-27), as the original's
+  ([`GET` and `SET`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)): a class found by
+  its name alone in any package loaded, where the fork wanted its package
+  -- the game's menus name `DeusExMPGame`, `DXMapList`,
+  `MenuScreenHostGame`, `Player` and `DeusExPlayer` so, and the
+  multiplayer Host screen's settings were neither read nor set --; `GET`
+  gives a string without the quotes the fork put round it, and an object
+  with its path name; `SET` takes the rest of the line as the value (a
+  server's name has spaces) and sets it on every object of the class and
+  its subclasses, then the class's defaults, then saves the class's
+  config. Checked with `GetConsole` against the original: each kind of
+  property alike, and after `SET`s of `DeusExMPGame ScoreToWin`, a spaced
+  `ServerName` and `PlayerPawn MouseSensitivity` the same values read
+  back, the player's own sensitivity changed and the same keys written to
+  each run's inis.
 
 ## Mods
 

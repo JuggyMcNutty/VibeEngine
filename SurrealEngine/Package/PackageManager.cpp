@@ -814,6 +814,23 @@ UClass* PackageManager::FindClass(const NameString& name)
 	}
 }
 
+UClass* PackageManager::FindClassAnyPackage(const NameString& name)
+{
+	if (name.ToString().find('.') != std::string::npos)
+		return FindClass(name);
+
+	for (auto& it : packages)
+	{
+		Package* package = it.second.get();
+		if (!package)
+			continue;
+		int ref = package->FindObjectReference("Class", name, {}, true);
+		if (ref > 0)
+			return UObject::Cast<UClass>(package->GetUObject(ref));
+	}
+	return nullptr;
+}
+
 std::unique_ptr<IniFile> PackageManager::GetIniFile(NameString iniName)
 {
 	if (iniName == "user")

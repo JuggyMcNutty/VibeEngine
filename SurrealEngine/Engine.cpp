@@ -12,6 +12,7 @@
 #include "Packages/Core/USubsystem.h"
 #include "Packages/Core/Properties/UObjectProperty.h"
 #include "Packages/Core/Properties/UStringProperty.h"
+#include "Packages/Core/Properties/UStrProperty.h"
 #include "Packages/Core/Properties/UFloatProperty.h"
 #include "Packages/Core/Properties/UIntProperty.h"
 #include "Packages/Engine/UClient.h"
@@ -654,6 +655,42 @@ void Engine::UpdateAudio()
 
 	audiodev->SetViewport(viewport);
 	audiodev->Update(listener);
+}
+
+// A class default as the original's GET gives it (Core.dll's
+// UObject::StaticExec, 0x101531b0: ExportText localized, not delimited): a
+// string bare, where PrintValue quotes it, and an object as its class and
+// path name. The game's menus compare what they get: the Host screen's
+// victory condition is "Frags", not "\"Frags\"".
+static std::string ExportForGet(UObject* defaults, const NameString& propertyName)
+{
+	UProperty* prop = defaults->GetMemberProperty(propertyName);
+	void* data = defaults->PropertyData.Ptr(prop);
+	if (UObject::TryCast<UStrProperty>(prop) || UObject::TryCast<UStringProperty>(prop))
+		return *static_cast<std::string*>(data);
+	if (UObject::TryCast<UObjectProperty>(prop))
+	{
+		UObject* value = *static_cast<UObject**>(data);
+		return value ? value->Class->Name.ToString() + "'" + value->GetPathName() + "'" : "None";
+	}
+	return prop->PrintValue(data);
+}
+
+// The command line past its first `skip` words, less the spaces before it.
+static std::string ArgsFrom(const std::string& commandline, size_t skip)
+{
+	size_t i = 0;
+	for (size_t n = 0; n < skip; n++)
+	{
+		i = commandline.find_first_not_of(" \t", i);
+		if (i == std::string::npos)
+			return {};
+		i = commandline.find_first_of(" \t", i);
+		if (i == std::string::npos)
+			return {};
+	}
+	i = commandline.find_first_not_of(" \t", i);
+	return i == std::string::npos ? std::string() : commandline.substr(i);
 }
 
 void Engine::ClientTravel(const std::string& newURL, ETravelType travelType, bool transferItems)
@@ -2164,7 +2201,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		NameString className = ParseClassName(args[1]);
 		NameString propertyName = args[2];
 
-		UClass* cls = packages->FindClass(className);
+		UClass* cls = packages->FindClassAnyPackage(className);
 		if (!cls)
 		{
 			LogMessage("Could not find class '" + className.ToString() + "': " + commandline);
@@ -2191,7 +2228,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		{
 			try
 			{
-				return cls->GetPropertyAsString(propertyName);
+				return ExportForGet(cls, propertyName);
 			}
 			catch (const std::exception&)
 			{
@@ -2200,11 +2237,14 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 			}
 		}
 	}
-	else if (command == "set" && args.size() == 4)
+	else if (command == "set" && args.size() >= 3)
 	{
 		NameString className = ParseClassName(args[1]);
 		NameString propertyName = args[2];
-		std::string value = args[3];
+		// The value is the rest of the line, as the original's SET takes it
+		// (Core.dll's UObject::StaticExec, 0x101531b0): a server's name has
+		// spaces.
+		std::string value = ArgsFrom(commandline, 3);
 
 		// Special input setting handling. Deus Ex's input class is Extension's
 		// InputExt, so the multiplayer key SETs land here too instead of
@@ -2216,7 +2256,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 			return {};
 		}
 
-		UClass* cls = packages->FindClass(className);
+		UClass* cls = packages->FindClassAnyPackage(className);
 		if (!cls)
 		{
 			LogMessage("Could not find class '" + className.ToString() + "': " + commandline);
@@ -2243,7 +2283,26 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		{
 			try
 			{
+				// As the original's GlobalSetProperty: every object of the
+				// class or a subclass takes the value, then the class's
+				// defaults, and the class's config is saved.
+				cls->GetMemberProperty(propertyName);
+				for (GCObject* gcObj : GC::GetObjects())
+				{
+					UObject* obj = dynamic_cast<UObject*>(gcObj);
+					if (!obj || obj == cls)
+						continue;
+					for (UStruct* objClass = obj->Class; objClass; objClass = objClass->BaseStruct)
+					{
+						if (objClass == cls)
+						{
+							obj->SetPropertyFromString(propertyName, value);
+							break;
+						}
+					}
+				}
 				cls->SetPropertyFromString(propertyName, value);
+				cls->SaveConfig();
 			}
 			catch (const std::exception&)
 			{

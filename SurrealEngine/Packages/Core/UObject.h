@@ -285,6 +285,10 @@ public:
 	PropertyDataOffset GetPropertyDataOffset(const NameString& name) const;
 	UProperty* GetMemberProperty(const NameString& name) const;
 
+	// The original's path name: its outers' names and its own, dot-joined,
+	// from its package.
+	std::string GetPathName();
+
 	virtual std::string GetPropertyAsString(const NameString& name) const;
 	virtual void SetPropertyFromString(const NameString& name, const std::string& value);
 

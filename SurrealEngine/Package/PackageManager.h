@@ -91,6 +91,10 @@ public:
 	std::shared_ptr<PackageStream> GetStream(Package* package);
 
 	UClass* FindClass(const NameString& name);
+	// A class by its package and name, or by its name alone in any package
+	// loaded, as the original's console finds one (StaticFindObject with
+	// ANY_PACKAGE): the game's menus name DeusExMPGame, not DeusEx.DeusExMPGame.
+	UClass* FindClassAnyPackage(const NameString& name);
 
 	std::string GetMapExtension() const { return mapExtension; }
 	std::string GetSaveExtension() const { return saveExtension; }

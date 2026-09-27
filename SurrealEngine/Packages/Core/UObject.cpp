@@ -189,6 +189,22 @@ UProperty* UObject::GetMemberProperty(const NameString& propName) const
 	Exception::Throw("Object Property '" + Name.ToString() + "." + propName.ToString() + "' not found");
 }
 
+std::string UObject::GetPathName()
+{
+	// A package itself has no object here, so the outermost one's package
+	// heads the path: a texture in a group reads Effects.Laser.LaserBeam1.
+	std::string path = Name.ToString();
+	UObject* outermost = this;
+	for (UObject* outer = Outer(); outer; outer = outer->Outer())
+	{
+		path = outer->Name.ToString() + "." + path;
+		outermost = outer;
+	}
+	if (outermost->package)
+		path = outermost->package->GetPackageName().ToString() + "." + path;
+	return path;
+}
+
 void* UObject::GetProperty(UProperty* prop)
 {
 	return PropertyData.Ptr(prop);
