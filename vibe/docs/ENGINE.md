@@ -1014,3 +1014,11 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `SaveConsole` and `LoadConsole` -- a fork save played on by the original
   with its census alike; every listener kept both ways; a proving run
   clean.
+- [**the native replication lists**](https://github.com/JuggyMcNutty/VibeEngine/commit/3517c553e57254662ec183e12916bea7d7f39e6f) --
+  what eight engine classes declare goes by the original's C++ lists, not
+  their statements, where Deus Ex's differ: the animation values with
+  `AnimSequence`, the blended ones and `PlayerRestartState` never, a
+  player replication info's `Actor` values once, an always-relevant item's
+  `bHidden` alone ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the
+  original's client saw the fork server's pawns animate, where they ran
+  frozen; a fork client alike.
