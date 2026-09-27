@@ -991,3 +991,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   credits, key binding and the multiplayer windows ([the UI](NATIVES.md#the-ui)).
   **Checked:** the main menu's pointer kept; the lost server's Entry frame
   as the original's.
+- [**downloads let go**](https://github.com/JuggyMcNutty/VibeEngine/commit/46670560ac88de7a9406c3afc058a211e502afec) --
+  a package loaded from the download cache goes at the next map load
+  that does not use it, as the original's map load collects it: another
+  server's package of that name then loads ([multiplayer](NATIVES.md#multiplayer)).
+  **Checked:** two servers' versions of one package joined one after the
+  other, as the original's client does; without it a version mismatch.
