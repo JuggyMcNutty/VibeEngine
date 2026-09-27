@@ -935,3 +935,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `string(Object)` starts with the package even for an object in a group
   ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `LaserConsole`'s logs print
   the laser's texture and iterator as the original's.
+- [**coronas' colour and lights**](https://github.com/JuggyMcNutty/VibeEngine/commit/58a23a6a48f960c687d8106db6c72da4b6c9b0f1) --
+  a corona's colour as `DrawFrame` works it out (the hue whitened by the
+  saturation, 2.4 times the light maps' colour the fork used), its lights
+  from the leaf the player stands in, not the eye's
+  ([coronas](NATIVES.md#coronas)). **Checked:** three lamps' glows in
+  both engines at `CaptureConsole`'s shot 7, cores alike; a proving run
+  on Liberty Island is clean.
