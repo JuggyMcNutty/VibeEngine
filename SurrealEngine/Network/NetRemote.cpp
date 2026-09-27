@@ -4,6 +4,7 @@
 #include "NetChannel.h"
 #include "NetDriver.h"
 #include "NetSerialize.h"
+#include "NetServer.h"
 #include "Packages/Core/UClass.h"
 #include "Packages/Core/UFunction.h"
 #include "Packages/Core/Properties/UBoolProperty.h"
@@ -60,10 +61,20 @@ bool NetProcessRemoteFunction(UFunction* function, UObject* instance, CallArgume
 	if (!AnyFlags(function->FuncFlags, FunctionFlags::Net))
 		return absorb;
 
-	// A server's call would go to the client whose player owns the actor;
-	// the fork is no server yet, and a client's own actor runs its call.
-	if (actor->Role() == ROLE_Authority)
-		return absorb;
+	// A server's call goes to the client whose player owns the actor, if
+	// any; a client's to the server.
+	bool server = actor->Role() == ROLE_Authority;
+	NetConnection* connection = nullptr;
+	if (server)
+	{
+		UActor* top = actor;
+		while (top->Owner())
+			top = top->Owner();
+		UPlayerPawn* pawn = UObject::TryCast<UPlayerPawn>(top);
+		connection = pawn ? NetConnectionOfPlayer(pawn->Player()) : nullptr;
+		if (!connection)
+			return absorb;
+	}
 
 	// The condition is the first declaration's.
 	UFunction* root = function;
@@ -72,7 +83,8 @@ bool NetProcessRemoteFunction(UFunction* function, UObject* instance, CallArgume
 	if (!NetReplicationCondition(root, actor))
 		return absorb;
 
-	NetConnection* connection = engine->LevelNetDriver ? engine->LevelNetDriver->ServerConnection.get() : nullptr;
+	if (!server)
+		connection = engine->LevelNetDriver ? engine->LevelNetDriver->ServerConnection.get() : nullptr;
 	if (!connection)
 		return absorb;
 
@@ -84,8 +96,29 @@ bool NetProcessRemoteFunction(UFunction* function, UObject* instance, CallArgume
 	NetPackageMap& map = connection->PackageMap;
 	NetPackageMap::ClassNetCache* cache = map.GetClassNetCache(actor->Class);
 	NetPackageMap::FieldNetCache* field = cache ? cache->GetFromField(root) : nullptr;
+	if (!field)
+		return true;
+
+	// A client calls only on an actor the server gave it; a server opens a
+	// channel for the actor, and sends the actor first, if the client has
+	// none.
 	NetActorChannel* channel = connection->FindActorChannel(actor);
-	if (!field || !channel || channel->Closing)
+	if (!channel)
+	{
+		if (!server)
+			return true;
+		channel = static_cast<NetActorChannel*>(connection->CreateChannel(ChannelType::Actor, true));
+		if (!channel)
+			return true;
+		channel->SetChannelActor(actor);
+	}
+	if (channel->OpenPacketId == -1)
+	{
+		if (!server)
+			return true;
+		channel->ReplicateActor();
+	}
+	if (channel->Closing)
 		return true;
 
 	NetOutBunch bunch(channel, false);

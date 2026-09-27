@@ -183,6 +183,14 @@ void NetConnection::ReceivedPacket(NetBitReader& reader)
 				}
 			}
 
+			// A channel the other side opens is open here from its first
+			// bunch.
+			if (bunch.bOpen)
+			{
+				channel->OpenAcked = true;
+				channel->OpenPacketId = bunch.PacketId;
+			}
+
 			channel->ReceivedRawBunch(bunch);
 		}
 	}
