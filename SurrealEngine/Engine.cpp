@@ -166,31 +166,38 @@ void Engine::Run()
 	// cleans its cache as the engine starts).
 	packages->CleanFileCache();
 
-	OpenWindow();
-
-	audiodev->InitDevice();
-	render = std::make_unique<RenderSubsystem>(window->GetRenderDevice());
-
-	if (engine->LaunchInfo.ue1Version > 219 && !client->StartupFullscreen)
-		viewport->bWindowsMouseAvailable() = true;
-
-	window->LockCursor();
-
-	if (packages->IsKlingonHonorGuard())
+	// A dedicated server has no client: no window, sound or picture, no
+	// player of its own, no Entry level (the original's -SERVER).
+	const bool dedicated = LaunchInfo.dedicatedServer;
+	if (!dedicated)
 	{
-		PlayAVI({ "playavi", "INTRO.AVI", "N" });
+		OpenWindow();
+
+		audiodev->InitDevice();
+		render = std::make_unique<RenderSubsystem>(window->GetRenderDevice());
+
+		if (engine->LaunchInfo.ue1Version > 219 && !client->StartupFullscreen)
+			viewport->bWindowsMouseAvailable() = true;
+
+		window->LockCursor();
+
+		if (packages->IsKlingonHonorGuard())
+		{
+			PlayAVI({ "playavi", "INTRO.AVI", "N" });
+		}
 	}
 
-	if (!LaunchInfo.noEntryMap)
+	if (!LaunchInfo.noEntryMap && !dedicated)
 		LoadEntryMap();
 
-	bool launchServer = !LaunchInfo.url.empty() && !UnrealURL(LaunchInfo.url).Host.empty();
+	bool launchServer = !LaunchInfo.url.empty() && !UnrealURL(LaunchInfo.url).Host.empty() && !dedicated;
 	if (LaunchInfo.url.empty() || launchServer)
 		LoadMap(GetDefaultURL(packages->GetIniValue("system", "URL", "LocalMap")));
 	else
 		LoadMap(UnrealURL(GetDefaultURL(packages->GetIniValue("system", "URL", "LocalMap")), LaunchInfo.url));
 
-	LoginPlayer();
+	if (!dedicated)
+		LoginPlayer();
 
 	// A server's address to start with: joined from the menu's map, as the
 	// original's first browse does.
@@ -248,12 +255,14 @@ void Engine::Run()
 		LevelInfo->Second() = timedesc->tm_sec;
 		LevelInfo->Millisecond() = 0; // No timedesc equivalent for LevelInfo->Millisecond()
 
-		UpdateInput(realTimeElapsed);
+		if (!dedicated)
+			UpdateInput(realTimeElapsed);
 
 		SetPause(!LevelInfo->Pauser().empty());
 
 		// Do NOT pause this Tick event otherwise some messages will stay on screen forever.
-		CallEvent(console, EventName::Tick, { ExpressionValue::FloatValue(levelElapsed) });
+		if (!dedicated)
+			CallEvent(console, EventName::Tick, { ExpressionValue::FloatValue(levelElapsed) });
 
 		// To do: set these to true if the frame rate is too low
 		if (LaunchInfo.ue1Version >= 436)
@@ -297,10 +306,13 @@ void Engine::Run()
 				});
 		}
 
-		UpdateAudio();
+		if (!dedicated)
+		{
+			UpdateAudio();
 
-		viewport->SetViewportRect(0, 0, engine->window->GetPixelWidth(), engine->window->GetPixelHeight());
-		render->DrawGame(levelElapsed);
+			viewport->SetViewportRect(0, 0, engine->window->GetPixelWidth(), engine->window->GetPixelHeight());
+			render->DrawGame(levelElapsed);
+		}
 
 		// Save the game if there is a request for it
 		if (SaveGameInfo.SaveGameSlot != DONT_SAVE_GAME)
@@ -333,7 +345,8 @@ void Engine::Run()
 					// Passes the level's own TravelInfo back in, so it means to preserve it.
 					ClientTravelInfo.TravelType = ETravelType::TRAVEL_Relative;
 					LoadMap(LevelInfo->URL, Level->TravelInfo);
-					LoginPlayer();
+					if (!dedicated)
+						LoginPlayer();
 				}
 				else if (LevelInfo->bNextItems())
 				{
@@ -344,7 +357,8 @@ void Engine::Run()
 					auto travelInfo = CreateTravelInfo(true);
 					DeusExPreTravel(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()));
 					LoadMap(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()), travelInfo);
-					LoginPlayer();
+					if (!dedicated)
+						LoginPlayer();
 				}
 				else
 				{
@@ -352,7 +366,8 @@ void Engine::Run()
 					ClientTravelInfo.TravelType = ETravelType::TRAVEL_Absolute;
 					DeusExPreTravel(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()));
 					LoadMap(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()), {});
-					LoginPlayer();
+					if (!dedicated)
+						LoginPlayer();
 				}
 			}
 		}
@@ -406,7 +421,8 @@ void Engine::Run()
 
 	LogMessage("Shutting down...");
 	CloseNetDriver();
-	window->UnlockCursor();
+	if (window)
+		window->UnlockCursor();
 
 	LogMessage("Saving configurations...");
 	if (packages->MissingSESystemIni())
@@ -760,7 +776,8 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	if (url.HasOption("entry")) // Not sure what the purpose of this kind of travel is - do nothing for now.
 		return;
 
-	audiodev->StopSounds();
+	if (!LaunchInfo.dedicatedServer)
+		audiodev->StopSounds();
 	UnloadMap();
 
 	// Load map objects
@@ -793,7 +810,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	LevelInfo->HubStackLevel() = 0; // To do: handle level hubs
 	SetEngineVersion();
 	LevelInfo->bHighDetailMode() = true;
-	LevelInfo->NetMode() = asClient ? NM_Client : url.HasOption("listen") ? NM_ListenServer : NM_Standalone;
+	LevelInfo->NetMode() = asClient ? NM_Client : LaunchInfo.dedicatedServer ? NM_DedicatedServer : url.HasOption("listen") ? NM_ListenServer : NM_Standalone;
 	LevelInfo->DefaultTexture() = engine->DefaultTexture;
 
 	LevelInfo->URL = url;
@@ -839,8 +856,9 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		return;
 	}
 
-	// A server listens before its game begins, so the game's scripts see it.
-	if (url.HasOption("listen"))
+	// A server listens before its game begins, so the game's scripts see it;
+	// a dedicated one always does.
+	if (url.HasOption("listen") || LaunchInfo.dedicatedServer)
 		Listen(url);
 
 	// Find the game info class
@@ -1835,8 +1853,12 @@ float Engine::CalcTimeElapsed()
 	using namespace std::chrono;
 
 	// A client runs no more frames a second than its connection's speed over
-	// 64, as the original's GetMaxTickRate has it: 40 at the default 2,600.
+	// 64, as the original's GetMaxTickRate has it: 40 at the default 2,600. A
+	// dedicated server runs [IpDrv.TcpNetDriver]'s rate, 10 to 120: 20 on the
+	// internet, 35 on a LAN (--lanplay).
 	int maxTickRate = (LevelNetDriver && LevelNetDriver->ServerConnection) ? LevelNetDriver->ServerConnection->CurrentNetSpeed / 64 : 0;
+	if (LevelNetDriver && !LevelNetDriver->ServerConnection && LaunchInfo.dedicatedServer)
+		maxTickRate = std::clamp(LaunchInfo.lanPlay ? LevelNetDriver->LanServerMaxTickRate : LevelNetDriver->NetServerMaxTickRate, 10, 120);
 	if (maxTickRate > 0 && lastTime != 0)
 	{
 		uint64_t minDelta = 1'000'000 / (uint64_t)maxTickRate;

@@ -1100,10 +1100,21 @@ the original following, and the original's with the fork following, each
 client in the next map and playing (`TravelServeConsole`,
 `TravelJoinConsole`).
 
-Not yet, of a client: the world-stats checksum (`NoChecksum` always). Of a
-server: a dedicated server (the original's `-SERVER`). Each bunch goes on
-its own: the original merges one into the last when both are the same
-channel's, which only saves bits.
+A dedicated server too (2026-09-27): `--server`, as the original's
+`-SERVER` ([the network](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#packets)): no window,
+sound or picture, no player or console of its own, no Entry level; the map
+listens without `?listen` and travels as a listen server's does; it ticks
+`NetServerMaxTickRate` times a second, `LanServerMaxTickRate` with
+`--lanplay`. A map from the command line now has the game's port in its
+URL, as any URL has -- it had 7777, so a dedicated server's query answerer
+bound 7777, and a local game's `GetLocalURL` read `:7777/` in front of the
+map. Checked: the original and the fork joined the fork's dedicated
+DXMP_Cathedral and walked; its LAN beacon and query answerer replied
+(`listenserver` False) on their ports; it idled at under 1% of a core.
+
+Not yet, of a client: the world-stats checksum (`NoChecksum` always). Each
+bunch goes on its own: the original merges one into the last when both are
+the same channel's, which only saves bits.
 
 The scripts' sockets are the original's now (2026-09-26,
 [the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)): `InternetLink`'s

@@ -120,6 +120,8 @@ void NetDriver::LoadSettings()
 	MaxClientRate = IniInt("IpDrv.TcpNetDriver", "MaxClientRate", MaxClientRate);
 	DynamicUpdateRate = IniInt("IpDrv.TcpNetDriver", "DynamicUpdateRate", DynamicUpdateRate);
 	StaticUpdateRate = IniInt("IpDrv.TcpNetDriver", "StaticUpdateRate", StaticUpdateRate);
+	NetServerMaxTickRate = IniInt("IpDrv.TcpNetDriver", "NetServerMaxTickRate", NetServerMaxTickRate);
+	LanServerMaxTickRate = IniInt("IpDrv.TcpNetDriver", "LanServerMaxTickRate", LanServerMaxTickRate);
 	std::string allowDownloads = engine->packages->GetIniValue("system", "IpDrv.TcpNetDriver", "AllowDownloads");
 	if (!allowDownloads.empty())
 		AllowDownloads = StrTools::equals_ignore_case(allowDownloads, "True") || allowDownloads == "1";

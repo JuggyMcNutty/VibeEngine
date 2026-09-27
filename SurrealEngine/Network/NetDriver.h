@@ -83,6 +83,9 @@ public:
 	int MaxClientRate = 20000;
 	int DynamicUpdateRate = 40;
 	int StaticUpdateRate = 12;
+	// A dedicated server's ticks a second, on the internet and on a LAN.
+	int NetServerMaxTickRate = 20;
+	int LanServerMaxTickRate = 35;
 	// A client's: whether it fetches a package it lacks from the server.
 	bool AllowDownloads = true;
 

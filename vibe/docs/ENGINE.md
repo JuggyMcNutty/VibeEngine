@@ -137,6 +137,9 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 
 - `--no-launcher` (or a game folder on the command line) skips upstream's
   desktop launcher window (patch 0001).
+- **`--server`** runs a dedicated server of the `--url` map, as the
+  original's `-SERVER`: no window, sound or player; `--lanplay` gives it the
+  LAN tick rate ([multiplayer](NATIVES.md#multiplayer)).
 - **Maps are `--url=<map>` only.** `-u <map>` sets an empty `-u` and the map name
   becomes a stray argument, so the intro loads with no warning.
 - **The engine ignores SIGTERM**: stop it with SIGKILL (`timeout -s KILL`). That

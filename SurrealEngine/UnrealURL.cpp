@@ -29,7 +29,11 @@ UnrealURL::UnrealURL(const UnrealURL& baseURL, const UnrealURL& nextURL)
 // original's FURL defaults it.
 static int DefaultPort()
 {
-	return engine ? std::atoi(engine->packages->GetIniValue("system", "URL", "Port", "7777").c_str()) : 7777;
+	return engine && engine->packages ? std::atoi(engine->packages->GetIniValue("system", "URL", "Port", "7777").c_str()) : 7777;
+}
+
+UnrealURL::UnrealURL() : Port(DefaultPort())
+{
 }
 
 UnrealURL::UnrealURL(std::string urlString)

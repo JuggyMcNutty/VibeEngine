@@ -56,6 +56,8 @@ GameLaunchInfo GameFolderSelection::GetLaunchInfo(int selectedGame)
 	info.url = commandline->GetArg("-u", "--url", info.url);
 	info.systemIniPath = commandline->GetArg("", "--ini", info.systemIniPath);
 	info.userIniPath = commandline->GetArg("", "--userini", info.userIniPath);
+	info.dedicatedServer = commandline->HasArg("", "--server") || info.dedicatedServer;
+	info.lanPlay = commandline->HasArg("", "--lanplay") || info.lanPlay;
 	return info;
 }
 
