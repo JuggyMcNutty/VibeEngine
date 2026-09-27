@@ -956,3 +956,14 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   bool its default ([mods](NATIVES.md#mods)). **Checked:** a fork
   server's beacon and GameSpy answers the original's word for word, the
   empty `ServerName=` included.
+- [**a repeated config key**](https://github.com/JuggyMcNutty/VibeEngine/commit/e51ba7b02d8fc6a84b007276fb1eef1bdc6c4487) --
+  of a key given twice in a section the last value counts, as the
+  original's ([mods](NATIVES.md#mods)). **Checked:** a user ini with
+  `ngWorldSecret` twice gives `PlayerPawn`'s default the last, as the
+  original's player has it.
+- [**a login's checksum and options**](https://github.com/JuggyMcNutty/VibeEngine/commit/572d9543ba70989cafe5d88c2a6ae04a393d72dc) --
+  the world stats checksum the original's login carries, and only the
+  player options the user ini has in the travel URL; the harness's
+  `DXCAP_STATS` ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the
+  original's and the fork's logins to a server logging world stats alike
+  to the byte.
