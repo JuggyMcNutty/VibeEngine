@@ -654,6 +654,8 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Engine/Resources/Mesh/UStaticMesh.cpp
 	SurrealEngine/Packages/Engine/Resources/Mesh/UStaticMesh.h
 	SurrealEngine/Packages/Engine/Resources/Textures/UBitmap.h
+	SurrealEngine/Packages/Engine/Resources/Textures/FireEngine.cpp
+	SurrealEngine/Packages/Engine/Resources/Textures/FireEngine.h
 	SurrealEngine/Packages/Engine/Resources/Textures/UFireTexture.cpp
 	SurrealEngine/Packages/Engine/Resources/Textures/UFireTexture.h
 	SurrealEngine/Packages/Engine/Resources/Textures/UFractalTexture.cpp

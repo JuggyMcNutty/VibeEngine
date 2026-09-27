@@ -2,8 +2,8 @@
 #include "Precomp.h"
 #include "UWaveTexture.h"
 
-void UWaveTexture::UpdateFrame()
+void UWaveTexture::Prepare()
 {
-	// What is the difference between a water texture and a wave texture?
-	UWaterTexture::UpdateFrame();
+	UWaterTexture::Prepare();
+	FireEngine::BuildWaveLight(RenderTable().data(), WaveAmp(), BumpMapLight(), BumpMapAngle(), PhongRange(), PhongSize());
 }

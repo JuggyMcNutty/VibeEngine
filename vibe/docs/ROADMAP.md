@@ -136,6 +136,11 @@ All read; the inventory is
 - [x] Blend animations: head turns and lip sync (2026-09-25;
       [its section](NATIVES.md#head-turns-and-lip-sync-blend-animations)
       has what changed and the by-hand checks).
+- [x] The fractal textures -- fire, water, wet, wave and ice -- as
+      `Fire.dll` steps and draws them, checked against its own routines;
+      a mesh's textures chosen, animated, masked and re-uploaded as the
+      original's (2026-09-27; [its section](NATIVES.md#fire-water-and-ice-textures)
+      has what changed and the by-hand checks).
 - [x] `D3DDrv.dll` read (2026-09-25; [decided 4](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#decided)):
       whether a reimplemented look matches is judged through the original's
       display driver -- gamma, the light maps' brightness, fog, detail

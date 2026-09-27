@@ -7,6 +7,8 @@
 #include "Engine.h"
 #include "VM/Frame.h"
 #include "Packages/Engine/Actors/Pawn/UPawn.h"
+#include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
+#include "Packages/Engine/UViewport.h"
 #include "Packages/Engine/Actors/Inventory/UWeapon.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
@@ -157,9 +159,12 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, UActor* lightLoca
 			continue;
 
 		uint32_t renderflags = tri.PolyFlags | polyflags;
-		UTexture* tex = (renderflags & PF_Environment) ? engine->render->Mesh.envmap : engine->render->Mesh.textures[tri.TextureIndex];
+		UTexture* tex = engine->render->Mesh.textures[tri.TextureIndex];
+		if (!tex || (renderflags & PF_Environment))
+			tex = engine->render->Mesh.envmap;
 		if (!tex)
 			continue;
+		renderflags |= tex->PolyFlags() & PF_Masked;
 
 		bool isTranslucent = (renderflags & (PF_Translucent | PF_Modulated | PF_Highlighted)) != 0;
 		if (isTranslucent && !translucentPass)
@@ -172,8 +177,6 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, UActor* lightLoca
 			// We already drew the opaque surface
 			continue;
 		}
-
-		engine->render->UpdateTexture(tex);
 
 		TextureInfo texinfo;
 		engine->render->UpdateTextureInfo(texinfo, tex);
@@ -273,129 +276,62 @@ bool VisibleMesh::DrawLodMesh(VisibleFrame* frame, UActor* actor, UActor* lightL
 		vertexOffsets[2] = seq->StartFrame * mesh->FrameVerts;
 	}
 
-	SetupLodMeshTextures(actor, mesh);
+	SetupMeshTextures(actor, mesh);
 	FindAttachmentPoints(mesh, ObjectToWorld, vertexOffsets, t0, t1);
 	return DrawLodMeshFace(frame, actor, lightLocationActor, mesh, mesh->Faces, ObjectToWorld, ObjectNormalToWorld, mesh->SpecialVerts, vertexOffsets, t0, t1, translucentPass);
 }
 
+// Each of the mesh's texture slots as the original fills it (UMesh::GetTexture):
+// the actor's MultiSkins entry; else the mesh's own texture -- the Skin
+// before it in slot 0 --, then the Skin; else none. Each is brought up to date
+// and shown at its animation's current frame. What a face with none, or an
+// environment-mapped face, draws with is the environment map: the actor's
+// Texture, its zone's map, the level's, or at last the last slot's texture.
+// The viewer's Sprite, when it has one (Deus Ex's Matrix easter egg), stands
+// in for all of them.
 void VisibleMesh::SetupMeshTextures(UActor* actor, UMesh* mesh)
 {
-	if (engine->render->Mesh.textures.size() < mesh->Textures.size())
-		engine->render->Mesh.textures.resize(mesh->Textures.size());
+	auto& textures = engine->render->Mesh.textures;
+	if (textures.size() < mesh->Textures.size())
+		textures.resize(mesh->Textures.size());
 
-	engine->render->Mesh.envmap = nullptr;
+	UTexture* sprite = nullptr;
+	if (UPlayerPawn* viewer = UObject::TryCast<UPlayerPawn>(engine->viewport->Actor()))
+		sprite = viewer->Sprite();
 
+	UTexture* last = nullptr;
 	for (int i = 0; i < (int)mesh->Textures.size(); i++)
 	{
-		// Multiskins always take precedent
 		UTexture* tex = actor->GetMultiskin(i);
 		if (!tex)
 		{
-			// Skin acts as MultiSkin[0], unless the mesh group has no texture
-			if (!mesh->Textures[i] || i == 0)
+			tex = (i != 0) ? mesh->Textures[i] : nullptr;
+			if (!tex)
 				tex = actor->Skin();
-
-			// Check mesh skin next
 			if (!tex)
 				tex = mesh->Textures[i];
-
-			// Check texture
-			if (!tex)
-				tex = actor->Texture();
-
-			// Get the last multiskin
-			if (!tex)
-			{
-				for (int j = 0; j < mesh->Textures.size(); j++)
-				{
-					UTexture* multiskin = actor->GetMultiskin(j);
-					if (multiskin)
-						tex = multiskin;
-				}
-			}
 		}
-
-		//if (tex)
-		//{
-		//	tex = tex->GetAnimTexture();
-		//	Mesh.envmap = tex;
-		//}
-
-		engine->render->Mesh.textures[i] = tex;
-	}
-
-	if (actor->Texture())
-	{
-		engine->render->Mesh.envmap = actor->Texture();
-	}
-	else if (actor->Region().Zone && actor->Region().Zone->EnvironmentMap())
-	{
-		engine->render->Mesh.envmap = actor->Region().Zone->EnvironmentMap();
-	}
-	else if (actor->Level()->EnvironmentMap())
-	{
-		engine->render->Mesh.envmap = actor->Level()->EnvironmentMap();
-	}
-}
-
-void VisibleMesh::SetupLodMeshTextures(UActor* actor, ULodMesh* mesh)
-{
-	if (engine->render->Mesh.textures.size() < mesh->Textures.size())
-		engine->render->Mesh.textures.resize(mesh->Textures.size());
-
-	engine->render->Mesh.envmap = nullptr;
-
-	for (int i = 0; i < (int)mesh->Textures.size(); i++)
-	{
-		// Multiskins always take precedent
-		UTexture* tex = actor->GetMultiskin(i);
-		if (!tex)
+		if (sprite)
+			tex = sprite;
+		if (tex)
 		{
-			// Skin acts as MultiSkin[0], unless the mesh group has no texture
-			if (!mesh->Textures[i] || i == 0)
-				tex = actor->Skin();
-
-			// Check mesh skin next
-			if (!tex)
-				tex = mesh->Textures[i];
-
-			// Check texture
-			if (!tex)
-				tex = actor->Texture();
-
-			// Get the last multiskin
-			if (!tex)
-			{
-				for (int j = 0; j < mesh->Materials.size(); j++)
-				{
-					UTexture* multiskin = actor->GetMultiskin(j);
-					if (multiskin)
-						tex = multiskin;
-				}
-			}
+			engine->render->UpdateTexture(tex);
+			tex = tex->GetAnimTexture();
+			last = tex;
 		}
-
-		//if (tex)
-		//{
-		//	tex = tex->GetAnimTexture();
-		//	Mesh.envmap = tex;
-		//}
-
-		engine->render->Mesh.textures[i] = tex;
+		textures[i] = tex;
 	}
 
-	if (actor->Texture())
-	{
-		engine->render->Mesh.envmap = actor->Texture();
-	}
-	else if (actor->Region().Zone && actor->Region().Zone->EnvironmentMap())
-	{
-		engine->render->Mesh.envmap = actor->Region().Zone->EnvironmentMap();
-	}
-	else if (actor->Level()->EnvironmentMap())
-	{
-		engine->render->Mesh.envmap = actor->Level()->EnvironmentMap();
-	}
+	UTexture* envmap = actor->Texture();
+	if (!envmap && actor->Region().Zone)
+		envmap = actor->Region().Zone->EnvironmentMap();
+	if (!envmap)
+		envmap = actor->Level()->EnvironmentMap();
+	if (!envmap)
+		envmap = last;
+	if (sprite)
+		envmap = sprite;
+	engine->render->Mesh.envmap = envmap;
 }
 
 void VisibleMesh::FindAttachmentPoints(ULodMesh* mesh, const mat4& ObjectToWorld, const int* vertexOffsets, float t0, float t1)
@@ -471,11 +407,14 @@ bool VisibleMesh::DrawLodMeshFace(VisibleFrame* frame, UActor* actor, UActor* li
 			continue;
 
 		uint32_t renderflags = material.PolyFlags | polyFlags;
-		UTexture* tex = (renderflags & PF_Environment) ? engine->render->Mesh.envmap : engine->render->Mesh.textures[material.TextureIndex];
+		UTexture* tex = engine->render->Mesh.textures[material.TextureIndex];
+		if (!tex || (renderflags & PF_Environment))
+			tex = engine->render->Mesh.envmap;
 
 		// skip if no texture
 		if (!tex)
 			continue;
+		renderflags |= tex->PolyFlags() & PF_Masked;
 
 		bool isTranslucent = (renderflags & (PF_Translucent | PF_Modulated | PF_Highlighted)) != 0;
 		if (isTranslucent && !translucentPass)
@@ -488,8 +427,6 @@ bool VisibleMesh::DrawLodMeshFace(VisibleFrame* frame, UActor* actor, UActor* li
 			// We already drew the opaque surface
 			continue;
 		}
-
-		engine->render->UpdateTexture(tex);
 
 		TextureInfo texinfo;
 		engine->render->UpdateTextureInfo(texinfo, tex);
@@ -692,9 +629,12 @@ bool VisibleMesh::DrawMeshDX(VisibleFrame* frame, UActor* actor, UActor* lightLo
 			continue;
 
 		uint32_t renderflags = tri.PolyFlags | polyflags;
-		UTexture* tex = (renderflags & PF_Environment) ? engine->render->Mesh.envmap : engine->render->Mesh.textures[tri.TextureIndex];
+		UTexture* tex = engine->render->Mesh.textures[tri.TextureIndex];
+		if (!tex || (renderflags & PF_Environment))
+			tex = engine->render->Mesh.envmap;
 		if (!tex)
 			continue;
+		renderflags |= tex->PolyFlags() & PF_Masked;
 
 		bool isTranslucent = (renderflags & (PF_Translucent | PF_Modulated | PF_Highlighted)) != 0;
 		if (isTranslucent && !translucentPass)
@@ -707,8 +647,6 @@ bool VisibleMesh::DrawMeshDX(VisibleFrame* frame, UActor* actor, UActor* lightLo
 			// We already drew the opaque surface
 			continue;
 		}
-
-		engine->render->UpdateTexture(tex);
 
 		TextureInfo texinfo;
 		engine->render->UpdateTextureInfo(texinfo, tex);
@@ -889,7 +827,7 @@ bool VisibleMesh::DrawLodMeshDX(VisibleFrame* frame, UActor* actor, UActor* ligh
 		}
 	}
 
-	SetupLodMeshTextures(actor, mesh);
+	SetupMeshTextures(actor, mesh);
 	FindAttachmentPoints(mesh, ObjectToWorld, vertexOffsets, t0, t1);
 	return DrawLodMeshFaceDX(frame, actor, lightLocationActor, mesh, mesh->Faces, ObjectToWorld, ObjectNormalToWorld, mesh->SpecialVerts, vertexOffsets, t0, t1, translucentPass, blends, blendCount);
 }
@@ -1071,11 +1009,14 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 			continue;
 
 		uint32_t renderflags = material.PolyFlags | polyFlags;
-		UTexture* tex = (renderflags & PF_Environment) ? engine->render->Mesh.envmap : engine->render->Mesh.textures[material.TextureIndex];
+		UTexture* tex = engine->render->Mesh.textures[material.TextureIndex];
+		if (!tex || (renderflags & PF_Environment))
+			tex = engine->render->Mesh.envmap;
 
 		// skip if no texture
 		if (!tex)
 			continue;
+		renderflags |= tex->PolyFlags() & PF_Masked;
 
 		bool isTranslucent = (renderflags & (PF_Translucent | PF_Modulated | PF_Highlighted)) != 0;
 		if (isTranslucent && !translucentPass)
@@ -1093,19 +1034,13 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 		if (tex != texinfoTexture || drawFlags != batchFlags)
 			drawBatch();
 
-		engine->render->UpdateTexture(tex);
-
-		// The texture's info again for the next face with it, as UpdateTextureInfo
-		// would give it: its modified flag is handed out once and cleared.
+		// The texture's info once for all its faces: its modified flag stays
+		// set until the device takes it with the first batch drawn.
 		if (tex != texinfoTexture)
 		{
 			texinfo = {};
 			engine->render->UpdateTextureInfo(texinfo, tex);
 			texinfoTexture = tex;
-		}
-		else
-		{
-			texinfo.bRealtimeChanged = false;
 		}
 
 		float uscale = (texinfo.Texture ? texinfo.Texture->UsedMipmaps.front().Width : 256) * (1.0f / 255.0f);

@@ -88,37 +88,47 @@ void UTexture::Save(PackageStreamWriter* stream)
 	}
 }
 
+// The original steps a texture from its Update, at most once a frame that
+// draws it (UTexture::Tick): PrimeCount steps the first time, then a step a
+// frame with no MaxFrameRate, else one once 1/MaxFrameRate has built up, the
+// excess kept up to 1/MinFrameRate. With no MaxFrameRate a step comes at
+// most 60 times a second here, as at the original's 60 frames.
 void UTexture::Update(float elapsed)
 {
-	if (!Primed)
+	if (!Prepared)
 	{
-		// Fire textures needs to run for a bit before showing them for the first time
-		for (int i = 0, count = PrimeCount(); i < count; i++)
+		Prepared = true;
+		Prepare();
+	}
+
+	while (PrimeCurrent() < PrimeCount())
+	{
+		PrimeCurrent()++;
+		UpdateFrame();
+	}
+
+	if (MaxFrameRate() == 0.0f)
+	{
+		const float step = 1.0f / 60.0f;
+		FrameTime += elapsed;
+		if (FrameTime >= step)
 		{
-			TextureModified = false;
+			FrameTime = std::min(FrameTime - step, step);
 			UpdateFrame();
 		}
-		PrimeCurrent() = PrimeCount();
-		Primed = true;
+		return;
 	}
 
-	float maxFrameRate = MaxFrameRate();
-	if (maxFrameRate <= 0.0f)
-		maxFrameRate = 25.0f; // Original game wasn't designed for 240 hz monitors!
-
+	float minInterval = 1.0f / clamp(MaxFrameRate(), 0.01f, 100.0f);
+	float maxInterval = 1.0f / clamp(MinFrameRate(), 0.01f, 100.0f);
 	Accumulator() += elapsed;
-
-	float animationSpeed = 1.0f / maxFrameRate;
-	for (int iteration = 0; Accumulator() > animationSpeed; iteration++)
-	{
-		UpdateFrame();
-		Accumulator() -= animationSpeed;
-		if (iteration == 10)
-		{
-			Accumulator() = 0.0f;
-			break;
-		}
-	}
+	if (Accumulator() < minInterval)
+		return;
+	UpdateFrame();
+	if (Accumulator() >= maxInterval)
+		Accumulator() = std::min(Accumulator() - maxInterval, maxInterval);
+	else
+		Accumulator() = 0.0f;
 }
 
 void UTexture::UpdateFrame()

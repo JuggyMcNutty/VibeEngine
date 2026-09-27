@@ -1,26 +1,24 @@
 
 #include "Precomp.h"
 #include "UFireTexture.h"
-#include <cstring>
 
 void UFireTexture::Load(ObjectStream* stream)
 {
 	UFractalTexture::Load(stream);
 
-	auto& sparks = Sparks;
 	int size = stream->ReadIndex();
+	Sparks.resize(size);
 	for (int i = 0; i < size; i++)
 	{
-		Spark spark;
-		spark.Type = (ESpark)stream->ReadUInt8();
+		FireEngine::Spark& spark = Sparks[i];
+		spark.Type = stream->ReadUInt8();
 		spark.Heat = stream->ReadUInt8();
 		spark.X = stream->ReadUInt8();
 		spark.Y = stream->ReadUInt8();
-		spark.ByteA = stream->ReadUInt8();
-		spark.ByteB = stream->ReadUInt8();
-		spark.ByteC = stream->ReadUInt8();
-		spark.ByteD = stream->ReadUInt8();
-		sparks.push_back(spark);
+		spark.A = stream->ReadUInt8();
+		spark.B = stream->ReadUInt8();
+		spark.C = stream->ReadUInt8();
+		spark.D = stream->ReadUInt8();
 	}
 }
 
@@ -28,352 +26,92 @@ void UFireTexture::Save(PackageStreamWriter* stream)
 {
 	UFractalTexture::Save(stream);
 
-	auto& sparks = Sparks;
-	stream->WriteIndex((int)sparks.size());
-	for (const Spark& spark : sparks)
+	// The sparks placed in the editor, not the ones they let go (31 on).
+	int count = 0;
+	for (int i = 0; i < std::min(NumSparks(), (int)Sparks.size()); i++)
 	{
-		stream->WriteUInt8((uint8_t)spark.Type);
+		if (Sparks[i].Type < 31)
+			count++;
+	}
+	stream->WriteIndex(count);
+	for (int i = 0; i < std::min(NumSparks(), (int)Sparks.size()); i++)
+	{
+		const FireEngine::Spark& spark = Sparks[i];
+		if (spark.Type >= 31)
+			continue;
+		stream->WriteUInt8(spark.Type);
 		stream->WriteUInt8(spark.Heat);
 		stream->WriteUInt8(spark.X);
 		stream->WriteUInt8(spark.Y);
-		stream->WriteUInt8(spark.ByteA);
-		stream->WriteUInt8(spark.ByteB);
-		stream->WriteUInt8(spark.ByteC);
-		stream->WriteUInt8(spark.ByteD);
+		stream->WriteUInt8(spark.A);
+		stream->WriteUInt8(spark.B);
+		stream->WriteUInt8(spark.C);
+		stream->WriteUInt8(spark.D);
 	}
 }
 
-static void SetPixel(uint8_t* pixels, int x, int y, int width, int height, uint8_t value)
+// The original's constructor and PostLoad: masks, never masked itself, the
+// colours for RenderHeat, and room for SparksLimit sparks.
+void UFireTexture::Prepare()
 {
-	if (x >= 0 && y >= 0 && x < width && y < height)
+	FireEngine::InitTables();
+	UMask() = USize() - 1;
+	VMask() = VSize() - 1;
+	bMasked() = false;
+	StarStatus() = 1;
+
+	if (OldRenderHeat() != RenderHeat())
 	{
-		pixels[x + y * width] = value;
+		FireEngine::BuildFireRenderTable(RenderTable().data(), RenderHeat());
+		OldRenderHeat() = RenderHeat();
 	}
+
+	SparksLimit() = clamp(SparksLimit(), 4, 0x2000);
+	int limit = SparksLimit();
+	NumSparks() = std::min(NumSparks(), (int)Sparks.size());
+	if (NumSparks() > limit)
+	{
+		// Over the limit, what the sparks let go goes first.
+		for (int i = NumSparks() - 1; i >= 0 && NumSparks() > limit; i--)
+		{
+			if (Sparks[i].Type >= 31)
+				Sparks[i] = Sparks[--NumSparks()];
+		}
+		NumSparks() = std::min(NumSparks(), limit);
+	}
+	size_t oldSize = Sparks.size();
+	Sparks.resize(limit);
+	for (size_t i = oldSize; i < Sparks.size(); i++)
+		Sparks[i] = {};
 }
 
+// The original's ConstantTimeTick: the sparks, the pass, the stars.
 void UFireTexture::UpdateFrame()
 {
-	if (!TextureModified)
-	{
-		UnrealMipmap& mipmap = UsedMipmaps.front();
+	UnrealMipmap& mipmap = UsedMipmaps.front();
+	if (mipmap.Width < 8 || mipmap.Height < 8 || Sparks.empty())
+		return;
 
-		int width = mipmap.Width;
-		int height = mipmap.Height;
-		uint8_t* pixels = (uint8_t*)mipmap.Data.data();
+	FireEngine::Fire fire;
+	fire.Bits = mipmap.Data.data();
+	fire.UBits = mipmap.UBits;
+	fire.UMask = mipmap.Width - 1;
+	fire.VMask = mipmap.Height - 1;
+	fire.Sparks = Sparks.data();
+	fire.SparksLimit = (int)Sparks.size();
+	fire.NumSparks = NumSparks();
+	fire.GlobalPhase = GlobalPhase();
+	fire.AuxPhase = AuxPhase();
+	fire.FX_Frequency = FX_Frequency();
+	fire.StarStatus = StarStatus();
 
-		auto& sparks = Sparks;
-		for (size_t i = 0; i < sparks.size(); i++)
-		{
-			Spark& spark = sparks[i];
-			bool canEmit = sparks.size() + Particles.size() < (size_t)SparksLimit();
-			switch (spark.Type)
-			{
-			default: // Always create some output as otherwise textures might completely disappear
-			case ESpark::Eels: // This is the amp powerup effect
-			case ESpark::Sparkle: // Intro fire effect
-			{
-				int x = (spark.X + (RandomByteValue() * spark.ByteA + 128) / 256) % width;
-				int y = (spark.Y + (RandomByteValue() * spark.ByteB + 128) / 256) % height;
-				SetPixel(pixels, x, y, width, height, spark.Heat);
-				break;
-			}
-			case ESpark::Pulse:
-			{
-				int x = (spark.X + (RandomByteValue() * spark.ByteA + 128) / 256) % width;
-				int y = (spark.Y + (RandomByteValue() * spark.ByteB + 128) / 256) % height;
-				SetPixel(pixels, x, y, width, height, spark.Heat);
-				spark.Heat = spark.Heat + spark.Pulse.Speed;
-				break;
-			}
-			case ESpark::Signal:
-			{
-				int x = (spark.X + (RandomByteValue() * spark.ByteA + 128) / 256) % width;
-				int y = (spark.Y + (RandomByteValue() * spark.ByteB + 128) / 256) % height;
-				if (spark.Heat > spark.Signal.Frequency)
-					SetPixel(pixels, x, y, width, height, spark.Heat);
-				if ((int)spark.Heat + spark.Signal.Speed < 256)
-					spark.Heat = spark.Heat + spark.Signal.Speed;
-				else
-					spark.Heat = RandomByteValue();
-				break;
-			}
-			case ESpark::Burn:
-			{
-				int x = spark.X;
-				int y = spark.Y;
-				SetPixel(pixels, x, y, width, height, RandomByteValue());
-				break;
-			}
-			case ESpark::Wheel:
-			{
-				if (canEmit)
-				{
-					SparkParticle particle;
-					particle.Type = SparkParticleType::Twirl;
-					particle.Twirl.X = spark.X + 0.5f;
-					particle.Twirl.Y = spark.Y + 0.5f;
-					particle.Twirl.Heat = spark.Heat;
-					particle.Twirl.Angle = radians(spark.Wheel.Angle * (360.0f / 256));
-					particle.Twirl.RotSpeed = radians(spark.Wheel.TwirlRotSpeed * (16.0f / 256) * (360.0f / 256));
-					particle.Twirl.Age = spark.Wheel.TwirlAge;
-					Particles.push_back(particle);
-				}
-				spark.Wheel.Angle += spark.Wheel.RotSpeed;
-				break;
-			}
-			case ESpark::Emit:
-			{
-				if (canEmit && RandomByteValue() < 64)
-				{
-					SparkParticle particle;
-					particle.Type = SparkParticleType::Drift;
-					particle.Drift.X = spark.X + 0.5f;
-					particle.Drift.Y = spark.Y + 0.5f;
-					particle.Drift.Heat = spark.Heat;
-					particle.Drift.HeatDecay = spark.Emit.HeatDecay;
-					particle.Drift.SpeedX = ((int8_t)spark.Emit.SpeedX) * (1.0f / 128.0f);
-					particle.Drift.SpeedY = ((int8_t)spark.Emit.SpeedY) * (1.0f / 128.0f);
-					Particles.push_back(particle);
-				}
-				break;
-			}
-			case ESpark::OzHasSpoken:
-			{
-				if (canEmit && RandomByteValue() < 128)
-				{
-					SparkParticle particle;
-					particle.Type = SparkParticleType::Drift;
-					particle.Drift.X = spark.X + 0.5f;
-					particle.Drift.Y = spark.Y + 0.5f;
-					particle.Drift.Heat = spark.Heat;
-					particle.Drift.HeatDecay = 5;
-					particle.Drift.SpeedX = (RandomByteValue() / 255.0f) * 2.0f - 1.0f;
-					particle.Drift.SpeedY = -0.5f;
-					Particles.push_back(particle);
-				}
-				break;
-			}
-			case ESpark::Blaze: // Torches (all directions)
-			{
-				if (canEmit && RandomByteValue() < 128)
-				{
-					SparkParticle particle;
-					particle.Type = SparkParticleType::Drift;
-					particle.Drift.X = spark.X + 0.5f;
-					particle.Drift.Y = spark.Y + 0.5f;
-					particle.Drift.Heat = spark.Heat;
-					particle.Drift.HeatDecay = 5;
-					particle.Drift.SpeedX = (RandomByteValue() / 255.0f) * 2.0f - 1.0f;
-					particle.Drift.SpeedY = (RandomByteValue() / 255.0f) * 2.0f - 1.0f;
-					Particles.push_back(particle);
-				}
-				break;
-			}
-			case ESpark::BlazeLeft: // Torches (to the left with gravity)
-			{
-				if (canEmit && RandomByteValue() < 64)
-				{
-					SparkParticle particle;
-					particle.Type = SparkParticleType::DriftGravity;
-					particle.DriftGravity.X = spark.X + 0.5f;
-					particle.DriftGravity.Y = spark.Y + 0.5f;
-					particle.DriftGravity.Age = spark.BlazeLeftRight.Age;
-					particle.DriftGravity.Heat = spark.Heat;
-					particle.DriftGravity.SpeedX = -0.5f - RandomByteValue() / 255.0f * 0.5f;
-					particle.DriftGravity.SpeedY = -0.1f;
-					Particles.push_back(particle);
-				}
-				break;
-			}
-			case ESpark::BlazeRight: // Torches (to the right with gravity)
-			{
-				if (canEmit && RandomByteValue() < 64)
-				{
-					SparkParticle particle;
-					particle.Type = SparkParticleType::DriftGravity;
-					particle.DriftGravity.X = spark.X + 0.5f;
-					particle.DriftGravity.Y = spark.Y + 0.5f;
-					particle.DriftGravity.Age = spark.BlazeLeftRight.Age;
-					particle.DriftGravity.Heat = spark.Heat;
-					particle.DriftGravity.SpeedX = 0.5f + RandomByteValue() / 255.0f * 0.5f;
-					particle.DriftGravity.SpeedY = -0.1f;
-					Particles.push_back(particle);
-				}
-				break;
-			}
-			case ESpark::Cone: // Torches (center with gravity)
-			{
-				if (canEmit && RandomByteValue() < 64)
-				{
-					SparkParticle particle;
-					particle.Type = SparkParticleType::DriftGravity;
-					particle.DriftGravity.X = spark.X + 0.5f;
-					particle.DriftGravity.Y = spark.Y + 0.5f;
-					particle.DriftGravity.Age = 50;
-					particle.DriftGravity.Heat = spark.Heat;
-					particle.DriftGravity.SpeedX = (RandomByteValue() / 255.0f) - 0.5f;
-					particle.DriftGravity.SpeedY = 0.0f;
-					Particles.push_back(particle);
-				}
-				break;
-			}
-			case ESpark::SphereLightning:
-			{
-				if (RandomByteValue() >= spark.SphereLightning.Frequency)
-				{
-					// Worst lightning line implementation ever, but it will do, maybe!
-					float angle = radians(RandomByteValue() * (360.0f / 256));
-					float radius = spark.SphereLightning.Radius * 0.50f;
-					float x0 = spark.X + 0.5f;
-					float y0 = spark.Y + 0.5f;
-					float dx = std::cos(angle);
-					float dy = std::sin(angle);
-					int color0 = spark.Heat;
-					int color1 = spark.Heat / 4;
-					for (float i = 0; i < radius; i += 0.5f)
-					{
-						float t = i / radius;
-						int c = (int)(color0 + (color1 - color0) * t + 0.5f);
-						int x = (int)(x0 + dx * i);
-						int y = (int)(y0 + dy * i);
-						if (x < 0) x += width;
-						else if (x >= width) x -= width;
-						if (y < 0) y += height;
-						else if (y >= height) y -= height;
-						SetPixel(pixels, x, y, width, height, c);
+	FireEngine::RedrawSparks(fire);
+	FireEngine::FirePass(fire.Bits, RenderTable().data(), mipmap.Width, mipmap.Height, bRising());
+	FireEngine::PostDrawSparks(fire);
 
-						x0 += (float)(rand() * 2.0 / RAND_MAX - 1.0);
-						y0 += (float)(rand() * 2.0 / RAND_MAX - 1.0);
-					}
-				}
-				break;
-			}
-			}
-		}
-
-		for (size_t i = 0; i < Particles.size(); i++)
-		{
-			SparkParticle& particle = Particles[i];
-			switch (particle.Type)
-			{
-			case SparkParticleType::Twirl:
-			{
-				if (particle.Twirl.Age > 0)
-				{
-					int x = (int)particle.Twirl.X;
-					int y = (int)particle.Twirl.Y;
-					if (x < 0) x += width; else if (x >= width) x -= width;
-					if (y < 0) y += height; else if (y >= height) y -= height;
-					SetPixel(pixels, x, y, width, height, particle.Twirl.Heat);
-
-					float angle = particle.Twirl.Angle;
-					float dx = std::sin(angle);
-					float dy = std::cos(angle);
-
-					particle.Twirl.X += dx * 0.5f;
-					particle.Twirl.Y += dy * 0.5f;
-					particle.Twirl.Angle += particle.Twirl.RotSpeed;
-					particle.Twirl.Age--;
-				}
-				else
-				{
-					particle = Particles.back();
-					Particles.pop_back();
-				}
-				break;
-			}
-			case SparkParticleType::Drift:
-			{
-				particle.Drift.Heat -= particle.Drift.HeatDecay;
-				if (particle.Drift.Heat > 0)
-				{
-					int x = (int)particle.Drift.X;
-					int y = (int)particle.Drift.Y;
-					if (x < 0) x += width; else if (x >= width) x -= width;
-					if (y < 0) y += height; else if (y >= height) y -= height;
-					SetPixel(pixels, x, y, width, height, particle.Drift.Heat);
-
-					particle.Drift.X += particle.Drift.SpeedX;
-					particle.Drift.Y += particle.Drift.SpeedY;
-				}
-				else
-				{
-					particle = Particles.back();
-					Particles.pop_back();
-				}
-				break;
-			}
-			case SparkParticleType::DriftGravity:
-			{
-				particle.DriftGravity.Age--;
-				if (particle.DriftGravity.Age > 0)
-				{
-					int x = (int)particle.DriftGravity.X;
-					int y = (int)particle.DriftGravity.Y;
-					if (x < 0) x += width; else if (x >= width) x -= width;
-					if (y < 0) y += height; else if (y >= height) y -= height;
-					SetPixel(pixels, x, y, width, height, particle.DriftGravity.Heat);
-
-					float gravity = 0.025f;
-					float terminalVelocity = 1.0f;
-					particle.DriftGravity.X += particle.DriftGravity.SpeedX * 0.5f;
-					particle.DriftGravity.Y += particle.DriftGravity.SpeedY * 0.5f;
-					particle.DriftGravity.SpeedY = std::min(particle.DriftGravity.SpeedY + gravity, terminalVelocity);
-				}
-				else
-				{
-					particle = Particles.back();
-					Particles.pop_back();
-				}
-				break;
-			}
-			}
-		}
-
-		if (CurrentRenderHeat != RenderHeat())
-		{
-			CurrentRenderHeat = RenderHeat();
-			float heatLoss = 1.0f - (255 - CurrentRenderHeat) / 16.0f;
-			for (int i = 0; i < 4 * 256; i++)
-			{
-				FadeTable[i] = (uint8_t)clamp(i * 0.25f + heatLoss, 0.0f, 255.0f);
-			}
-		}
-
-		WorkBuffer.resize(width * height);
-		uint8_t* buffer = WorkBuffer.data();
-
-		int rising = bRising() ? 1 : 0;
-		for (int y = 0; y < height; y++)
-		{
-			uint8_t* destLine = buffer + y * width;
-			uint8_t* srcLine = pixels + ((y + rising) % height) * width;
-			uint8_t* nextLine = pixels + ((y + rising + 1) % height) * width;
-			{
-				int left = srcLine[width - 1];
-				int center = srcLine[0];
-				int right = srcLine[1];
-				int bottom = nextLine[0];
-				destLine[0] = FadeTable[left + center + right + bottom];
-			}
-			for (int x = 1; x < width - 1; x++)
-			{
-				int left = srcLine[x - 1];
-				int center = srcLine[x];
-				int right = srcLine[x + 1];
-				int bottom = nextLine[x];
-				destLine[x] = FadeTable[left + center + right + bottom];
-			}
-			{
-				int left = srcLine[width - 2];
-				int center = srcLine[width - 1];
-				int right = srcLine[0];
-				int bottom = nextLine[width - 1];
-				destLine[width - 1] = FadeTable[left + center + right + bottom];
-			}
-		}
-		std::memcpy(pixels, buffer, width * height);
-
-		TextureModified = true;
-	}
+	NumSparks() = fire.NumSparks;
+	GlobalPhase() = fire.GlobalPhase;
+	AuxPhase() = fire.AuxPhase;
+	StarStatus() = fire.StarStatus;
+	TextureModified = true;
 }

@@ -535,6 +535,57 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   under a street lamp, one walking from light into shadow (the fade), and
   a fire's glow on a face.
 
+### Fire, water and ice textures
+
+The fractal textures are the original's now (2026-09-27): Fire.dll's fire,
+water, wet, wave and ice textures, which the energy weapons, lasers,
+fires, smoke, gas, water and the drunk effect are made of
+([`fire-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md)) -- every spark kind and
+what it lets go, the drops, the fire and water passes, the tables, the wet
+texture's shift of its source and the wave texture's lighting, and ice,
+each step the original's to the byte: checked against the DLL's own
+routines, run in an emulator on the same inputs. The fork's were
+upstream's own takes: a fire drew random dots for the kinds it did not
+know -- two of the Dragon's Tooth's three --, and water was a float
+simulation of its own.
+
+Found with them, in how a mesh shows its textures, each now the original's
+([`render-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md) and
+[`fire-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md#stepping)):
+
+- **A mesh's changing texture** went to the GPU once and never again:
+  since engine patch 0019 drew a run of faces with one texture in one
+  call, the texture's changed flag was cleared before the run was drawn.
+  Every fractal texture on a mesh stood at its first image -- the
+  Dragon's Tooth's wet blade at all zeros, a wide magenta slab where the
+  original's is a narrow blue blade.
+- **A mesh's slots** are filled as the original fills them: its
+  `MultiSkins` entry, else the mesh's texture (the `Skin` first for the
+  first slot), else the `Skin`; a slot with none draws the environment
+  map (the actor's `Texture`, its zone's, the level's, the last slot's),
+  where the fork put the actor's `Texture` or its last `MultiSkins` entry
+  in the slot.
+- **Animated textures on a mesh** play: the fork drew each at its first
+  frame.
+- **A masked texture** on a mesh face is drawn masked whatever the face's
+  own flags, as the original draws it.
+- **The viewer's `Sprite`**, Deus Ex's Matrix easter egg, stands in for
+  every mesh's textures.
+- **The pace.** A texture steps as the original's `UTexture::Tick` steps
+  it, `PrimeCount` first and at most once a drawn frame, by its
+  `MaxFrameRate` and `MinFrameRate`. One knowing difference: with no
+  `MaxFrameRate` -- most of Deus Ex's -- the original steps it every
+  frame, so it runs faster at a higher frame rate; the fork steps it at
+  most 60 times a second, the original's pace at 60 frames. The fork
+  used to step those 25 times a second.
+
+Seen in the check of the blade: the fork's weapon sits higher and smaller
+in a 16:9 view than the original's -- the field of view at a wide
+aspect, not yet looked into. To check by hand: the Dragon's Tooth in hand
+and on the ground, the flamethrower's flame, the riot prod's arcs, the EMP
+grenade's blast, tear gas and poison gas, the drunk effect, a burning NPC,
+a laser sight's spot, and water.
+
 ### Head turns and lip sync: blend animations
 
 The fork keeps the original's now (2026-09-25;

@@ -24,8 +24,13 @@ public:
 		return count;
 	}
 
+	// Called each frame the texture is drawn, with the time since the last.
 	virtual void Update(float elapsed);
+	// One step, as the original's UTexture::Tick paces them: an animated
+	// texture's next frame, a fractal texture's next image.
 	virtual void UpdateFrame();
+	// Once, before the first step: what the original sets up as it loads.
+	virtual void Prepare() {}
 
 	TextureFormat UsedFormat = TextureFormat::P8;
 	Array<UnrealMipmap> UsedMipmaps, UncompressedMipmaps, CompressedMipmaps;
@@ -34,7 +39,8 @@ public:
 
 	int FrameCounter = -1;
 
-	bool Primed = false;
+	bool Prepared = false;
+	float FrameTime = 0.0f;
 
 	uint32_t PolyFlags()
 	{

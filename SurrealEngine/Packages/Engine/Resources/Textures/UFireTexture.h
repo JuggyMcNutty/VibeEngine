@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UFractalTexture.h"
+#include "FireEngine.h"
 
 enum class ESpark : uint8_t
 {
@@ -44,44 +45,7 @@ enum class FireDrawMode : uint8_t
 	Lathe_4,
 };
 
-struct Spark
-{
-	ESpark Type;
-	uint8_t Heat;
-	uint8_t X;
-	uint8_t Y;
-	union
-	{
-		struct { uint8_t ByteA, ByteB, ByteC, ByteD; };
-		struct { uint8_t A, B, C, Speed; } Pulse;
-		struct { uint8_t A, B, Frequency, Speed; } Signal;
-		struct { uint8_t A, B, C, D; } Burn, OzHasSpoken;
-		struct { uint8_t Angle, TwirlAge, RotSpeed, TwirlRotSpeed; } Wheel;
-		struct { uint8_t SpeedX, SpeedY, C, HeatDecay; } Emit;
-		struct { uint8_t A, B, C, D; } Blaze;
-		struct { uint8_t A, B, Age, D; } BlazeLeftRight;
-		struct { uint8_t A, B, Radius, Frequency; } SphereLightning;
-	};
-};
-
-enum class SparkParticleType
-{
-	Twirl,
-	Drift,
-	DriftGravity,
-};
-
-struct SparkParticle
-{
-	SparkParticleType Type;
-	union
-	{
-		struct { float X, Y, Angle, RotSpeed; uint8_t Heat, Age; } Twirl;
-		struct { float X, Y, SpeedX, SpeedY; int Heat, HeatDecay; } Drift;
-		struct { float X, Y, SpeedX, SpeedY; uint8_t Heat, Age; } DriftGravity;
-	};
-};
-
+// A fire texture, as Deus Ex's Fire.dll draws one (FireEngine).
 class UFireTexture : public UFractalTexture
 {
 public:
@@ -90,6 +54,7 @@ public:
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
 
+	void Prepare() override;
 	void UpdateFrame() override;
 
 	FireDrawMode& DrawMode() { return Value<FireDrawMode>(PropOffsets_FireTexture.DrawMode); }
@@ -108,17 +73,11 @@ public:
 	uint8_t& RenderHeat() { return Value<uint8_t>(PropOffsets_FireTexture.RenderHeat); }
 	FixedArrayView<uint8_t, 1028> RenderTable() { return FixedArray<uint8_t, 1028>(PropOffsets_FireTexture.RenderTable); }
 	uint8_t& SparkType() { return Value<uint8_t>(PropOffsets_FireTexture.SparkType); }
-	//TypedScriptArray<Spark> Sparks() { return DynamicArray<Spark>(PropOffsets_FireTexture.Sparks); }
 	int& SparksLimit() { return Value<int>(PropOffsets_FireTexture.SparksLimit); }
 	uint8_t& StarStatus() { return Value<uint8_t>(PropOffsets_FireTexture.StarStatus); }
 	BitfieldBool bRising() { return BoolValue(PropOffsets_FireTexture.bRising); }
 
 private:
-	int RandomByteValue() { return (int)(((int64_t)rand() * 255 + 127)/RAND_MAX); }
-
-	Array<uint8_t> WorkBuffer;
-	uint8_t FadeTable[4 * 256];
-	int CurrentRenderHeat = -1;
-	Array<SparkParticle> Particles;
-	Array<Spark> Sparks;
+	// The sparks as saved, then SparksLimit slots in all.
+	Array<FireEngine::Spark> Sparks;
 };

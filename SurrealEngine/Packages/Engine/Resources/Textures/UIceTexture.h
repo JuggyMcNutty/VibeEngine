@@ -1,12 +1,17 @@
 #pragma once
 
 #include "UFractalTexture.h"
+#include "FireEngine.h"
 
+// Ice: one texture seen through another, one of the two panning, as Deus
+// Ex's Fire.dll draws it (FireEngine). No Deus Ex texture is one.
 class UIceTexture : public UFractalTexture
 {
 public:
 	using UFractalTexture::UFractalTexture;
 
+	void Prepare() override;
+	void Update(float elapsed) override;
 	void UpdateFrame() override;
 
 	uint8_t& Amplitude() { return Value<uint8_t>(PropOffsets_IceTexture.Amplitude); }
@@ -30,4 +35,8 @@ public:
 	float& VDisplace() { return Value<float>(PropOffsets_IceTexture.VDisplace); }
 	float& VPosition() { return Value<float>(PropOffsets_IceTexture.VPosition); }
 	uint8_t& VertPanSpeed() { return Value<uint8_t>(PropOffsets_IceTexture.VertPanSpeed); }
+
+private:
+	void RenderIce(float deltaTime);
+	bool LocalCopy = false;
 };
