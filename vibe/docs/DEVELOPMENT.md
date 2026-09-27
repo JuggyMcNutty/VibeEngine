@@ -68,6 +68,12 @@ The console classes:
   shots at the stops. It exits 25 s into the game, or back in the menu --
   dropped, or never in after 40 s --, since the original's log comes only
   at its exit. The original's server answers some 13 s after it starts.
+- **`TravelServeConsole`** and **`TravelJoinConsole`**, either engine:
+  server travel -- the server as `ServeConsole`'s, which `servertravel`s to
+  DXMP_Smuggler once another player has been in 10 s, logging its map and
+  players every 2 s and exiting after 150 s; the client joins it, logs its
+  map, net mode and place each second, and exits 8 s after it is a client
+  in a second map (a shot first), or at 150 s.
 - **`SoundConsole`**: M0's sounds -- a steady sound heard in the open and from
   behind a wall, shots in a reverb zone and out of it, and beeps from the
   right, the left and ahead. It silences the level first (ambient sounds,

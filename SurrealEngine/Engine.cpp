@@ -317,6 +317,8 @@ void Engine::Run()
 			LevelInfo->NextSwitchCountdown() -= levelElapsed;
 			if (LevelInfo->NextSwitchCountdown() <= 0.0f)
 			{
+				if (LevelNetDriver)
+					LogMessage("Net: server switch level: " + LevelInfo->NextURL());
 				// LoginPlayer only transfers travel actors when ClientTravelInfo.TravelType is
 				// TRAVEL_Relative, and TravelType is otherwise assigned only in ClientTravel. These
 				// NextURL routes never go through ClientTravel, so without setting it here they
@@ -370,8 +372,10 @@ void Engine::Run()
 			PossessSavedPlayer();
 		}
 
-		// Lost the server, or refused by it: back to the menu's map.
-		if (LevelNetDriver && LevelNetDriver->ServerConnection && (!NetFailure.empty() || LevelNetDriver->ServerConnection->State == ConnectionState::Closed))
+		// Lost the server, or refused by it: back to the menu's map -- but not
+		// while a join is pending: a server that travels closes the old
+		// connection as its clients join it again.
+		if (LevelNetDriver && LevelNetDriver->ServerConnection && !PendingLevel && (!NetFailure.empty() || LevelNetDriver->ServerConnection->State == ConnectionState::Closed))
 		{
 			LogMessage("Net: disconnected" + (NetFailure.empty() ? std::string() : ": " + NetFailure));
 			NetFailure.clear();
@@ -670,9 +674,15 @@ void Engine::ClientTravel(const std::string& newURL, ETravelType travelType, boo
 	}
 	else if (travelType == ETravelType::TRAVEL_Relative)
 	{
-		ClientTravelInfo.URL = UnrealURL(ClientTravelInfo.URL, url);
+		// A net client's is relative to its server, whose address its
+		// level's URL holds (the original's is relative to its last URL): a
+		// server travelling sends its clients its next map this way.
+		UnrealURL base = ClientTravelInfo.URL;
+		if (base.Host.empty() && LevelInfo && LevelInfo->NetMode() == NM_Client)
+			base = LevelInfo->URL;
+		ClientTravelInfo.URL = UnrealURL(base, url);
 		// Add difficulty if it isn't there
-		if (ClientTravelInfo.URL.GetOption("Difficulty").empty())
+		if (ClientTravelInfo.URL.GetOption("Difficulty").empty() && GameInfo)
 		{
 			ClientTravelInfo.URL.AddOrReplaceOption("Difficulty=" + std::to_string(GameInfo->Difficulty()));
 		}
@@ -2021,6 +2031,13 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 			viewport->CurrentNetSpeed() = connection->CurrentNetSpeed;
 			connection->SendText("NETSPEED " + std::to_string(rate));
 		}
+	}
+	else if (command == "servertravel" && args.size() >= 2)
+	{
+		// The level's own event: its game tells the clients, and the server
+		// follows once NextSwitchCountdown runs out (the original's).
+		std::string url = commandline.substr(commandline.find_first_not_of(" \t", commandline.find_first_of(" \t")));
+		CallEvent(LevelInfo, "ServerTravel", { ExpressionValue::StringValue(url), ExpressionValue::BoolValue(false) });
 	}
 	else if (command == "cancel")
 	{

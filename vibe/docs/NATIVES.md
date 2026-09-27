@@ -1087,10 +1087,23 @@ same against its own server. With a scripted console the game's console
 check (above) disconnects the run seconds in, on every server
 ([live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
 
+A server travels, and its clients follow (2026-09-27), as
+[the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#server-travel): `servertravel`
+and a game's own map change send each client a relative `ClientTravel`,
+which a client takes relative to its server's address; the server takes no
+one new until its countdown runs out, then loads the next map, listening
+again with the same options. A client whose old connection closes while its
+join to the next map is pending stays in the old level until the next map
+loads, where the original goes to its Entry level meanwhile. Checked both
+ways: the fork's server travelled from DXMP_Cathedral to DXMP_Smuggler with
+the original following, and the original's with the fork following, each
+client in the next map and playing (`TravelServeConsole`,
+`TravelJoinConsole`).
+
 Not yet, of a client: the world-stats checksum (`NoChecksum` always). Of a
-server: travel, and a dedicated server (the original's `-SERVER`). Each
-bunch goes on its own: the original merges one into the last when both are
-the same channel's, which only saves bits.
+server: a dedicated server (the original's `-SERVER`). Each bunch goes on
+its own: the original merges one into the last when both are the same
+channel's, which only saves bits.
 
 The scripts' sockets are the original's now (2026-09-26,
 [the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)): `InternetLink`'s

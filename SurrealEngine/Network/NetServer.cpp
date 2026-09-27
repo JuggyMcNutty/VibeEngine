@@ -250,7 +250,9 @@ void NetServerLevel::AddPackage(Package* package)
 
 bool NetServerLevel::NotifyAcceptingConnection()
 {
-	return true;
+	// A server about to travel takes no one new: a client's packets are let
+	// go until the next map listens (the original's ignores them).
+	return engine->LevelInfo && engine->LevelInfo->NextURL().empty();
 }
 
 bool NetServerLevel::NotifyAcceptingChannel(NetChannel* channel)

@@ -226,7 +226,8 @@ be.
       needs: `DoUplink=True`, which the game's ini lacks, and the query
       port reachable from the internet ([open decision
       5](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
-- [ ] Travel: a server's next map, its clients following it.
+- [x] Travel: a server's next map, its clients following it (2026-09-27,
+      both ways between the fork and the original).
 - [ ] A dedicated server: the game with no client, as the original's
       `-SERVER` runs it -- what the live servers are.
 - [x] Downloads: a package a client lacks fetched from the server, and a
