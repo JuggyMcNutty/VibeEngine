@@ -967,3 +967,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `DXCAP_STATS` ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the
   original's and the fork's logins to a server logging world stats alike
   to the byte.
+- [**the console's GET and SET**](https://github.com/JuggyMcNutty/VibeEngine/commit/50ff984dfe7a0de48e5868be4ea5843b7850277a) --
+  a class by its name alone in any package, `GET` undelimited, `SET`
+  the rest of the line on every object and the defaults with the config
+  saved, as the original's -- the multiplayer Host screen's settings read
+  and set at last ([small](NATIVES.md#small)). **Checked:** `GetConsole`
+  alike in both engines, gets, sets and the inis written.
