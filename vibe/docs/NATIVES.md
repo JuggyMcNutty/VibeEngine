@@ -448,9 +448,13 @@ the fork drew none. The beam's texture, `LaserBeam1`, is a fire texture
 since, it draws the beams (2026-09-27, `LaserConsole`), both engines' logs
 agreeing on the emitter, its iterator and its proxy -- a translucent sprite
 of that texture, moved along the beam --, the dashes where the original's
-are and as far apart, but fainter, over a floor the fork draws about twice
-as bright as the original's frames on Xvfb show it, so the two are not yet
-compared for brightness. Walked into, a tripwire sounds its alarm in both.
+are and as far apart, but fainter, over a floor and walls the fork draws
+brighter than the original's frames show them -- in linear terms, the
+frames' gamma taken out ([brightness](#brightness)), 3.7 to 4 times,
+where `FlashConsole`'s outdoor view is about 2.2 times (2026-09-27) --,
+which the capture renderer (`OpenGLDrv`, not the game's `D3DDrv`) may
+account for in part: the dashes are not yet compared for brightness.
+Walked into, a tripwire sounds its alarm in both.
 
 ### Coronas
 
@@ -478,10 +482,11 @@ by the saturation itself -- and the lights -- the fork's came from the leaf
 the eye is in, the original's from the one the player stands in. With both
 as the original's, the three lamps from CaptureConsole's shot 7 glow in
 both, where each glow's core is and as bright; further out the fork's
-follows the texture's falloff times the colour exactly, while the
-original's frames on Xvfb run brighter there, more so the fainter the
-texel, which the capture renderer (OpenGL on Xvfb, not the game's D3D)
-may account for -- not settled.
+follows the texture's falloff times the colour exactly. The original's
+frames only look brighter there, more so the fainter the texel, for their
+gamma ([brightness](#brightness)): given the same gamma, the fork's shot
+has the glow of the lamp against the sky fall off as the original's does,
+to within 4 of 255 out to 60 pixels (2026-09-27).
 
 ### Mesh detail
 
