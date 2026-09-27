@@ -78,7 +78,14 @@ public:
 	// A package of a net game found under its name in this file -- a download
 	// in the cache --, until RestorePackageFiles.
 	void UsePackageFile(const NameString& name, const std::string& path);
+	// Each name's own file again, but a package loaded from its download,
+	// which stays until ReleaseNetPackages lets it go.
 	void RestorePackageFiles();
+	// The packages loaded from downloads let go, but those named in `keep`,
+	// and their names' own files back, as the original's map load collects
+	// what the new level does not use: another server's package of such a
+	// name then loads in their place.
+	void ReleaseNetPackages(const Array<NameString>& keep);
 	// The cache's downloads left unfinished, and those unused for more than
 	// PurgeCacheDays (Core's appCleanFileCache).
 	void CleanFileCache();

@@ -1,6 +1,7 @@
 
 #include "Precomp.h"
 #include "PackageManager.h"
+#include <algorithm>
 #include "Package.h"
 #include "PackageStream.h"
 #include "IniFile.h"
@@ -503,17 +504,42 @@ void PackageManager::UsePackageFile(const NameString& name, const std::string& p
 
 void PackageManager::RestorePackageFiles()
 {
-	for (const auto& replaced : replacedPackageFilenames)
+	for (auto it = replacedPackageFilenames.begin(); it != replacedPackageFilenames.end();)
 	{
 		// A package already loaded from its download stays what it is.
-		if (IsPackageLoaded(replaced.first))
+		if (IsPackageLoaded(it->first))
+		{
+			++it;
 			continue;
-		if (replaced.second.empty())
-			packageFilenames.erase(replaced.first);
+		}
+		if (it->second.empty())
+			packageFilenames.erase(it->first);
 		else
-			packageFilenames[replaced.first] = replaced.second;
+			packageFilenames[it->first] = it->second;
+		it = replacedPackageFilenames.erase(it);
 	}
-	replacedPackageFilenames.clear();
+}
+
+void PackageManager::ReleaseNetPackages(const Array<NameString>& keep)
+{
+	for (auto it = replacedPackageFilenames.begin(); it != replacedPackageFilenames.end();)
+	{
+		if (std::find(keep.begin(), keep.end(), it->first) != keep.end())
+		{
+			++it;
+			continue;
+		}
+		// Only the name goes: the fork collects no garbage, so what the old
+		// package made stays where anything still points at it.
+		if (IsPackageLoaded(it->first))
+			LogMessage("Releasing package " + it->first.ToString());
+		packages.erase(it->first);
+		if (it->second.empty())
+			packageFilenames.erase(it->first);
+		else
+			packageFilenames[it->first] = it->second;
+		it = replacedPackageFilenames.erase(it);
+	}
 }
 
 void PackageManager::CleanFileCache()

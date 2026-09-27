@@ -1159,8 +1159,15 @@ one after another over file channels, when the client allows downloads
 downloadable, each into the cache as its GUID with `CacheExt` (`.uxx`, as
 the original writes). A package of the same name but another GUID ends the
 join as a version mismatch before the map loads, and the level plays on;
-each join finds its packages afresh. The cache is cleaned as the engine
-starts. A server sends any package of its list flagged downloadable; its
+each join finds its packages afresh. A package a join loaded from the
+cache goes at the next map load that does not use it, as the original's
+map load collects it (2026-09-27): another server's package of that name
+then loads in its place, where the fork kept the first until it restarted.
+Checked with `RejoinConsole` and two fork servers one after the other
+offering a package of one name with two GUIDs (`DXCAP_SERVERPKGS`): the
+fork's client, as the original's, joined the second after going back to
+the menu, where, the release left out, its join failed as a version
+mismatch. The cache is cleaned as the engine starts. A server sends any package of its list flagged downloadable; its
 list is the map's, the `ServerPackages` and the game class's package, as
 the original's. A join shows the original's lines -- connecting, receiving
 with the size and the share done, each failure -- in the game's message

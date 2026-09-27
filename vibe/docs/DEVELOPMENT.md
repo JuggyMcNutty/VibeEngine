@@ -83,6 +83,10 @@ The console classes:
   shots at the stops. It exits 25 s into the game, or back in the menu --
   dropped, or never in after 40 s --, since the original's log comes only
   at its exit. The original's server answers some 13 s after it starts.
+- **`RejoinConsole`**, either engine: a client that joins twice -- it opens
+  `127.0.0.1:7790`, disconnects to the menu map 6 s into the game, opens it
+  again 30 s later (another server there by then) and logs whether that
+  join comes in.
 - **`TravelServeConsole`** and **`TravelJoinConsole`**, either engine:
   server travel -- the server as `ServeConsole`'s, which `servertravel`s to
   DXMP_Smuggler once another player has been in 10 s, logging its map and
@@ -114,7 +118,9 @@ front of a server's run has its uplink announce it there, `DoUplink` set.
 A login's world stats checksum likewise: `DXCAP_STATS=<password>` in
 front of both runs has the server log world stats (`bWorldLog`) and the
 client's player hold that password, and the server's log shows the login's
-URL (`login request`).
+URL (`login request`). And downloads: `DXCAP_SERVERPKGS=<dir>` in front of
+a server's run has it find the packages of `<dir>` and name each in its
+`ServerPackages`, so a client, whose paths lack `<dir>`, downloads them.
 
 **Live servers** (the owner's go-ahead, 2026-09-27; which are up, and how
 full, in 333networks' list: `https://master.333networks.com/json/deusex`):

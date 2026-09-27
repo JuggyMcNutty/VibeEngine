@@ -27,7 +27,9 @@
 # DoUplink set --, where it otherwise announces itself nowhere.
 # DXCAP_STATS=<password> has a run's server log world stats (bWorldLog) and
 # its player hold that world stats password, so a join carries the player's
-# checksum (the server logs the login's URL).
+# checksum (the server logs the login's URL). DXCAP_SERVERPKGS=<dir> has a
+# run's server find packages in <dir> too, each named in its ServerPackages,
+# so that a client, whose paths lack <dir>, downloads them.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../../.." && pwd)}"
@@ -39,7 +41,7 @@ CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
-usage() { sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.
@@ -119,6 +121,28 @@ def one_uplink(m):
 s, n = re.subn(r'^ServerActors=IpServer\.UdpServerUplink.*\r?\n', one_uplink, s, flags=re.M)
 if n == 0:
     sys.exit('no ServerActors=IpServer.UdpServerUplink in ' + src)
+# A run's server offers the packages of DXCAP_SERVERPKGS's folder, found
+# there by its paths.
+serverpkgs = os.environ.get('DXCAP_SERVERPKGS', '')
+if serverpkgs:
+    import glob
+    files = sorted(glob.glob(os.path.join(serverpkgs, '*.u*')))
+    if not files:
+        sys.exit('no packages in ' + serverpkgs)
+    exts = sorted(set(os.path.splitext(f)[1] for f in files))
+    folder = os.path.abspath(serverpkgs)
+    if engine == 'original':
+        folder = 'Z:' + folder.replace('/', '\\')
+        lines = ''.join('Paths=%s\\*%s%s' % (folder, e, nl) for e in exts)
+    else:
+        lines = ''.join('Paths=%s/*%s%s' % (folder, e, nl) for e in exts)
+    s, n = re.subn(r'^(Paths=\.\.\\System\\\*\.u\r?\n)', lambda m: m.group(1) + lines, s, count=1, flags=re.M)
+    if n != 1:
+        sys.exit('no Paths=..\\System\\*.u in ' + src)
+    names = ''.join('ServerPackages=%s%s' % (os.path.splitext(os.path.basename(f))[0], nl) for f in files)
+    s, n = re.subn(r'^\[DeusEx\.DeusExGameEngine\]\r?\n', lambda m: m.group(0) + names, s, count=1, flags=re.M)
+    if n != 1:
+        sys.exit('no [DeusEx.DeusExGameEngine] in ' + src)
 # A run's server logs world stats only with DXCAP_STATS.
 if os.environ.get('DXCAP_STATS'):
     s, n = re.subn(r'^\[Engine\.GameInfo\]\r?\n', lambda m: m.group(0) + 'bWorldLog=True' + nl, s, count=1, flags=re.M)

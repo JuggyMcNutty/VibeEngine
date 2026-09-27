@@ -979,6 +979,16 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		ServerLevel->BuildMasterMap(GameInfo);
 
 	BeginPlay(url);
+
+	// As the original's map load collects what the new level does not use:
+	// a server's downloads go, but a pending join's.
+	Array<NameString> keep;
+	if (PendingLevel)
+	{
+		for (const NetPendingLevel::UsedPackage& package : PendingLevel->Uses)
+			keep.push_back(package.Name);
+	}
+	packages->ReleaseNetPackages(keep);
 }
 
 void Engine::BeginPlay(const UnrealURL& url)
@@ -1684,6 +1694,13 @@ void Engine::LoadClientMap(NetPendingLevel* pending)
 	UnrealURL url = pending->URL;
 	LogMessage("Net: loading " + url.Map + " as a client");
 	LoadMap(url, {}, true);
+
+	// Another server's downloads go once this one's map is in, as the
+	// original's map load collects them.
+	Array<NameString> keep;
+	for (const NetPendingLevel::UsedPackage& package : pending->Uses)
+		keep.push_back(package.Name);
+	packages->ReleaseNetPackages(keep);
 
 	viewport->Actor() = nullptr;
 	CameraActor = nullptr;
