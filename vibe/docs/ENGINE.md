@@ -942,3 +942,11 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ([coronas](NATIVES.md#coronas)). **Checked:** three lamps' glows in
   both engines at `CaptureConsole`'s shot 7, cores alike; a proving run
   on Liberty Island is clean.
+- [**the screen flash**](https://github.com/JuggyMcNutty/VibeEngine/commit/5b5de01b5ab6da316a1fae3e28eb1b90e3af87d2) --
+  the flash handed to the device as Deus Ex's game engine hands it: the
+  player's scale halved, both values clamped, `ScreenFlashes` read and a
+  net game's flash always on; `vec4`'s `!=` tests the fourth component
+  for inequality ([the screen flash](NATIVES.md#the-screen-flash)).
+  **Checked:** `FlashConsole`'s glow as the formula gives in the fork's
+  shots and, through their gamma, in the original's frames; a proving run
+  on Liberty Island is clean.
