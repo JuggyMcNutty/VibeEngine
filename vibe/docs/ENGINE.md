@@ -908,3 +908,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   live ANNA and CDX servers and a join that stayed in on a DXMTL server;
   the original downloading a map from the fork's server and walking, and
   the fork from its own.
+- [**server travel**](https://github.com/JuggyMcNutty/VibeEngine/commit/b65d124294bd92320c8c9415eb56198f35a626b1) --
+  M7's: `servertravel`, the server taking no one new until it switches, a
+  client's relative travel relative to its server's address, and a pending
+  rejoin not sent to the menu by the old connection's close
+  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the fork's server
+  travelled with the original following it, and the original's with the
+  fork following it.
