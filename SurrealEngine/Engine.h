@@ -85,7 +85,7 @@ public:
 	// the player last saw, where the save itself waits for the next one.
 	void TakeSaveSnapshot();
 	void TakeScreenshot();
-	// Deus Ex's save directories (docs/re/deusex-dll.md, travel and saving):
+	// Deus Ex's save directories (dx-reverse-info/deusex-dll.md, travel and saving):
 	// Save%04d a slot, QuickSave (-1) the quick save, Current (-2) the
 	// mission in progress.
 	std::string SaveSlotFolderName(int32_t slot) const;
@@ -96,7 +96,7 @@ public:
 	// Deus Ex travel: within a mission the departing level is pruned and
 	// saved into Current, and a map saved there is revisited as the player
 	// left it; a new mission, or a player starting a new game, empties
-	// Current (docs/re/deusex-dll.md, travel and saving).
+	// Current (dx-reverse-info/deusex-dll.md, travel and saving).
 	void DeusExPreTravel(const UnrealURL& url);
 	void PruneTravelActors() const;
 	void SaveCurrentLevel(int32_t slot) const;
@@ -105,7 +105,7 @@ public:
 	void LoginPlayer();
 	void PossessSavedPlayer();
 
-	// Joining a server (docs/re/network.md, joining): the handshake while the
+	// Joining a server (dx-reverse-info/network.md, joining): the handshake while the
 	// current level plays on, then the server's map loaded as a client, and
 	// the player the server spawns for it.
 	void BeginConnect(const UnrealURL& url);
@@ -115,7 +115,7 @@ public:
 	void HandleClientPlayer(NetConnection* connection, UPlayerPawn* pawn);
 	void CloseNetDriver();
 
-	// A server's (docs/re/network.md): listening on a map opened with
+	// A server's (dx-reverse-info/network.md): listening on a map opened with
 	// ?listen, the game's PreLogin, and a player spawned and possessed as the
 	// original's SpawnPlayActor does.
 	void Listen(const UnrealURL& url);

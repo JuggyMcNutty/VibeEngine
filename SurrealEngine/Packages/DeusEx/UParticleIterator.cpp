@@ -4,7 +4,7 @@
 #include "Packages/Engine/Actors/UActor.h"
 #include "Utils/Random.h"
 
-// The original's behaviour: docs/re/deusex-dll.md, particles and lasers.
+// The original's behaviour: dx-reverse-info/deusex-dll.md, particles and lasers.
 
 void UParticleIterator::UpdateParticles(float deltaTime)
 {

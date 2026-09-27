@@ -114,7 +114,7 @@ void UActor::PlayAnim(const NameString& sequence, float rate, float tweenTime)
 }
 
 // The animation as a server sends it for a client to play (SimAnim, which
-// the client unpacks; docs/re/network.md, animation): its frame, rate and
+// the client unpacks; dx-reverse-info/network.md, animation): its frame, rate and
 // tween rate scaled to whole numbers, and its end, negative for a loop.
 void UActor::PackSimAnim(float last)
 {
@@ -239,7 +239,7 @@ void UActor::TweenBlendAnim(const NameString& sequenceName, float time, int blen
 	}
 	int numFrames = sequence->NumFrames;
 
-	// TweenAnim for a slot (docs/re/engine-dll.md, blend animations): from
+	// TweenAnim for a slot (dx-reverse-info/engine-dll.md, blend animations): from
 	// the slot's last pose toward the sequence's first frame
 	SetTweenFromBlendAnimFrame(blendSlot);
 	BlendAnimSequence()[blendSlot] = sequenceName;
@@ -493,7 +493,7 @@ void UActor::TickAnimation(float elapsed)
 void UActor::TickBlendAnimation(float elapsed)
 {
 	// The original moves the slots inside the main animation's tick loop
-	// (docs/re/engine-dll.md, blend animations): each iteration moves
+	// (dx-reverse-info/engine-dll.md, blend animations): each iteration moves
 	// every slot by the frame's time, a slot that ends or finishes its
 	// tween leaves the rest only the time over, and the iterations repeat
 	// until spent -- three moves in a frame whose main animation had no

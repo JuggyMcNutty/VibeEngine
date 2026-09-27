@@ -199,7 +199,7 @@ float UListWindow::MeasureText(UFont* colFont, const std::string& text)
 }
 
 // The original's row size: the tallest column font's line, with the row
-// margin above and below (docs/re/extension-dll.md, lists).
+// margin above and below (dx-reverse-info/extension-dll.md, lists).
 float UListWindow::GetLineHeight()
 {
 	float height = 0.0f;

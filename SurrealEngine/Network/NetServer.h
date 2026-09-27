@@ -9,7 +9,7 @@ class Package;
 class UObject;
 class UPlayerPawn;
 
-// A server's level (ULevel's side of the network, docs/re/network.md):
+// A server's level (ULevel's side of the network, dx-reverse-info/network.md):
 // which connections and channels it takes, the handshake's server side, the
 // player each client is given, and the packages a client needs.
 class NetServerLevel : public NetNotify

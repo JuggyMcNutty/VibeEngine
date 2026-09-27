@@ -5,7 +5,7 @@
 #include "Math/coords.h"
 #include "Utils/Random.h"
 
-// The original's behaviour: docs/re/deusex-dll.md, particles and lasers.
+// The original's behaviour: dx-reverse-info/deusex-dll.md, particles and lasers.
 // The script's AddBeam spaces segments every 16 units, every 15 for a
 // random beam, and Init counts MaxItems as the active beams' segments
 // plus one: the last item, left at a segment chosen at random.

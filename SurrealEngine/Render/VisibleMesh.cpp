@@ -1011,7 +1011,7 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 	UTexture* texinfoTexture = nullptr;
 
 	// The original's vertex budget, worked out each draw
-	// (docs/re/render-dll.md, mesh detail): it falls as one over the
+	// (dx-reverse-info/render-dll.md, mesh detail): it falls as one over the
 	// actor's depth in the view, sooner for a complex mesh and a wide
 	// view. Faces whose FaceLevel is past the clamped budget go; each kept
 	// corner walks its collapse list until its vertex is within it; and

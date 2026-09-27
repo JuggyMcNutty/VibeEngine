@@ -63,7 +63,7 @@ struct NetInBunch
 	bool bReliable = false;
 };
 
-// One end of a game over UDP (Engine's UNetConnection, docs/re/network.md):
+// One end of a game over UDP (Engine's UNetConnection, dx-reverse-info/network.md):
 // numbered packets of acks and bunches, up to 1,023 channels, reliable bunches
 // delivered in order and sent again when lost.
 class NetConnection

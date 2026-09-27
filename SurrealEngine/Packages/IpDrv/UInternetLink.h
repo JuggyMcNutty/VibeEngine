@@ -27,7 +27,7 @@ enum EReceiveMode
 	RMODE_Event
 };
 
-// The script's sockets, as IpDrv.dll's (docs/re/ipdrv-dll.md). An IpAddr is
+// The script's sockets, as IpDrv.dll's (dx-reverse-info/ipdrv-dll.md). An IpAddr is
 // in host byte order, its port a plain number.
 class UInternetLink : public UInternetInfo
 {

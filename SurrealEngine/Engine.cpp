@@ -915,7 +915,7 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 
 	if (!savefilePackage && packages->IsDeusEx() && url.HasOption("loadgame"))
 	{
-		// The original's Browse ?loadgame=N (docs/re/deusex-dll.md, travel
+		// The original's Browse ?loadgame=N (dx-reverse-info/deusex-dll.md, travel
 		// and saving): read the slot's SaveInfo, empty Current, copy the
 		// slot into it, and load the info's map from Current. -1 is the
 		// quick save.
@@ -1069,7 +1069,7 @@ void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 
 	if (packages->IsDeusEx())
 	{
-		// The original's SaveGame (docs/re/deusex-dll.md, travel and saving):
+		// The original's SaveGame (dx-reverse-info/deusex-dll.md, travel and saving):
 		// slot 0 is a new slot, the highest SaveNNNN plus one; -1 the quick
 		// save. The slot is emptied, Current copied in, the SaveInfo filled
 		// and written to the slot (and to Current, which keeps one of its
@@ -1127,7 +1127,7 @@ void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 
 // The original's SaveGame makes a texture beside the save info and has the
 // root window put a 160x120 snapshot in it -- none under its OpenGL driver
-// (docs/re/deusex-dll.md, travel and saving). The Save Game screen hides the
+// (dx-reverse-info/deusex-dll.md, travel and saving). The Save Game screen hides the
 // UI two frames before it asks, so the frame last drawn is the world alone.
 void Engine::TakeSaveSnapshot()
 {

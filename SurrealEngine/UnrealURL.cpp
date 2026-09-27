@@ -84,7 +84,7 @@ UnrealURL::UnrealURL(std::string urlString)
 }
 
 // A server's address ahead of the map, as the original's URL parser finds
-// one (docs/re/network.md, the address): [protocol:][//]host[:port][/map],
+// one (dx-reverse-info/network.md, the address): [protocol:][//]host[:port][/map],
 // where the host is the text up to a slash with a dot past its first
 // character whose next letters are not the map's or a save's extension. A
 // colon past the second character before any dot ends a protocol; a colon as

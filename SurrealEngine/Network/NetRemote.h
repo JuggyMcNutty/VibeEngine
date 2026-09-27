@@ -10,7 +10,7 @@ class CallArguments;
 class NetConnection;
 
 // A call on an actor in a net game (the original's
-// AActor::ProcessRemoteFunction, docs/re/network.md, remote functions): true
+// AActor::ProcessRemoteFunction, dx-reverse-info/network.md, remote functions): true
 // when it is not to run here -- sent to the other side, as its class's
 // replication condition says, or not run by a simulated proxy because it is
 // not a simulated function.

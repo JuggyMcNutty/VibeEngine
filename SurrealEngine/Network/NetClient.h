@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-// A join under way (Engine's UNetPendingLevel, docs/re/network.md): the
+// A join under way (Engine's UNetPendingLevel, dx-reverse-info/network.md): the
 // connection to the server and the handshake up to WELCOME. The engine then
 // loads the map as a client, takes the driver over and sends JOIN.
 class NetPendingLevel : public NetNotify

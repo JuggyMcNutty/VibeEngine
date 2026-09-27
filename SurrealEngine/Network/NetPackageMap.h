@@ -15,7 +15,7 @@ class UProperty;
 class NetConnection;
 
 // Objects and names by number, between two machines that load the same
-// packages in the same order (docs/re/network.md): the packages a server's
+// packages in the same order (dx-reverse-info/network.md): the packages a server's
 // USES lines list, each its objects (exports) and names numbered after the
 // last's; and per class, its replicated fields numbered after its parent's
 // (Core's UPackageMap, Engine's UPackageMapLevel).

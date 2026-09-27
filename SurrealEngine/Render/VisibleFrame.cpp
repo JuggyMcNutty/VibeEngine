@@ -68,7 +68,7 @@ void VisibleFrame::ProcessRenderIterators()
 	// with the viewer, First, then until IsDone an item for the actor
 	// CurrentItem gives, and Next. The iterators move one proxy actor from
 	// item to item, so each item keeps what the proxy was as it was listed
-	// (docs/re/render-dll.md, render iterators).
+	// (dx-reverse-info/render-dll.md, render iterators).
 	UPlayerPawn* viewer = UObject::TryCast<UPlayerPawn>(engine->viewport->Actor());
 	for (UActor* actor : engine->render->IteratorActors)
 	{

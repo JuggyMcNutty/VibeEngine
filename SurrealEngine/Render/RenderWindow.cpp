@@ -48,7 +48,7 @@ void RenderSubsystem::PostRenderWindows(UCanvas* canvas)
 // what the scene covers (all of it with rendering on and no render viewport,
 // nothing with rendering off, the viewport's rectangle with one set), each
 // piece left stretched from the background's own size or tiled from its
-// corner, in the raw colour and unsmoothed (docs/re/extension-dll.md, the
+// corner, in the raw colour and unsmoothed (dx-reverse-info/extension-dll.md, the
 // raw background). Every window lets it through, as every window of the
 // original's is made with bDrawRawBackground on.
 void RenderSubsystem::DrawRawBackground(URootWindow* root)

@@ -65,7 +65,7 @@ public:
 	// (VisibleFrame::ProcessRenderIterators).
 	Array<UActor*> IteratorActors;
 
-	// Deus Ex coronas as the original's (docs/re/render-dll.md, coronas):
+	// Deus Ex coronas as the original's (dx-reverse-info/render-dll.md, coronas):
 	// up to 32 kept from frame to frame, each with a brightness 0 to 1,
 	// fading on real time. The dynamic corona lights are gathered by
 	// DrawScene's actor pass; the static ones come from the viewer's leaf.

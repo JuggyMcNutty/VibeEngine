@@ -52,7 +52,7 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 		// the black background, the credits) the original's scene frame is
 		// empty: nothing of the world or the overlays is drawn, and the
 		// windows still are, from PostRenderFlash
-		// (docs/re/extension-dll.md, the raw background).
+		// (dx-reverse-info/extension-dll.md, the raw background).
 		// Nothing of the world while a joining client waits for its player.
 		if (engine->viewport->Actor() && (!engine->dxRootWindow || engine->dxRootWindow->bRender()))
 		{

@@ -29,7 +29,7 @@ UObject* URootWindow::GenerateSnapshot(std::optional<bool> bFilter)
 	return MakeSnapshot(nullptr, engine->packages->GetTransientPackage());
 }
 
-// The original's (docs/re/extension-dll.md, save pictures): the frame last
+// The original's (dx-reverse-info/extension-dll.md, save pictures): the frame last
 // drawn, averaged down to the size SetSnapshotSize gave -- each pixel the
 // mean of the box of pixels it covers, its channels scaled by 256/255 --
 // and kept as the mean of its three channels in an 8-bit texture with a

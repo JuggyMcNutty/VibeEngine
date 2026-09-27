@@ -24,7 +24,7 @@ public:
 	// past steady, and the animating effects (a searchlight only with a
 	// period). A still light belongs in a surface's kept static map; an
 	// animating one is added over it each frame
-	// (docs/re/render-dll.md, light maps).
+	// (dx-reverse-info/render-dll.md, light maps).
 	static bool LightAnimates(UActor* light);
 
 	void LoadStaticLight(const Array<vec3>& staticLightColors);

@@ -494,7 +494,7 @@ index 0000000..d72d2a3
 +// the thread's CPU time, so the report scales). Each sample's program
 +// counter, then the return addresses a frame-pointer walk finds, is appended
 +// to <file> at every report, one block per report; /proc/self/maps goes to
-+// <file>.maps once. scripts/sample-report.py symbolises them on the PC.
++// <file>.maps once. vibe/tools/perf/sample-report.py symbolises them on the PC.
 +// CMakeLists.txt builds with frame pointers while these hooks are on.
 +#pragma once
 +

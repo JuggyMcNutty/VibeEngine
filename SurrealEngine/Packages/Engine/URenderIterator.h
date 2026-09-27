@@ -9,7 +9,7 @@ class UPlayerPawn;
 // lists, and gets no sprite of its own. The renderer makes the iterator (an
 // object of that class with the actor as its outer) and, each scene frame,
 // runs: Init with the viewer, First, then until IsDone an item for the actor
-// CurrentItem gives, and Next (docs/re/render-dll.md, render iterators).
+// CurrentItem gives, and Next (dx-reverse-info/render-dll.md, render iterators).
 // A native subclass overrides the steps; the defaults call the script.
 class URenderIterator : public UObject
 {

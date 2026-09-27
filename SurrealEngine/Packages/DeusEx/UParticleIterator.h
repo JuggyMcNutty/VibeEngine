@@ -23,7 +23,7 @@ struct DXParticle
 
 // ParticleGenerator's iterator: smoke, steam, water and sparks, drawn as up
 // to 64 particles through one proxy actor
-// (docs/re/deusex-dll.md, particles and lasers).
+// (dx-reverse-info/deusex-dll.md, particles and lasers).
 class UParticleIterator : public URenderIterator
 {
 public:

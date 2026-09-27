@@ -66,7 +66,7 @@ void RenderSubsystem::UpdateRenderInterface(UActor* actor)
 	// Without a RenderInterface, or with one that is no longer valid, the
 	// renderer makes one: an object of the actor's RenderIteratorClass with
 	// the actor as its outer. With the class cleared, the one there is goes
-	// (docs/re/render-dll.md, render iterators).
+	// (dx-reverse-info/render-dll.md, render iterators).
 	UClass* cls = actor->RenderIteratorClass();
 	URenderIterator*& iterator = actor->RenderInterface();
 	if (!cls)
@@ -87,7 +87,7 @@ void RenderSubsystem::UpdateRenderInterface(UActor* actor)
 
 void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 {
-	// The original's coronas (docs/re/render-dll.md, coronas): the lights
+	// The original's coronas (dx-reverse-info/render-dll.md, coronas): the lights
 	// shining into the viewer's own leaf of the BSP -- its permeating
 	// list, and the dynamic lights standing in it -- with bCorona and a
 	// Skin, at any distance. One is seen when the line from the eye meets

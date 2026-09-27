@@ -405,7 +405,7 @@ public:
 	}
 
 	// Galaxy's reverb is a six-tap echo network; EFX's is a reverb model, so
-	// this mapping is the fork's own (natives.md, Sound): the master gain and
+	// this mapping is the fork's own (vibe/docs/NATIVES.md, Sound): the master gain and
 	// the cutoff carry over, the echo train gives the decay -- for a tap of
 	// delay d and gain g, repeating it decays 60 dB in d x ln(1000) / -ln(g)
 	// seconds, and the longest such tap sets AL_REVERB_DECAY_TIME -- and the

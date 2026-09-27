@@ -1216,7 +1216,7 @@ void PackageManager::RegisterNativeClasses()
 	}
 
 	// Deus Ex (ue1Version 500) has render iterators too: its particles and
-	// laser beams are drawn through them (docs/re/deusex-dll.md).
+	// laser beams are drawn through them (dx-reverse-info/deusex-dll.md).
 	if (launchInfo.ue1Version < 400 || IsDeusEx())
 	{
 		RegisterNativeClass<URenderIterator>(enginePackage, "RenderIterator", "Object");

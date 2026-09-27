@@ -7,7 +7,7 @@ class VisibleFrame;
 // One item a render iterator listed: the proxy actor, kept as it was when
 // the item was listed -- the iterators move one proxy from item to item, so
 // each item's glow, draw scale, location and rotation are captured with it
-// (docs/re/render-dll.md, render iterators).
+// (dx-reverse-info/render-dll.md, render iterators).
 class VisibleIteratorItem
 {
 public:

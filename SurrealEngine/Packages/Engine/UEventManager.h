@@ -9,7 +9,7 @@ class ULevelInfo;
 // actors raise named events, NPCs listen for them, and each frame this
 // manager works out who senses what and calls the listeners' script. The
 // original is Engine.dll's UEventManager, a C++ class with no script; the
-// game's docs/re/engine-dll.md has the read. One lives in each level's
+// game's dx-reverse-info/engine-dll.md has the read. One lives in each level's
 // package (LevelInfo.EventManager), so a save keeps every listener and
 // event; the original's own saved layout is not read yet, so a save of the
 // original game carries a manager this Load recognizes and skips.

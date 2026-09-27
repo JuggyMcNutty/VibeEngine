@@ -67,7 +67,7 @@ UDXSaveInfo* UDXGameDirectory::GetSaveInfo(int fileIndex)
 }
 
 // The save info of the listing's i-th directory -- its place in the list,
-// not its slot number (docs/re/deusex-dll.md, the save directory).
+// not its slot number (dx-reverse-info/deusex-dll.md, the save directory).
 UDXSaveInfo* UDXGameDirectory::GetSaveInfoFromDirectoryIndex(int DirectoryIndex)
 {
 	auto list = DirectoryList();
@@ -104,7 +104,7 @@ UDXSaveInfo* UDXGameDirectory::LoadSaveInfo(const std::string& folderName)
 }
 
 // One transient save info, made the first time and kept: the Save Game
-// screen stamps the new save's row with its time (docs/re/deusex-dll.md,
+// screen stamps the new save's row with its time (dx-reverse-info/deusex-dll.md,
 // the save directory).
 UDXSaveInfo* UDXGameDirectory::GetTempSaveInfo()
 {
@@ -147,7 +147,7 @@ void UDXGameDirectory::PurgeAllSaveInfo()
 }
 
 // The free space of the save path's drive and a slot's size, both in KB, as
-// the original's (docs/re/deusex-dll.md, the save directory). The screens
+// the original's (dx-reverse-info/deusex-dll.md, the save directory). The screens
 // ask a directory object for the free space before it has read any
 // directory, so both go by the save path itself. Space that cannot be
 // read counts as plenty, where 0 would refuse every save.

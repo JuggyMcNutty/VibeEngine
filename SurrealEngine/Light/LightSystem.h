@@ -73,7 +73,7 @@ public:
 		return color;
 	}
 
-	// The original's per-vertex formula (docs/re/render-dll.md, lighting):
+	// The original's per-vertex formula (dx-reverse-info/render-dll.md, lighting):
 	// a diffuse term, (cos + 1)^2 - 1.5 of the angle to the light, and a
 	// highlight, 6 cos^2 of the angle between the eye and the light's
 	// reflection when it heads toward the eye, both times 1 - d/r and the

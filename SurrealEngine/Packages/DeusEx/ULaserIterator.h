@@ -21,7 +21,7 @@ struct DXBeam
 
 // LaserEmitter's iterator: each beam drawn as a run of segments through one
 // proxy actor; bRandomBeam is ElectricityEmitter's arcing
-// (docs/re/deusex-dll.md, particles and lasers).
+// (dx-reverse-info/deusex-dll.md, particles and lasers).
 class ULaserIterator : public URenderIterator
 {
 public:

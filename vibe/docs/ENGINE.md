@@ -200,7 +200,8 @@ to work, where the message does not already say.
   it), and CPU decoders for texture formats the GPU cannot sample or filter
   (BC1–5, RGB8, RGBA32F). **Smart Pro:** the GE8300 has neither; the intro went
   from speckle to clean. A desktop GPU keeps the bindless path. The format
-  table came from `tools/probes/probe-texture-formats.c`.
+  table came from Port Ex Machina's
+  [`tools/probes/probe-texture-formats.c`](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/tools/probes/probe-texture-formats.c).
 - [**0003**](https://github.com/JuggyMcNutty/VibeEngine/commit/af99616f537480cc63f9f781865e2e76634abe44)
   `gamepad-and-deusex-fixes` -- the pad as polled state, turned into UE1
   joystick keys and axes so `User.ini` bindings decide what it does, with

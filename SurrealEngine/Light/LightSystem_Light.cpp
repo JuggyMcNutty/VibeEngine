@@ -137,7 +137,7 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 	{
 		// The surface's own lights: the still ones are the kept static
 		// map's; an animating one is added over it every frame, through
-		// its shadow bits (docs/re/render-dll.md, light maps). With
+		// its shadow bits (dx-reverse-info/render-dll.md, light maps). With
 		// NoDynamicLights, animated lights count as static and moving
 		// ones are left out.
 
@@ -375,7 +375,7 @@ void LightSystem::InitVertexLight(VertexLight& out, UActor* actor, UZoneInfo* zo
 void LightSystem::SetupForActorDX(VertexLight& out, UActor* actor)
 {
 	// The original's SetupForActor picks an actor's lights once a draw
-	// (docs/re/render-dll.md, lighting -- meshes): the static lights that
+	// (dx-reverse-info/render-dll.md, lighting -- meshes): the static lights that
 	// reach into the actor's leaf of the BSP, the moving lights in it, and
 	// the lights it had last frame, each counted at its strength at the
 	// actor's centre; the pick strongest first -- statics until 8 are

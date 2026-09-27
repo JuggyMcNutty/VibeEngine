@@ -564,7 +564,7 @@ public:
 	} TouchingLights;
 
 	// Deus Ex mesh lighting: the picked lights kept under the actor with
-	// their fades and shadow checks (docs/re/render-dll.md, lighting)
+	// their fades and shadow checks (dx-reverse-info/render-dll.md, lighting)
 	struct MeshLightEntry
 	{
 		UActor* Light = nullptr;

@@ -42,7 +42,7 @@ public:
 	bool HaveSeenCarcass(const NameString& CarcassName);
 	bool IsValidEnemy(UPawn* TestEnemy, std::optional<bool> bCheckAlliance);
 
-	// The original's AScriptedPawn::Tick (docs/re/deusex-dll.md, the native
+	// The original's AScriptedPawn::Tick (dx-reverse-info/deusex-dll.md, the native
 	// tick), which ends by calling the actor tick.
 	void Tick(float elapsed) override;
 
