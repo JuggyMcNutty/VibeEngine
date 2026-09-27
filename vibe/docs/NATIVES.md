@@ -1029,7 +1029,10 @@ What a mod needs of the engine is the original's loader (2026-09-27):
   config cache has it (2026-09-27): a string takes it empty, a name, object
   or class None, a float 0, and an int, byte or bool keeps its default --
   what the original's `ImportText` makes of no text. The fork took an
-  empty value for a missing key.
+  empty value for a missing key. And of a key given twice in a section the
+  last counts, as in the original (the fork took the first) -- but for the
+  player's own settings, which the fork reads again by hand as it spawns
+  one, still the first.
 
 Checked: a mod laid out as Deus Ex's are -- its own folder with `System`
 and `Maps`, named by relative, backslashed `Paths` in its own ini -- holding

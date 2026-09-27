@@ -135,10 +135,10 @@ std::string IniFile::GetValue(const NameString& sectionName, const NameString& k
 	return section->GetValue(keyName, defaultValue, index);
 }
 
-bool IniFile::FindValue(const NameString& sectionName, const NameString& keyName, std::string& value, const int index) const
+bool IniFile::FindValue(const NameString& sectionName, const NameString& keyName, std::string& value) const
 {
 	const IniSection* section = FindSection(sectionName.ToString());
-	return section && section->FindValue(keyName, value, index);
+	return section && section->FindValue(keyName, value);
 }
 
 Array<std::string> IniFile::GetValues(const NameString& sectionName, const NameString& keyName, const Array<std::string>& defaultValues) const
@@ -460,16 +460,16 @@ std::string IniSection::GetValue(const NameString& keyName, const std::string& d
 	return defaultValue;
 }
 
-bool IniSection::FindValue(const NameString& keyName, std::string& value, const int index) const
+bool IniSection::FindValue(const NameString& keyName, std::string& value) const
 {
 	uint32_t keyHash = HashIniString(keyName.ToString());
 	for (auto& key : keys)
 	{
 		if (key.GetHash() == keyHash)
 		{
-			if (index < 0 || index >= (int)key.GetValues().size())
+			if (key.GetValues().empty())
 				return false;
-			value = key.GetValue(index);
+			value = key.GetValues().back();
 			return true;
 		}
 	}
