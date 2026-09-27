@@ -213,8 +213,8 @@ be.
       2026-09-27 a live DXMTL server's).
 - [x] Remote functions and the player's moves: playing on a live server
       (2026-09-26 on the original's listen server; 2026-09-27 on a live
-      server the server's calls and corrections taken, standing -- moving
-      there still to try).
+      server the server's calls and corrections taken, standing, and a walk,
+      run by the harness's live mode).
 - [x] The server: accepting, relevancy and priority, replication out --
       the original joining the fork (2026-09-26).
 - [x] The server's calls to its clients: `ClientAdjustPosition`'s

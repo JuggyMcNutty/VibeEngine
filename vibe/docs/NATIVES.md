@@ -1251,11 +1251,16 @@ downloaded from original servers -- 23 packages, some 23 MB in about a
 minute, from an ANNA server, and a custom map and two packages from
 another --, loaded their mods and joined; on a DXMTL server, with the stock
 console, it stayed in the game, took the server's calls and position
-corrections and drew the map with the HUD. The original downloaded a map it
+corrections and drew the map with the HUD, and walked there (the
+harness's live mode, below): on a live MTL deathmatch server it walked
+5 s into a wall and stood, the server's one correction at the stop 1.5
+units back -- where the traces' margins still differ
+([implemented, not as the original](#implemented-not-as-the-original)). The original downloaded a map it
 lacked from the fork's server, then joined and walked, and the fork did the
 same against its own server. With a scripted console the game's console
-check (above) disconnects the run seconds in, on every server
-([live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
+check (above) disconnects the run seconds in, on every server; the
+harness's live mode keeps the stock console and drives the run from the
+engine instead ([live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
 
 A server travels, and its clients follow (2026-09-27), as
 [the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#server-travel): `servertravel`

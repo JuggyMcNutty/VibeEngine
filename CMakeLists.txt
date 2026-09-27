@@ -48,6 +48,8 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/GamepadInput.h
 	SurrealEngine/GameWindow.cpp
 	SurrealEngine/GameWindow.h
+	SurrealEngine/Timeline.cpp
+	SurrealEngine/Timeline.h
 	SurrealEngine/UE1GameDatabase.h
 	SurrealEngine/UE1GameDatabase.cpp
 	SurrealEngine/Utils/CommandLine.cpp

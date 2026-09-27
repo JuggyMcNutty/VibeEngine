@@ -15,6 +15,7 @@ struct GameLaunchInfo
 	std::string userIniPath = "";			// --userini: the user ini, as the original's USERINI=
 	bool dedicatedServer = false;			// --server: no client, the map served, as the original's -SERVER
 	bool lanPlay = false;					// --lanplay: a dedicated server's LAN tick rate, as the original's -LANPLAY
+	std::string timelinePath = "";			// --timeline: keys and commands at set times, the harness's live mode (Timeline.h)
 
 	bool IsUnreal1() const { return gameExecutableName == "Unreal"; }
 	bool IsUnreal1_226() const { return IsUnreal1() && gameVersion == 226; }

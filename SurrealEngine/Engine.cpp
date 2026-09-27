@@ -1,6 +1,7 @@
 
 #include "Precomp.h"
 #include "Engine.h"
+#include "Timeline.h"
 #include "Utils/File.h"
 #include "Utils/StrTools.h"
 #include "Utils/SHA1Sum.h"
@@ -215,6 +216,14 @@ void Engine::Run()
 
 	float currentZoneTimeDilation = 1.0f; // Unreal 227 allows zones to specify their own time dilations
 
+	std::unique_ptr<Timeline> timeline;
+	if (!LaunchInfo.timelinePath.empty())
+	{
+		timeline = std::make_unique<Timeline>();
+		if (!timeline->Load(LaunchInfo.timelinePath))
+			timeline.reset();
+	}
+
 	while (!quit)
 	{
 		// Main game loop should consist of these 4 steps:
@@ -266,6 +275,8 @@ void Engine::Run()
 		// Do NOT pause this Tick event otherwise some messages will stay on screen forever.
 		if (!dedicated)
 			CallEvent(console, EventName::Tick, { ExpressionValue::FloatValue(levelElapsed) });
+		if (timeline)
+			timeline->Tick(realTimeElapsed);
 
 		// To do: set these to true if the frame rate is too low
 		if (LaunchInfo.ue1Version >= 436)

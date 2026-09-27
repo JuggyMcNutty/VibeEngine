@@ -141,10 +141,17 @@ full, in 333networks' list: `https://master.333networks.com/json/deusex`):
 into the game's `Cache`, but every server's game disconnects a player whose
 console is not the stock one (`Invalid Console class, disconnecting`,
 [the check](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#deus-exs-additions)), so the run is back in
-the menu seconds after joining. To stay in, a run takes the stock console
-(`Console=Engine.Console` in a copy of the run's ini, the engine started
-as `cmd_fork` starts it) and a [temporary hook](#temporary-debug-hooks)
-for its shots and exit. Pick an empty server.
+the menu seconds after joining. `live <address> [<secs>]` keeps the stock
+console and has the engine drive the run instead, from a timeline
+(`--timeline=<file>`, the fork's `Timeline.h`): lines of `<clock> <seconds>
+<action>`, the clock `start` (from the engine's start) or `game` (seconds
+of the net game), the action `press <key>` or `release <key>` as the key in
+the window, or a console command (`shot`, `exit`, ...). By default it is
+`JoinConsole`'s walk -- in the game, stand 5 s, walk forward 5 s (`W`) and
+stand, shots at the stops, out at 25 s --, or the file in
+`DXCAP_TIMELINE`; each second of the game the player's place and every
+other pawn's are logged (`DXLIVE` lines), and a run dropped to the menu
+exits. Pick an empty server.
 
 **A crash** in a fork run leaves a core, which systemd keeps:
 `coredumpctl dump <pid> --output=<scratchpad>/core` and `gdb -batch -ex bt

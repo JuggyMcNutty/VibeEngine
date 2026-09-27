@@ -10,6 +10,9 @@
 #   vibe/tools/dxcap.sh fork <console> <map> [<secs>] the fork's linux-x86_64 build, straight into <map>
 #                                                  (or joining a server: <map> an address, as 127.0.0.1:7790)
 #   vibe/tools/dxcap.sh prove <map>                the fork's proving run: shots at 20 s and 60 s, exit at 65 s
+#   vibe/tools/dxcap.sh live <address> [<secs>]    the fork joining a live server with the stock console its
+#                                                  game wants, driven by a timeline (the fork's --timeline):
+#                                                  DXCAP_TIMELINE=<file>, else JoinConsole's walk
 #
 # The workspace is Port Ex Machina's, where this clone is engine/SurrealEngine
 # ($DX_ROOT, or two directories above the clone): the game, the SDK and the
@@ -41,7 +44,7 @@ CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
-usage() { sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,35p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.
@@ -99,7 +102,9 @@ def put(key, value):
     s, n = re.subn(r'^%s=.*$' % re.escape(key), lambda m: '%s=%s' % (key, value), s, count=1, flags=re.M)
     if n != 1:
         sys.exit('no %s= in %s' % (key, src))
-put('Console', 'DXCapture.' + console)
+# A live run keeps the stock console: a server's game drops any other.
+if console:
+    put('Console', 'DXCapture.' + console)
 s, n = re.subn(r'^(Paths=\.\.\\System\\\*\.u)\r?$', lambda m: m.group(1) + nl + 'Paths=' + path, s, count=1, flags=re.M)
 if n != 1:
     sys.exit('no Paths=..\\System\\*.u in ' + src)
@@ -313,14 +318,11 @@ cmd_original() {
     say "original: $dir"
 }
 
-cmd_fork() {
-    local console="${1:?console class}" map="${2:?map}" secs="${3:-120}"
-    [ -f "$CAP/System/DXCapture.u" ] || die "vibe/tools/dxcap.sh compile first"
-    [ -x "$ENGINE_BIN" ] || die "no engine build at $ENGINE_BIN"
-    local ini="$CAP/System/Fork.ini" userini="$CAP/System/ForkUser.ini"
-    local dir="$CAP/runs/fork-$console-$(date +%H%M%S)"
-    make_ini fork "$console" "$ini"
-    user_ini "$userini"
+# A fork run into <map> or a server's address, its log into <dir>; any
+# further arguments go to the engine.
+run_fork() {
+    local dir="$1" ini="$2" userini="$3" map="$4" secs="$5"
+    shift 5
     local before; before="$(shots_before)"
     mkdir -p "$dir"
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_start "$dir/audio.wav"
@@ -334,13 +336,53 @@ cmd_fork() {
             printf '[general]\ndrivers = null\n' > "$CAP/alsoft-null.conf"
             export ALSOFT_CONF="$CAP/alsoft-null.conf"
         fi
-        timeout -s KILL "$secs" "$ENGINE_BIN" --no-launcher "$GAME" --ini="$ini" --userini="$userini" --url="$map" > "$dir/engine.log" 2>&1
+        timeout -s KILL "$secs" "$ENGINE_BIN" --no-launcher "$GAME" --ini="$ini" --userini="$userini" --url="$map" "$@" > "$dir/engine.log" 2>&1
     ) || rc=$?
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_stop
     collect "$dir" "$before"
     printf '%s\n' "$rc" > "$dir/exit"
     say "fork: $dir (exit $rc)"
     printf '%s\n' "$dir"
+}
+
+cmd_fork() {
+    local console="${1:?console class}" map="${2:?map}" secs="${3:-120}"
+    [ -f "$CAP/System/DXCapture.u" ] || die "vibe/tools/dxcap.sh compile first"
+    [ -x "$ENGINE_BIN" ] || die "no engine build at $ENGINE_BIN"
+    local ini="$CAP/System/Fork.ini" userini="$CAP/System/ForkUser.ini"
+    local dir="$CAP/runs/fork-$console-$(date +%H%M%S)"
+    make_ini fork "$console" "$ini"
+    user_ini "$userini"
+    run_fork "$dir" "$ini" "$userini" "$map" "$secs"
+}
+
+# The fork on a live server: the stock console, and a timeline for what a
+# console class would do -- by default JoinConsole's walk, the player's
+# place and the others' logged each second of the game (DXLIVE lines).
+cmd_live() {
+    local address="${1:?server address}" secs="${2:-120}"
+    [ -x "$ENGINE_BIN" ] || die "no engine build at $ENGINE_BIN"
+    local ini="$CAP/System/Fork.ini" userini="$CAP/System/ForkUser.ini"
+    local dir="$CAP/runs/fork-live-$(date +%H%M%S)"
+    make_ini fork "" "$ini"
+    user_ini "$userini"
+    mkdir -p "$dir"
+    local timeline="$dir/timeline.txt"
+    if [ -n "${DXCAP_TIMELINE:-}" ]; then
+        cp "$DXCAP_TIMELINE" "$timeline"
+    else
+        cat > "$timeline" <<'EOF'
+# JoinConsole's walk: once in the game the player stands 5 s, walks forward
+# 5 s with the key held (W, MoveForward in the game's User.ini) and stands
+# again; shots at the stops; the run exits 25 s into the game.
+game 5 shot
+game 5 press W
+game 10 release W
+game 11 shot
+game 25 exit
+EOF
+    fi
+    run_fork "$dir" "$ini" "$userini" "$address" "$secs" --timeline="$timeline"
 }
 
 cmd_prove() {
@@ -367,6 +409,7 @@ case "$cmd" in
     original) cmd_original "$@" ;;
     fork)     cmd_fork "$@" ;;
     prove)    cmd_prove "$@" ;;
+    live)     cmd_live "$@" ;;
     -h|--help|help) usage ;;
     *)        die "unknown command '$cmd' (vibe/tools/dxcap.sh help)" ;;
 esac
