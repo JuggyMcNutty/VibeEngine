@@ -79,8 +79,9 @@ The console classes:
 - **`JoinConsole`**, either engine: the joining side -- from the menu map it
   logs its player's name and world stats password, opens
   `127.0.0.1:7790`, stands its player 5 s, walks it forward 5 s and
-  stands again, logging each second where it and every other pawn stand, and
-  shots at the stops. It exits 25 s into the game, or back in the menu --
+  stands again, logging each second where it and every other pawn stand
+  (the others with their animation: sequence, frame and rate), and shots
+  at the stops. It exits 25 s into the game, or back in the menu --
   dropped, or never in after 40 s --, since the original's log comes only
   at its exit. The original's server answers some 13 s after it starts.
 - **`RejoinConsole`**, either engine: a client that joins twice -- it opens

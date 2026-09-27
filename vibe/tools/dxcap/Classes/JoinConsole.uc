@@ -2,8 +2,9 @@
 // JoinConsole: the joining side of a net test -- from the menu map it opens
 // the server on this machine (ServeConsole's), and once in the game its
 // player stands 5 s, walks forward 5 s as with the key held, and stands
-// again; its place, and every other player's as this side has it, is logged
-// each second, and shot at the stops. Exits 25 s into the game -- or back in
+// again; its place, and every other player's as this side has it -- with
+// the other's animation: sequence, frame, rate --, is logged each second,
+// and shot at the stops. Exits 25 s into the game -- or back in
 // the menu, dropped or never in after 40 s.
 //=============================================================================
 class JoinConsole extends Console;
@@ -53,7 +54,7 @@ event Tick(float Delta)
 		Log("DXNET: t=" $ int(GameTime) $ " at " $ P.Location $ " state " $ P.GetStateName() $ " physics " $ P.Physics);
 		foreach P.AllActors(class'Pawn', Other)
 			if (Other != P)
-				Log("DXNET: t=" $ int(GameTime) $ " other " $ Other.Name $ " at " $ Other.Location $ " velocity " $ Other.Velocity);
+				Log("DXNET: t=" $ int(GameTime) $ " other " $ Other.Name $ " at " $ Other.Location $ " velocity " $ Other.Velocity $ " anim " $ Other.AnimSequence $ " frame " $ Other.AnimFrame $ " rate " $ Other.AnimRate);
 	}
 
 	if (Step == 1 && GameTime > 5.0)

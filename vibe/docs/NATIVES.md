@@ -1175,9 +1175,19 @@ and what a client sends is taken only as the original's server takes it. A
 client's pawn on the server runs its state code and timers, moving by the
 client's moves; the animation natives pack `SimAnim` for clients; the local
 player's pawn is simulated on clients, as the original spawns it. Every
-replicated value goes through its script replication statement, where the
-original replicates eight engine classes' values by native lists instead
-(not yet compared with their statements). Checked with the original as the
+replicated value goes through its script replication statement, but for
+what the original's native lists decide instead: eight engine classes'
+values, whose lists hold their statements but for a few
+([the lists](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#the-native-lists)),
+the fork's as theirs since 2026-09-27 -- `SimAnim`, `AnimMinRate` and
+`bAnimNotify` go when `AnimSequence` does, where Deus Ex's statement sent
+`SimAnim` to no simulated proxy and the original's clients saw the fork
+server's pawns run with their animations frozen (the rate 0 in
+`JoinConsole`'s log, the original's own rates since); the blended
+animations and `PlayerRestartState` go never; a player replication info
+sends `Actor`'s values in its first bunch only, and an always-relevant
+inventory item after its first only `bHidden`; a simulated item with an
+ambient sound sends its place to all but its owner. Checked with the original as the
 client: it was welcomed, possessed its pawn, saw the map's actors and the
 host's player walking to and fro in front of it, and walked; the fork's
 server moved its pawn by its moves. At the client's default 2,600 bytes a

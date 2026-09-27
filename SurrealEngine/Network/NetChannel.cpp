@@ -680,6 +680,66 @@ void NetActorChannel::SetChannelActor(UActor* actor)
 	}
 }
 
+// What the original replicates of eight engine classes' own values --
+// Actor, Pawn, PlayerPawn, Mover, ZoneInfo, the two replication infos and
+// Inventory -- goes by C++ lists (their GetOptimizedRepList, Engine.dll),
+// Core's class net cache leaving those values out of the script
+// replication. Deus Ex's lists hold the classes' statements but for what
+// these name.
+namespace
+{
+	struct NativeRepList
+	{
+		UClass* Actor = nullptr;
+		UProperty* AnimSequence = nullptr;
+		UProperty* SimAnim = nullptr;
+		UProperty* AnimMinRate = nullptr;
+		UProperty* bAnimNotify = nullptr;
+		UProperty* BlendAnimSequence = nullptr;
+		UProperty* SimBlendAnim = nullptr;
+		UProperty* BlendAnimMinRate = nullptr;
+		UProperty* Location = nullptr;
+		UProperty* bHidden = nullptr;
+		UProperty* PlayerRestartState = nullptr;
+
+		static UProperty* Find(UClass* cls, const char* name)
+		{
+			if (!cls)
+				return nullptr;
+			for (UProperty* prop : cls->Properties)
+			{
+				if (prop->Name == name)
+					return prop;
+			}
+			return nullptr;
+		}
+
+		static const NativeRepList* Get()
+		{
+			if (!engine->LaunchInfo.IsDeusEx())
+				return nullptr;
+			static NativeRepList list;
+			static bool made = false;
+			if (!made)
+			{
+				made = true;
+				list.Actor = engine->packages->FindClass("Engine.Actor");
+				list.AnimSequence = Find(list.Actor, "AnimSequence");
+				list.SimAnim = Find(list.Actor, "SimAnim");
+				list.AnimMinRate = Find(list.Actor, "AnimMinRate");
+				list.bAnimNotify = Find(list.Actor, "bAnimNotify");
+				list.BlendAnimSequence = Find(list.Actor, "BlendAnimSequence");
+				list.SimBlendAnim = Find(list.Actor, "SimBlendAnim");
+				list.BlendAnimMinRate = Find(list.Actor, "BlendAnimMinRate");
+				list.Location = Find(list.Actor, "Location");
+				list.bHidden = Find(list.Actor, "bHidden");
+				list.PlayerRestartState = Find(engine->packages->FindClass("Engine.Pawn"), "PlayerRestartState");
+			}
+			return &list;
+		}
+	};
+}
+
 void NetActorChannel::ReplicateActor()
 {
 	NetPackageMap& map = Connection->PackageMap;
@@ -753,6 +813,13 @@ void NetActorChannel::ReplicateActor()
 	// the engine does not replicate itself only in its first bunch.
 	bool scriptClassesToo = !(UObject::TryCast<UInventory>(actor) && actor->bAlwaysRelevant()) || initial;
 
+	// Deus Ex's native lists (above): Inventory's sends such an item's
+	// bHidden alone after its first bunch; PlayerReplicationInfo's, Actor's
+	// values only in its first.
+	const NativeRepList* native = NativeRepList::Get();
+	bool onlyHidden = native && !scriptClassesToo;
+	bool actorValuesToo = !(native && UObject::TryCast<UPlayerReplicationInfo>(actor)) || initial;
+
 	// What goes: each replicated element whose value is not what this
 	// client last got and whose replication statement holds, each
 	// statement evaluated once. A reference to an actor the client has no
@@ -766,6 +833,25 @@ void NetActorChannel::ReplicateActor()
 		UClass* owner = UObject::TryCast<UClass>(prop->Outer());
 		if (!scriptClassesToo && !(owner && (owner->ClsFlags & ClassFlags::NativeReplication) != 0))
 			continue;
+
+		// Deus Ex's native lists: SimAnim, AnimMinRate and bAnimNotify go
+		// when AnimSequence does, as UE1's statement had them, where Deus
+		// Ex's own sent SimAnim to no simulated proxy -- the original's
+		// clients saw the fork server's pawns run frozen --; the blended
+		// animations and a pawn's PlayerRestartState never go.
+		uint16_t replicationOffset = prop->ReplicationOffset;
+		if (native)
+		{
+			if (onlyHidden && prop != native->bHidden)
+				continue;
+			if (!actorValuesToo && owner == native->Actor)
+				continue;
+			if (prop == native->BlendAnimSequence || prop == native->SimBlendAnim || prop == native->BlendAnimMinRate || prop == native->PlayerRestartState)
+				continue;
+			if ((prop == native->SimAnim || prop == native->AnimMinRate || prop == native->bAnimNotify) && native->AnimSequence)
+				replicationOffset = native->AnimSequence->ReplicationOffset;
+		}
+
 		bool objectProp = UObject::TryCast<UObjectProperty>(prop) != nullptr;
 		for (int i = 0; i < prop->ArrayDimension; i++)
 		{
@@ -779,11 +865,19 @@ void NetActorChannel::ReplicateActor()
 			if (same)
 				continue;
 
-			auto key = std::make_pair(owner, prop->ReplicationOffset);
+			auto key = std::make_pair(owner, replicationOffset);
 			auto it = conditions.find(key);
 			if (it == conditions.end())
-				it = conditions.emplace(key, NetReplicationCondition(owner, prop->ReplicationOffset, actor)).first;
-			if (it->second)
+				it = conditions.emplace(key, NetReplicationCondition(owner, replicationOffset, actor)).first;
+			bool wanted = it->second;
+
+			// Inventory's list also sends a simulated item's place to all
+			// but its owner while it has an ambient sound.
+			if (native && !wanted && prop == native->Location && UObject::TryCast<UInventory>(actor) &&
+				!actor->bNetOwner() && actor->RemoteRole() == ROLE_SimulatedProxy && actor->AmbientSound())
+				wanted = true;
+
+			if (wanted)
 				reps.push_back(field->RepIndex + i);
 		}
 	}
