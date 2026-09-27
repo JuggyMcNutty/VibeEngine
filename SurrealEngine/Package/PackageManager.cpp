@@ -922,6 +922,11 @@ std::string PackageManager::GetIniValue(NameString iniName, const NameString& se
 	return LoadIniFile(iniName)->GetValue(sectionName, keyName, default_value, index);
 }
 
+bool PackageManager::FindIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, std::string& value, const int index)
+{
+	return LoadIniFile(iniName)->FindValue(sectionName, keyName, value, index);
+}
+
 Array<std::string> PackageManager::GetIniValues(NameString iniName, const NameString& sectionName, const NameString& keyName, Array<std::string> default_values)
 {
 	return LoadIniFile(iniName)->GetValues(sectionName, keyName, default_values);

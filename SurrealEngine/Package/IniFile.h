@@ -42,6 +42,8 @@ public:
 
 	std::string GetValue(const NameString& keyName, const std::string& defaultValue, const int index = 0) const;
 	Array<std::string> GetValues(const NameString& keyName, const Array<std::string>& defaultValues = {}) const;
+	// Whether the key is there, its value in `value` -- an empty one too.
+	bool FindValue(const NameString& keyName, std::string& value, const int index = 0) const;
 
 	bool SetValue(const NameString& keyName, const std::string& newValue, const int index = 0, const bool indexed = false);
 	bool SetValues(const NameString& keyName, const Array<std::string>& newValues, const bool indexed = false);
@@ -70,6 +72,9 @@ public:
 	Array<NameString> GetKeys(const NameString& sectionName) const;
 	std::string GetValue(const NameString& sectionName, const NameString& keyName, const std::string& defaultValue = "", const int index = 0) const;
 	Array<std::string> GetValues(const NameString& sectionName, const NameString& keyName, const Array<std::string>& defaultValues = {}) const;
+	// Whether the key is there, its value in `value`: an empty value is one,
+	// as the original's config cache has it (GetValue takes it for missing).
+	bool FindValue(const NameString& sectionName, const NameString& keyName, std::string& value, const int index = 0) const;
 
 	void SetValue(const NameString& sectionName, const NameString& keyName, const std::string& newValue, const int index = 0);
 	void SetValues(const NameString& sectionName, const NameString& keyName, const Array<std::string>& newValues);

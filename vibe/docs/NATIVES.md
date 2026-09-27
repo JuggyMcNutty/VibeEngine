@@ -1025,7 +1025,11 @@ What a mod needs of the engine is the original's loader (2026-09-27):
   properties keep their defaults -- until the class writes it, as the
   original's ([configuration](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)):
   DXMTL's classes read a `DXMTL.ini` no player without the mod has, where
-  the fork failed.
+  the fork failed. A key with an empty value is a value, as the original's
+  config cache has it (2026-09-27): a string takes it empty, a name, object
+  or class None, a float 0, and an int, byte or bool keeps its default --
+  what the original's `ImportText` makes of no text. The fork took an
+  empty value for a missing key.
 
 Checked: a mod laid out as Deus Ex's are -- its own folder with `System`
 and `Maps`, named by relative, backslashed `Paths` in its own ini -- holding
@@ -1107,18 +1111,19 @@ original's server would; the net tests' server game leaves it out
 A listening fork spawns the `ServerActors` its ini lists (2026-09-26), as
 the original's listen does, and reports Deus Ex's engine version and the
 machine's name as the original does. Checked on this machine against the
-original: the LAN beacon's and the query answerer's replies were the
-original's word for word, but for the host name -- the original's empty,
-from the ini's `ServerName=`, the fork's the class default ("Another UT Demo
-Server"): the fork's ini reader takes an empty value for a missing one. The
+original: the LAN beacon's and the query answerer's replies are the
+original's word for word, the host name too -- empty, from the ini's
+`ServerName=`, since the fork takes an empty value as one
+([config files](#mods); 2026-09-27: it had the class default, "Another UT
+Demo Server"). The
 uplinks the game's own ini lists announce nothing, in either engine: an
 uplink stops as it begins without `DoUplink`, which that ini does not set
 ([the master server](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-master-server)), so a game
 hosted from the menus is never listed. With it set, against a master on
 this machine (2026-09-27, `fakemaster.py`), both engines' uplinks sent the
 same heartbeat from the same port, and their query answerers gave the
-master the same `\validate\` and `\basic\` answers, and `\info\`'s but
-for the host name.
+master the same `\validate\`, `\basic\` and `\info\` answers -- the
+host name alike since the empty value's fix.
 
 Downloads go both ways (2026-09-27), as
 [the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#downloads): at `WELCOME`

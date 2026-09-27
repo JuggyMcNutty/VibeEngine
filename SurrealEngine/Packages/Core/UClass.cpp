@@ -232,6 +232,7 @@ void UClass::LoadProperties(PropertyDataBlock* propertyBlock)
 					name = NameString(name.ToString() + "[" + std::to_string(arrayIndex) + "]");
 
 				std::string value;
+				bool found = false;
 				if (AllFlags(prop->PropFlags, PropertyFlags::GlobalConfig))
 				{
 					if (UClass* outer = UObject::TryCast<UClass>(prop->Outer()))
@@ -239,19 +240,32 @@ void UClass::LoadProperties(PropertyDataBlock* propertyBlock)
 						NameString outerSectionName = outer->package->GetPackageName().ToString() + "." + outer->Name.ToString();
 						NameString outerConfigName = outer->ClassConfigName;
 						if (outerConfigName.IsNone()) outerConfigName = "system";
-						value = package->GetPackageManager()->GetIniValue(outerConfigName, outerSectionName, name);
+						found = package->GetPackageManager()->FindIniValue(outerConfigName, outerSectionName, name, value);
 					}
 				}
 				else if (AllFlags(prop->PropFlags, PropertyFlags::Config))
 				{
-					value = package->GetPackageManager()->GetIniValue(configName, sectionName, name);
+					found = package->GetPackageManager()->FindIniValue(configName, sectionName, name, value);
 				}
 				else if (AllFlags(prop->PropFlags, PropertyFlags::Localized))
 				{
 					value = package->GetPackageManager()->Localize(package->GetPackageName(), Name, name);
 				}
 
-				if (!value.empty())
+				if (found && value.empty())
+				{
+					// A key with an empty value is still a value: the original's
+					// LoadConfig hands it to the property's ImportText, which
+					// makes a string empty, a name, object or class None and a
+					// float 0, and leaves an int, byte, bool or struct as it was
+					// (dx-reverse-info/core-dll.md, configuration) -- a server's
+					// empty ServerName= is its name.
+					if (UObject::IsType<UStrProperty>(prop) || UObject::IsType<UStringProperty>(prop)) *static_cast<std::string*>(ptr) = std::string();
+					else if (UObject::IsType<UNameProperty>(prop)) *static_cast<NameString*>(ptr) = NameString();
+					else if (UObject::IsType<UFloatProperty>(prop)) *static_cast<float*>(ptr) = 0.0f;
+					else if (UObject::IsType<UObjectProperty>(prop)) *static_cast<UObject**>(ptr) = nullptr;
+				}
+				else if (!value.empty())
 				{
 					if (auto byteprop = UObject::TryCast<UByteProperty>(prop))
 					{
