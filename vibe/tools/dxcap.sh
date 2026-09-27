@@ -22,6 +22,9 @@
 # the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
 # engine's audio to a private sink instead of the speakers and records it into
 # the run's audio.wav, with the music off (vibe/tools/dxcap/sound.py reads it).
+# DXCAP_UPLINK=<host>:<port> has a run's server announce itself there -- a
+# master on this machine (vibe/tools/dxcap/fakemaster.py), its uplink's
+# DoUplink set --, where it otherwise announces itself nowhere.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../../.." && pwd)}"
@@ -33,7 +36,7 @@ CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
-usage() { sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,27p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.
@@ -100,8 +103,17 @@ if os.environ.get('DXCAP_RECORD') == '1':
 # The Join Internet screen asks a live master server: the game's names
 # GameSpy's, closed.
 put('MasterServerAddress', 'master.333networks.com')
-# A run's server never tells the master servers about itself.
-s, n = re.subn(r'^ServerActors=IpServer\.UdpServerUplink.*\r?\n', '', s, flags=re.M)
+# A run's server never tells the master servers about itself -- only, with
+# DXCAP_UPLINK=<host>:<port>, a master on this machine (fakemaster.py).
+uplink = os.environ.get('DXCAP_UPLINK', '')
+first = [True]
+def one_uplink(m):
+    if not uplink or not first[0]:
+        return ''
+    first[0] = False
+    host, port = uplink.rsplit(':', 1)
+    return 'ServerActors=IpServer.UdpServerUplink DoUplink=True MasterServerAddress=%s MasterServerPort=%s%s' % (host, port, nl)
+s, n = re.subn(r'^ServerActors=IpServer\.UdpServerUplink.*\r?\n', one_uplink, s, flags=re.M)
 if n == 0:
     sys.exit('no ServerActors=IpServer.UdpServerUplink in ' + src)
 # Both engines take the game's settings from it; both run in a window of

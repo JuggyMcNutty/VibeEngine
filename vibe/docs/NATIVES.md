@@ -1050,8 +1050,14 @@ original: the LAN beacon's and the query answerer's replies were the
 original's word for word, but for the host name -- the original's empty,
 from the ini's `ServerName=`, the fork's the class default ("Another UT Demo
 Server"): the fork's ini reader takes an empty value for a missing one. The
-uplinks, which the game's own ini lists for three master servers, were not
-run: announcing a server to the master servers is the owner's call.
+uplinks the game's own ini lists announce nothing, in either engine: an
+uplink stops as it begins without `DoUplink`, which that ini does not set
+([the master server](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-master-server)), so a game
+hosted from the menus is never listed. With it set, against a master on
+this machine (2026-09-27, `fakemaster.py`), both engines' uplinks sent the
+same heartbeat from the same port, and their query answerers gave the
+master the same `\validate\` and `\basic\` answers, and `\info\`'s but
+for the host name.
 
 Downloads go both ways (2026-09-27), as
 [the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#downloads): at `WELCOME`
@@ -1082,9 +1088,9 @@ check (above) disconnects the run seconds in, on every server
 ([live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
 
 Not yet, of a client: the world-stats checksum (`NoChecksum` always). Of a
-server: the uplinks' first announcement (above) and travel. Each bunch goes
-on its own: the original merges one into the last when both are the same
-channel's, which only saves bits.
+server: travel, and a dedicated server (the original's `-SERVER`). Each
+bunch goes on its own: the original merges one into the last when both are
+the same channel's, which only saves bits.
 
 The scripts' sockets are the original's now (2026-09-26,
 [the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)): `InternetLink`'s

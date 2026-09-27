@@ -220,10 +220,15 @@ be.
       corrections among them (2026-09-26).
 - [x] The `ServerActors`: the LAN beacon and the query answerer
       (2026-09-26).
-- [ ] The uplink: a fork server on the master servers' lists (spawned
-      already, not yet run against them: [open decision
+- [x] The uplink: a fork server announced as the original announces one --
+      the same heartbeat and answers, against a master on this machine
+      (2026-09-27). On a real master's list it needs what the original's
+      needs: `DoUplink=True`, which the game's ini lacks, and the query
+      port reachable from the internet ([open decision
       5](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
 - [ ] Travel: a server's next map, its clients following it.
+- [ ] A dedicated server: the game with no client, as the original's
+      `-SERVER` runs it -- what the live servers are.
 - [x] Downloads: a package a client lacks fetched from the server, and a
       fork server serving them (2026-09-27: from live servers, and between
       the fork and the original both ways).

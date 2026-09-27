@@ -85,6 +85,10 @@ the old one. Each side's log then says what it saw -- `DXNET:` lines on the
 client, `DXCAP:` player positions on the server --, and a server's LAN
 beacon and GameSpy query answers are asked with
 `vibe/tools/dxcap/netquery.py`, the same questions for either engine, for a diff.
+A server's uplink is checked the same way: `vibe/tools/dxcap/fakemaster.py`
+listens as a master on this machine (UDP 27900) and asks each server that
+announces itself what a master asks, and `DXCAP_UPLINK=127.0.0.1:27900` in
+front of a server's run has its uplink announce it there, `DoUplink` set.
 
 **Live servers** (the owner's go-ahead, 2026-09-27; which are up, and how
 full, in 333networks' list: `https://master.333networks.com/json/deusex`):
