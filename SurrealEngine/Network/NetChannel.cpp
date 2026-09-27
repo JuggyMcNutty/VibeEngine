@@ -134,26 +134,51 @@ int NetChannel::SendBunch(NetOutBunch& bunch, bool merge)
 		OpenTemporary = !bunch.bReliable;
 	}
 
-	NetOutBunch* outBunch = &bunch;
-	if (bunch.bReliable)
+	// Into the last bunch sent, when that is this channel's and still ends
+	// the packet being built, as the original merges (UChannel::SendBunch,
+	// Engine.dll 0x103fb6b0): one header for both, a reliable one keeping
+	// its record and sequence.
+	NetOutBunch* sending = &bunch;
+	NetOutBunch* record = nullptr;
+	if (merge && Connection->CanMerge(bunch))
 	{
-		if ((int)OutRec.size() >= NetConnection::ReliableBuffer - 1 + (bunch.bClose ? 1 : 0))
+		record = Connection->LastOutRecord();
+		sending = &Connection->MergeIntoLast(bunch);
+	}
+
+	NetOutBunch* outBunch = sending;
+	if (sending->bReliable)
+	{
+		if (!record)
 		{
-			LogMessage("Net: outgoing reliable buffer overflow on channel " + std::to_string(ChIndex));
-			Connection->State = ConnectionState::Closed;
-			return Connection->OutPacketId;
+			if ((int)OutRec.size() >= NetConnection::ReliableBuffer - 1 + (sending->bClose ? 1 : 0))
+			{
+				LogMessage("Net: outgoing reliable buffer overflow on channel " + std::to_string(ChIndex));
+				Connection->State = ConnectionState::Closed;
+				return Connection->OutPacketId;
+			}
+			sending->ChSequence = ++Connection->OutReliable[ChIndex];
+			OutRec.push_back(*sending);
+			record = &OutRec.back();
 		}
-		bunch.ChSequence = ++Connection->OutReliable[ChIndex];
-		OutRec.push_back(bunch);
-		outBunch = &OutRec.back();
+		else
+		{
+			*record = *sending;
+		}
+		outBunch = record;
+	}
+	else
+	{
+		record = nullptr;
 	}
 
 	outBunch->ReceivedAck = false;
-	int packetId = Connection->SendRawBunch(*outBunch, merge);
+	int packetId = Connection->SendRawBunch(*outBunch, true);
 	if (OpenPacketId == -1 && OpenedLocally)
 		OpenPacketId = packetId;
 	if (outBunch->bClose)
 		SetClosingFlag();
+	Connection->SentBunch(*outBunch, record);
 	return packetId;
 }
 

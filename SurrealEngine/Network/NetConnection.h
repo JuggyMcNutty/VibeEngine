@@ -95,6 +95,19 @@ public:
 	void SendText(const std::string& text);
 
 	int SendRawBunch(NetOutBunch& bunch, bool allowMerge);
+	// Whether a channel's bunch can go into the last one sent, as the
+	// original merges (UChannel::SendBunch): that one is the same channel's
+	// and still ends the packet being built, no ack written since, and the
+	// two fit the packet with one header.
+	bool CanMerge(const NetOutBunch& bunch) const;
+	// The last bunch sent, taken back out of the packet being built with the
+	// bunch's data and flags added: what goes in their place.
+	NetOutBunch& MergeIntoLast(const NetOutBunch& bunch);
+	// A channel's bunch just sent, for the next to merge into; `record` its
+	// reliable record, or none.
+	void SentBunch(const NetOutBunch& bunch, NetOutBunch* record);
+	// The last bunch's reliable record while it can be merged into.
+	NetOutBunch* LastOutRecord() const { return LastOutBunch; }
 	// The bytes a bunch can still carry in the packet being built (Engine's
 	// UChannel::MaxSendBytes).
 	int MaxSendBytes() const;
@@ -158,6 +171,14 @@ private:
 
 	NetBitWriter Out;
 	bool TimeSensitive = false;
+
+	// The last bunch a channel sent, where it starts and ends in Out, and
+	// whether it may be merged into (no ack written since).
+	NetOutBunch LastOut;
+	NetOutBunch* LastOutBunch = nullptr;
+	int LastStart = 0;
+	int LastEnd = 0;
+	bool AllowMerge = false;
 	Array<int> QueuedAcks;
 	Array<int> ResendAcks;
 

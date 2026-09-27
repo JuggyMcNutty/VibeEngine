@@ -1209,8 +1209,12 @@ server logging world stats: the original's login and the fork's alike,
 `Index.dx?Name=Player?Class=DeusEx.JCDentonMale?Checksum=2a08f7474acf9013c4ec638e29b1997c`,
 the MD5 the formula gives.
 
-Not yet, of a client: each bunch goes on its own, where the original merges
-one into the last when both are the same channel's, which only saves bits.
+A bunch goes into the last one sent, one header for both, when both are
+the same channel's and that one still ends the packet being built with no
+ack written since, as the original's (2026-09-27): the fork sent each on
+its own. Checked both ways: the original's client took the fork server's
+merged bunches and its server a fork client's, each side joining and
+walking.
 
 The scripts' sockets are the original's now (2026-09-26,
 [the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)): `InternetLink`'s

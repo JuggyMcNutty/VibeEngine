@@ -215,6 +215,7 @@ void NetConnection::SendAck(int packetId, bool firstTime)
 		QueuedAcks.push_back(packetId);
 	}
 	PreSend(1 + 14);
+	AllowMerge = false;
 	Out.WriteBit(true);
 	Out.WriteInt(packetId, MaxPacketId);
 	PostSend();
@@ -263,6 +264,8 @@ int NetConnection::SendRawBunch(NetOutBunch& bunch, bool allowMerge)
 	header.WriteInt(bunch.Data.GetNumBits(), MaxPacket * 8);
 
 	PreSend(header.GetNumBits() + bunch.Data.GetNumBits());
+	AllowMerge = allowMerge;
+	LastStart = Out.GetNumBits();
 	bunch.Time = Driver->Time;
 	TimeSensitive = true;
 	Out.WriteBits(header.GetData(), header.GetNumBits());
@@ -273,8 +276,33 @@ int NetConnection::SendRawBunch(NetOutBunch& bunch, bool allowMerge)
 	return packetId;
 }
 
+bool NetConnection::CanMerge(const NetOutBunch& bunch) const
+{
+	return LastOut.ChIndex == bunch.ChIndex && AllowMerge && LastEnd != 0 && LastEnd == Out.GetNumBits() &&
+		Out.GetNumBytes() + bunch.Data.GetNumBytes() + (MaxBunchHeaderBits + 7) / 8 <= MaxPacket;
+}
+
+NetOutBunch& NetConnection::MergeIntoLast(const NetOutBunch& bunch)
+{
+	LastOut.Data.WriteBits(bunch.Data.GetData(), bunch.Data.GetNumBits());
+	LastOut.bReliable |= bunch.bReliable;
+	LastOut.bOpen |= bunch.bOpen;
+	LastOut.bClose |= bunch.bClose;
+	Out.SetNumBits(LastStart);
+	return LastOut;
+}
+
+void NetConnection::SentBunch(const NetOutBunch& bunch, NetOutBunch* record)
+{
+	LastOut = bunch;
+	LastOutBunch = record;
+	LastEnd = Out.GetNumBits();
+}
+
 void NetConnection::FlushNet()
 {
+	// No bunch to merge into past this point, the packet sent or not.
+	LastEnd = 0;
 	TimeSensitive = false;
 	if (Out.GetNumBits() || Driver->Time - LastSendTime > Driver->KeepAliveTime)
 	{
