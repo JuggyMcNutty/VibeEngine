@@ -1070,3 +1070,13 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `AIConsole` against the original -- Liberty Island's troops out of the
   world in `Idle` and its three sitters sitting, where they patrolled and
   wandered; proving runs on three maps clean.
+- [**what counts as drawn**](https://github.com/JuggyMcNutty/VibeEngine/commit/7b07db7cdeb8ebf5563ddcb2681d2035b9caf59c) --
+  an actor's render time is stamped only when a piece of its proxy, set
+  back at its depth and filtered down the BSP with the walk, shows in its
+  leaf, as the original keeps a sprite; pieces in solid space, hidden
+  subtrees or unseen zones drop, and a zone portal seen from behind leads
+  into its zone ([out of sight](NATIVES.md#out-of-sight)). **[perf]** the
+  filtering is render CPU, to re-measure on the Smart Pro. **Checked:**
+  `AIConsole` -- Liberty Island's Terrorist7 patrols on, where it fought
+  the security bot, and NPCs inside the island no longer count as drawn;
+  proving runs on three maps clean, their shots as before.
