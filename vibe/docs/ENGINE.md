@@ -1196,3 +1196,13 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `VisibleConsole`
   alike in both engines, movers and lists; proving runs on three maps
   clean.
+- [**`LineOfSightTo`, `CanSee` and `PlayerCanSeeMe` as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/c191e4acd085398c3168f3e0238fb68fa1e2a62d) --
+  `LineOfSightTo` UT's (reaches by `Visibility`, the enemy's middle,
+  0.8 of the height, the cylinder's corners), `CanSee` it with the LOS
+  flag, `PlayerCanSeeMe` a player's view within its reach and 60 degrees
+  and then its `LineOfSightTo`, where the fork's `PlayerCanSeeMe` never
+  saw anything a player looked at; other games keep the fork's; the
+  harness's `SightConsole`
+  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `SightConsole`
+  85 of 86 lines the original's (64 before); `AIConsole` as before;
+  proving runs on three maps clean.
