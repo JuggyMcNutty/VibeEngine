@@ -1094,3 +1094,12 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ([small](NATIVES.md#small)). **Checked:** `ViewConsole` in both engines,
   the view at 75 and the blade where the original's is; proving runs on
   three maps clean.
+- [**the harness's `TraceConsole`**](https://github.com/JuggyMcNutty/VibeEngine/commit/8a75f0786899ebb41bffb1eb8ca7a50fdd3d69ea) and
+  [**traces out of a cylinder, a level hit's node**](https://github.com/JuggyMcNutty/VibeEngine/commit/13e0d6fcab8bf7d623a71d80b19159bbae2228e7) --
+  a line starting inside an actor's cylinder passes out freely and is
+  stopped at once heading in, and `TraceTexture` names the surface of the
+  node the line meets the level at, as the original's
+  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:**
+  `TraceConsole` -- every NPC's floor found, where the fork hit the NPC,
+  and 104 of Liberty Island's 107 traces alike (81 before); proving runs
+  on three maps clean.
