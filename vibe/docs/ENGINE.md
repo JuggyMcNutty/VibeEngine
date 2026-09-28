@@ -148,6 +148,17 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
   as the original's `INI=` and `USERINI=`; the `shot` console command writes
   the next `ShotNNNN.bmp` into the game's System folder.
   [Scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines) use both.
+- **`--cmdline=<line>`** is the original's command line, which the
+  recreated launcher (deusex-launcher's `main`) passes on: its start URL,
+  `-server`, `INI=`, `USERINI=`, `EXEC=` and safe mode's flags, over the
+  options above ([the command line](NATIVES.md#the-command-line)).
+- **`DXL_LAUNCHER_FD`** in the environment is the recreated launcher's line
+  to the engine, which stays for the game's run as the original's process
+  does ([the game and the launcher](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#the-game-and-the-launcher)):
+  the engine says `hello` as it starts and `ready` once its first map is
+  in, and takes `TakeFocus` (the window to the front) and `Open <url>`
+  (the console's `open`), what a second launch forwarded. The ports'
+  launchers set nothing, and nothing changes.
 - Where there is no audio device (a container), give OpenAL Soft the null
   driver ([linux-x86_64's README](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/ports/linux-x86_64/README.md#audio)).
 

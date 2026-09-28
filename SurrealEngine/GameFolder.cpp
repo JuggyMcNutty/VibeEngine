@@ -6,6 +6,7 @@
 #include "UE1GameDatabase.h"
 #include "LauncherSettings.h"
 #include "Utils/CommandLine.h"
+#include "OriginalCommandLine.h"
 #include <filesystem>
 
 Array<GameLaunchInfo> GameFolderSelection::Games;
@@ -59,6 +60,24 @@ GameLaunchInfo GameFolderSelection::GetLaunchInfo(int selectedGame)
 	info.dedicatedServer = commandline->HasArg("", "--server") || info.dedicatedServer;
 	info.lanPlay = commandline->HasArg("", "--lanplay") || info.lanPlay;
 	info.timelinePath = commandline->GetArg("", "--timeline", info.timelinePath);
+
+	// The original's command line, when the launcher gave one: its start
+	// URL, -server, and the inis its INI= and USERINI= name, over the
+	// fork's own options.
+	const OriginalCommandLine& original = OriginalCommandLine::Get();
+	if (original.Given())
+	{
+		std::string url = original.StartURL();
+		if (!url.empty())
+			info.url = url;
+		if (original.Param("server"))
+			info.dedicatedServer = true;
+		std::string ini;
+		if (original.Value("INI", ini) && !ini.empty())
+			info.systemIniPath = ini;
+		if (original.Value("USERINI", ini) && !ini.empty())
+			info.userIniPath = ini;
+	}
 	return info;
 }
 

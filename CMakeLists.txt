@@ -46,6 +46,10 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/LauncherSettings.h
 	SurrealEngine/GamepadInput.cpp
 	SurrealEngine/GamepadInput.h
+	SurrealEngine/LauncherLine.cpp
+	SurrealEngine/LauncherLine.h
+	SurrealEngine/OriginalCommandLine.cpp
+	SurrealEngine/OriginalCommandLine.h
 	SurrealEngine/GameWindow.cpp
 	SurrealEngine/GameWindow.h
 	SurrealEngine/Timeline.cpp

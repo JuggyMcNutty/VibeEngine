@@ -290,6 +290,25 @@ public:
 private:
 	std::map<std::string, std::string> CreateTravelInfo(bool transferItems);
 
+	// What the original's command line changes for this run alone
+	// (OriginalCommandLine): -defaultres's 640x480 and the window -nohard
+	// -noddraw leave. What each replaced goes back before the client's
+	// settings are saved, unless the player changed it since.
+	void ApplyRunOnlySettings();
+	void RestoreRunOnlySettings();
+	struct RunOnlySetting
+	{
+		bool Active = false;
+		int Configured = 0;
+		int ForTheRun = 0;
+	};
+	RunOnlySetting runWindowedX, runWindowedY, runFullscreenX, runFullscreenY, runStartupFullscreen;
+
+	// The console's EXEC: each line of a file run as a console command.
+	void ExecFile(UObject* context, const std::string& filename);
+	// What the launcher sends: its TakeFocus and Open (LauncherLine).
+	void OnLauncherLine(const std::string& line);
+
 	void LogGamePackageSHA1Sums() const;
 	void GetLevelInfoObject();
 	void GetLevelObject();

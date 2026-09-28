@@ -37,6 +37,8 @@
 #include "Packages/Engine/Subsystems/UGameEngine.h"
 #include "Packages/Engine/Subsystems/USurrealRenderDevice.h"
 #include "Packages/Engine/Subsystems/USurrealAudioDevice.h"
+#include "LauncherLine.h"
+#include "OriginalCommandLine.h"
 #include "Packages/Engine/Subsystems/USurrealNetworkDevice.h"
 #include "Packages/Extension/UPlayerPawnExt.h"
 #include "Packages/Extension/Flags/UFlag.h"
@@ -175,8 +177,21 @@ void Engine::Run()
 	const bool dedicated = LaunchInfo.dedicatedServer;
 	if (!dedicated)
 	{
+		ApplyRunOnlySettings();
 		OpenWindow();
 
+		// -nosound: no sound and no music, as the original's engine makes no
+		// audio subsystem then. The fork keeps its device, on OpenAL Soft's
+		// null driver, which plays nothing.
+		if (OriginalCommandLine::Get().Param("nosound"))
+		{
+			LogMessage("-nosound: no sound");
+#ifdef _WIN32
+			_putenv_s("ALSOFT_DRIVERS", "null");
+#else
+			setenv("ALSOFT_DRIVERS", "null", 1);
+#endif
+		}
 		audiodev->InitDevice();
 		render = std::make_unique<RenderSubsystem>(window->GetRenderDevice());
 
@@ -208,6 +223,13 @@ void Engine::Run()
 	if (launchServer)
 		ClientTravel(LaunchInfo.url, ETravelType::TRAVEL_Absolute, false);
 
+	// The original's EXEC=, on the client's viewport once the engine is up;
+	// then the launcher's splash can go.
+	std::string execFile;
+	if (!dedicated && viewport->Actor() && OriginalCommandLine::Get().Value("EXEC", execFile))
+		ExecFile(viewport->Actor(), execFile);
+	LauncherLine::Get().Ready();
+
 	auto objprop = GC::Alloc<UObjectProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
 	auto vecprop = GC::Alloc<UStructProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
 	auto rotprop = GC::Alloc<UStructProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
@@ -226,6 +248,8 @@ void Engine::Run()
 
 	while (!quit)
 	{
+		LauncherLine::Get().Poll([this](const std::string& line) { OnLauncherLine(line); });
+
 		// Main game loop should consist of these 4 steps:
 		// Tick everything
 		// Render the scene
@@ -440,6 +464,7 @@ void Engine::Run()
 		window->UnlockCursor();
 
 	LogMessage("Saving configurations...");
+	RestoreRunOnlySettings();
 	if (packages->MissingSESystemIni())
 	{
 		// Add the missing Subsystem entries
@@ -452,6 +477,112 @@ void Engine::Run()
 
 	LogMessage("Closing window...");
 	CloseWindow();
+}
+
+void Engine::ApplyRunOnlySettings()
+{
+	const OriginalCommandLine& original = OriginalCommandLine::Get();
+	auto set = [](RunOnlySetting& setting, int& value, int forTheRun)
+	{
+		setting.Active = true;
+		setting.Configured = value;
+		setting.ForTheRun = forTheRun;
+		value = forTheRun;
+	};
+
+	// -defaultres: both sizes 640x480; the colour depths stay.
+	if (original.Param("defaultres"))
+	{
+		LogMessage("-defaultres: 640x480");
+		set(runWindowedX, client->WindowedViewportX, 640);
+		set(runWindowedY, client->WindowedViewportY, 480);
+		set(runFullscreenX, client->FullscreenViewportX, 640);
+		set(runFullscreenY, client->FullscreenViewportY, 480);
+	}
+
+	// -nohard -noddraw, safe mode's "Run the game in a window": in the
+	// original, the software renderer with no DirectDraw for its fullscreen
+	// modes, so a window. The fork has no software renderer; the window is
+	// what it keeps of the two.
+	if (original.Param("nohard") && original.Param("noddraw") && client->StartupFullscreen)
+	{
+		LogMessage("-nohard -noddraw: in a window");
+		int fullscreen = client->StartupFullscreen ? 1 : 0;
+		set(runStartupFullscreen, fullscreen, 0);
+		client->StartupFullscreen = false;
+	}
+}
+
+void Engine::RestoreRunOnlySettings()
+{
+	auto restore = [](RunOnlySetting& setting, int& value)
+	{
+		if (setting.Active && value == setting.ForTheRun)
+			value = setting.Configured;
+		setting.Active = false;
+	};
+	restore(runWindowedX, client->WindowedViewportX);
+	restore(runWindowedY, client->WindowedViewportY);
+	restore(runFullscreenX, client->FullscreenViewportX);
+	restore(runFullscreenY, client->FullscreenViewportY);
+	if (runStartupFullscreen.Active && !client->StartupFullscreen)
+		client->StartupFullscreen = runStartupFullscreen.Configured != 0;
+	runStartupFullscreen.Active = false;
+}
+
+void Engine::ExecFile(UObject* context, const std::string& filename)
+{
+	// As the original's EXEC: the file from the working directory -- the
+	// game's System folder -- each line a command.
+	std::string text;
+	try
+	{
+		text = File::read_all_text(filename);
+	}
+	catch (...)
+	{
+		LogMessage("Can't find file '" + filename + "'");
+		return;
+	}
+	LogMessage("Execing " + filename);
+	size_t start = 0;
+	while (start < text.size())
+	{
+		size_t end = text.find('\n', start);
+		if (end == std::string::npos)
+			end = text.size();
+		std::string line = text.substr(start, end - start);
+		start = end + 1;
+		while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t'))
+			line.pop_back();
+		if (line.find_first_not_of(" \t") == std::string::npos)
+			continue;
+		uint32_t foundBits = 0;
+		BitfieldBool found = { &foundBits, 1 };
+		ConsoleCommand(context, line, found);
+	}
+}
+
+void Engine::OnLauncherLine(const std::string& line)
+{
+	// A second launch's command line, forwarded as the original's log
+	// window takes one: the game to the front, then its first word opened.
+	if (line == "TakeFocus")
+	{
+		if (window)
+			window->ActivateWindow();
+	}
+	else if (line.compare(0, 5, "Open ") == 0 && line.size() > 5)
+	{
+		LogMessage("Launcher: open " + line.substr(5));
+		uint32_t foundBits = 0;
+		BitfieldBool found = { &foundBits, 1 };
+		ConsoleCommand(viewport ? viewport->Actor() : nullptr, "open " + line.substr(5), found);
+	}
+	else
+	{
+		LogMessage("Launcher: unknown line: " + line);
+	}
 }
 
 void Engine::PlayAVI(const Array<std::string>& args)
@@ -2083,6 +2214,10 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	{
 		TakeScreenshot();
 	}
+	else if (command == "exec" && args.size() >= 2)
+	{
+		ExecFile(context, args[1]);
+	}
 	else if (command == "timedemo" && args.size() == 2)
 	{
 		render->ShowTimedemoStats = args[1] == "1";
@@ -2168,11 +2303,14 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 			return {};
 		}
 
+		// A map by its name, or its file's -- "open 01_NYC_UNATCOHQ.dx", as
+		// the original's opens it too.
+		std::string wanted = fs::path(url.Map).stem().string();
 		for (auto& map : packages->GetMaps())
 		{
 			std::string mapname = fs::path(map).stem().string();
 
-			if (StrTools::equals_ignore_case(mapname, url.Map))
+			if (StrTools::equals_ignore_case(mapname, url.Map) || StrTools::equals_ignore_case(mapname, wanted))
 			{
 				ClientTravel(url.ToString(), ETravelType::TRAVEL_Absolute, false);
 				return {};
@@ -2618,6 +2756,7 @@ void Engine::OpenWindow()
 	window->SetFrameGeometry(Rect::xywh(0.0, 0.0, width, height));
 	viewport->SetViewportRect(0, 0, width, height);
 
+	LogMessage("Window: " + std::to_string(width) + "x" + std::to_string(height) + (fullscreen ? ", fullscreen" : ", in a window"));
 	if (fullscreen)
 		window->ShowFullscreen();
 	else

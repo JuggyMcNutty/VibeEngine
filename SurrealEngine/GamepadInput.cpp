@@ -2,6 +2,8 @@
 #include "GamepadInput.h"
 #include "Engine.h"
 #include "LauncherSettings.h"
+#include "OriginalCommandLine.h"
+#include "Utils/Logger.h"
 #include "Packages/Extension/Windows/TabGroup/URootWindow.h"
 #include <surrealwidgets/window/window.h>
 #include <algorithm>
@@ -77,6 +79,15 @@ void GamepadInput::Configure()
 	if (configured)
 		return;
 	configured = true;
+	// The original's -nojoy: no pad at all, as its client then opens no
+	// joystick.
+	if (OriginalCommandLine::Get().Param("nojoy"))
+	{
+		LogMessage("-nojoy: no pad");
+		enabled = false;
+		DisplayBackend::Get()->SetGamepadKeyEmulation(false);
+		return;
+	}
 	enabled = LauncherSettings::Get().Gamepad.Enabled;
 	// With our own handling on, the backend's button-to-key emulation would
 	// deliver every button twice.

@@ -5,6 +5,8 @@
 #include "Utils/CommandLine.h"
 #include "GameApp.h"
 #include "GameFolder.h"
+#include "LauncherLine.h"
+#include "OriginalCommandLine.h"
 #include "Engine.h"
 #include "UI/WidgetResourceData.h"
 #include "UI/ErrorWindow/ErrorWindow.h"
@@ -24,6 +26,12 @@ int GameApp::main(Array<std::string> args)
 		CommandLine cmd(args);
 		commandline = &cmd;
 
+		// The original's command line, from the launcher that started us, and
+		// the line back to it (OriginalCommandLine, LauncherLine).
+		if (commandline->HasArg("", "--cmdline"))
+			OriginalCommandLine::Get().Set(commandline->GetArg("", "--cmdline"));
+		LauncherLine::Get().Hello();
+
 		// Stream the engine log to stderr in headless mode. Without this the
 		// log only surfaces inside the modal error window, which is no use on
 		// a test rig or an embedded target -- and LogUnimplemented() is exactly
@@ -41,7 +49,7 @@ int GameApp::main(Array<std::string> args)
 
 		if (commandline->HasArg("-h", "--help"))
 		{
-			std::cout << "SurrealEngine [--url=<mapname>] [--engineversion=X] [--server [--lanplay]] [Path to game folder]\n";
+			std::cout << "SurrealEngine [--url=<mapname>] [--engineversion=X] [--server [--lanplay]] [--cmdline=<the original's>] [Path to game folder]\n";
 			return 0;
 		}
 

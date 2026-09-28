@@ -1086,6 +1086,43 @@ All landed 2026-09-25:
   back, the player's own sensitivity changed and the same keys written to
   each run's inis.
 
+## The command line
+
+The original's command line reaches the fork as one string, `--cmdline=`,
+which the recreated launcher's `run-game.sh` passes on as the player gave it
+(2026-09-27; [running it](ENGINE.md#running-it)); its flags are found as the
+original's code finds them
+([cli-flags.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md)).
+What the fork does with each:
+
+- **The start URL**: with `-hax0r` or `-server`, the first word -- the
+  second after `SERVER` -- unless it starts with `-`; else the game's own
+  start, `DX.dx`
+  ([starting the engine](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#starting-the-game-engine)).
+- **`-server`**: a dedicated server, as `--server`.
+- **`INI=` and `USERINI=`**: the inis read and written back, as `--ini` and
+  `--userini`.
+- **`EXEC=<file>`**: `exec <file>` on the player once the first map is in.
+  The console's `exec` runs a file's lines as commands, as the original's
+  does; it had none.
+- **Safe mode's flags**
+  ([what the original does with each](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md#flags-the-launcher-emits-safe-mode)):
+  - `-nosound`: no sound and no music, as the original makes no audio
+    subsystem then. The fork keeps its device, on OpenAL Soft's null
+    driver.
+  - `-defaultres`: the window and fullscreen sizes 640×480 for the run,
+    not saved.
+  - `-nohard -noddraw`, "Run the game in a window": a window. The original
+    gets there through its software renderer, which has no fullscreen mode
+    without DirectDraw; the fork has no software renderer, so the window is
+    what it keeps of the two, and either flag alone does nothing.
+  - `-nojoy`: no pad at all -- neither the fork's own pad handling nor its
+    buttons as keys.
+  - **Nothing to do:** `-no3dsound` (the original's turns off A3D or EAX
+    hardware; OpenAL Soft mixes in software), `-nommx`, `-nokni` and `-nok6`
+    (the original's mixer picks its routines by them; the fork has no such
+    routines), and `-safe`'s no DirectInput (the fork's input is SDL's).
+
 ## Mods
 
 What a mod needs of the engine is the original's loader (2026-09-27):
