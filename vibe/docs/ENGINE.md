@@ -194,7 +194,7 @@ frame pointers unless the hooks are on).
 By area; the number is the commit's place in the series (the retired patch
 stack's numbering), its link the commit in the fork repository, whose message
 says how it works. **Smart Pro** is what it did there, measured with the
-hooks in Liberty Island's opening fight (the whole frame's numbers after each
+hooks in Liberty Island's level start (the whole frame's numbers after each
 patch are in [the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance));
 **checked** is how it was shown not to change the game, or for a gameplay fix
 to work, where the message does not already say.
@@ -261,7 +261,7 @@ to work, where the message does not already say.
   `vulkan-frame-overlap` -- the game tick runs while the GPU draws the previous
   frame; swapchain rebuilds wait for the device. **Smart Pro:** GPU wait ~76 →
   ~0.2 ms, the tick ~20 ms longer (CPU and GPU share the SoC's memory).
-  **Checked:** Liberty Island mid-fight renders correctly (framebuffer
+  **Checked:** Liberty Island's level start renders correctly (framebuffer
   capture).
 - [**0005**](https://github.com/JuggyMcNutty/VibeEngine/commit/03afa604679b0e8e89ea5100bb58c1484d677f41)
   `lightmap-lit-spans` -- lightmaps lit only where a light reaches. **Smart
