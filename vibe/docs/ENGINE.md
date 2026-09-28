@@ -728,7 +728,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   **Checked:** a temporary hook dropped the player into Battery Park's
   reverb zone: the watch fired once and the derivation came out exact
   (gain 0.392 = 100/255, gainhf 0.768, first tap 40 ms), no AL errors;
-  a 75 s run after the hooks' exact-text removal is clean.
+  a 75 s run after the hooks' exact-text removal is clean. EFX's reverb
+  gave way to Galaxy's own with Galaxy's mixer (below).
 - [**keys released under a menu**](https://github.com/JuggyMcNutty/VibeEngine/commit/6a14fdb01e6fb4f9e5cb9cab2f14e994fe6d3cea) --
   when the UI takes a key, every key the input holds down is released
   (the tracked buttons false, the axes zero), and a taken mouse button
@@ -1140,3 +1141,15 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   **Checked:** `MeshConsole` against `D3DDrv`, each within a level of 256
   (5 to 14% brighter before); proving runs on three maps clean, their
   shots right.
+- [**Galaxy's mixer: its pan, sliders and reverb**](https://github.com/JuggyMcNutty/VibeEngine/commit/393ec7388666fba992288054317302a3dab7810f) --
+  Deus Ex's sounds mixed by the fork's `GalaxyMixer` as `Galaxy.dll`
+  mixes them, streamed out through one OpenAL source at `OutputRate`: each
+  voice's fall-off from the view's eyes, its pan of at most seven-eighths
+  to a side and each side at the square root of its share, the louder
+  slider squared over every voice, linear resampling and exact loops, and
+  Galaxy's reverb of three allpass stages in place of OpenAL's EFX; other
+  games keep OpenAL's 3D sources ([sound](NATIVES.md#sound)). **Checked:**
+  `SoundConsole` against the original's recording -- the pan, the reverb's
+  ring and tail and the wall's fade each within 0.2 dB or 0.05 s of the
+  original's; proving runs on three maps clean, two with their sound
+  recorded; the Smart Pro's cross build warning-free.
