@@ -205,12 +205,11 @@ then the shot's number in eight black or white blocks. The original's
 frames carry its brightness -- its `OpenGLDrv`'s gamma ramp, a gamma of
 1.5 at the runs' Brightness of 0.6 --, the fork's shots none: a fork shot
 takes that gamma (`magick <shot> -gamma 1.5 <out>`) before its brightness
-is compared ([brightness](NATIVES.md#brightness)). But `OpenGLDrv` draws
-the light maps at half the game's own brightness: for a lit surface,
-`DXCAP_RENDERER=D3D` draws the original through `D3DDrv`, the game's
-renderer, whose frames come off the hidden display without the gamma
-ramp (the X server keeps no ramp there) -- linear, as the fork's shots
-are, the two compared as they come.
+is compared ([brightness](NATIVES.md#brightness)). `DXCAP_RENDERER=D3D`
+draws the original through `D3DDrv`, the game's own renderer, instead:
+the same frames there, ramp and all. A run whose renderer fails to start
+stops with an error: the game falls back to `SoftDrv` without a word on
+the screen, and its frames would pass for the renderer's.
 
 **Recording.** `DXCAP_RECORD=1` sends the engine's sound to a private null
 sink on the desktop's sound server (`PULSE_SINK`) and records the sink with
@@ -241,6 +240,13 @@ What it takes to run the original there, each found the hard way:
   started with a session, starts one on the desktop's, where the game's
   first window fails with `BadWindow`. The 32-bit game needs the
   container's 32-bit libraries ([this machine](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#this-machine)).
+- **`D3DDrv` needs vkd3d's libraries in the prefix**: Wine's `wined3d`,
+  under the `ddraw.dll` `D3DDrv` loads, imports `libvkd3d-1.dll` and its
+  two siblings, which Proton's own prefix carries and a bare `wineboot`'s
+  does not. Without them `ddraw.dll` does not load, and the game logs
+  "DirectDraw not installed" and falls back to `SoftDrv`; the script copies
+  them in from the Proton build's lib/vkd3d folder when they are missing
+  (2026-09-28).
 - **No Wine desktop**: `explorer /desktop` fails to set its display up on
   Xvfb and exits without starting the game, so the game runs straight on the
   hidden display, where the grabber finds its frames by their mark.

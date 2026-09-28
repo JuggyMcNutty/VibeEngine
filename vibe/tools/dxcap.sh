@@ -28,8 +28,8 @@
 # DXCAP_HIDDEN=1 runs
 # the fork on a hidden display of its own (Xvfb on :98) instead of the
 # desktop; its own shots are still right. DXCAP_RENDERER=D3D draws the
-# original through D3DDrv instead of OpenGLDrv: frames without the gamma
-# ramp, and light maps at the game's own brightness. DXCAP_AUDIO=1 gives
+# original through D3DDrv, the game's own renderer, instead of OpenGLDrv:
+# the same frames, gamma ramp and all. DXCAP_AUDIO=1 gives
 # the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
 # engine's audio to a private sink instead of the speakers and records it into
 # the run's audio.wav, with the music off (vibe/tools/dxcap/sound.py reads it).
@@ -88,9 +88,24 @@ wine_run() {
 
 # The prefix is made on first use, by the same wine's wineboot on the hidden
 # display (none of it shows on the desktop), without Mono and Gecko, which
-# the game and UCC do not need.
+# the game and UCC do not need. Wine's wined3d, which D3DDrv's DirectDraw
+# runs on, imports vkd3d's libraries, which Proton's own prefix has and a
+# bare wineboot's lacks: without them ddraw.dll does not load, and the game
+# falls back from D3DDrv to SoftDrv (its log: "DirectDraw not installed").
+# So they are copied in from the Proton build's lib/vkd3d when missing.
 ensure_prefix() {
-    [ -f "$PREFIX/system.reg" ] && return 0
+    [ -f "$PREFIX/system.reg" ] || make_prefix
+    local vkd3d="${WINE%/bin/wine}/lib/vkd3d" arch dir f
+    for arch in x86_64:system32 i386:syswow64; do
+        dir="$PREFIX/drive_c/windows/${arch#*:}"
+        for f in "$vkd3d/${arch%%:*}-windows"/libvkd3d*.dll; do
+            [ -f "$f" ] || die "no vkd3d libraries in $vkd3d"
+            [ -f "$dir/${f##*/}" ] || cp "$f" "$dir/"
+        done
+    done
+}
+
+make_prefix() {
     command -v Xvfb >/dev/null || die "Xvfb is needed to make the Wine prefix"
     say "making the Wine prefix $PREFIX"
     mkdir -p "$(dirname "$PREFIX")"
@@ -382,6 +397,11 @@ cmd_original() {
     done
     cp "$CAP/game/System/DeusEx.log" "$dir/DeusEx.log" 2>/dev/null || true
     say "original: $dir"
+    # A renderer that fails to start is replaced by SoftDrv without a word
+    # on the screen: its frames would pass for D3DDrv's.
+    if grep -a -q "Bound to SoftDrv" "$dir/DeusEx.log" 2>/dev/null; then
+        die "the game fell back to SoftDrv (its renderer did not start): $dir/DeusEx.log"
+    fi
 }
 
 # A fork run into <map> or a server's address, its log into <dir>; any

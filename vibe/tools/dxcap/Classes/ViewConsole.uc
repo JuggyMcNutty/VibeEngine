@@ -4,7 +4,8 @@
 // and facing the start's way: the Dragon's Tooth given as the game gives the
 // starting pistol (a spawned one frobbed) and put in hand, the HUD hidden,
 // its look logged and shot three times over two seconds once it is up; then
-// exit.
+// exit. The level's Brightness and each zone's ambient light are logged on
+// arrival, for the light maps' brightness.
 // Each line is logged with "DXVIEW:" in front.
 //=============================================================================
 class ViewConsole extends Console;
@@ -71,6 +72,7 @@ event Tick(float Delta)
 	local DeusExPlayer DXP;
 	local Inventory Item;
 	local DeusExWeapon W;
+	local ZoneInfo Z;
 	local rotator R;
 
 	Super.Tick(Delta);
@@ -105,6 +107,9 @@ event Tick(float Delta)
 	{
 		if (InStr(Caps(P.Level.GetLocalURL()), "01_NYC_UNATCOISLAND") >= 0 && MapTime > 6.0 && DXP != None)
 		{
+			Log("DXVIEW: level brightness " $ P.Level.Brightness $ " player's zone " $ P.Region.Zone.Name);
+			foreach P.AllActors(class'ZoneInfo', Z)
+				Log("DXVIEW: zone " $ Z.Name $ " ambient " $ Z.AmbientBrightness $ " hue " $ Z.AmbientHue $ " sat " $ Z.AmbientSaturation);
 			R = P.ViewRotation;
 			R.Pitch = 0;
 			P.ViewRotation = R;
