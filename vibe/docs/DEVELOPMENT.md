@@ -38,6 +38,7 @@ vibe/tools/dxcap.sh prove 01_NYC_UNATCOIsland.dx            # the fork: shots at
 vibe/tools/dxcap.sh fork <console> <map>                    # the fork with any console class
 vibe/tools/dxcap.sh original <console>                      # the original, from its menu map
 DXCAP_RECORD=1 vibe/tools/dxcap.sh ...                      # either, its audio recorded into the run's audio.wav
+DXCAP_HIDDEN=1 vibe/tools/dxcap.sh fork|prove|live ...      # the fork on a hidden display, not the desktop
 ```
 
 The console classes:
@@ -88,6 +89,13 @@ The console classes:
   `127.0.0.1:7790`, disconnects to the menu map 6 s into the game, opens it
   again 30 s later (another server there by then) and logs whether that
   join comes in.
+- **`AIConsole`**: what every NPC is doing -- Liberty Island from the menu
+  map, the player left at its start; at 2, 8 and 20 s of the level's own
+  time each `ScriptedPawn`'s state, orders, whether it is in the world and
+  hidden, its enemy, whether it looks for enemies and listens for shots
+  and noises, its physics and place (`DXAI:` lines), and through the first
+  10 s each state an NPC enters, with the time (`DXAISTATE:`). The two
+  engines' logs laid side by side name each NPC that differs.
 - **`StandConsole`**: where a walking player rests over the floor -- at
   Liberty Island's start and after two short walks, its place, collision
   height and base and the floor a line down finds logged.
@@ -203,33 +211,43 @@ What it takes to run the original there, each found the hard way:
   console class travels with `open <map>` itself.
 - **UCC needs a short base directory** (a long one crashes it while it reads
   its ini) and both `UCC.ini` and `DeusEx.ini`; hence `build/dxcap`.
-- **A stale `Running.ini` opens the recovery wizard**, which waits for a
-  click: the script removes it first. Every run of the original overwrites
-  `System/DeusEx.log`, as any launch of it does.
+- **It runs in a view of the game**, `build/dxcap/game`, made afresh for
+  each run: the game's folders linked, and its `System` folder's files but
+  for what the game writes there -- its log, `Running.ini`, shots -- and any
+  file with no extension. The original takes a package's bare name in its
+  working directory before any of its paths
+  ([a package's file](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#packages-and-linkers)), so the recreated
+  launcher's `DeusEx`, installed beside `DeusEx.exe`, stood in for the
+  `DeusEx` package and stopped it at its start. Its log, its `Running.ini`
+  (a stale one opens the recovery wizard, which waits for a click) and its
+  own shots stay in the view, never in the game's folder.
 - **It runs in this container, never on the host**: the Proton build's own
-  `wine` with the prefix, as IDA's headless server runs
-  ([`tools/ida/idalib-mcp.sh`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/tools/ida/idalib-mcp.sh)); the two share
-  a wineserver, which nothing stops. The 32-bit game needs the container's
-  32-bit libraries ([this machine](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#this-machine)).
+  `wine`, as IDA's headless server runs
+  ([`tools/ida/idalib-mcp.sh`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/tools/ida/idalib-mcp.sh)), but in a Wine
+  prefix of its own, `build/dxcap/prefix`, which the script makes on first
+  use (`wineboot`, on the hidden display): a prefix's Wine desktop is on the
+  display of whatever started its wineserver, and IDA's headless server,
+  started with a session, starts one on the desktop's, where the game's
+  first window fails with `BadWindow`. The 32-bit game needs the
+  container's 32-bit libraries ([this machine](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#this-machine)).
 - **No Wine desktop**: `explorer /desktop` fails to set its display up on
   Xvfb and exits without starting the game, so the game runs straight on the
   hidden display, where the grabber finds its frames by their mark.
 - **Its window goes where Wine puts it** -- a step further on each run while
-  Wine's server stays up, which IDA's headless server keeps up -- and the
-  grabber reads the view from the display's corner: the script moves the
-  window there once it is up (`xdotool`, in the container).
-- **Only its own process is stopped** at the end: the prefix may hold IDA
-  too.
-- **Runs of both engines at once** (the net tests) lose the fork's shots:
-  the original's run deletes every shot that appears in the game's folder
-  while it runs, its own being black.
+  Wine's server stays up -- and the grabber reads the view from the
+  display's corner: the script moves the window there once it is up
+  (`xdotool`, in the container).
+- **Only its own process is stopped** at the end, never the prefix's
+  wineserver.
 
 The fork's window opens on this machine's desktop, as any run's does; the
 original's, on the hidden display. The fork can run on a hidden display too
 -- Xvfb, with SDL's `x11` driver (`SDL_VIDEODRIVER=x11`, `WAYLAND_DISPLAY`
 unset): it renders there, its `shot` right, but a grab of the display shows
-its window black, so what it drew is read with `shot`. The recreated
-launcher's live check runs it so
+its window black, so what it drew is read with `shot`. `DXCAP_HIDDEN=1`
+puts a fork run on one of its own (Xvfb on `:98`, apart from the
+original's `:99`, so a net test can run both), and the recreated launcher's
+live check runs it so
 ([checking it live](https://github.com/JuggyMcNutty/deusex-launcher#checking-it-live)).
 
 ## Gotchas

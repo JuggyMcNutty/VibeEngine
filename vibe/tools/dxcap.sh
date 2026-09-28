@@ -19,9 +19,15 @@
 # and the builds beside it. A run's shots and log land in
 # build/dxcap/runs/<engine>-<console>-<time>/.
 # The original runs in this container, never on the host, under the Proton
-# build's own wine; DXCAP_PREFIX (default ~/Games/umu/umu-default) and
-# DXCAP_PROTON (default "Proton-CachyOS Latest") pick the Wine prefix and the
-# Proton under ~/.local/share/Steam/compatibilitytools.d. DXCAP_AUDIO=1 gives
+# build's own wine, in a Wine prefix of its own, build/dxcap/prefix (made on
+# first use), never IDA's: a prefix's Wine desktop is on the display of the
+# program that started its wineserver, and IDA's headless server starts one
+# on the desktop's, where the game's first window fails with BadWindow.
+# DXCAP_PREFIX and DXCAP_PROTON (default "Proton-CachyOS Latest") pick another
+# prefix and the Proton under ~/.local/share/Steam/compatibilitytools.d.
+# DXCAP_HIDDEN=1 runs
+# the fork on a hidden display of its own (Xvfb on :98) instead of the
+# desktop; its own shots are still right. DXCAP_AUDIO=1 gives
 # the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
 # engine's audio to a private sink instead of the speakers and records it into
 # the run's audio.wav, with the music off (vibe/tools/dxcap/sound.py reads it).
@@ -44,7 +50,7 @@ CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
-usage() { sed -n '2,35p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,41p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.
@@ -70,12 +76,35 @@ rec_stop() {
 [ -d "$GAME/System" ] || die "no game install at $GAME"
 
 # The prefix's Windows programs -- the original and the SDK's UCC -- run
-# here with the Proton build's own wine, as dx-reverse-info's tools/ida/idalib-mcp.sh runs IDA
-# (a wineserver it has running is shared, never stopped).
+# here with the Proton build's own wine, as dx-reverse-info's tools/ida/idalib-mcp.sh runs IDA.
 WINE="$HOME/.local/share/Steam/compatibilitytools.d/${DXCAP_PROTON:-Proton-CachyOS Latest}/files/bin/wine"
+PREFIX="${DXCAP_PREFIX:-$CAP/prefix}"
 wine_run() {
-    env WINEPREFIX="${DXCAP_PREFIX:-$HOME/Games/umu/umu-default}" WINEDEBUG=-all \
+    env WINEPREFIX="$PREFIX" WINEDEBUG=-all \
         WINEDLLOVERRIDES="winemenubuilder.exe=d" "$WINE" "$@"
+}
+
+# The prefix is made on first use, by the same wine's wineboot on the hidden
+# display (none of it shows on the desktop), without Mono and Gecko, which
+# the game and UCC do not need.
+ensure_prefix() {
+    [ -f "$PREFIX/system.reg" ] && return 0
+    command -v Xvfb >/dev/null || die "Xvfb is needed to make the Wine prefix"
+    say "making the Wine prefix $PREFIX"
+    mkdir -p "$(dirname "$PREFIX")"
+    local xpid=""
+    if [ ! -S "/tmp/.X11-unix/X${XDISPLAY#:}" ]; then
+        Xvfb "$XDISPLAY" -screen 0 "${XSIZE}x24" -ac -nolisten tcp > /dev/null 2>&1 &
+        xpid=$!
+        sleep 2
+    fi
+    env -u WAYLAND_DISPLAY DISPLAY="$XDISPLAY" WINEPREFIX="$PREFIX" WINEDEBUG=-all \
+        WINEDLLOVERRIDES="winemenubuilder.exe=d;mscoree,mshtml=" "$WINE" wineboot -i > /dev/null 2>&1 || true
+    env WINEPREFIX="$PREFIX" "${WINE%/wine}/wineserver" -w || true
+    if [ -n "$xpid" ]; then
+        kill "$xpid" 2>/dev/null || true
+    fi
+    [ -f "$PREFIX/system.reg" ] || die "wineboot made no prefix at $PREFIX"
 }
 
 # Wine's view of an absolute path: Z: is the root.
@@ -215,12 +244,14 @@ open(sys.argv[2], 'w', encoding='latin1', newline='').write(s)
 EOF
     cp "$CAP/System/UCC.ini" "$CAP/System/DeusEx.ini"
     cp "$GAME/System/User.ini" "$CAP/System/User.ini"
+    ensure_prefix
 
     say "build/dxcap is ready -- vibe/tools/dxcap.sh compile next"
 }
 
 cmd_compile() {
     [ -f "$CAP/System/UCC.exe" ] || die "vibe/tools/dxcap.sh setup first"
+    ensure_prefix
     rm -f "$CAP/System/DXCapture.u"
     (cd "$CAP/System" && wine_run UCC.exe make > "$CAP/ucc.out" 2>&1) || true
     grep -E "Error|error\(s\)" "$CAP/System/UCC.log" >&2 || true
@@ -248,6 +279,38 @@ collect() {
 # and the frames the console class marks kept (vibe/tools/dxcap/grab.py).
 XDISPLAY=:99
 XSIZE=1344x800
+# A hidden fork run's own display, apart from the original's: a net test
+# runs both at once, and each stops the Xvfb it started.
+FORK_XDISPLAY=:98
+
+# The original runs in a view of the game, build/dxcap/game, made afresh for
+# each run: the game's folders linked, and its System folder's files, but for
+# what the game writes there -- its log, Running.ini, shots -- and any file
+# with no extension. The original takes a package's bare name in its folder
+# before any of its paths (appFindPackageFile), so the recreated launcher's
+# DeusEx, installed beside DeusEx.exe, stood in for the DeusEx package. What
+# the game writes stays in the view.
+make_view() {
+    local view="$CAP/game" f name d
+    rm -rf "$view"
+    mkdir -p "$view/System"
+    for f in "$GAME"/System/*; do
+        [ -f "$f" ] || continue
+        name="${f##*/}"
+        case "$name" in
+            *.*) ;;
+            *) continue ;;
+        esac
+        case "$name" in
+            *.log|*.bmp|*.i64|Running.ini) continue ;;
+        esac
+        ln -s "$f" "$view/System/$name"
+    done
+    for d in "$GAME"/*/; do
+        d="${d%/}"
+        [ "${d##*/}" = System ] || ln -s "$d" "$view/${d##*/}"
+    done
+}
 
 cmd_original() {
     local console="${1:?console class}" secs="${2:-120}"
@@ -255,12 +318,13 @@ cmd_original() {
     command -v Xvfb >/dev/null || die "Xvfb is needed for the original's display"
     command -v import >/dev/null || die "ImageMagick's import is needed to grab the original's display"
     command -v xdotool >/dev/null || die "xdotool is needed to place the original's window"
+    ensure_prefix
     local ini="$CAP/System/Original.ini" userini="$CAP/System/OriginalUser.ini"
     local dir="$CAP/runs/original-$console-$(date +%H%M%S)"
     make_ini original "$console" "$ini"
     user_ini "$userini"
+    make_view
     mkdir -p "$dir"
-    local before; before="$(shots_before)"
 
     local xpid="" gpid=""
     if [ ! -S "/tmp/.X11-unix/X${XDISPLAY#:}" ]; then
@@ -280,14 +344,13 @@ cmd_original() {
     (
         export DISPLAY="$XDISPLAY"
         [ "${DXCAP_RECORD:-0}" != 1 ] || export PULSE_SINK=dxcap
-        cd "$GAME/System"
-        rm -f Running.ini
+        cd "$CAP/game/System"
         wine_run DeusEx.exe DX.dx "INI=$(winpath "$ini")" "USERINI=$(winpath "$userini")" > "$dir/wine.log" 2>&1 &
         i=0
         while [ $i -lt 60 ] && ! pgrep -f "^DeusEx.exe" > /dev/null; do sleep 1; i=$((i+1)); done
         # Wine places a new window a step further on each time while its
-        # server stays up (IDA's keeps it up), and the grabber reads the view
-        # from the display's corner: the window goes there once it is up.
+        # server stays up, and the grabber reads the view from the display's
+        # corner: the window goes there once it is up.
         i=0
         while [ $i -lt 30 ] && ! xdotool search --onlyvisible --name '^Deus Ex$' windowmove 0 0 > /dev/null 2>&1; do sleep 1; i=$((i+1)); done
         i=0
@@ -305,16 +368,14 @@ cmd_original() {
     kill "$gpid" 2>/dev/null || true
     wait "$gpid" 2>/dev/null || true
     [ -n "$xpid" ] && kill "$xpid" 2>/dev/null
-    # The game's own shots are black here; the grabbed frames stand for them.
+    # The game's own shots, black here, stay in the view; the grabbed frames
+    # stand for them.
     local f
-    for f in $( (cd "$GAME/System" && ls Shot*.bmp 2>/dev/null) || true); do
-        printf '%s\n' "$before" | grep -qx "$f" || rm -f "$GAME/System/$f"
-    done
     for f in "$dir"/Shot*.ppm; do
         [ -f "$f" ] || continue
         magick "$f" "${f%.ppm}.png" && rm -f "$f"
     done
-    cp "$GAME/System/DeusEx.log" "$dir/DeusEx.log" 2>/dev/null || true
+    cp "$CAP/game/System/DeusEx.log" "$dir/DeusEx.log" 2>/dev/null || true
     say "original: $dir"
 }
 
@@ -325,10 +386,25 @@ run_fork() {
     shift 5
     local before; before="$(shots_before)"
     mkdir -p "$dir"
+    # A hidden run draws on an Xvfb display of its own, through SDL's X11
+    # driver: the engine renders there, and its shots are right.
+    local xpid=""
+    if [ "${DXCAP_HIDDEN:-0}" = 1 ]; then
+        command -v Xvfb >/dev/null || die "Xvfb is needed for a hidden run"
+        if [ ! -S "/tmp/.X11-unix/X${FORK_XDISPLAY#:}" ]; then
+            Xvfb "$FORK_XDISPLAY" -screen 0 1280x800x24 -ac -nolisten tcp > "$dir/xvfb.log" 2>&1 &
+            xpid=$!
+            sleep 2
+        fi
+    fi
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_start "$dir/audio.wav"
     local rc=0
     (
         cd "$GAME"
+        if [ "${DXCAP_HIDDEN:-0}" = 1 ]; then
+            unset WAYLAND_DISPLAY
+            export DISPLAY="$FORK_XDISPLAY" SDL_VIDEODRIVER=x11
+        fi
         if [ "${DXCAP_RECORD:-0}" = 1 ]; then
             printf '[general]\ndrivers = pulse\n' > "$CAP/alsoft-pulse.conf"
             export ALSOFT_CONF="$CAP/alsoft-pulse.conf" PULSE_SINK=dxcap
@@ -339,6 +415,9 @@ run_fork() {
         timeout -s KILL "$secs" "$ENGINE_BIN" --no-launcher "$GAME" --ini="$ini" --userini="$userini" --url="$map" "$@" > "$dir/engine.log" 2>&1
     ) || rc=$?
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_stop
+    if [ -n "$xpid" ]; then
+        kill "$xpid" 2>/dev/null || true
+    fi
     collect "$dir" "$before"
     printf '%s\n' "$rc" > "$dir/exit"
     say "fork: $dir (exit $rc)"
