@@ -1053,3 +1053,20 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   game wants (`dxcap.sh live`, [live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
   **Checked:** a walk with the stock console on the original's server here
   and on a live server, the server's corrections taken.
+- [**the harness's own prefix and view**](https://github.com/JuggyMcNutty/VibeEngine/commit/698a5d78ca10d6afd200eb62fd51f76da8e231a1) --
+  the original runs in a Wine prefix of its own and from a view of the
+  game, where IDA's server and the recreated launcher's `DeusEx` had
+  stopped it at its start; `DXCAP_HIDDEN=1` runs the fork off the desktop;
+  `AIConsole` logs what every NPC is doing
+  ([scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)).
+  **Checked:** the original's `AIConsole` run to its exit; proving runs on
+  the hidden display, their shots drawn.
+- [**a level's start and tick**](https://github.com/JuggyMcNutty/VibeEngine/commit/61081df3966ccff5eee6b8b62f28757841a1a46f) --
+  every actor starts a level 10 s undrawn, whatever its map kept, a
+  level's first tick ticks every actor it loaded (it passed over them all,
+  and a frame was drawn first), and the actors' step is at most 0.4 s, as
+  the original's: NPCs out of sight start from `StartUp`'s code, as the
+  original's ([starting up](NATIVES.md#starting-up)). **Checked:**
+  `AIConsole` against the original -- Liberty Island's troops out of the
+  world in `Idle` and its three sitters sitting, where they patrolled and
+  wandered; proving runs on three maps clean.
