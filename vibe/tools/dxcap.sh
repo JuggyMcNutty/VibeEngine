@@ -27,7 +27,9 @@
 # prefix and the Proton under ~/.local/share/Steam/compatibilitytools.d.
 # DXCAP_HIDDEN=1 runs
 # the fork on a hidden display of its own (Xvfb on :98) instead of the
-# desktop; its own shots are still right. DXCAP_AUDIO=1 gives
+# desktop; its own shots are still right. DXCAP_RENDERER=D3D draws the
+# original through D3DDrv instead of OpenGLDrv: frames without the gamma
+# ramp, and light maps at the game's own brightness. DXCAP_AUDIO=1 gives
 # the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
 # engine's audio to a private sink instead of the speakers and records it into
 # the run's audio.wav, with the music off (vibe/tools/dxcap/sound.py reads it).
@@ -50,7 +52,7 @@ CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
-usage() { sed -n '2,41p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,43p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.
@@ -188,7 +190,10 @@ put('WindowedViewportX', '1280')
 put('WindowedViewportY', '720')
 put('StartupFullscreen', 'False')
 if engine == 'original':
-    put('GameRenderDevice', 'OpenGLDrv.OpenGLRenderDevice')
+    if os.environ.get('DXCAP_RENDERER', '') == 'D3D':
+        put('GameRenderDevice', 'D3DDrv.D3DRenderDevice')
+    else:
+        put('GameRenderDevice', 'OpenGLDrv.OpenGLRenderDevice')
 open(out, 'w', encoding='latin1', newline='').write(s)
 EOF
 }

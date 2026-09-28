@@ -541,11 +541,11 @@ since, it draws the beams (2026-09-27, `LaserConsole`), both engines' logs
 agreeing on the emitter, its iterator and its proxy -- a translucent sprite
 of that texture, moved along the beam --, the dashes where the original's
 are and as far apart, but fainter, over a floor and walls the fork draws
-brighter than the original's frames show them -- in linear terms, the
-frames' gamma taken out ([brightness](#brightness)), 3.7 to 4 times,
-where `FlashConsole`'s outdoor view is about 2.2 times (2026-09-27) --,
-which the capture renderer (`OpenGLDrv`, not the game's `D3DDrv`) may
-account for in part: the dashes are not yet compared for brightness.
+brighter than the original's frames show them -- 3.7 to 4 times in linear
+terms against the capture renderer, `OpenGLDrv`, which draws light maps
+at half the game's brightness; against the game's `D3DDrv` the fork's lit
+surfaces are 1.6 to 2.3 times as bright ([brightness](#brightness)). The
+dashes are not yet compared for brightness.
 Walked into, a tripwire sounds its alarm in both.
 
 ### Coronas
@@ -665,7 +665,17 @@ original's frames on Xvfb do carry theirs (measured 2026-09-27,
 [the screen flash](#the-screen-flash)): the ramp its `OpenGLDrv` sets
 shows in what the grabber reads, a gamma of 1.5 at the runs' Brightness of
 0.6 -- so a fork shot takes the same gamma before its brightness is
-compared with them.
+compared with them. But `OpenGLDrv` draws the light maps at half
+`D3DDrv`'s brightness, so a lit surface is compared against `D3DDrv`
+(2026-09-28, `DXCAP_RENDERER=D3D`,
+[scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)), whose
+frames on the hidden display come without the ramp, linear as the fork's
+shots are. At Liberty Island's start (`ViewConsole`'s view) the fork is
+brighter there too, in the same terms: the dock 1.6 times, the pier 1.9,
+the statue 2.3, the night sky's clouds 3.9 -- the sky zone's translucent,
+light-mapped `ClenCloudBank_A` over its light-mapped backdrop -- where the
+unlit skyline's lights are 0.8. Open: the light maps' scale on a surface,
+and the sky's.
 
 ### The screen flash
 
