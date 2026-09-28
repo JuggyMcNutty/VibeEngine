@@ -643,7 +643,8 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   bit of its turn count and its strobe turns over each frame, both at the
   frame rate; a flicker draws at most 25 times a second; the sample
   points of a map's texels are the fork's; and the other effects' shapes
-  (below) sit on the plain falloff as the original's do. To check by hand:
+  are the fork's, on the plain falloff, as the original's spotlight is
+  (the waves' and the rest unread). To check by hand:
   a flickering sconce's wall (the 'Ton's entrance), a pulsing light
   throbbing, and a triggered light going dark, each with its shadows still
   there.

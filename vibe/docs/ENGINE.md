@@ -1103,3 +1103,40 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `TraceConsole` -- every NPC's floor found, where the fork hit the NPC,
   and 104 of Liberty Island's 107 traces alike (81 before); proving runs
   on three maps clean.
+- [**the harness through `D3DDrv`**](https://github.com/JuggyMcNutty/VibeEngine/commit/f834887a9685c93b60fa54f0cdf4c4fba417ab7e) and
+  [**its prefix able to load it**](https://github.com/JuggyMcNutty/VibeEngine/commit/5f7125d47050c71b2be1ec64a4635e340477d0f8) --
+  `DXCAP_RENDERER=D3D` draws the original through the game's own renderer;
+  the prefix gets vkd3d's libraries from the Proton build, without which
+  `ddraw.dll` did not load and the game fell back to `SoftDrv` -- whose
+  frames the first commit's figures were, corrected by the second --, and
+  a run that falls back stops with an error; `ViewConsole` logs the
+  level's `Brightness` and each zone's ambient light
+  ([scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)). **Checked:** `ViewConsole`
+  through `D3DDrv` with the libraries taken out first (put back, `D3DDrv`
+  bound), its frames `OpenGLDrv`'s region for region; a two-pass run 1.6
+  times as bright as a one-pass one on lit surfaces, as
+  [`d3ddrv-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness) has it.
+- [**light maps as the original's bytes**](https://github.com/JuggyMcNutty/VibeEngine/commit/34c6dc0affa2a4f81d99139468ad5fab1ab06314) --
+  Deus Ex's maps built as `Render.dll` builds them: the ambient light
+  `FGetHSV`'s colour times 64; each light's shadow byte (254 lit, 127
+  without shadow bits) times its effect's shape on the original's falloff,
+  1 − 3v² + 2v³ times the cosine, through its table -- `GlobalLighting`'s
+  colour and brightness and the level's `Brightness`, in 65536ths, at most
+  127 --, the channels held to 127; the torch and fire wavers and the
+  watery shimmer the plain shape dimmed at random; the ambient sound on a
+  light following `GlobalLighting` ([lighting](NATIVES.md#lighting)).
+  **[perf]** the build's arithmetic changed; re-measure the lightmaps on
+  the Smart Pro. **Checked:** against `D3DDrv`'s frames, their gamma given
+  to the fork's shots: `ViewConsole`'s Liberty Island and `LaserConsole`'s
+  corridor within a level or two of 256, region for region (the means 49
+  against 24 and 117 against 46 before); proving runs on three maps clean,
+  their shots right.
+- [**meshes lit in the original's colours**](https://github.com/JuggyMcNutty/VibeEngine/commit/ade9a2bb54a05617779a97e23c9460be8b037c12) --
+  each light's colour the light maps', the zone's ambient light
+  `FGetHSV`'s, an `AmbientGlow` of 255 pulsing 0.25 + 0.2 sin(8t), and a
+  light's strength for the pick (1 − d/r) × `LightBrightness`; the
+  harness's `MeshConsole` puts Paul Denton, a crate, a barrel and a box on
+  Liberty Island's pier for both engines ([lighting](NATIVES.md#lighting)).
+  **Checked:** `MeshConsole` against `D3DDrv`, each within a level of 256
+  (5 to 14% brighter before); proving runs on three maps clean, their
+  shots right.

@@ -128,7 +128,8 @@ All read; the inventory is
 - [x] Mesh detail (2026-09-25; [its section](NATIVES.md#mesh-detail)
       has what changed and the by-hand check). **[perf]** re-measure on
       the device.
-- [x] Lighting (2026-09-25; [its section](NATIVES.md#lighting) has
+- [x] Lighting (2026-09-25, the light maps' and meshes' brightness the
+      original's since 2026-09-28; [its section](NATIVES.md#lighting) has
       what changed, what stays the fork's own -- float maps, the lookup,
       the unread effect shapes -- and the by-hand checks). **[perf]**
       re-measure on the device.
