@@ -108,6 +108,12 @@ Array<UActor*> CollisionSystem::EncroachingActors(UActor* actor)
 	return overlap.EncroachingActors(actor);
 }
 
+Array<UActor*> CollisionSystem::EncroachedActors(const vec3& location, float height, float radius)
+{
+	OverlapTester overlap(this);
+	return overlap.EncroachedActors(location, height, radius);
+}
+
 void CollisionSystem::SetLevel(ULevel* level)
 {
 	Level = level;

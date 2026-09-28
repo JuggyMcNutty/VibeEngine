@@ -4,6 +4,7 @@
 #include "VM/ScriptCall.h"
 #include "Engine.h"
 #include "Packages/Engine/Actors/UProjectile.h"
+#include "Packages/Engine/Actors/Brush/UBrush.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
@@ -61,10 +62,15 @@ bool UActor::SetLocation(const vec3& newLocation, bool noCheck)
 	if (!noCheck)
 	{
 		bool findRoom = bCollideWorld() || (bCollideWhenPlacing() && Level()->NetMode() != NM_Client);
-		auto result = CheckLocation(newLocation, CollisionRadius(), CollisionHeight(), findRoom);
+		auto result = (engine->LaunchInfo.IsDeusEx() && findRoom) ? FindSpot(newLocation, CollisionRadius(), CollisionHeight(), false) : CheckLocation(newLocation, CollisionRadius(), CollisionHeight(), findRoom);
 		if (!result.first)
 			return false;
 		location = result.second;
+
+		// Deus Ex: what stands at the spot may stop the move (EncroachingOn),
+		// and what blocks hears it come (EncroachedBy), before it moves.
+		if (engine->LaunchInfo.IsDeusEx() && CheckEncroachment(location))
+			return false;
 	}
 
 	// Whatever stands on it is left behind.
@@ -86,10 +92,12 @@ bool UActor::SetLocation(const vec3& newLocation, bool noCheck)
 
 	if (!noCheck && Level()->bBegunPlay())
 	{
-		// Send touch notifications for anything at the new location
+		// Send touch notifications for anything at the new location -- in
+		// Deus Ex only for what does not block it, as the original's
+		// encroachment check touches
 		for (UActor* actor : XLevel()->Collision.CollidingActors(Location(), CollisionHeight(), CollisionRadius()))
 		{
-			if (actor != this && !actor->IsBasedOn(this) && !IsBasedOn(actor) && bCollideActors() && actor->bCollideActors())
+			if (actor != this && !actor->IsBasedOn(this) && !IsBasedOn(actor) && bCollideActors() && actor->bCollideActors() && !(engine->LaunchInfo.IsDeusEx() && EncroachBlockedBy(actor)))
 			{
 				Touch(actor);
 			}
@@ -305,6 +313,95 @@ std::pair<bool, vec3> UActor::CheckLocation(vec3 location, float radius, float h
 		}
 	}
 	return { found, location };
+}
+
+// The original's ULevel::FindSpot (engine-dll.md, teleporting an actor): the
+// spot pushed out of the walls along each axis in turn by the collision
+// box's reach, and kept if the box fits there; else pushed from its eight
+// corners, and given up if that moved it more than half again the box's
+// size. checkFirst takes the spot as it is when the box fits already.
+std::pair<bool, vec3> UActor::FindSpot(vec3 location, float radius, float height, bool checkFirst)
+{
+	vec3 extent(radius, radius, height);
+	auto fits = [&](const vec3& spot) { return XLevel()->Collision.OverlapTest(spot, height, radius, false, true, false).empty(); };
+	if (extent == vec3(0.0f))
+		return { fits(location), location };
+	if (checkFirst && fits(location))
+		return { true, location };
+
+	vec3 spot = location;
+	for (int i = -1; i < 2; i += 2)
+	{
+		AdjustSpot(spot, spot + vec3(i * extent.x, 0.0f, 0.0f), extent.x);
+		AdjustSpot(spot, spot + vec3(0.0f, i * extent.y, 0.0f), extent.y);
+		AdjustSpot(spot, spot + vec3(0.0f, 0.0f, i * extent.z), extent.z);
+	}
+	if (fits(spot))
+		return { true, spot };
+
+	float corner = length(extent) + 2.0f;
+	for (int i = -1; i < 2; i += 2)
+		for (int j = -1; j < 2; j += 2)
+			for (int k = -1; k < 2; k += 2)
+				AdjustSpot(spot, spot + vec3(i * extent.x, j * extent.y, k * extent.z), corner);
+	if (dot(spot - location, spot - location) > dot(extent, extent) * 1.5f || !fits(spot))
+		return { false, location };
+	return { true, spot };
+}
+
+// A line from the spot toward dest, level and movers; on a hit the spot goes
+// back along the wall's normal by (1.05 - the hit's time) of the length.
+void UActor::AdjustSpot(vec3& spot, const vec3& dest, float traceLength)
+{
+	TraceFlags flags;
+	flags.world = true;
+	flags.movers = true;
+	CollisionHit hit = XLevel()->Collision.TraceFirstHit(spot, dest, nullptr, vec3(0.0f), flags);
+	if (hit.Fraction < 1.0f)
+		spot += hit.Normal * ((1.05f - hit.Fraction) * traceLength);
+}
+
+// The original's AActor::IsBlockedBy: the world and movers block what
+// collides with the world, each by its bBlockPlayers for a player's pawn
+// and bBlockActors otherwise; two actors block each other when each blocks
+// the other's kind, projectiles counting as players.
+bool UActor::EncroachBlockedBy(UActor* other)
+{
+	auto playerPawn = [](UActor* a) { UPlayerPawn* p = UObject::TryCast<UPlayerPawn>(a); return p && p->Player(); };
+	auto isBrush = [](UActor* a) { return a->Brush() && UObject::TryCast<UBrush>(a); };
+	if (other == Level())
+		return bCollideWorld();
+	if (isBrush(other))
+		return bCollideWorld() && (playerPawn(this) ? other->bBlockPlayers() : other->bBlockActors());
+	if (isBrush(this))
+		return other->bCollideWorld() && (playerPawn(other) ? bBlockPlayers() : bBlockActors());
+	bool meAsPlayer = playerPawn(this) || UObject::TryCast<UProjectile>(this);
+	bool otherAsPlayer = playerPawn(other) || UObject::TryCast<UProjectile>(other);
+	return (meAsPlayer ? other->bBlockPlayers() : other->bBlockActors()) && (otherAsPlayer ? bBlockPlayers() : bBlockActors());
+}
+
+// The original's ULevel::CheckEncroachment for an actor that is no brush: of
+// what it would overlap at the spot, each that blocks it is asked with the
+// actor's EncroachingOn, which stops it (true) when it agrees; then each
+// that blocks it hears EncroachedBy. Only an actor that collides with
+// actors or blocks is checked.
+bool UActor::CheckEncroachment(const vec3& location)
+{
+	if (Brush() || !(bCollideActors() || bBlockActors() || bBlockPlayers()))
+		return false;
+
+	Array<UActor*> others = XLevel()->Collision.EncroachedActors(location, CollisionHeight(), CollisionRadius());
+	for (UActor* other : others)
+	{
+		if (other != this && other != Level() && EncroachBlockedBy(other) && CallEvent(this, EventName::EncroachingOn, { ExpressionValue::ObjectValue(other) }).ToBool())
+			return true;
+	}
+	for (UActor* other : others)
+	{
+		if (other != this && other != Level() && !other->bDeleteMe() && EncroachBlockedBy(other))
+			CallEvent(other, EventName::EncroachedBy, { ExpressionValue::ObjectValue(this) });
+	}
+	return false;
 }
 
 bool UActor::IsOverlapping(UActor* other)

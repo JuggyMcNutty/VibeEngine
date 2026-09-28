@@ -1136,9 +1136,10 @@ says what changed, what stays the fork's own, and its by-hand check:
   - **`Pawn.StrafeTo` 504 and `StrafeFacing` 506** take Deus Ex's speed:
     an NPC strafing in a fight runs at its full `MaxDesiredSpeed`.
 - **`Actor.SetLocation` 267 is the original's `FarMoveActor` now**
-  (2026-09-26, [teleporting an actor](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#teleporting-an-actor),
-  [the zone an actor is in](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-zone-an-actor-is-in)) but for
-  two things. What each was:
+  (2026-09-26, fitting in and encroaching 2026-09-28;
+  [teleporting an actor](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#teleporting-an-actor),
+  [the zone an actor is in](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-zone-an-actor-is-in)). What
+  each was:
   - the actor kept its old zone until physics next moved it (a teleport
     into a reverb zone read the old one); it moved when static or not
     `bMovable`; it kept its `OldLocation`, was not marked
@@ -1147,14 +1148,28 @@ says what changed, what stays the fork's own, and its by-hand check:
     decoration falling into water never splashed;
   - the fork destroyed stray inventory in a `bNoInventory` zone and
     carcasses in a `bDestructive` one, and set pain zones' `PainTime`,
-    which Deus Ex's scripts do themselves -- other games keep that.
+    which Deus Ex's scripts do themselves -- other games keep that;
+  - the actor was fitted in by trying whole collision sizes up, down and
+    aside, where the original's `FindSpot` pushes it off the walls along
+    each axis and then its box's corners -- under the ceiling at Liberty
+    Island's first laser tripwire the fork moved the player 43 units down
+    and now 7.7, the original 7.2 (the half unit the traces' margin);
+    there and at the three tripwires below it, where neither moves it,
+    the two engines stand the player within half a unit of each other;
+  - nothing at the spot was asked: now what blocks it may stop the move
+    (the actor's `EncroachingOn` -- an NPC's refuses another pawn or a
+    brush) and hears it come (`EncroachedBy`), and only what does not
+    block it is touched.
 
-  Still the fork's own: fitting the actor in -- the original's `FindSpot`
-  moves it a little, the fork's tries whole collision sizes up, down and
-  aside (under a ceiling on Liberty Island: 7 units down in the original,
-  43 in the fork); and no encroachment check at the spot. The fork's
-  `AIDirectionReachable` walks its steps as real moves, zone events and
-  touches included, and puts the pawn back as one; the original's are tests.
+  Spawning is the original's the same ways since 2026-09-28: the actor
+  fitted in by `FindSpot`, left as it is where it fits already, and
+  destroyed after `PostBeginPlay` when something there stops it; and a
+  mover moving into actors now asks each of them, where a typo had it ask
+  only the first in each of its collision cells. Still the fork's own:
+  its own reachability tests, `pointReachable` and `actorReachable`, keep
+  the whole-size tries. The fork's `AIDirectionReachable` walks its steps
+  as real moves, zone events and touches included, and puts the pawn back
+  as one; the original's are tests.
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the fork
   looks the rest up as one name and finds nothing. The game's scripts name
   no group.

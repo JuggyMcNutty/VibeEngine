@@ -437,6 +437,10 @@ public:
 	void SetCollision(bool newColActors, bool newBlockActors, bool newBlockPlayers);
 
 	std::pair<bool, vec3> CheckLocation(vec3 location, float radius, float height, bool check);
+	std::pair<bool, vec3> FindSpot(vec3 location, float radius, float height, bool checkFirst);
+	void AdjustSpot(vec3& spot, const vec3& dest, float traceLength);
+	bool EncroachBlockedBy(UActor* other);
+	bool CheckEncroachment(const vec3& location);
 
 	// noCheck skips finding room and the touches (a trailer following its owner).
 	bool SetLocation(const vec3& newLocation, bool noCheck = false);

@@ -233,9 +233,9 @@ Array<UActor*> OverlapTester::EncroachingActors(UActor* actor)
 				{
 					for (UActor* testActor : GetActors(x, y, z))
 					{
-						if (actor->Collision.CheckCounter != checkCounter)
+						if (testActor->Collision.CheckCounter != checkCounter)
 						{
-							actor->Collision.CheckCounter = checkCounter;
+							testActor->Collision.CheckCounter = checkCounter;
 							if (testActor == actor || testActor->Brush())
 								continue;
 
@@ -277,6 +277,56 @@ Array<UActor*> OverlapTester::EncroachingActors(UActor* actor)
 	}
 
 	return uniqueHits;
+}
+
+// What a cylinder standing at a spot overlaps, as the original's encroachment
+// check finds it: other actors by their cylinders, movers by their brushes,
+// the cylinder's box taken into the mover's own space as the traces take a
+// line.
+Array<UActor*> OverlapTester::EncroachedActors(const vec3& location, float height, float radius)
+{
+	dvec3 dlocation = to_dvec3(location);
+	vec3 extents = { radius, radius, height };
+	Array<UActor*> hits;
+
+	int checkCounter = NextCheckCounter();
+	ivec3 start = GetStartExtents(location, extents);
+	ivec3 end = GetEndExtents(location, extents);
+	if (end.x - start.x >= 100 || end.y - start.y >= 100 || end.z - start.z >= 100)
+		return hits;
+
+	for (int z = start.z; z < end.z; z++)
+	{
+		for (int y = start.y; y < end.y; y++)
+		{
+			for (int x = start.x; x < end.x; x++)
+			{
+				for (UActor* actor : GetActors(x, y, z))
+				{
+					if (actor->Collision.CheckCounter == checkCounter)
+						continue;
+					actor->Collision.CheckCounter = checkCounter;
+
+					UMover* mover = UObject::TryCast<UMover>(actor);
+					if (mover && mover->Brush())
+					{
+						mat4 rotateWorldToObj = mat4::transpose(Coords::Rotation(mover->Rotation()).ToMatrix());
+						vec3 scale = mover->MainScale().Scale;
+						vec3 localOrigin = (rotateWorldToObj * vec4(location - mover->Location(), 1.0f)).xyz() / scale + mover->PrePivot();
+						vec3 localExtents = extents / vec3(std::abs(scale.x), std::abs(scale.y), std::abs(scale.z));
+						OverlapAABBModel test;
+						if (!test.TestOverlap(mover->Brush(), localOrigin, localExtents, false).empty())
+							hits.push_back(actor);
+					}
+					else if (CylinderActorOverlap(dlocation, height, radius, actor))
+					{
+						hits.push_back(actor);
+					}
+				}
+			}
+		}
+	}
+	return hits;
 }
 
 bool OverlapTester::IsOverlapping(UActor* actor1, UActor* actor2)

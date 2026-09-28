@@ -197,7 +197,8 @@ run's console). The scratchpad is cleared when a session restarts, and the
 copy with it.
 
 The classes stand the player where the original's searches did, written into
-them: the two engines' `SetLocation`s fit the player in differently
+them: the two engines' `SetLocation`s fitted the player in differently until
+2026-09-28 and still stand it up to half a unit apart, the traces' margin
 ([engine-dll.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#teleporting-an-actor)), so a search would
 stand them apart.
 

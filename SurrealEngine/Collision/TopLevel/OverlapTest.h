@@ -14,6 +14,7 @@ public:
 	Array<UActor*> CollidingActors(const vec3& origin, float radius);
 	Array<UActor*> CollidingActors(const vec3& origin, float height, float radius);
 	Array<UActor*> EncroachingActors(UActor* actor);
+	Array<UActor*> EncroachedActors(const vec3& location, float height, float radius);
 
 private:
 	// Sphere/actor overlap test

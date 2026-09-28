@@ -39,7 +39,9 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	// asked.
 	if ((bCollideWorld || bCollideWhenPlacing) && !noCollisionFail && Level()->NetMode() != NM_Client)
 	{
-		auto result = CheckLocation(location, radius, height, bCollideWorld || bCollideWhenPlacing);
+		// Deus Ex fits it in as the original's SpawnActor does: FindSpot,
+		// the spot as it is if the actor fits there already
+		auto result = engine->LaunchInfo.IsDeusEx() ? FindSpot(location, radius, height, true) : CheckLocation(location, radius, height, bCollideWorld || bCollideWhenPlacing);
 		if (!result.first)
 		{
 			LogMessage("Could not find usable location when trying to spawn: " + SpawnClass->Name.ToString());
@@ -95,11 +97,18 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 			return nullptr;
 		}
 
-		// To do: we need to call EventName::EncroachingOn events here?
-
 		actor->InitActorZone();
 
 		CallEvent(actor, EventName::PostBeginPlay);
+
+		// Deus Ex: spawned into something that stops it (its EncroachingOn
+		// agrees), it is destroyed, as the original's SpawnActor does after
+		// PostBeginPlay; what blocks it hears EncroachedBy
+		if (engine->LaunchInfo.IsDeusEx() && !noCollisionFail && !actor->bDeleteMe() && actor->CheckEncroachment(actor->Location()))
+		{
+			actor->Destroy();
+			return nullptr;
+		}
 		CallEvent(actor, EventName::SetInitialState);
 		if (engine->LaunchInfo.IsDeusEx())
 			CallEvent(actor, "PostPostBeginPlay");
