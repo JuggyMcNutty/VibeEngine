@@ -465,14 +465,25 @@ keeps both now (2026-09-25), beside Distant AI's own `LastVisibleFrame`
   fought it, where the original's patrols on -- and patrols on now. A zone
   portal seen from behind leads into its zone too, as the original's does;
   the fork skipped it as a back face. Drawing is unchanged: the fork draws
-  what its box test passes and leaves the rest to the depth buffer. Still
-  the fork's own: one span buffer for the frame, where the original keeps
-  one per zone, and the actor's box as the fork makes it, a mesh's more
-  generous than the original's -- at Liberty Island's start the fork counts
-  10 NPCs as drawn and the original 3 (19 before), seven terrorists and a
-  thug far off over the seawall, whose boxes show through gaps there.
-  **[perf]** The pieces' filtering is render CPU: to re-measure on the
-  Smart Pro, against what it spares the tick.
+  what its box test passes and leaves the rest to the depth buffer. The
+  rectangle is the original's since 2026-09-28: a mesh's from its render
+  box -- the boxes of its animation's frame and the next, grown by a unit
+  --, as `BoundVisible` finds it, running to the frame's edge on a side
+  the box reaches past; a sprite's its texture's size; set back at the
+  depth of the actor's location, and none for an actor behind the viewer,
+  where the fork took the whole mesh's box and counted any actor with a
+  corner at the near plane as drawn. Still the fork's own: one span
+  buffer for the frame, where the original keeps one per zone -- tried
+  (2026-09-28), a zone's own buffer changed no test in 15,500 at the
+  starts of Liberty Island, UNATCO HQ and Battery Park, the walls round a
+  portal being drawn before what lies beyond it. At Liberty Island's start
+  the fork counts 9 NPCs as drawn and the original 3 (10 before): five
+  terrorists and a thug far off, whose rectangles show 1 to 9 pixels over
+  the seawall and the pier's roof in the fork -- nothing in front of them
+  there, the pixels covered later by what stands behind them --, where the
+  original's closes them, a pixel's difference between the two engines'
+  edges. **[perf]** The pieces' filtering is render CPU: to re-measure on
+  the Smart Pro, against what it spares the tick.
 - **Stasis.** `InStasis()` is the original's -- `bStasis`; `bForceStasis`,
   or physics none or rotating; not drawn for 5 s; its zone not drawn for
   5 s, or more than 1,200 units from the player -- where the fork's old one

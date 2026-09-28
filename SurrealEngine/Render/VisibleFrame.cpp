@@ -71,47 +71,164 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	ProcessNode(&engine->Level->Model->Nodes[0], 0, FragmentStack.size(), engine->Level->Model->RootOutside != 0);
 }
 
-void VisibleFrame::AddOcclusionProxy(UActor* actor, const BBox& box)
+// A mesh's render box as the original's UMesh::GetRenderBoundingBox makes it
+// (dx-reverse-info/render-dll.md, which actors are drawn): the boxes of the
+// animation's frame and the next, or the whole mesh's while it is not
+// animating, scaled -- by 1.5 for particles --, grown by a unit and turned
+// and placed as the actor.
+static BBox MeshRenderBox(UActor* actor, UMesh* mesh)
 {
-	if (actor->LastRenderTime() == Now)
-		return;
+	BBox local = mesh->BoundingBox;
+	const MeshAnimSeq* seq = nullptr;
+	for (const MeshAnimSeq& s : mesh->AnimSeqs)
+	{
+		if (s.Name == actor->AnimSequence())
+		{
+			seq = &s;
+			break;
+		}
+	}
+	if (seq && seq->NumFrames > 0 && actor->AnimFrame() >= 0.0f)
+	{
+		int frame = (int)std::floor((actor->AnimFrame() + 1.0f) * seq->NumFrames);
+		size_t frame1 = seq->StartFrame + frame % seq->NumFrames;
+		size_t frame2 = seq->StartFrame + (frame + 1) % seq->NumFrames;
+		if (frame1 < mesh->BoundingBoxes.size() && frame2 < mesh->BoundingBoxes.size())
+		{
+			const BBox& a = mesh->BoundingBoxes[frame1];
+			const BBox& b = mesh->BoundingBoxes[frame2];
+			local = BBox(vec3(std::min(a.min.x, b.min.x), std::min(a.min.y, b.min.y), std::min(a.min.z, b.min.z)),
+				vec3(std::max(a.max.x, b.max.x), std::max(a.max.y, b.max.y), std::max(a.max.z, b.max.z)));
+		}
+	}
 
-	// No box, nothing drawn: the original draws no sprite for it either.
-	vec3 extents = box.extents();
-	if (extents.x <= 0.0f && extents.y <= 0.0f && extents.z <= 0.0f)
-		return;
+	vec3 scale = mesh->Scale * (actor->bParticles() ? 1.5f : actor->DrawScale());
+	vec3 low = (local.min - mesh->Origin) * scale - vec3(1.0f);
+	vec3 high = (local.max - mesh->Origin) * scale + vec3(1.0f);
+	mat4 toWorld = mat4::translate(actor->Location() + actor->PrePivot()) * Coords::Rotation(actor->Rotation()).ToMatrix() * Coords::Rotation(mesh->RotOrigin).ToMatrix();
+	BBox box;
+	for (int i = 0; i < 8; i++)
+	{
+		vec3 corner((i & 1) ? high.x : low.x, (i & 2) ? high.y : low.y, (i & 4) ? high.z : low.z);
+		vec3 p = (toWorld * vec4(corner, 1.0f)).xyz();
+		if (i == 0)
+		{
+			box = BBox(p, p);
+		}
+		else
+		{
+			box.min = vec3(std::min(box.min.x, p.x), std::min(box.min.y, p.y), std::min(box.min.z, p.z));
+			box.max = vec3(std::max(box.max.x, p.x), std::max(box.max.y, p.y), std::max(box.max.z, p.z));
+		}
+	}
+	return box;
+}
 
-	// The box's screen rectangle, from its corners in view space (x across,
-	// y up, z the depth); a corner at or before the near plane puts the
-	// actor at the viewer, drawn.
-	float minX = 0.0f, minY = 0.0f, maxX = 0.0f, maxY = 0.0f;
+// A box's screen rectangle as the original's URender::BoundVisible finds it
+// (x across and y up, over the depth): from its corners, running to the
+// frame's edge on a side some corner is beyond, the whole frame with the
+// viewer inside it; false when it is all behind the viewer or all beyond
+// one side.
+bool VisibleFrame::BoundRectangle(const BBox& box, float& minX, float& minY, float& maxX, float& maxY)
+{
+	vec3 eye = ViewLocation.xyz();
+	if (eye.x >= box.min.x && eye.x <= box.max.x && eye.y >= box.min.y && eye.y <= box.max.y && eye.z >= box.min.z && eye.z <= box.max.z)
+	{
+		minX = -FrustumTanX;
+		maxX = FrustumTanX;
+		minY = -FrustumTanY;
+		maxY = FrustumTanY;
+		return true;
+	}
+
+	int allOutside = 0xf, anyOutside = 0;
+	bool anyInFront = false, anyProjected = false;
 	for (int i = 0; i < 8; i++)
 	{
 		vec3 corner((i & 1) ? box.max.x : box.min.x, (i & 2) ? box.max.y : box.min.y, (i & 4) ? box.max.z : box.min.z);
 		vec4 v = Frame.WorldToView * vec4(corner, 1.0f);
-		if (v.z <= 1.0f)
+		if (v.z >= 0.0f)
+			anyInFront = true;
+		int outside = 0;
+		if (v.z * FrustumTanX + v.x < 0.0f) outside |= 1;
+		if (v.z * FrustumTanX - v.x < 0.0f) outside |= 2;
+		if (v.z * FrustumTanY + v.y < 0.0f) outside |= 4;
+		if (v.z * FrustumTanY - v.y < 0.0f) outside |= 8;
+		allOutside &= outside;
+		anyOutside |= outside;
+		if (v.z != 0.0f)
 		{
-			actor->LastRenderTime() = Now;
-			return;
-		}
-		float x = v.x / v.z;
-		float y = v.y / v.z;
-		if (i == 0)
-		{
-			minX = maxX = x;
-			minY = maxY = y;
-		}
-		else
-		{
-			minX = std::min(minX, x);
-			maxX = std::max(maxX, x);
-			minY = std::min(minY, y);
-			maxY = std::max(maxY, y);
+			float x = v.x / v.z, y = v.y / v.z;
+			if (!anyProjected)
+			{
+				minX = maxX = x;
+				minY = maxY = y;
+				anyProjected = true;
+			}
+			else
+			{
+				minX = std::min(minX, x);
+				maxX = std::max(maxX, x);
+				minY = std::min(minY, y);
+				maxY = std::max(maxY, y);
+			}
 		}
 	}
+	if (!anyInFront || allOutside || !anyProjected)
+		return false;
+	if (anyOutside & 1) minX = -FrustumTanX;
+	if (anyOutside & 2) maxX = FrustumTanX;
+	if (anyOutside & 4) minY = -FrustumTanY;
+	if (anyOutside & 8) maxY = FrustumTanY;
+	minX = std::max(minX, -FrustumTanX);
+	maxX = std::min(maxX, FrustumTanX);
+	minY = std::max(minY, -FrustumTanY);
+	maxY = std::min(maxY, FrustumTanY);
+	return minX < maxX && minY < maxY;
+}
 
-	// The rectangle set back at the box centre's depth
-	float z = (Frame.WorldToView * vec4(box.center(), 1.0f)).z;
+void VisibleFrame::AddOcclusionProxy(UActor* actor)
+{
+	if (actor->LastRenderTime() == Now)
+		return;
+
+	// Only a mesh or a sprite gets one, as the original's sprites: at the
+	// depth of the actor's location, none when that is behind the viewer.
+	vec4 location = Frame.WorldToView * vec4(actor->Location(), 1.0f);
+	float z = location.z;
+	if (z < 0.0f)
+		return;
+
+	float minX, minY, maxX, maxY;
+	EDrawType dt = (EDrawType)actor->DrawType();
+	if (dt == DT_Mesh && actor->Mesh())
+	{
+		if (!BoundRectangle(MeshRenderBox(actor, actor->Mesh()), minX, minY, maxX, maxY))
+			return;
+	}
+	else if ((dt == DT_Sprite || dt == DT_SpriteAnimOnce) && actor->Texture())
+	{
+		// The texture's size at the draw scale, around where the location
+		// lands; none nearer than a unit.
+		if (z <= 1.0f)
+			return;
+		float halfWidth = actor->Texture()->USize() * actor->DrawScale() * 0.5f;
+		float halfHeight = actor->Texture()->VSize() * actor->DrawScale() * 0.5f;
+		minX = std::max((location.x - halfWidth) / z, -FrustumTanX);
+		maxX = std::min((location.x + halfWidth) / z, FrustumTanX);
+		minY = std::max((location.y - halfHeight) / z, -FrustumTanY);
+		maxY = std::min((location.y + halfHeight) / z, FrustumTanY);
+		if (minX >= maxX || minY >= maxY)
+			return;
+	}
+	else
+	{
+		return;
+	}
+
+	// The rectangle set back at that depth -- no nearer than the clipper's
+	// near plane, which would cut it away.
+	z = std::max(z, 1.5f);
 	auto toWorld = [&](float x, float y) { return ViewToWorld * (vec3(x * z, y * z, z) - ViewTranslation); };
 	OcclusionFragment fragment;
 	fragment.Actor = actor;
@@ -277,7 +394,7 @@ void VisibleFrame::ProcessRenderIterators()
 
 			// The proxy counts as drawn if some item survives the world in
 			// front of it
-			AddOcclusionProxy(item, box);
+			AddOcclusionProxy(item);
 
 			VisibleIteratorItem visitem;
 			visitem.Actor = item;
@@ -350,6 +467,8 @@ void VisibleFrame::SetupSceneFrame(const mat4& worldToView)
 	float RFX2 = 2.0f * RProjZ / Frame.FX;
 	float RFY2 = 2.0f * RProjZ * Aspect / Frame.FY;
 	Frame.Projection = mat4::frustum(-RProjZ, RProjZ, -Aspect * RProjZ, Aspect * RProjZ, 1.0f, 32768.0f, handedness::left, clipzrange::zero_positive_w);
+	FrustumTanX = RProjZ;
+	FrustumTanY = Aspect * RProjZ;
 }
 
 void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount, bool outside)
