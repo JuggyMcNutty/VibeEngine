@@ -666,14 +666,19 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   over about a third of a second and lighting as it fades, and the
   original's per-vertex formula: the (cos + 1)^2 - 1.5 diffuse, the
   6 cos^2 highlight toward the eye, linear falloff, 1.4 x `ScaleGlow`,
-  ambient added, channels clamped. One knowing difference: the moving
-  lights come from the fork's light tree near the actor, not the leaf's
-  own list. Whether the brightness pairs with the fork's light maps as the
-  original's does is judged against the original's display driver, read
-  in [`d3ddrv-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md) (the light maps' brightness, the
-  blends); a by-hand look first: an NPC
-  under a street lamp, one walking from light into shadow (the fade), and
-  a fire's glow on a face.
+  ambient added, channels clamped. And the original's colours since
+  2026-09-28: each light's the light maps' (`GlobalLighting`'s colour times
+  its brightness and the level's `Brightness`), the zone's ambient light in
+  `FGetHSV`'s colour, the `AmbientGlow` of 255 pulsing 0.25 + 0.2 sin(8t),
+  and the lights ranked by (1 − d/r) × `LightBrightness`; the fork's
+  √`LightBrightness` colours and half the ambient light had
+  `MeshConsole`'s Paul Denton, crate, barrel and box 5 to 14% brighter
+  than `D3DDrv`'s frames in their terms, now within a level of 256. One
+  knowing difference: the moving lights come from the fork's light tree
+  near the actor, not the leaf's own list; and the glow's pulse runs on the
+  level's time, where the original's runs on the viewport's. To check by
+  hand: an NPC walking from light into shadow (the fade), and a fire's
+  glow on a face.
 
 ### Brightness
 

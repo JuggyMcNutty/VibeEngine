@@ -322,7 +322,12 @@ void LightSystem::InitVertexLight(VertexLight& out, UActor* actor, UZoneInfo* zo
 {
 	// AmbientGlow value 255 is a special pulsating effect used for powerups
 	float ambientGlow = actor->AmbientGlow() == 255 ? AmbientGlowAmount : actor->AmbientGlow() * (1.0f / 255.0f);
-	out.AmbientColor = ambientGlow + hsbtorgb(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
+	// Deus Ex's is the original's: the zone's ambient light in FGetHSV's
+	// colour (dx-reverse-info/render-dll.md, meshes)
+	if (engine->LaunchInfo.IsDeusEx())
+		out.AmbientColor = ambientGlow + FGetHSV(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
+	else
+		out.AmbientColor = ambientGlow + hsbtorgb(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
 
 	if (engine->LaunchInfo.IsDeusEx())
 	{
@@ -463,9 +468,7 @@ void LightSystem::SetupForActorDX(VertexLight& out, UActor* actor)
 			float dist = std::sqrt(dot(L, L));
 			if (dist >= radius)
 				continue;
-			vec3 color = LightmapBuilder::GetLightColor(light);
-			float brightness = std::max(color.r, std::max(color.g, color.b)) * brightnessScale;
-			float strength = (1.0f - dist / radius) * brightness;
+			float strength = (1.0f - dist / radius) * light->LightBrightness() * brightnessScale;
 			if (strength <= 0.0f)
 				continue;
 			reaching.push_back({ light, strength, (bool)light->bStatic() });
@@ -555,7 +558,7 @@ void LightSystem::SetupForActorDX(VertexLight& out, UActor* actor)
 			continue;
 		UActor* light = entry.Light;
 		out.Lights[lightIndex].Location = light->Location();
-		out.Lights[lightIndex].Color = LightmapBuilder::GetLightColor(light) * entry.Fade;
+		out.Lights[lightIndex].Color = LightmapBuilder::GetLightColorDX(light) * entry.Fade;
 		float invRadius = 1.0f / light->WorldLightRadius();
 		out.Lights[lightIndex].InvRadius = invRadius;
 		out.Lights[lightIndex].InvRadiusSquared = invRadius * invRadius;

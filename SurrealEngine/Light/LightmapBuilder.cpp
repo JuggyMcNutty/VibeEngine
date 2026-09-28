@@ -289,9 +289,7 @@ void LightmapBuilder::AddLightContributionDX(UActor* light)
 	// GlobalLighting's times its brightness and the level's Brightness. A
 	// torch or fire waver or a watery shimmer dims each texel by up to 5%,
 	// 20% or 40% at random.
-	vec3 color;
-	float brightness = GlobalLighting(light, light->LightBrightness() * (1.0f / 255.0f), &color);
-	vec3 scale = color * (brightness * light->Level()->Brightness() * 65536.0f);
+	vec3 scale = GetLightColorDX(light) * 65536.0f;
 	int scaleR = std::max((int)std::floor(scale.r), 0);
 	int scaleG = std::max((int)std::floor(scale.g), 0);
 	int scaleB = std::max((int)std::floor(scale.b), 0);
@@ -318,6 +316,13 @@ void LightmapBuilder::AddLightContributionDX(UActor* light)
 			dest->b = std::min(dest->b + (float)std::min((i * scaleB) >> 16, 127), 127.0f);
 		}
 	}
+}
+
+vec3 LightmapBuilder::GetLightColorDX(UActor* light)
+{
+	vec3 color;
+	float brightness = GlobalLighting(light, light->LightBrightness() * (1.0f / 255.0f), &color);
+	return color * (brightness * light->Level()->Brightness());
 }
 
 float LightmapBuilder::GlobalLighting(UActor* light, float brightness, vec3* color)

@@ -42,6 +42,11 @@ public:
 	// light's its palette's. Deus Ex's light maps and ambient sounds use it.
 	static float GlobalLighting(UActor* light, float brightness, vec3* color);
 
+	// Deus Ex's light colour at this moment, as the original's light record
+	// holds it for its maps and meshes alike: GlobalLighting's colour times
+	// its brightness and the level's Brightness
+	static vec3 GetLightColorDX(UActor* light);
+
 private:
 	const vec3* WorldLocations() const { return points.data(); }
 	const vec3& WorldNormal() const { return normal; }

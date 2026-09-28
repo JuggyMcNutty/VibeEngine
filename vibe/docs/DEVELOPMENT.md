@@ -50,7 +50,8 @@ The console classes:
 - **`ViewConsole`**: the player's own weapon in view -- at Liberty Island's
   start, the Dragon's Tooth given as the game gives its starting items and
   put in hand, the HUD hidden, its look and the view's field of view
-  logged and shot three times, a second apart.
+  logged and shot three times, a second apart; on arrival the level's
+  `Brightness` and each zone's ambient light logged.
 - **`CoronaConsole`**: Liberty Island's lamps' glows from `CaptureConsole`'s
   shot 7 (three lamps in view), the player held there as that console holds
   it, the HUD hidden: each corona light near logged with its draw scale,
@@ -58,6 +59,10 @@ The console classes:
 - **`LaserConsole`**: Liberty Island's first laser tripwire looked into from
   where `CaptureConsole` shoots it, the HUD hidden: the trigger's, its
   emitter's and its proxy's state logged each second, two marked shots.
+- **`MeshConsole`**: meshes lit -- at Liberty Island's start, the HUD
+  hidden, Paul Denton (who stands still) moved 220 units ahead and a large
+  crate, a barrel and a large box placed around him on the pier; each one's
+  place and look logged, two marked shots once they have settled.
 - **`FlashConsole`**: the screen flash -- the player stood where
   `CoronaConsole` stands it, the HUD hidden, a shot with no flash and one
   under a steady glow (`FlashScale` 0.5, a red fog), each flash logged.
