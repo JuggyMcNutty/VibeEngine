@@ -1087,3 +1087,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ([hearing](NATIVES.md#hearing-the-ai-event-system)). **Checked:** 39
   calls over Battery Park's opening minute, none raising another event
   inside the call; proving runs on three maps clean.
+- [**the field of view, Deus Ex's 75**](https://github.com/JuggyMcNutty/VibeEngine/commit/c6531074a5d66bc0e82825163fbeade73d9fd33a) --
+  upstream's own `MainFOV` key, missing from Deus Ex's ini, no longer
+  stands in for the game's `DefaultFOV`: the view widened to 90 degrees the
+  first time a weapon came up, the weapon smaller and higher
+  ([small](NATIVES.md#small)). **Checked:** `ViewConsole` in both engines,
+  the view at 75 and the blade where the original's is; proving runs on
+  three maps clean.
