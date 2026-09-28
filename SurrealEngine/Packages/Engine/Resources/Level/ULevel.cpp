@@ -107,6 +107,20 @@ void ULevel::TickActor(float elapsed, UActor* actor)
 
 void ULevel::Tick(float elapsed, bool gamePaused)
 {
+	// Each tick marks what it ticks with a fresh value, so the first tick of
+	// a level ticks every actor loaded with it (their bTicked false), as the
+	// original's first tick does -- marked with the old value, the first
+	// tick after a load passed over them all and the first frame was drawn
+	// before any had ticked.
+	ticked = !ticked;
+
+	// The actors' step is at most 0.4 s, as the original's level tick holds
+	// it, the level's clock taking the whole time: a long frame -- a load, a
+	// hitch -- moves nothing further. Its floor of 5 ms is not carried: above
+	// 200 frames a second it would run the game fast.
+	if (engine->LaunchInfo.IsDeusEx())
+		elapsed = std::min(elapsed, 0.4f);
+
 	if (gamePaused)
 	{
 		for (size_t i = 0; i < Actors.size(); i++)
@@ -159,6 +173,4 @@ void ULevel::Tick(float elapsed, bool gamePaused)
 		ActorsHaveHoles = false;
 		ActorsVersion++;
 	}
-
-	ticked = !ticked;
 }

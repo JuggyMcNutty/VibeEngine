@@ -338,6 +338,27 @@ To check by hand: a cloaked commando, a burning NPC going out, a rat
 disappearing once out of sight
 ([open decision 1](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
 
+### Starting up
+
+A `ScriptedPawn` starts in its `StartUp` state, which hands it to its
+orders two ways: its `Tick`, at once, when the pawn was drawn in the last
+second; its code, after `InitializePawn`, a sleep of 0.2 to 1.2 s and a
+landing. `InitializePawn` takes a pawn placed out of the world (`bInWorld`
+false) out of it -- hidden, moved 20,000 up, into `Idle` --, and only the
+code stops there, the state change taking the code with it. The original
+starts a level with every actor 10 s undrawn, whatever its map kept, and
+ticks every actor in its first tick
+([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)), so each pawn out of
+sight starts from its code. The fork kept the map's render times and
+passed over every actor in a level's first tick, drawing a frame before any
+had ticked: every pawn took the `Tick`, straight on to its orders. Both
+are the original's since 2026-09-27. Seen with `AIConsole` against the
+original on Liberty Island: the seven UNATCO troops out of the world stay
+in `Idle`, listening for nothing, where the fork's patrolled, listening;
+and the three NPCs ordered to sit -- UNATCOTroop6, BumFemale0 and
+Terrorist18 -- sit, where they wandered. Still different: which pawns
+count as drawn ([out of sight](#out-of-sight)).
+
 ### Hearing: the AI event system
 
 NPCs learn of gunfire, footsteps, noises, alarms, bodies and distress through
@@ -414,7 +435,9 @@ keeps both now (2026-09-25), beside Distant AI's own `LastVisibleFrame`
 ([its patches](ENGINE.md#settings-the-launcher-exposes)):
 
 - **Render time.** `LastRenderTime` is stamped where the renderer's own
-  visibility test passes, a spawned actor starts 10 s undrawn, and a zone's
+  visibility test passes, a spawned actor starts 10 s undrawn -- and since
+  2026-09-27 every actor at a level's start, whatever its map kept, as the
+  original's ([starting up](#starting-up)) --, and a zone's
   is the frame's own zone and both zones a visible portal borders (this
   renderer draws the BSP whole behind a span clipper, not zone by zone as
   the original's `OccludeBsp`). `LastRendered()` answers the time since,
@@ -423,7 +446,15 @@ keeps both now (2026-09-25), beside Distant AI's own `LastVisibleFrame`
   for 2 s, `bTickVisibleOnly` NPCs' enemy and body checks, light-beam
   checks, and NPC shadows laid each tick all ran, on the handheld too. A
   decal's own `LastRenderedTime` is stamped when drawn and never read, as
-  the original's: a `Shadow` never counts as drawn.
+  the original's: a `Shadow` never counts as drawn. Still different: the
+  test takes an actor's box at the first BSP node whose plane it crosses,
+  before the world in front of it is in the clipper, where the original
+  files each sprite down the tree and tests it at its own place in the
+  front-to-back walk -- so an NPC far off behind terrain counts as drawn
+  here. On Liberty Island (`AIConsole`, 2026-09-27) the fork's Terrorist7,
+  so counted, checks the pawns around it as a `bTickVisibleOnly` NPC more
+  than 600 units from the player and unseen for 5 s does not, sees the
+  UNATCO security bot and fights it, where the original's patrols on.
 - **Stasis.** `InStasis()` is the original's -- `bStasis`; `bForceStasis`,
   or physics none or rotating; not drawn for 5 s; its zone not drawn for
   5 s, or more than 1,200 units from the player -- where the fork's old one
@@ -1070,6 +1101,12 @@ All landed 2026-09-25:
   stands at Z −256.20 in the fork and −256.25 in the original, both on
   `LevelInfo0`, where the fork's stood at −260.00; proving runs on Liberty
   Island, UNATCO HQ and Battery Park are clean.
+- **A long frame** (2026-09-27): the actors' step is at most 0.4 s, as
+  the original's level tick holds it, the level's clock taking the whole
+  time ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)): a load or a hitch moves
+  nothing further in one step, where the fork's steps reached 1 s. Not
+  carried: its floor of 5 ms, the step of every tick past 200 frames a
+  second, which would run the game fast there.
 - **The console's `GET` and `SET`** (2026-09-27), as the original's
   ([`GET` and `SET`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)): a class found by
   its name alone in any package loaded, where the fork wanted its package

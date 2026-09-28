@@ -1163,6 +1163,17 @@ void Engine::BeginPlay(const UnrealURL& url)
 		// Note: the events may spawn actors. We can't use iterators here.
 		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PreBeginPlay); }
 		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::BeginPlay); }
+
+		// The original's level start has every actor 10 s undrawn, whatever
+		// the map file kept, before PostBeginPlay: a ScriptedPawn out of
+		// sight starts from its StartUp state's code, not its Tick -- one
+		// out of the world stays in Idle, where its Tick would go on to its
+		// orders.
+		if (engine->LaunchInfo.IsDeusEx())
+		{
+			for (UActor* actor : Level->Actors) { if (actor) actor->LastRenderTime() = -10.0f; }
+		}
+
 		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PostBeginPlay); }
 		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::SetInitialState); }
 
