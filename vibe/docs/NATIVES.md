@@ -702,6 +702,13 @@ frames there, ramp and all, region for region at Liberty Island's start
 draw a light map alike, a byte of it worth 1/128 of the texture's
 brightness in `D3DDrv`'s default, one-pass path
 ([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)).
+The fork's shaders take 3.1/255 off every texture's colour (upstream's
+`darkClamp`, so that a glow's black stays black), where `D3DDrv`'s
+16-bit textures lose half a 5-bit step of each texture's own brightest
+colour on average -- more on a bright texture, less on a dark one:
+without it Liberty Island's pier, a dark wood, comes out one level of 256
+brighter in the frames' terms and a laser's corridor none, the pier still
+a level short of `D3DDrv`'s (2026-09-28, the clamp kept).
 
 ### The screen flash
 
