@@ -225,6 +225,17 @@ to work, where the message does not already say.
   `CycleActors` resumes where it stopped, as the game's script expects, and the
   first pause-menu press after skipping the intro is no longer swallowed.
 
+- [**the original's command line and the recreated launcher's line**](https://github.com/JuggyMcNutty/VibeEngine/commit/453b3af3f935278ed2b7247eb5daea667524daec) --
+  `--cmdline=`, the original's command line read as its code reads it --
+  the start URL, `-server`, `INI=`, `USERINI=`, `EXEC=` and safe mode's
+  flags ([the command line](NATIVES.md#the-command-line)) --, and
+  `DXL_LAUNCHER_FD`, the line to deusex-launcher's `main`, which stays for
+  the game's run ([running it](#running-it)); the console's `exec`, and
+  `open` with a map's file name. **Checked:** driven over a socketpair as
+  the launcher drives it, with an ini asking for fullscreen -- a 640×480
+  window, no sound, `EXEC=`'s lines run, a forwarded `Open` travelled, the
+  ini unchanged after a clean exit; a proving run clean.
+
 ### Settings the launcher exposes
 
 - [**0008**](https://github.com/JuggyMcNutty/VibeEngine/commit/ce78355fb3cc47b2ac27dd18b3751c2c564dd5ce)
