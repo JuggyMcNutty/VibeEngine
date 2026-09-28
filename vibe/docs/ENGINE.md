@@ -1172,3 +1172,17 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   Liberty Island's four laser views within half a unit of the original's
   search; `MeshConsole`, `CaptureConsole` and `AIConsole` as before;
   proving runs on three maps clean.
+- [**traces stopping where the original's do**](https://github.com/JuggyMcNutty/VibeEngine/commit/23143b4eae4651089cfc2ce62b334636526709c9) --
+  each hit given short of what it hits by the original's backoffs -- half
+  a unit for a line and a tenth of the trace for a box on the level or a
+  mover's brush, a thousandth of the trace on an actor's cylinder --, the
+  box check counting a hull up to a tenth past the end and bounding the
+  level's hulls by their boxes as the original's does, and the clear-line
+  tests asking along the line alone, where the fork stopped every hit a
+  unit short and looked a unit past the end; walking's float the
+  original's measure, the reach test's fall a step at a time; other games
+  keep the unit ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:**
+  `StandConsole`'s floor and the laser beams' ends the original's (−303.5,
+  1999.5), and the first laser view fitted as the original's; `TraceConsole`
+  and `AIConsole` as before; `MeshConsole`'s decorations resting 0.1 over
+  the floor (1.0 before); proving runs on three maps clean.
