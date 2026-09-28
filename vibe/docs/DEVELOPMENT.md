@@ -97,6 +97,11 @@ The console classes:
   (`DXAI:` lines), and through the first 10 s each state an NPC enters,
   with the time (`DXAISTATE:`). The two engines' logs laid side by side
   name each NPC that differs, and which count as drawn.
+- **`TraceConsole`**: what `TraceTexture` gives -- Liberty Island from
+  the menu map, 2 s into the level, for each NPC in the world the hits of
+  a line from the player's eye to it and the first of a line from it
+  straight down (its floor, as footsteps read it): each hit's actor,
+  texture, group, flags and distance (`DXTRACE:`).
 - **`StandConsole`**: where a walking player rests over the floor -- at
   Liberty Island's start and after two short walks, its place, collision
   height and base and the floor a line down finds logged.
