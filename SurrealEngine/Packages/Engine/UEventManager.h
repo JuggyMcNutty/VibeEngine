@@ -81,6 +81,9 @@ public:
 		float BestSmell = 0.0f;
 		int LastTurnFrame = 0;
 		bool Delete = false;
+		// A call due after the pass, and the state it reports
+		bool CallDue = false;
+		uint8_t CallState = 0;
 	};
 
 	struct EventType
@@ -109,7 +112,11 @@ private:
 	SenseLevels PeakLevels(const Sender& sender, int slotsBack) const;
 	void ComputeSenseDetection(Receiver& receiver, UActor* senderActor, const SenseLevels& peak, float& visibility, float& volume, float& smell);
 	void CallListener(EventType& type, Receiver& receiver, uint8_t state);
+	void QueueCall(EventType& type, Receiver& receiver, uint8_t state);
 	void CleanupEvents();
+
+	// The receivers whose calls are due, in the order they had their turns
+	std::vector<std::pair<EventType*, Receiver*>> DueCalls;
 };
 
 // The original's saved event manager keeps its parts as objects of their

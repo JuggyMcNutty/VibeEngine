@@ -328,6 +328,14 @@ void UEventManager::CallListener(EventType& type, Receiver& receiver, uint8_t st
 		std::move(params) });
 }
 
+void UEventManager::QueueCall(EventType& type, Receiver& receiver, uint8_t state)
+{
+	if (!receiver.CallDue)
+		DueCalls.push_back({ &type, &receiver });
+	receiver.CallDue = true;
+	receiver.CallState = state;
+}
+
 bool UEventManager::ProcessReceiver(EventType& type, Receiver& receiver)
 {
 	UActor* actor = receiver.Actor;
@@ -416,7 +424,7 @@ bool UEventManager::ProcessReceiver(EventType& type, Receiver& receiver)
 			receiver.BestVisibility = 0.0f;
 			receiver.BestVolume = 0.0f;
 			receiver.BestSmell = 0.0f;
-			CallListener(type, receiver, StateEnd);
+			QueueCall(type, receiver, StateEnd);
 		}
 		else if (best->Actor != receiver.BestActor)
 		{
@@ -425,7 +433,7 @@ bool UEventManager::ProcessReceiver(EventType& type, Receiver& receiver)
 			receiver.BestVisibility = visibility;
 			receiver.BestVolume = volume;
 			receiver.BestSmell = smell;
-			CallListener(type, receiver, StateChangeBest);
+			QueueCall(type, receiver, StateChangeBest);
 		}
 	}
 	else if (best)
@@ -438,11 +446,11 @@ bool UEventManager::ProcessReceiver(EventType& type, Receiver& receiver)
 		if (best->Current.Any())
 		{
 			receiver.EventOn = true;
-			CallListener(type, receiver, StateBegin);
+			QueueCall(type, receiver, StateBegin);
 		}
 		else
 		{
-			CallListener(type, receiver, StatePulse);
+			QueueCall(type, receiver, StatePulse);
 		}
 	}
 	return weighed;
@@ -493,6 +501,19 @@ void UEventManager::Tick()
 			if (!anything)
 				sender->Delete = true;
 		}
+	}
+
+	// The calls, after the pass and with the senders' slots moved on, as the
+	// original's: a pulse a call raises lands in the next frame's slot, for
+	// every listener to weigh, not in this frame's after some had their turn.
+	std::vector<std::pair<EventType*, Receiver*>> calls;
+	calls.swap(DueCalls);
+	for (auto& [type, receiver] : calls)
+	{
+		receiver->CallDue = false;
+		if (receiver->Delete || !receiver->Actor || receiver->Actor->bDeleteMe())
+			continue;
+		CallListener(*type, *receiver, receiver->CallState);
 	}
 
 	CleanupEvents();

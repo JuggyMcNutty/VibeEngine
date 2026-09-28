@@ -392,11 +392,13 @@ senders and 261 listeners kept through the fork's load, and the fork's own
 then have its own layout, still read; the original's were skipped, their
 listeners lost.
 
-Not yet as the original: the fork calls each listener as it has its turn,
-where the original calls them all after the pass, the senders' slots moved
-on first. A pulse a listener's call raises lands in the next frame's slot
-there, heard by every listener; here in this frame's, missed by the
-listeners that had their turn before it.
+The calls come as the original's since 2026-09-28: all after the pass,
+the senders' slots moved on first, so a pulse a listener's call raises
+lands in the next frame's slot, for every listener to weigh. The fork
+called each listener as it had its turn, so such a pulse landed in this
+frame's slot, missed by the listeners that had their turn before it. Seen:
+Battery Park's opening minute made 39 calls, none raising another event
+from inside the call -- the order shows only where one does.
 
 ### Moving: wandering and tactical movement
 
