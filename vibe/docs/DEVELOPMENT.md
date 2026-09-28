@@ -225,7 +225,12 @@ What it takes to run the original there, each found the hard way:
   while it runs, its own being black.
 
 The fork's window opens on this machine's desktop, as any run's does; the
-original's, on the hidden display.
+original's, on the hidden display. The fork can run on a hidden display too
+-- Xvfb, with SDL's `x11` driver (`SDL_VIDEODRIVER=x11`, `WAYLAND_DISPLAY`
+unset): it renders there, its `shot` right, but a grab of the display shows
+its window black, so what it drew is read with `shot`. The recreated
+launcher's live check runs it so
+([checking it live](https://github.com/JuggyMcNutty/deusex-launcher#checking-it-live)).
 
 ## Gotchas
 
