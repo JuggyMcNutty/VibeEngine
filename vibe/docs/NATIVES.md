@@ -1135,10 +1135,13 @@ says what changed, what stays the fork's own, and its by-hand check:
     time, so that the tenth off one long fall does not leave it in the
     air. Other games keep the unit. What falls comes to rest where its
     last step's trace stops: `MeshConsole`'s crate, box and barrel 0.1
-    over Liberty Island's pier (1.0 before), where the original's rest
-    2.3, 2.3 and 2.5 over it -- the crate and box alike from different
-    heights, so not their last steps' tenths; what holds them there is
-    unread.
+    over Liberty Island's pier (1.0 before), where the original's stop
+    over it -- the crate and box together, in the air, 0.06 s after they
+    are placed, falling half a unit a tick, their bottoms level at
+    −301.75 (2.25 over the floor, the height of `DataLinkTrigger0`'s
+    cylinder, which both stand in), the barrel later at −301.62. Lines
+    and a box traced down there find the floor at −304 in both engines;
+    what stops the original's is unread (logged per tick, 2026-09-28).
   - **The visible-actor iterators `VisibleActors` 311 and
     `VisibleCollidingActors` 312** (2026-09-28;
     [traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)): `VisibleCollidingActors` lists each
