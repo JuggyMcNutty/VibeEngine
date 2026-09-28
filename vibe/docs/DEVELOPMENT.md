@@ -110,6 +110,14 @@ The console classes:
 - **`StandConsole`**: where a walking player rests over the floor -- at
   Liberty Island's start and after two short walks, its place, collision
   height and base and the floor a line down finds logged.
+- **`VisibleConsole`**: what `FastTrace` and the visible-actor iterators
+  give -- Liberty Island from the menu map, 2 s into the level, for each
+  mover a line across its box's thinnest side through its middle:
+  `FastTrace`'s answer and the actor a `Trace` meets; then each actor
+  `VisibleCollidingActors` lists within 1000 units of the player, with and
+  without `bIgnoreHidden`, and each `VisibleActors` lists (`DXVIS:`). The
+  player and its shadow are numbered one higher in the original's log,
+  whose menu map made the first.
 - **`SaveConsole`** and **`LoadConsole`**, either engine: a save one engine
   makes for the other to load -- the first opens Liberty Island from the
   menu map, logs 8 s in what the level holds (the player's place, health

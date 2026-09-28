@@ -38,6 +38,10 @@ public:
 	// (Deus Ex's AI line of sight).
 	bool SightBlocked(const vec3& from, const vec3& to, const std::function<bool(UActor* actor)>& blocksSight);
 
+	// As the original's FCollisionHash::ActorRadiusCheck: every colliding
+	// actor, movers too, whose location lies within radius of origin.
+	Array<UActor*> ActorRadiusCheck(const vec3& origin, float radius);
+
 	Array<UActor*> CollidingActors(const vec3& origin, float radius);
 	Array<UActor*> CollidingActors(const vec3& origin, float height, float radius);
 	Array<UActor*> EncroachingActors(UActor* actor);

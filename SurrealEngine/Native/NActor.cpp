@@ -774,18 +774,22 @@ void NActor::TweenAnim(UObject* Self, const NameString& Sequence, float Time)
 void NActor::VisibleActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc)
 {
 	UActor* SelfActor = UObject::Cast<UActor>(Self);
+	// Deus Ex's radius defaults to 0, as the original's: no limit here, 1000
+	// for VisibleCollidingActors (the iterators).
+	float defaultRadius = engine->LaunchInfo.IsDeusEx() ? 0.0f : SelfActor->CollisionRadius();
 	Frame::CreatedIterator = std::make_unique<VisibleActorsIterator>(
 		SelfActor, BaseClass, &Actor,
-		Radius ? *Radius : SelfActor->CollisionRadius(),
+		Radius ? *Radius : defaultRadius,
 		Loc ? *Loc : SelfActor->Location());
 }
 
 void NActor::VisibleCollidingActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc, std::optional<bool> bIgnoreHidden)
 {
 	UActor* SelfActor = UObject::Cast<UActor>(Self);
+	float defaultRadius = engine->LaunchInfo.IsDeusEx() ? 0.0f : SelfActor->CollisionRadius();
 	Frame::CreatedIterator = std::make_unique<VisibleCollidingActorsIterator>(
 		BaseClass, &Actor,
-		Radius ? *Radius : SelfActor->CollisionRadius(),
+		Radius ? *Radius : defaultRadius,
 		Loc ? *Loc : SelfActor->Location(),
 		bIgnoreHidden ? *bIgnoreHidden : false);
 }

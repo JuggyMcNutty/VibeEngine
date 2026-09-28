@@ -84,6 +84,41 @@ CollisionHitList OverlapTester::TestOverlap(const vec3& location, float height, 
 	return uniqueHits;
 }
 
+Array<UActor*> OverlapTester::ActorRadiusCheck(const vec3& origin, float radius)
+{
+	vec3 extents = { radius, radius, radius };
+	float radiusSquared = radius * radius;
+
+	Array<UActor*> hits;
+
+	int checkCounter = NextCheckCounter();
+	ivec3 start = GetStartExtents(origin, extents);
+	ivec3 end = GetEndExtents(origin, extents);
+	if (end.x - start.x < 100 && end.y - start.y < 100 && end.z - start.z < 100)
+	{
+		for (int z = start.z; z < end.z; z++)
+		{
+			for (int y = start.y; y < end.y; y++)
+			{
+				for (int x = start.x; x < end.x; x++)
+				{
+					for (UActor* actor : GetActors(x, y, z))
+					{
+						if (actor->Collision.CheckCounter != checkCounter)
+						{
+							actor->Collision.CheckCounter = checkCounter;
+							vec3 d = actor->Location() - origin;
+							if (dot(d, d) < radiusSquared)
+								hits.push_back(actor);
+						}
+					}
+				}
+			}
+		}
+	}
+	return hits;
+}
+
 Array<UActor*> OverlapTester::CollidingActors(const vec3& origin, float radius)
 {
 	dvec3 dorigin = to_dvec3(origin);

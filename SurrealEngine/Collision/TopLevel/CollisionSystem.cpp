@@ -52,6 +52,12 @@ bool CollisionSystem::SightBlocked(const vec3& from, const vec3& to, const std::
 	return trace.SightBlocked(from, to, blocksSight);
 }
 
+Array<UActor*> CollisionSystem::ActorRadiusCheck(const vec3& origin, float radius)
+{
+	OverlapTester overlap(this);
+	return overlap.ActorRadiusCheck(origin, radius);
+}
+
 CollisionHit CollisionSystem::TraceFirstHit(const vec3& from, const vec3& to, UActor* tracingActor, const vec3& extents, const TraceFlags& flags)
 {
 	for (const CollisionHit& hit : Trace(from, to, extents.z, extents.x, flags.traceActors(), flags.traceWorld(), false))

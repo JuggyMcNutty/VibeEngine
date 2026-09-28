@@ -434,6 +434,9 @@ bool TraceActorsIterator::Next()
 
 VisibleActorsIterator::VisibleActorsIterator(UActor* Caller, UObject* BaseClass, UObject** Actor, float Radius, const vec3& Location) : BaseClass(BaseClass), Actor(Actor), Radius(Radius), Location(Location)
 {
+	// Deus Ex's as the original's: within the radius strictly, a radius of 0
+	// no limit.
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
 	const Array<UActor*>& actors = engine->Level->Actors;
 	for (int slot : ActorSlotsByName(engine->Level, BaseClass->Name))
 	{
@@ -441,8 +444,9 @@ VisibleActorsIterator::VisibleActorsIterator(UActor* Caller, UObject* BaseClass,
 		// * Whether the actor we're dealing with is not hidden
 		// * Then whether the distance of the actor from our given Location is no more than Radius
 		UActor* levelActor = actors[slot];
-		if (!levelActor->bHidden() &&
-			length(levelActor->Location() - Location) <= Radius && Caller->FastTrace(levelActor->Location(), Location))
+		float dist = length(levelActor->Location() - Location);
+		bool inRadius = deusEx ? (Radius == 0.0f || dist < Radius) : dist <= Radius;
+		if (!levelActor->bHidden() && inRadius && Caller->FastTrace(levelActor->Location(), Location))
 		{
 			VisibleActors.push_back(levelActor);
 		}
@@ -467,9 +471,20 @@ bool VisibleActorsIterator::Next()
 
 /////////////////////////////////////////////////////////////////////////////
 
+// Deus Ex's as the original's (AActor::execVisibleCollidingActors): each
+// colliding actor, movers too, whose location lies within the radius -- 1000
+// for none --, of the class, passed over when hidden only if bIgnoreHidden
+// asks, and with the line from the spot clear as it comes, as FastTrace asks
+// it: UModel::FastLineCheck, the level's BSP with the movers' polygons in it.
+// The fork's asked no line at all, so HurtRadius hurt through walls, and
+// passed over the hidden unless asked not to.
 VisibleCollidingActorsIterator::VisibleCollidingActorsIterator(UObject* BaseClass, UObject** ReturnValue, float Radius, const vec3& Location, bool IgnoreHidden) : BaseClass(BaseClass), ReturnValue(ReturnValue), Radius(Radius), Location(Location), IgnoreHidden(IgnoreHidden)
 {
-	HitActors = engine->Level->Collision.CollidingActors(Location, Radius);
+	DeusEx = engine->LaunchInfo.IsDeusEx();
+	if (DeusEx)
+		HitActors = engine->Level->Collision.ActorRadiusCheck(Location, Radius != 0.0f ? Radius : 1000.0f);
+	else
+		HitActors = engine->Level->Collision.CollidingActors(Location, Radius);
 }
 
 bool VisibleCollidingActorsIterator::Next()
@@ -478,11 +493,12 @@ bool VisibleCollidingActorsIterator::Next()
 	while (index < size)
 	{
 		UActor* actor = HitActors[index++];
-		if (actor && (IgnoreHidden || !actor->bHidden()) && actor->IsA(BaseClass->Name))
-		{
-			*ReturnValue = actor;
-			return true;
-		}
+		if (!actor || !actor->IsA(BaseClass->Name))
+			continue;
+		if (DeusEx ? (IgnoreHidden && actor->bHidden()) || engine->Level->Collision.TraceAnyHit(Location, actor->Location(), nullptr, false, true, false) : !(IgnoreHidden || !actor->bHidden()))
+			continue;
+		*ReturnValue = actor;
+		return true;
 	}
 	*ReturnValue = nullptr;
 	return false;

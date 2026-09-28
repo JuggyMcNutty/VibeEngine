@@ -11,6 +11,7 @@ public:
 
 	bool IsOverlapping(UActor* actor1, UActor* actor2);
 
+	Array<UActor*> ActorRadiusCheck(const vec3& origin, float radius);
 	Array<UActor*> CollidingActors(const vec3& origin, float radius);
 	Array<UActor*> CollidingActors(const vec3& origin, float height, float radius);
 	Array<UActor*> EncroachingActors(UActor* actor);

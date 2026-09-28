@@ -238,6 +238,7 @@ public:
 	float Radius = 0.0f;
 	vec3 Location = vec3(0.0f);
 	bool IgnoreHidden = false;
+	bool DeusEx = false;
 	size_t index = 0;
 	Array<UActor*> HitActors;
 };

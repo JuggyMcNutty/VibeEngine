@@ -1139,6 +1139,22 @@ says what changed, what stays the fork's own, and its by-hand check:
     2.3, 2.3 and 2.5 over it -- the crate and box alike from different
     heights, so not their last steps' tenths; what holds them there is
     unread.
+  - **The visible-actor iterators `VisibleActors` 311 and
+    `VisibleCollidingActors` 312** (2026-09-28;
+    [traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)): `VisibleCollidingActors` lists each
+    colliding actor, movers too, whose location lies within the radius
+    (1000 for none), passes over a hidden one only when `bIgnoreHidden`
+    asks, and asks the line to each as `FastTrace` does, where the fork's
+    took the actors whose cylinders reached into a sphere, passed over the
+    hidden unless asked not to, and asked no line -- a robot exploding at
+    its death, or a MIB, Gunther or Anna (`HurtRadius`), hurt what stood
+    behind walls and spared hidden actors. `VisibleActors` takes a radius
+    of 0, its default, for no limit. Checked with `VisibleConsole`: both
+    lists the original's at Liberty Island's start, where the fork's
+    listed the police boat, its middle past the radius, and had
+    `DataLinkTrigger0` the wrong way round; `FastTrace` stops at a closed
+    door in both engines -- the original's BSP holds the movers' polygons
+    too -- (19 of Liberty Island's movers alike).
   - **`Actor.ParabolicTrace` 722**: the original's defaults, gravity the
     right way up, the zone's velocity, terminal velocity and water,
     per-step tracing, bounces, and failure to the start. NPCs judge a
