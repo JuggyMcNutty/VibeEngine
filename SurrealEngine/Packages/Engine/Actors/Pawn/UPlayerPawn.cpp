@@ -89,8 +89,12 @@ void UPlayerPawn::LoadProperties()
 		MouseSmoothThreshold() = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "MouseSmoothThreshold", 0.16f);
 		ngWorldSecret() = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "ngWorldSecret", "");
 
-		// SE addition: Store/Load the DefaultFOV setting into/from the user.ini file as well
-		DefaultFOV() = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "MainFOV", 90.0f);
+		// SE addition: Store/Load the DefaultFOV setting into/from the user.ini file as well.
+		// Not for Deus Ex, whose DefaultFOV is its own config's (75, the
+		// class's globalconfig): the missing key's 90 widened the view to
+		// 90 degrees the first time a weapon came up.
+		if (!engine->LaunchInfo.IsDeusEx())
+			DefaultFOV() = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "MainFOV", 90.0f);
 	}
 }
 
@@ -124,6 +128,7 @@ void UPlayerPawn::SaveConfig()
 		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "ngWorldSecret", ngWorldSecret());
 
 		// SE addition: Store/Load the DefaultFOV setting into/from the user.ini file as well
-		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "MainFOV", IniPropertyConverter<float>::ToString(DefaultFOV()));
+		if (!engine->LaunchInfo.IsDeusEx())
+			engine->packages->SetIniValue("user", "Engine.PlayerPawn", "MainFOV", IniPropertyConverter<float>::ToString(DefaultFOV()));
 	}
 }

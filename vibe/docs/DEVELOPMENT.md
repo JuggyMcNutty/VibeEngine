@@ -49,8 +49,8 @@ The console classes:
   a comment's label, played through.
 - **`ViewConsole`**: the player's own weapon in view -- at Liberty Island's
   start, the Dragon's Tooth given as the game gives its starting items and
-  put in hand, the HUD hidden, its look logged and shot three times, a
-  second apart.
+  put in hand, the HUD hidden, its look and the view's field of view
+  logged and shot three times, a second apart.
 - **`CoronaConsole`**: Liberty Island's lamps' glows from `CaptureConsole`'s
   shot 7 (three lamps in view), the player held there as that console holds
   it, the HUD hidden: each corona light near logged with its draw scale,

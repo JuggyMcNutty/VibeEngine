@@ -30,6 +30,8 @@ function LogLook(string Label, Actor A)
 	for (i = 0; i < 8; i++)
 		S = S $ " multi" $ i $ " " $ A.MultiSkins[i];
 	Log(S);
+	if (Viewport != None && Viewport.Actor != None)
+		Log("DXVIEW: " $ Label $ " view fov " $ Viewport.Actor.FovAngle $ " desired " $ Viewport.Actor.DesiredFOV $ " at " $ Viewport.Actor.Location $ " rotation " $ Viewport.Actor.ViewRotation $ " weapon at " $ A.Location $ " rotation " $ A.Rotation $ " scale " $ A.DrawScale);
 }
 
 event PostRender(canvas C)

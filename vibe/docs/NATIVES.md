@@ -730,9 +730,9 @@ Found with them, in how a mesh shows its textures, each now the original's
   most 60 times a second, the original's pace at 60 frames. The fork
   used to step those 25 times a second.
 
-Seen in the check of the blade: the fork's weapon sits higher and smaller
-in a 16:9 view than the original's -- the field of view at a wide
-aspect, not yet looked into. To check by hand: the Dragon's Tooth in hand
+Seen in the check of the blade: the fork's weapon sat higher and smaller
+than the original's -- the whole view at 90 degrees, not Deus Ex's 75
+([small](#small)); as the original's since 2026-09-28. To check by hand: the Dragon's Tooth in hand
 and on the ground, the flamethrower's flame, the riot prod's arcs, the EMP
 grenade's blast, tear gas and poison gas, the drunk effect, a burning NPC,
 a laser sight's spot, and water.
@@ -1122,6 +1122,15 @@ All landed 2026-09-25:
   stands at Z −256.20 in the fork and −256.25 in the original, both on
   `LevelInfo0`, where the fork's stood at −260.00; proving runs on Liberty
   Island, UNATCO HQ and Battery Park are clean.
+- **The field of view** (2026-09-28): the player's `DefaultFOV` is Deus
+  Ex's own config, 75 (`[Engine.PlayerPawn]` in `User.ini`), as the
+  original's. Upstream read it from a key of its own, `MainFOV`, which the
+  game's ini lacks, and so made it 90: the first time a weapon came up the
+  view reset to it, the whole scene wider and the weapon smaller and
+  higher. Checked with `ViewConsole`: the view stays at 75 with the
+  Dragon's Tooth in hand, the scene and the blade where the original's
+  are, but for the idle sway. The key is neither read nor written for
+  Deus Ex now; a `MainFOV` an earlier run saved is left unread.
 - **A long frame** (2026-09-27): the actors' step is at most 0.4 s, as
   the original's level tick holds it, the level's clock taking the whole
   time ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)): a load or a hitch moves
