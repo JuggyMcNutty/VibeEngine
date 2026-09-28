@@ -5,6 +5,8 @@
 #include "VM/Frame.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/Inventory/UWeapon.h"
+#include "Packages/Engine/Actors/Info/UZoneInfo.h"
+#include "Packages/Core/UClass.h"
 #include "Utils/Logger.h"
 #include "Engine.h"
 
@@ -12,12 +14,31 @@ void UPawn::Tick(float elapsed)
 {
 	MoveTimer() -= elapsed;
 
+	// The original's pawn physics keep a running average of the tick,
+	// which moveToward reads (APawn::performPhysics).
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
+	if (deusEx)
+		AvgPhysicsTime() = 0.8f * AvgPhysicsTime() + 0.2f * elapsed;
+
 	if (StateFrame)
 	{
 		if (StateFrame->LatentState == LatentRunState::MoveTo)
 		{
-			TickRotateTo(Focus());
-			if (TickMoveTo(Destination()))
+			if (deusEx)
+			{
+				if (DeusExPollMoveTo())
+					StateFrame->LatentState = LatentRunState::Continue;
+			}
+			else
+			{
+				TickRotateTo(Focus());
+				if (TickMoveTo(Destination()))
+					StateFrame->LatentState = LatentRunState::Continue;
+			}
+		}
+		else if (StateFrame->LatentState == LatentRunState::MoveToward && deusEx)
+		{
+			if (DeusExPollMoveToward())
 				StateFrame->LatentState = LatentRunState::Continue;
 		}
 		else if (StateFrame->LatentState == LatentRunState::MoveToward)
@@ -234,8 +255,147 @@ bool UPawn::TickRotateTo(const vec3& target)
 	return (std::abs(DesiredRotation().Yaw - (Rotation().Yaw & 0xffff)) < doneAngle) || (std::abs(DesiredRotation().Yaw - (Rotation().Yaw & 0xffff)) > 0xffff - doneAngle);
 }
 
+// The original's APawn::moveToward (dx-reverse-info/engine-dll.md, moving):
+// one tick of a move toward dest -- the acceleration set toward it at the
+// full rate --, and whether it is reached: within 16 units across (and the
+// pawn's height, at least 48, up or down), or the move's time out, or for a
+// pawn to move to within reach of it. Near the spot it slows. The fork's own
+// took a spot reached within a fifth of the speed across, 20 units or more
+// at a walk, outside a pawn's cylinder -- so ScriptedPawn's CheckDestLoc
+// counted each leg of a patrol a miss and backed the pawn off at the fourth.
+bool UPawn::DeusExMoveToward(const vec3& dest)
+{
+	vec3 dir = dest - Location();
+	if (Physics() == PHYS_Walking)
+	{
+		dir.z = 0.0f;
+	}
+	else if (Physics() == PHYS_Falling)
+	{
+		// Falling, it steers only where gravity is well under its zone's
+		// default, and arrives once well under the spot.
+		UZoneInfo* zone = Region().Zone;
+		UZoneInfo* defaultZone = zone ? zone->Class->GetDefaultObject<UZoneInfo>() : nullptr;
+		if (!zone || !defaultZone || defaultZone->ZoneGravity().z * 0.9f >= zone->ZoneGravity().z)
+			return false;
+		dir.z = 0.0f;
+		float across = length(dir);
+		Acceleration() = (across > 0.0f ? dir * (1.0f / across) : vec3(0.0f)) * AccelRate();
+		if (Velocity().z >= 0.0f)
+			return false;
+		return Location().z + 100.0f < dest.z;
+	}
+
+	// An item it has come up to it touches.
+	UActor* target = MoveTarget();
+	if (target && UObject::TryCast<UInventory>(target))
+	{
+		vec3 offset = Location() - target->Location();
+		if (std::abs(offset.z) < CollisionHeight() && offset.x * offset.x + offset.y * offset.y < CollisionRadius() * CollisionRadius())
+			CallEvent(target, EventName::Touch, { ExpressionValue::ObjectValue(this) });
+	}
+
+	float dist = length(dir);
+	bool glider = bCanGlide() && !bCanStrafe() && (Physics() == PHYS_Flying || Physics() == PHYS_Swimming);
+
+	if (dir.x * dir.x + dir.y * dir.y < 256.0f && std::abs(dir.z) < std::max(CollisionHeight(), 48.0f))
+	{
+		if (!glider)
+			Acceleration() = vec3(0.0f);
+		return true;
+	}
+
+	// A glider goes the way it faces; the rest straight at the spot.
+	if (glider)
+		dir = Coords::Rotation(Rotation()).XAxis;
+	else if (dist > 0.0f)
+		dir = dir * (1.0f / dist);
+	Acceleration() = dir * AccelRate();
+
+	if (MoveTimer() < 0.0f)
+		return true;
+	if (target && UObject::TryCast<UPawn>(target))
+		return target->CollisionRadius() + CollisionRadius() + MeleeRange() * 0.8f > dist;
+
+	// Moving fast, it steers its velocity onto the spot's line.
+	float speed = length(Velocity());
+	if (!glider && speed > 100.0f)
+	{
+		vec3 velDir = Velocity() * (1.0f / speed);
+		Acceleration() -= (velDir - dir) * ((1.0f - dot(velDir, dir)) * speed * 0.2f);
+	}
+
+	// Within a tick and a half of it, it slows: to half its speed once, and
+	// to 200 units a second over its speed.
+	if (AvgPhysicsTime() * speed * 1.4f <= dist)
+		return false;
+	if (!bReducedSpeed())
+	{
+		DesiredSpeed() *= 0.5f;
+		bReducedSpeed() = true;
+	}
+	if (speed > 0.0f)
+		DesiredSpeed() = std::min(DesiredSpeed(), 200.0f / speed);
+	return glider;
+}
+
+// The original's latent MoveTo, each tick (APawn::execPollMoveTo): a pawn
+// walking around what it bumped (bAdvancedTactics) has its script's
+// AlterDestination turn the destination for the tick.
+bool UPawn::DeusExPollMoveTo()
+{
+	vec3 dest = Destination();
+	if (bAdvancedTactics() && Physics() == PHYS_Walking)
+		CallEvent(this, "AlterDestination");
+	TickRotateTo(Destination());
+	bool done = DeusExMoveToward(Destination());
+	Destination() = dest;
+	return done;
+}
+
+// The original's latent MoveToward, each tick (APawn::execPollMoveToward):
+// toward where the target is -- a flyer to 0.7 of a pawn's height over its
+// middle --, the destination turned as MoveTo's is; a pawn target leaves
+// the speed as it was, and one in water is given up by a pawn that cannot
+// swim.
+bool UPawn::DeusExPollMoveToward()
+{
+	UActor* target = MoveTarget();
+	if (!target)
+		return true;
+
+	Destination() = target->Location();
+	if (Physics() == PHYS_Flying && UObject::TryCast<UPawn>(target))
+		Destination().z += target->CollisionHeight() * 0.7f;
+	else if (Physics() == PHYS_Spider)
+		Destination() -= Floor() * target->CollisionRadius();
+	Focus() = Destination();
+
+	float desiredSpeed = DesiredSpeed();
+	if (bAdvancedTactics() && Physics() == PHYS_Walking)
+		CallEvent(this, "AlterDestination");
+	TickRotateTo(Destination());
+	bool done = DeusExMoveToward(Destination());
+
+	target = MoveTarget();
+	if (target)
+	{
+		Destination() = target->Location();
+		if (UObject::TryCast<UPawn>(target))
+		{
+			DesiredSpeed() = desiredSpeed;
+			if (!bCanSwim() && target->Region().Zone && target->Region().Zone->bWaterZone())
+				MoveTimer() = -1.0f;
+		}
+	}
+	return done;
+}
+
 bool UPawn::TickMoveTo(const vec3& target)
 {
+	if (engine->LaunchInfo.IsDeusEx())
+		return DeusExMoveToward(target);
+
 	if (MoveTimer() < 0.0f)
 		return true;
 
@@ -273,6 +433,13 @@ void UPawn::MoveTo(const vec3& newDestination, float speed)
 	SetMoveDuration(newDestination - Location());
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::MoveTo;
+
+	// Deus Ex's takes its first step at once, as the original's exec does.
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		TickRotateTo(Focus());
+		DeusExMoveToward(Destination());
+	}
 }
 
 void UPawn::MoveToward(UActor* newTarget, float speed)
@@ -285,12 +452,20 @@ void UPawn::MoveToward(UActor* newTarget, float speed)
 	Focus() = newTarget->Location();
 	bReducedSpeed() = false;
 	DesiredSpeed() = clamp(speed, 0.0f, MaxDesiredSpeed());
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
 	if (UObject::TryCast<UPawn>(newTarget))
-		MoveTimer() = 1.0f;
+		MoveTimer() = deusEx ? 1.2f : 1.0f;
 	else
 		SetMoveDuration(newTarget->Location() - Location());
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::MoveToward;
+
+	// Deus Ex's takes its first step at once, as the original's exec does.
+	if (deusEx)
+	{
+		TickRotateTo(Focus());
+		DeusExMoveToward(Destination());
+	}
 }
 
 void UPawn::StrafeFacing(const vec3& newDestination, UActor* newTarget)

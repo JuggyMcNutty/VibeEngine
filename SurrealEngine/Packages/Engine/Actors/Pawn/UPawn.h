@@ -33,6 +33,12 @@ public:
 
 	bool TickRotateTo(const vec3& target);
 	bool TickMoveTo(const vec3& target);
+	// Deus Ex's moves as the original's: APawn::moveToward, one tick toward
+	// a spot, whether it is reached; and the latent MoveTo's and
+	// MoveToward's polls, whether they are done.
+	bool DeusExMoveToward(const vec3& dest);
+	bool DeusExPollMoveTo();
+	bool DeusExPollMoveToward();
 
 	// Returns true if any of the several points of other is visible (origin, top, bottom)
 	// ignoreDistance is a Deus Ex only parameter, it is always false on Unreal.

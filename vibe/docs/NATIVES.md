@@ -423,6 +423,23 @@ and a seeking NPC got no overshoot destination:
   1,000 units; `ComputePathnodeDistances` 1020 floods `visitedWeight` over
   the network from the same list. Seen: 13 nodes nearest first by the dock,
   and the flood reaching 876 of Liberty Island's 1,198 navpoints.
+- **`MoveTo` 500 and `MoveToward` 502** (2026-09-28): each tick as the
+  original's `moveToward` and its polls: a spot reached within 16 units
+  across (and the pawn's height, at least 48, up or down), a pawn target
+  within reach, or the time out; the acceleration straight at the spot at
+  the full rate, a fast pawn's velocity steered onto the line, and near
+  the spot the speed halved once and held to 200 units a second over the
+  speed; a pawn walking around what it bumped has its script's
+  `AlterDestination` turn the destination each tick; the first step taken
+  in the call itself, and a pawn target given 1.2 s. The fork took a spot
+  reached within a fifth of the speed across -- 20 units or more at a
+  walk, outside the pawn -- and never asked `AlterDestination`, so no NPC
+  walked around what it bumped; and a path's first node the pawn already
+  stood on counted as not touched when it lay a step below the pawn's
+  middle, the height taken into the distance across. Together they sent
+  a patroller back to the node it stood on until `CheckDestLoc` backed it
+  off (`BackingOff`, 4 s in, Terrorist15 on Liberty Island); it patrols
+  now, within 4 units of the original's at 20 s (`AIConsole`, 374 before).
 
 To check by hand: NPCs wandering their bit of Liberty Island, and a
 searching NSF stepping around corners in a fight

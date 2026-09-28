@@ -150,11 +150,14 @@ std::pair<Array<UNavigationPoint*>, int32_t> UPawn::FindPathToEndPoint(UNavigati
 	{
 		const Step& step = steps[currentStep];
 
-		// Skip path parts we already are touching
+		// Skip path parts we already are touching: within the pawn's
+		// cylinder, its radius across and its height up or down. The height
+		// was once counted in the distance across too, so a pawn standing on
+		// a node a step below its middle kept being sent to it.
 		float minDist = (float)radius;
 		vec3 d = step.navpoint->Location() - Location();
 		float heightDiff = step.navpoint->Location().z - Location().z;
-		if (dot(d, d) < minDist * minDist && std::abs(heightDiff) < (float)height)
+		if (d.x * d.x + d.y * d.y < minDist * minDist && std::abs(heightDiff) < (float)height)
 		{
 			path.clear();
 		}
