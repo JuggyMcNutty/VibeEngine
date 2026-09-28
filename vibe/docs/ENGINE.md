@@ -1162,3 +1162,13 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   9 NPCs drawn at Liberty Island's start against the original's 3 (10
   before), the rest a pixel's difference at the edges; `LaserConsole`'s
   emitter as before; proving runs on three maps clean.
+- [**fitting in and encroaching as the original**](https://github.com/JuggyMcNutty/VibeEngine/commit/8702cc99396afe3e1588819c7657a439e52e9168) --
+  `SetLocation` and spawns fit the actor in with the original's
+  `FindSpot` (the spot pushed off the walls along each axis, then from its
+  corners) and check the spot's encroachment: what blocks it may stop it
+  through the actor's `EncroachingOn` and hears `EncroachedBy`; a spawn so
+  stopped is destroyed; a mover now asks every actor it moves into, not
+  the first of each cell ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:**
+  Liberty Island's four laser views within half a unit of the original's
+  search; `MeshConsole`, `CaptureConsole` and `AIConsole` as before;
+  proving runs on three maps clean.
