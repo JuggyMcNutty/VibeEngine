@@ -5,6 +5,7 @@
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Utils/Logger.h"
+#include "Engine.h"
 
 static constexpr int walkingSimulationMaxIterations = 32;
 static constexpr float walkingSimulationFallDepth = 1024.0f;
@@ -26,6 +27,32 @@ bool UPawn::ReachableWalking(UActor* anActor)
 	// between here and the goal goes unnoticed and the goal is reported reachable.
 	const float stepLength = std::max(CollisionRadius() * 2.0f, 1.0f);
 	const vec3 settleDelta = stepDownDelta - stepUpDelta;
+
+	// Falls onto a walkable floor up to depth below; anything else it meets
+	// fails it, and it stays where it was. Deus Ex's traces stop a tenth of a
+	// box's move short, as the original's do, so it falls a settle's length
+	// at a time: one long move stopped by a floor would stop far over it, or
+	// not move at all.
+	auto fallOnto = [&](float depth)
+		{
+			float chunk = engine->LaunchInfo.IsDeusEx() ? length(settleDelta) : depth;
+			vec3 start = Location();
+			for (float fallen = 0.0f; fallen < depth; fallen += chunk)
+			{
+				vec3 delta(0.0f, 0.0f, gravityDirection * std::min(chunk, depth - fallen));
+				const CollisionHit floorHit = TryMove(delta, true);
+				Location() += delta * floorHit.Fraction;
+				if (floorHit.Fraction < 1.0f)
+				{
+					if (floorHit.Normal.z * -gravityDirection >= 0.7071f)
+						return true;
+					break;
+				}
+			}
+			Location() = start;
+			return false;
+		};
+
 	for (int iteration = 0; iteration < walkingSimulationMaxIterations; iteration++)
 	{
 		vec3 toGoal = anActor->Location() - Location();
@@ -79,7 +106,7 @@ bool UPawn::ReachableWalking(UActor* anActor)
 				Location() += delta * floorHit.Fraction;
 				return true;
 			};
-		if (!settleOnto(settleDelta) && !settleOnto(vec3(0.0f, 0.0f, gravityDirection * walkingSimulationFallDepth)))
+		if (!settleOnto(settleDelta) && !fallOnto(walkingSimulationFallDepth))
 			break;
 
 		float moveDist2 = dot(actuallyMoved, actuallyMoved);

@@ -5,7 +5,13 @@
 class TraceAABBModel
 {
 public:
-	CollisionHitList Trace(UModel* model, const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, const dvec3& extents, bool visibilityOnly);
+	// With original, the box check as Deus Ex's UModel::LineCheck makes it,
+	// for the backoff its caller then takes off: each hit where the box
+	// touches, a hull entered up to twice the trace's length counted, and
+	// the level's hulls (not an actorBrush's) bounded by their boxes as the
+	// original's are. Without, the hits a tenth of a unit short, within the
+	// trace, every hull's box shaved.
+	CollisionHitList Trace(UModel* model, const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, const dvec3& extents, bool visibilityOnly, bool original, bool actorBrush);
 
 private:
 	void Trace(const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, const dvec3& extents, bool visibilityOnly, BspNode* node, CollisionHitList& hits);
@@ -117,16 +123,38 @@ private:
 			return true;
 		}
 
-		double HitFraction()
+		// The original's bounds of a level hull (FBoxCheck; dx-reverse-info
+		// engine-dll.md, traces): its box a tenth of a unit bigger at both
+		// ends in Z and toward -X and -Y, and as much smaller at +X and +Y.
+		bool ClipOriginalBoxPlanes(const BBox& box)
 		{
-			if (!nohit && tstart > -1.0 && tstart < tend && tend > 0.0)
+			dvec4 boxPlanes[] =
 			{
-				return std::max(tstart * tmax - 0.1, 0.0);
-			}
-			else
+				{ 0.0,  0.0, -1.0, 0.1 - box.min.z},
+				{ 0.0,  0.0,  1.0, box.max.z + 0.1},
+				{-1.0,  0.0,  0.0, 0.1 - box.min.x},
+				{ 1.0,  0.0,  0.0, box.max.x - 0.1},
+				{ 0.0, -1.0,  0.0, 0.1 - box.min.y},
+				{ 0.0,  1.0,  0.0, box.max.y - 0.1}
+			};
+
+			for (int i = 0; i < 6; i++)
 			{
-				return tmax;
+				if (!ClipPlane(boxPlanes[i]))
+					return false;
 			}
+
+			return true;
+		}
+
+		// Whether the box enters the hull, and where: t along the trace,
+		// less than nought if it starts inside, up to twice its length.
+		bool Hit(double& t) const
+		{
+			if (nohit || tstart <= -1.0 || tstart >= tend || tend <= 0.0)
+				return false;
+			t = tstart * tmax;
+			return true;
 		}
 
 		dvec3 HitNormal()
@@ -146,4 +174,6 @@ private:
 	};
 
 	UModel* Model = nullptr;
+	bool Original = false;
+	bool ActorBrush = false;
 };

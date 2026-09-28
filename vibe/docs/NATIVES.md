@@ -1068,14 +1068,6 @@ says what changed, what stays the fork's own, and its by-hand check:
   [what the player reads](#what-the-player-reads) and [coronas](#coronas).
 - **`DeusExPlayer.GetDeusExVersion`.** The fork's own string, by choice; the
   original's is "Mon Mar 19 12:06:14 2001 v1.112fm".
-- **The traces' margin.** The fork's traces stop a unit short of what they
-  hit; the original's line checks half a unit short, its box checks a tenth
-  of the trace short ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)). A script's
-  `Trace` down finds the floor half a unit higher in the fork (−303.0
-  where the original's gives −303.5 at Liberty Island's start), and a box
-  moved against a wall stops a unit short of it where the original's stops
-  a tenth of the move short. Walking's float is the original's all the
-  same (below, [small](#small)).
 - **`LevelInfo`'s clock.** The fork's main loop fills `Year` counted from 1900
   and `Month` from 0, as in its save dates; the original's are the full year
   and 1 to 12. In Deus Ex only `StatLog` reads them.
@@ -1123,6 +1115,30 @@ says what changed, what stays the fork's own, and its by-hand check:
     and a move that began inside another actor's cylinder met its far side.
     The scripts' footsteps passed over it (they read on to the level); a
     shot or a turret's aim traced from inside its shooter did not.
+  - **Where a trace stops** (2026-09-28): short of what it hits as the
+    original's traces are -- a hit on the level or a mover's brush half a
+    unit short for a line and a tenth of the trace for a box (a tenth of a
+    unit for one under a unit long), a box's hit up to a tenth past the end
+    counted, a hit on an actor's cylinder a thousandth of the trace short
+    --, the level's hulls bounded by their boxes as the original's are, and
+    `FastTrace` and the engine's own clear-line tests (an actor's lights, a
+    noise heard, a corona) asked along the line and not past it
+    ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)). The fork stopped every hit a unit short and
+    looked a unit past the end, a box's hit another tenth of a unit short:
+    a script's `Trace` down found Liberty Island's floor at −303.0 where
+    the original's finds −303.5, and a laser beam ended at 1999.0 where
+    the original's ends at 1999.5; both are the original's now
+    (`StandConsole`, `LaserConsole`, `CaptureConsole`), and so is where
+    `SetLocation` fits the player under the first tripwire's ceiling
+    (below). Walking's float takes the original's own measure
+    ([small](#small)), and the fork's own reach test falls a step at a
+    time, so that the tenth off one long fall does not leave it in the
+    air. Other games keep the unit. What falls comes to rest where its
+    last step's trace stops: `MeshConsole`'s crate, box and barrel 0.1
+    over Liberty Island's pier (1.0 before), where the original's rest
+    2.3, 2.3 and 2.5 over it -- the crate and box alike from different
+    heights, so not their last steps' tenths; what holds them there is
+    unread.
   - **`Actor.ParabolicTrace` 722**: the original's defaults, gravity the
     right way up, the zone's velocity, terminal velocity and water,
     per-step tracing, bounces, and failure to the start. NPCs judge a
@@ -1153,9 +1169,9 @@ says what changed, what stays the fork's own, and its by-hand check:
     aside, where the original's `FindSpot` pushes it off the walls along
     each axis and then its box's corners -- under the ceiling at Liberty
     Island's first laser tripwire the fork moved the player 43 units down
-    and now 7.7, the original 7.2 (the half unit the traces' margin);
-    there and at the three tripwires below it, where neither moves it,
-    the two engines stand the player within half a unit of each other;
+    and now 7.2, as the original does (7.7 until the traces stopped where
+    the original's do, 2026-09-28, above); at the three tripwires below
+    it neither moves the player;
   - nothing at the spot was asked: now what blocks it may stop the move
     (the actor's `EncroachingOn` -- an NPC's refuses another pawn or a
     brush) and hears it come (`EncroachedBy`), and only what does not
@@ -1224,11 +1240,22 @@ All landed 2026-09-25:
   of `MaxStepHeight` + 2 stops, a tenth of it short: 4.8 for a
   `MaxStepHeight` of 25 --, its base the level on the world's floor
   ([walking](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)), where the fork's
-  stood on the floor, short of it only by the unit its traces keep, with no
-  base. Checked with `StandConsole`: at Liberty Island's start the player
+  stood on the floor, short of it only by the unit its traces kept, with
+  no base. Since 2026-09-28, the traces stopping where the original's do
+  ([implemented, not as the original](#implemented-not-as-the-original)), it takes the original's own measure:
+  a pawn that trace finds nearer than 1.9 goes up to 2.1. The original
+  leaves one it finds 1.9 to 2.4 away as it is, where the fork's own step
+  down has always just brought it nearer, so the fork's stands at 4.8
+  each time and the original's anywhere from 4.6 to 5.1 as it came to
+  rest. Checked with `StandConsole`: at Liberty Island's start the player
   stands at Z −256.20 in the fork and −256.25 in the original, both on
-  `LevelInfo0`, where the fork's stood at −260.00; proving runs on Liberty
-  Island, UNATCO HQ and Battery Park are clean.
+  `LevelInfo0`, a line down finding the floor at −303.5 in both, where
+  the fork's stood at −260.00; proving runs on Liberty Island, UNATCO HQ
+  and Battery Park are clean. The console's walks go apart: in its 2 s
+  the original's player went 604 units and the fork's 254, the same way
+  (before and after the traces changed) -- the console sets the input in
+  its tick, and the order of that tick, the input's and the player's in
+  the fork is unread.
 - **The field of view** (2026-09-28): the player's `DefaultFOV` is Deus
   Ex's own config, 75 (`[Engine.PlayerPawn]` in `User.ini`), as the
   original's. Upstream read it from a key of its own, `MainFOV`, which the
@@ -1464,7 +1491,8 @@ console, it stayed in the game, took the server's calls and position
 corrections and drew the map with the HUD, and walked there (the
 harness's live mode, below): on a live MTL deathmatch server it walked
 5 s into a wall and stood, the server's one correction at the stop 1.5
-units back -- where the traces' margins still differ
+units back -- when the fork's traces still stopped a unit short, not
+checked since they stop where the original's do
 ([implemented, not as the original](#implemented-not-as-the-original)). The original downloaded a map it
 lacked from the fork's server, then joined and walked, and the fork did the
 same against its own server. With a scripted console the game's console

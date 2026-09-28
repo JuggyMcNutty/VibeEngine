@@ -197,10 +197,10 @@ run's console). The scratchpad is cleared when a session restarts, and the
 copy with it.
 
 The classes stand the player where the original's searches did, written into
-them: the two engines' `SetLocation`s fitted the player in differently until
-2026-09-28 and still stand it up to half a unit apart, the traces' margin
-([engine-dll.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#teleporting-an-actor)), so a search would
-stand them apart.
+them: the two engines' `SetLocation`s fitted the player in differently, and
+their traces stopped apart, until 2026-09-28
+([engine-dll.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#teleporting-an-actor)), so a search stood them apart;
+written in, the spots stay put whatever either engine's fitting does.
 
 **Shots.** The fork's `shot` writes the next free `ShotNNNN.bmp`. The
 original's own `shot` gives noise (D3D) or black (the others) under Proton, so

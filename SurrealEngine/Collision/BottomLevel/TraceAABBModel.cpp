@@ -3,9 +3,11 @@
 #include "TraceAABBModel.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 
-CollisionHitList TraceAABBModel::Trace(UModel* model, const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, const dvec3& extents, bool visibilityOnly)
+CollisionHitList TraceAABBModel::Trace(UModel* model, const dvec3& origin, double tmin, const dvec3& dirNormalized, double tmax, const dvec3& extents, bool visibilityOnly, bool original, bool actorBrush)
 {
 	Model = model;
+	Original = original;
+	ActorBrush = actorBrush;
 	CollisionHitList hits;
 	if (!Model || Model->Nodes.empty())
 		return hits;
@@ -30,12 +32,17 @@ void TraceAABBModel::Trace(const dvec3& origin, double tmin, const dvec3& dirNor
 		bbox.max = bboxStart[1];
 
 		// Shave off part of the box, or ammo pickups can fall through the floor
-		float boxEpsilon = 0.1f;
-		bbox.min += boxEpsilon;
-		bbox.max -= boxEpsilon;
+		if (!Original)
+		{
+			float boxEpsilon = 0.1f;
+			bbox.min += boxEpsilon;
+			bbox.max -= boxEpsilon;
+		}
 
+		// The original's box check bounds only the level's hulls by their
+		// boxes, after their own planes (below); an actor's brush has none.
 		SweepCursor cursor(origin, dirNormalized, tmax, extents);
-		if (cursor.ClipBoxPlanes(bbox))
+		if (Original || cursor.ClipBoxPlanes(bbox))
 		{
 			// Grab the hull planes and flip the plane direction if the plane points in the wrong direction.
 			// On the stack for the usual hull: this runs for every hull a sweep reaches.
@@ -76,6 +83,9 @@ void TraceAABBModel::Trace(const dvec3& origin, double tmin, const dvec3& dirNor
 				}
 			}
 
+			if (Original && !ActorBrush)
+				cursor.ClipOriginalBoxPlanes(bbox);
+
 			// Check for collision for any bevel plane we need to insert at the hull edges
 			for (int i = 0; i < hullPlanesCount; i++)
 			{
@@ -99,12 +109,21 @@ void TraceAABBModel::Trace(const dvec3& origin, double tmin, const dvec3& dirNor
 				}
 			}
 
-			// Did we hit anything?
-			double t = cursor.HitFraction();
-			if (t >= tmin && t < tmax)
+			// Did we hit anything? The original's hit is where the box
+			// touches, and it counts a hull entered up to twice the trace's
+			// length: its caller's backoff may bring that within the trace.
+			double t;
+			if (cursor.Hit(t))
 			{
-				CollisionHit hit = { (float)t, vec3(cursor.HitNormal()), nullptr, node, node };
-				hits.push_back(hit);
+				if (Original)
+					t = std::max(t, 0.0);
+				else
+					t = std::max(t - 0.1, 0.0);
+				if (t >= tmin && (Original || t < tmax))
+				{
+					CollisionHit hit = { (float)t, vec3(cursor.HitNormal()), nullptr, node, node };
+					hits.push_back(hit);
+				}
 			}
 		}
 	}

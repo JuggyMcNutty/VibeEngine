@@ -21,7 +21,11 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 		return {};
 	direction *= 1.0f / tmax;
 
-	float margin = 1.0f;
+	// Deus Ex's hits are given short of what they hit by the original's
+	// backoffs (below); other games' traces look a unit past their end and
+	// stop a unit short.
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
+	float margin = deusEx ? 0.0f : 1.0f;
 	tmax += margin;
 
 	CollisionHitList hits;
@@ -68,9 +72,31 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 			// AABB/Triangle intersect
 			TraceAABBModel tracemodel;
 			dvec3 extents = { (double)radius, (double)radius, (double)height };
-			CollisionHitList worldHits = tracemodel.Trace(GetLevel()->Model, origin, tmin, direction, tmax, extents, visibilityOnly);
+			CollisionHitList worldHits = tracemodel.Trace(GetLevel()->Model, origin, tmin, direction, tmax, extents, visibilityOnly, deusEx, false);
 			hits.push_back(worldHits);
 		}
+	}
+
+	// The original's backoffs (UModel::LineCheck and UPrimitive::LineCheck;
+	// dx-reverse-info/engine-dll.md, traces): a hit on the level or a mover's
+	// brush is given half a unit short for a line, a tenth of the trace for a
+	// box -- a tenth of a unit for a trace under one long --, and a box's hit
+	// found past the end but within that is a hit, one beyond it none; a hit
+	// on an actor's cylinder is given a thousandth of the trace short. The
+	// hits are ordered as given.
+	if (deusEx)
+	{
+		double brushBackoff = (radius == 0.0f && height == 0.0f) ? 0.5 / tmax : std::max(0.1, 0.1 / tmax);
+		CollisionHitList given;
+		for (CollisionHit hit : hits)
+		{
+			double fraction = hit.Fraction / tmax - (hit.Node ? brushBackoff : 0.001);
+			if (fraction >= 1.0)
+				continue;
+			hit.Fraction = (float)std::max(fraction, 0.0);
+			given.push_back(hit);
+		}
+		hits = given;
 	}
 
 	// Sort by closest hit and only include the first hit for each actor
@@ -96,10 +122,13 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 			uniqueHits.push_back(hit);
 	}
 
-	tmax -= margin;
-	for (auto& hit : uniqueHits)
+	if (!deusEx)
 	{
-		hit.Fraction = (float)(std::max(hit.Fraction - margin, 0.0f) / tmax);
+		tmax -= margin;
+		for (auto& hit : uniqueHits)
+		{
+			hit.Fraction = (float)(std::max(hit.Fraction - margin, 0.0f) / tmax);
+		}
 	}
 
 	return uniqueHits;
@@ -179,7 +208,9 @@ bool TraceTester::TraceAnyHit(vec3 from, vec3 to, UActor* tracingActor, bool tra
 		return false;
 	direction *= 1.0f / tmax;
 
-	float margin = 1.0f;
+	// Deus Ex's asks along the line itself, as the original's FastLineCheck
+	// does; other games' look a unit past its end.
+	float margin = engine->LaunchInfo.IsDeusEx() ? 0.0f : 1.0f;
 	tmax += margin;
 
 	CollisionHitList hits;
@@ -308,7 +339,7 @@ void TraceTester::TraceActor(UActor* actor, const dvec3& origin, double tmin, co
 			TraceAABBModel tracemodel;
 			dvec3 extents = { (double)radius, (double)radius, (double)height };
 			extents /= dvec3(std::abs(scale.x), std::abs(scale.y), std::abs(scale.z));
-			brushHits = tracemodel.Trace(mover->Brush(), localOrigin, localTMin, localDirection, localTMax, extents, visibilityOnly);
+			brushHits = tracemodel.Trace(mover->Brush(), localOrigin, localTMin, localDirection, localTMax, extents, visibilityOnly, engine->LaunchInfo.IsDeusEx(), true);
 		}
 
 		for (auto& hit : brushHits)
