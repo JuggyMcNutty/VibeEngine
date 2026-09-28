@@ -48,8 +48,10 @@ void VisibleActor::Process(VisibleFrame* frame, UActor* actor)
 	if (!frame->Clipper.IsAABBVisible(actor->BspInfo.BoundingBox))
 		return;
 
+	// Drawn for the depth buffer to hide; counted as drawn only if some of
+	// it survives the world in front of it, as the original counts it
 	actor->LastVisibleFrame = frame->FrameCounter;
-	actor->LastRenderTime() = engine->LevelInfo->TimeSeconds();
+	frame->AddOcclusionProxy(actor, actor->BspInfo.BoundingBox);
 
 	EDrawType dt = (EDrawType)actor->DrawType();
 	if (dt == DT_Mesh && actor->Mesh())

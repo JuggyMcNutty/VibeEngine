@@ -3,8 +3,9 @@
 // the run starts, the player left where the map starts it; 2 s, 8 s and
 // 20 s into the level's own time, each ScriptedPawn's state, orders,
 // whether it is in the world and hidden, its enemy, whether it looks for
-// enemies and listens for shots and noises, its physics and its place are
-// logged, one line each; then an exit. Through the level's first 10 s, each
+// enemies and listens for shots and noises, its physics, its place and how
+// long since it was drawn (tenths of a second) are logged, one line each;
+// then an exit. Through the level's first 10 s, each
 // state an NPC enters is logged too, with the time, as the console's tick
 // finds it.
 //=============================================================================
@@ -65,7 +66,8 @@ function Census(PlayerPawn P, string Label)
 			$ " enemy " $ Enemy
 			$ " looks " $ Flag(S.bLookingForEnemy) $ Flag(S.bLookingForShot) $ Flag(S.bLookingForLoudNoise)
 			$ " physics " $ S.Physics
-			$ " at " $ int(S.Location.X) $ "," $ int(S.Location.Y) $ "," $ int(S.Location.Z));
+			$ " at " $ int(S.Location.X) $ "," $ int(S.Location.Y) $ "," $ int(S.Location.Z)
+			$ " drawn " $ int(S.LastRendered() * 10.0));
 	}
 	Log("DXAI: " $ Label $ " " $ Count $ " scripted pawns at " $ P.Level.TimeSeconds $ " s; player at " $ P.Location);
 }

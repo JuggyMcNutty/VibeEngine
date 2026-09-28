@@ -356,8 +356,9 @@ are the original's since 2026-09-27. Seen with `AIConsole` against the
 original on Liberty Island: the seven UNATCO troops out of the world stay
 in `Idle`, listening for nothing, where the fork's patrolled, listening;
 and the three NPCs ordered to sit -- UNATCOTroop6, BumFemale0 and
-Terrorist18 -- sit, where they wandered. Still different: which pawns
-count as drawn ([out of sight](#out-of-sight)).
+Terrorist18 -- sit, where they wandered. Still different: a few pawns far
+off count as drawn ([out of sight](#out-of-sight)), and one NSF terrorist
+backs off for a few seconds early on where the original's patrols.
 
 ### Hearing: the AI event system
 
@@ -446,15 +447,30 @@ keeps both now (2026-09-25), beside Distant AI's own `LastVisibleFrame`
   for 2 s, `bTickVisibleOnly` NPCs' enemy and body checks, light-beam
   checks, and NPC shadows laid each tick all ran, on the handheld too. A
   decal's own `LastRenderedTime` is stamped when drawn and never read, as
-  the original's: a `Shadow` never counts as drawn. Still different: the
-  test takes an actor's box at the first BSP node whose plane it crosses,
-  before the world in front of it is in the clipper, where the original
-  files each sprite down the tree and tests it at its own place in the
-  front-to-back walk -- so an NPC far off behind terrain counts as drawn
-  here. On Liberty Island (`AIConsole`, 2026-09-27) the fork's Terrorist7,
-  so counted, checks the pawns around it as a `bTickVisibleOnly` NPC more
-  than 600 units from the player and unseen for 5 s does not, sees the
-  UNATCO security bot and fights it, where the original's patrols on.
+  the original's: a `Shadow` never counts as drawn. What counts as drawn
+  is the original's way since 2026-09-27
+  ([which actors are drawn](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#which-actors-are-drawn)): the actor's
+  screen rectangle, set back in the world at its depth, goes down the BSP
+  with the walk, cut at each plane it crosses, and each piece is tested
+  against the span clipper at its own place in the front-to-back walk; a
+  piece in solid space, in a subtree hidden whole, or in a zone no visible
+  portal has led to is dropped. The fork's test took the actor's box at
+  the first node whose plane it crossed, before the world in front of it
+  was in the clipper, so an NPC far off behind the island counted as
+  drawn: on Liberty Island (`AIConsole`) Terrorist7, so counted, checked
+  the pawns around it as a `bTickVisibleOnly` NPC unseen for 5 s and more
+  than 600 units from the player does not, saw the UNATCO security bot and
+  fought it, where the original's patrols on -- and patrols on now. A zone
+  portal seen from behind leads into its zone too, as the original's does;
+  the fork skipped it as a back face. Drawing is unchanged: the fork draws
+  what its box test passes and leaves the rest to the depth buffer. Still
+  the fork's own: one span buffer for the frame, where the original keeps
+  one per zone, and the actor's box as the fork makes it, a mesh's more
+  generous than the original's -- at Liberty Island's start the fork counts
+  10 NPCs as drawn and the original 3 (19 before), seven terrorists and a
+  thug far off over the seawall, whose boxes show through gaps there.
+  **[perf]** The pieces' filtering is render CPU: to re-measure on the
+  Smart Pro, against what it spares the tick.
 - **Stasis.** `InStasis()` is the original's -- `bStasis`; `bForceStasis`,
   or physics none or rotating; not drawn for 5 s; its zone not drawn for
   5 s, or more than 1,200 units from the player -- where the fork's old one
@@ -498,7 +514,10 @@ codes:
 - **Occlusion.** The original occludes each item's sprite through its span
   buffer; the fork clips items to the view (and a portal's spans) before
   its BSP walk, and the depth buffer hides what a wall covers -- the cost
-  of a hidden item is paid, the look is the same.
+  of a hidden item is paid, the look is the same. Whether the proxy counts
+  as drawn, which the generators' freezing reads, is the original's since
+  2026-09-27: each item tested in the walk as an actor is
+  ([out of sight](#out-of-sight)).
 - **The particle curves.** The documented shapes are kept -- the drift
   offset -3 to +2 a frame, growth from 0.01 to 3 times the draw scale over
   the life, the fade with the remaining life, the rise as acceleration at

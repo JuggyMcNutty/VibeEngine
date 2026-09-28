@@ -46,6 +46,8 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	auto& zones = engine->Level->Model->Zones;
 	if ((size_t)ViewZone < zones.size())
 		zones[ViewZone].LastRenderTime = engine->LevelInfo->TimeSeconds();
+	ZoneSeenFrame.resize(zones.size(), -1);
+	MarkZoneSeen(ViewZone);
 
 	OpaqueNodes.clear();
 	Actors.clear();
@@ -53,12 +55,174 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	Coronas.clear();
 	Portals.clear();
 
+	// The occlusion proxies are built in view space and set back in the
+	// world: the view's inverse, a rotation (mirrored in a mirror) and a move.
+	Now = engine->LevelInfo->TimeSeconds();
+	Fragments.clear();
+	FragmentStack.clear();
+	ViewToWorld = mat3::inverse(mat3(Frame.WorldToView));
+	ViewTranslation = vec3(Frame.WorldToView[12], Frame.WorldToView[13], Frame.WorldToView[14]);
+
 	// Before the BSP walk: the clipper's spans fill as surfaces draw, so a
 	// test after it would cull everything; here it clips items to the view
-	// (and a portal's spans) only.
+	// (and a portal's spans) only. Their proxies go down the whole walk.
 	ProcessRenderIterators();
 
-	ProcessNode(&engine->Level->Model->Nodes[0]);
+	ProcessNode(&engine->Level->Model->Nodes[0], 0, FragmentStack.size(), engine->Level->Model->RootOutside != 0);
+}
+
+void VisibleFrame::AddOcclusionProxy(UActor* actor, const BBox& box)
+{
+	if (actor->LastRenderTime() == Now)
+		return;
+
+	// No box, nothing drawn: the original draws no sprite for it either.
+	vec3 extents = box.extents();
+	if (extents.x <= 0.0f && extents.y <= 0.0f && extents.z <= 0.0f)
+		return;
+
+	// The box's screen rectangle, from its corners in view space (x across,
+	// y up, z the depth); a corner at or before the near plane puts the
+	// actor at the viewer, drawn.
+	float minX = 0.0f, minY = 0.0f, maxX = 0.0f, maxY = 0.0f;
+	for (int i = 0; i < 8; i++)
+	{
+		vec3 corner((i & 1) ? box.max.x : box.min.x, (i & 2) ? box.max.y : box.min.y, (i & 4) ? box.max.z : box.min.z);
+		vec4 v = Frame.WorldToView * vec4(corner, 1.0f);
+		if (v.z <= 1.0f)
+		{
+			actor->LastRenderTime() = Now;
+			return;
+		}
+		float x = v.x / v.z;
+		float y = v.y / v.z;
+		if (i == 0)
+		{
+			minX = maxX = x;
+			minY = maxY = y;
+		}
+		else
+		{
+			minX = std::min(minX, x);
+			maxX = std::max(maxX, x);
+			minY = std::min(minY, y);
+			maxY = std::max(maxY, y);
+		}
+	}
+
+	// The rectangle set back at the box centre's depth
+	float z = (Frame.WorldToView * vec4(box.center(), 1.0f)).z;
+	auto toWorld = [&](float x, float y) { return ViewToWorld * (vec3(x * z, y * z, z) - ViewTranslation); };
+	OcclusionFragment fragment;
+	fragment.Actor = actor;
+	fragment.NumVerts = 4;
+	fragment.Verts[0] = toWorld(minX, minY);
+	fragment.Verts[1] = toWorld(maxX, minY);
+	fragment.Verts[2] = toWorld(maxX, maxY);
+	fragment.Verts[3] = toWorld(minX, maxY);
+	FragmentStack.push_back((int)Fragments.size());
+	Fragments.push_back(fragment);
+}
+
+void VisibleFrame::SplitFragments(size_t first, size_t count, const vec4& plane, bool viewerInFront)
+{
+	// Each piece goes to the side of the plane it lies on -- the viewer's
+	// side into NearFragments, the far side onto the stack -- and one across
+	// it is cut in two. Pieces of an actor already drawn are dropped.
+	const float epsilon = 0.01f;
+	for (size_t i = 0; i < count; i++)
+	{
+		// Read before the pool grows: the pieces go into it last
+		int index = FragmentStack[first + i];
+		const OcclusionFragment& fragment = Fragments[index];
+		if (fragment.Actor->LastRenderTime() == Now)
+			continue;
+
+		float dist[OcclusionFragment::MaxVerts];
+		int nearVerts = 0, farVerts = 0;
+		for (int v = 0; v < fragment.NumVerts; v++)
+		{
+			float d = dot(vec4(fragment.Verts[v], 1.0f), plane);
+			dist[v] = viewerInFront ? d : -d;
+			if (dist[v] > epsilon)
+				nearVerts++;
+			else if (dist[v] < -epsilon)
+				farVerts++;
+		}
+		if (farVerts == 0)
+		{
+			NearFragments.push_back(index);
+			continue;
+		}
+		if (nearVerts == 0)
+		{
+			FragmentStack.push_back(index);
+			continue;
+		}
+
+		OcclusionFragment nearPiece, farPiece;
+		nearPiece.Actor = farPiece.Actor = fragment.Actor;
+		bool overflow = false;
+		auto add = [&](OcclusionFragment& piece, const vec3& v)
+		{
+			if (piece.NumVerts < OcclusionFragment::MaxVerts)
+				piece.Verts[piece.NumVerts++] = v;
+			else
+				overflow = true;
+		};
+		for (int v = 0; v < fragment.NumVerts; v++)
+		{
+			int next = (v + 1) % fragment.NumVerts;
+			const vec3& a = fragment.Verts[v];
+			const vec3& b = fragment.Verts[next];
+			if (dist[v] >= 0.0f)
+				add(nearPiece, a);
+			if (dist[v] <= 0.0f)
+				add(farPiece, a);
+			if ((dist[v] > 0.0f && dist[next] < 0.0f) || (dist[v] < 0.0f && dist[next] > 0.0f))
+			{
+				vec3 cut = a + (b - a) * (dist[v] / (dist[v] - dist[next]));
+				add(nearPiece, cut);
+				add(farPiece, cut);
+			}
+		}
+
+		if (overflow)
+		{
+			// Too many corners: the whole piece on both sides, tested early
+			NearFragments.push_back(index);
+			FragmentStack.push_back(index);
+			continue;
+		}
+		NearFragments.push_back((int)Fragments.size());
+		Fragments.push_back(nearPiece);
+		FragmentStack.push_back((int)Fragments.size());
+		Fragments.push_back(farPiece);
+	}
+}
+
+void VisibleFrame::TestFragment(int index)
+{
+	OcclusionFragment& fragment = Fragments[index];
+	if (fragment.Actor->LastRenderTime() != Now && Clipper.IsPolygonVisible(fragment.Verts, fragment.NumVerts))
+		fragment.Actor->LastRenderTime() = Now;
+}
+
+void VisibleFrame::TestLeafFragments(size_t first, size_t count, bool outside, int zone)
+{
+	// Pieces that come to a leaf inside solid are not drawn, nor are those
+	// in a zone no visible portal has led to yet: the original tests each
+	// piece against its zone's own span buffer, which such a zone lacks.
+	if (!outside || zone < 0 || (size_t)zone >= ZoneSeenFrame.size() || ZoneSeenFrame[zone] != FrameCounter)
+		return;
+	for (size_t i = 0; i < count; i++)
+		TestFragment(FragmentStack[first + i]);
+}
+
+void VisibleFrame::MarkZoneSeen(int zone)
+{
+	if (zone >= 0 && (size_t)zone < ZoneSeenFrame.size())
+		ZoneSeenFrame[zone] = FrameCounter;
 }
 
 void VisibleFrame::ProcessRenderIterators()
@@ -107,10 +271,13 @@ void VisibleFrame::ProcessRenderIterators()
 			}
 
 			vec3 location = item->Location();
-			if (!Clipper.IsAABBVisible(BBox(location - vec3(extent), location + vec3(extent))))
+			BBox box(location - vec3(extent), location + vec3(extent));
+			if (!Clipper.IsAABBVisible(box))
 				continue;
 
-			item->LastRenderTime() = engine->LevelInfo->TimeSeconds();
+			// The proxy counts as drawn if some item survives the world in
+			// front of it
+			AddOcclusionProxy(item, box);
 
 			VisibleIteratorItem visitem;
 			visitem.Actor = item;
@@ -185,13 +352,20 @@ void VisibleFrame::SetupSceneFrame(const mat4& worldToView)
 	Frame.Projection = mat4::frustum(-RProjZ, RProjZ, -Aspect * RProjZ, Aspect * RProjZ, 1.0f, 32768.0f, handedness::left, clipzrange::zero_positive_w);
 }
 
-void VisibleFrame::ProcessNode(BspNode* node)
+void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount, bool outside)
 {
 	// Skip node if it is not part of the portal zones we have seen so far
 	//if ((node->ZoneMask & ViewZoneMask) == 0)
 	//	return;
 
-	// Skip node if its AABB is not visible
+	// The occlusion proxies' pieces that came down into this node's space
+	// are FragmentStack[fragFirst, +fragCount); those of the actors filed
+	// here follow from base. All the walk has drawn so far lies in front
+	// of them. Outside is whether this node's space is empty, not solid.
+	size_t base = FragmentStack.size();
+
+	// Skip node if its AABB is not visible -- and what came down into its
+	// space with it, as the original drops it
 	if (node->RenderBound != -1 && !Clipper.IsAABBVisible(engine->Level->Model->Bounds[node->RenderBound]))
 	{
 		return;
@@ -208,6 +382,7 @@ void VisibleFrame::ProcessNode(BspNode* node)
 			visactor.Process(this, actor);
 		}
 	}
+	size_t end = FragmentStack.size();
 
 	// Decide which side the plane the camera is
 	vec4 plane = { node->PlaneX, node->PlaneY, node->PlaneZ, -node->PlaneW };
@@ -217,11 +392,38 @@ void VisibleFrame::ProcessNode(BspNode* node)
 	if (swapFrontAndBack)
 		std::swap(front, back);
 
+	// Whether each side's space is empty, as the original's ChildOutside
+	// works it out: a CSG node's front is, its back is not.
+	bool csg = node->NumVertices > 0 && (node->NodeFlags & (NF_NotCsg | 0x20)) == 0;
+	bool nearOutside = swapFrontAndBack ? (outside && !csg) : (outside || csg);
+	bool farOutside = swapFrontAndBack ? (outside || csg) : (outside && !csg);
+	int nearZone = swapFrontAndBack ? node->Zone0 : node->Zone1;
+	int farZone = swapFrontAndBack ? node->Zone1 : node->Zone0;
+
+	// The pieces beyond the plane stay on the stack under those on the
+	// viewer's side, which the walk takes first. A piece that comes to a
+	// leaf is tested there: before this plane's surfaces toward the viewer,
+	// after them away from it.
+	size_t farFirst = FragmentStack.size();
+	NearFragments.clear();
+	SplitFragments(fragFirst, fragCount, plane, !swapFrontAndBack);
+	SplitFragments(base, end - base, plane, !swapFrontAndBack);
+	size_t farCount = FragmentStack.size() - farFirst;
+	size_t nearFirst = FragmentStack.size();
+	for (int index : NearFragments)
+		FragmentStack.push_back(index);
+	size_t nearCount = FragmentStack.size() - nearFirst;
+
 	// Recursively divide front space (toward the viewer)
 	if (front >= 0)
 	{
-		ProcessNode(&engine->Level->Model->Nodes[front]);
+		ProcessNode(&engine->Level->Model->Nodes[front], nearFirst, nearCount, nearOutside);
 	}
+	else
+	{
+		TestLeafFragments(nearFirst, nearCount, nearOutside, nearZone);
+	}
+	FragmentStack.resize(nearFirst);
 
 	// Draw surfaces on this plane
 	BspNode* polynode = node;
@@ -236,8 +438,13 @@ void VisibleFrame::ProcessNode(BspNode* node)
 	// Possibly divide back space (away from the viewer)
 	if (back >= 0)
 	{
-		ProcessNode(&engine->Level->Model->Nodes[back]);
+		ProcessNode(&engine->Level->Model->Nodes[back], farFirst, farCount, farOutside);
 	}
+	else
+	{
+		TestLeafFragments(farFirst, farCount, farOutside, farZone);
+	}
+	FragmentStack.resize(base);
 }
 
 void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
@@ -379,8 +586,10 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
 	// and in a closed level a front face drawn earlier already hides it, so it
 	// hides nothing either: skip the clipper's test, over half of the surfaces
 	// in view. Not in a mirror's frame, whose view comes from the reflected
-	// position; portals, skies and mirrors themselves returned above.
-	if (!MirrorFlag && !(PolyFlags & PF_TwoSided))
+	// position; portals, skies and mirrors themselves returned above -- and a
+	// zone portal, which leads into the zone beyond it from either side, as
+	// the original takes it.
+	if (!MirrorFlag && !(PolyFlags & (PF_TwoSided | PF_Portal)))
 	{
 		vec4 plane = { node->PlaneX, node->PlaneY, node->PlaneZ, -node->PlaneW };
 		if (dot(ViewLocation, plane) < 0.0f)
@@ -401,6 +610,8 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
 			zones[node->Zone0].LastRenderTime = now;
 		if ((size_t)node->Zone1 < zones.size())
 			zones[node->Zone1].LastRenderTime = now;
+		MarkZoneSeen(node->Zone0);
+		MarkZoneSeen(node->Zone1);
 	}
 
 	if (PolyFlags & PF_Invisible)

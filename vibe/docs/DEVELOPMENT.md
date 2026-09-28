@@ -93,9 +93,10 @@ The console classes:
   map, the player left at its start; at 2, 8 and 20 s of the level's own
   time each `ScriptedPawn`'s state, orders, whether it is in the world and
   hidden, its enemy, whether it looks for enemies and listens for shots
-  and noises, its physics and place (`DXAI:` lines), and through the first
-  10 s each state an NPC enters, with the time (`DXAISTATE:`). The two
-  engines' logs laid side by side name each NPC that differs.
+  and noises, its physics and place, and how long since it was drawn
+  (`DXAI:` lines), and through the first 10 s each state an NPC enters,
+  with the time (`DXAISTATE:`). The two engines' logs laid side by side
+  name each NPC that differs, and which count as drawn.
 - **`StandConsole`**: where a walking player rests over the floor -- at
   Liberty Island's start and after two short walks, its place, collision
   height and base and the floor a line down finds logged.

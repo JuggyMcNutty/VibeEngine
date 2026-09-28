@@ -37,6 +37,10 @@ public:
 	bool CheckSurface(const vec3* vertices, uint32_t count, bool solid);
 	bool IsAABBVisible(const BBox& bbox);
 
+	// Whether any of the polygon shows through the spans, with nothing
+	// filled or counted: the occlusion proxies' test.
+	bool IsPolygonVisible(const vec3* vertices, uint32_t count);
+
 	Array<PortalSpan> CheckPortal(const vec3* vertices, uint32_t count);
 
 	int numDrawSpans;

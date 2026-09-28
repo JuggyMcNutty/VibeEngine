@@ -93,6 +93,16 @@ bool BspClipper::CheckSurface(const vec3* vertices, uint32_t count, bool solid)
 	return result;
 }
 
+bool BspClipper::IsPolygonVisible(const vec3* vertices, uint32_t count)
+{
+	int surfs = numSurfs;
+	int tris = numTris;
+	bool visible = CheckSurface(vertices, count, false);
+	numSurfs = surfs;
+	numTris = tris;
+	return visible;
+}
+
 bool BspClipper::IsAABBVisible(const BBox& bbox)
 {
 	// First quickly check if we can rule it out using the frustum planes
