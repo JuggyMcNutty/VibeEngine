@@ -39,6 +39,9 @@ public:
 	bool LineOfSightTo(UActor* other, bool ignoreDistance);
 	// Similar to LineOfSightTo() but takes the Pawn's peripheral vision into account (SightRadius and PeripheralVision)
 	bool CanSee(UActor* other);
+	// Deus Ex's LineOfSightTo and CanSee: the original's APawn::LineOfSightTo,
+	// the scripts' without the LOS flag and CanSee with it.
+	bool DeusExLineOfSightTo(UActor* other, bool useLOSFlag, bool ignoreDistance);
 	bool CanHearNoise(UActor* source, float loudness);
 	bool ActorReachable(UActor* anActor, bool checkNavpoint = false);
 	bool PointReachable(vec3 aPoint);

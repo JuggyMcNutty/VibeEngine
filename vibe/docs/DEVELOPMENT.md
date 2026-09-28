@@ -118,6 +118,11 @@ The console classes:
   without `bIgnoreHidden`, and each `VisibleActors` lists (`DXVIS:`). The
   player and its shadow are numbered one higher in the original's log,
   whose menu map made the first.
+- **`SightConsole`**: what `LineOfSightTo`, `CanSee` and `PlayerCanSeeMe`
+  give -- Liberty Island from the menu map, 2 s into the level, for each
+  NPC in the world and each light within 4000 units of the player: the
+  player's `LineOfSightTo` to it, with and without `bIgnoreDistance`, its
+  `CanSee` of it, and the actor's `PlayerCanSeeMe` (`DXSIGHT:`).
 - **`SaveConsole`** and **`LoadConsole`**, either engine: a save one engine
   makes for the other to load -- the first opens Liberty Island from the
   menu map, logs 8 s in what the level holds (the player's place, health

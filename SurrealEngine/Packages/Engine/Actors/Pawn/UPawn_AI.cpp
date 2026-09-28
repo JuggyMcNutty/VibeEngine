@@ -12,10 +12,156 @@
 #include <queue>
 #include <climits>
 #include "Utils/Logger.h"
+#include "Utils/Random.h"
 #include "Engine.h"
+
+// The original's APawn::LineOfSightTo (dx-reverse-info/engine-dll.md, the
+// senses), UT's with a flag that lifts the distance limits. Each line is a
+// FastTrace from the pawn's eyes.
+bool UPawn::DeusExLineOfSightTo(UActor* other, bool useLOSFlag, bool ignoreDistance)
+{
+	if (!other)
+		return false;
+
+	// The LOS flag, alternating at each look, is never used on the enemy.
+	if (other == Enemy())
+		useLOSFlag = false;
+	else if (useLOSFlag)
+		bLOSflag() = !bLOSflag();
+
+	UPawn* otherPawn = UObject::TryCast<UPawn>(other);
+	vec3 delta = other->Location() - Location();
+	float distSq = dot(delta, delta);
+
+	// How far it can be: with the LOS flag, the pawn's sight radius (for a
+	// pawn, times its visibility), nothing outside its peripheral vision,
+	// and the distance scaled up toward that edge and by the height between;
+	// without it, a reach its visibility sets for a pawn.
+	float maxDistSq;
+	if (useLOSFlag)
+	{
+		if (!otherPawn)
+		{
+			maxDistSq = SightRadius() * SightRadius();
+		}
+		else
+		{
+			float sight = std::min(otherPawn->Visibility() * 0.0078125f, 1.0f) * SightRadius();
+			maxDistSq = std::min(sight * sight, bIsPlayer() ? 16000000.0f : 12000000.0f);
+		}
+		if (distSq > maxDistSq)
+			return false;
+
+		vec3 dir = distSq > 1.0e-8f ? delta * (1.0f / std::sqrt(distSq)) : vec3(0.0f);
+		float facing = dot(Coords::Rotation(Rotation()).XAxis, dir) - PeripheralVision();
+		Stimulus() = (facing > 0.0f ? facing * 0.8f : facing * 0.17f) + 0.2f;
+		if (Stimulus() <= 0.0f)
+			return false;
+		float height = std::abs(other->Location().z - Location().z) / std::max(Skill() + 1.0f, 1.0f);
+		distSq = (height * height + distSq) / (Stimulus() * Stimulus());
+		if (distSq > maxDistSq && !ignoreDistance)
+			return false;
+		Stimulus() = 1.0f;
+	}
+	else
+	{
+		if (otherPawn)
+		{
+			float reach = std::min((otherPawn->Visibility() + 16) * 0.015f, 1.0f) * (bIsPlayer() ? 5000.0f : 4000.0f);
+			maxDistSq = std::min(reach * reach, bIsPlayer() ? 25000000.0f : 16000000.0f);
+		}
+		else
+		{
+			maxDistSq = bIsPlayer() ? 16000000.0f : 9000000.0f;
+		}
+		if (distSq > maxDistSq && !ignoreDistance)
+			return false;
+	}
+
+	vec3 viewPoint = Location();
+	viewPoint.z += BaseEyeHeight();
+
+	// The enemy: a line to its middle, from the eyes or from the pawn's own
+	// middle, and where each stood noted.
+	if (other == Enemy())
+	{
+		if (FastTrace(other->Location(), viewPoint) || FastTrace(other->Location(), Location()))
+		{
+			LastSeeingPos() = Location();
+			LastSeenPos() = other->Location();
+			return true;
+		}
+		if (distSq > 1000000.0f && !ignoreDistance)
+			return false;
+	}
+	else if (distSq > 1000000.0f && !ignoreDistance)
+	{
+		// Beyond 1,000 units only the middle, and for a pawn beyond half the
+		// reach not unless the LOS flag stands, nor half the time for a pawn
+		// that is no player.
+		if (otherPawn)
+		{
+			if (!bLOSflag() && maxDistSq * 0.5f < distSq)
+				return false;
+			if (!bIsPlayer() && FRand() < 0.5f)
+				return false;
+		}
+		return FastTrace(other->Location(), viewPoint);
+	}
+
+	// Its head, 0.8 of its height over its middle -- passed over when the
+	// LOS flag, used, stands.
+	if (!(useLOSFlag && bLOSflag()) && FastTrace(other->Location() + vec3(0.0f, 0.0f, other->CollisionHeight() * 0.8f), viewPoint))
+		return true;
+
+	if ((distSq > 250000.0f && !ignoreDistance) || !otherPawn)
+		return false;
+
+	// Its cylinder's four corners at its middle's height, less the nearest
+	// and the farthest -- measured, as the original measures them, from the
+	// world's origin --, each other one tried when the LOS flag is used.
+	float r = other->CollisionRadius();
+	vec3 loc = other->Location();
+	vec3 corners[4] = { loc + vec3(-r, r, 0.0f), loc + vec3(r, r, 0.0f), loc + vec3(-r, -r, 0.0f), loc + vec3(r, -r, 0.0f) };
+	int nearest = 0, farthest = 0;
+	float nearestSq = dot(corners[0], corners[0]);
+	float farthestSq = nearestSq;
+	for (int i = 1; i < 4; i++)
+	{
+		float sizeSq = dot(corners[i], corners[i]);
+		if (sizeSq > farthestSq)
+		{
+			farthestSq = sizeSq;
+			farthest = i;
+		}
+		else if (sizeSq < nearestSq)
+		{
+			nearestSq = sizeSq;
+			nearest = i;
+		}
+	}
+	bool skip = bLOSflag();
+	for (int i = 0; i < 4; i++)
+	{
+		if (i == nearest || i == farthest)
+			continue;
+		if (skip && useLOSFlag)
+		{
+			skip = false;
+			continue;
+		}
+		skip = true;
+		if (FastTrace(corners[i], viewPoint))
+			return true;
+	}
+	return false;
+}
 
 bool UPawn::LineOfSightTo(UActor* other, bool ignoreDistance)
 {
+	if (engine->LaunchInfo.IsDeusEx())
+		return DeusExLineOfSightTo(other, false, ignoreDistance);
+
 	if (!other)
 		return false;
 
@@ -39,6 +185,9 @@ bool UPawn::LineOfSightTo(UActor* other, bool ignoreDistance)
 
 bool UPawn::CanSee(UActor* other)
 {
+	if (engine->LaunchInfo.IsDeusEx())
+		return DeusExLineOfSightTo(other, true, false);
+
 	if (!other)
 		return false;
 

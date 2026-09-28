@@ -474,6 +474,47 @@ void UActor::MakeNoise(float loudness)
 
 bool UActor::PlayerCanSeeMe()
 {
+	// Deus Ex's as the original's (AActor::execPlayerCanSeeMe and
+	// TestCanSeeMe; dx-reverse-info/engine-dll.md, the senses): a player sees
+	// what it views through; else what lies within (collision radius + 3.6)
+	// x 100,000 squared units and -- its view not behind -- within 60 degrees
+	// of the view's line either way, if its LineOfSightTo finds it. The local
+	// player asks, alone or on a client for what is its own there (temporary
+	// or its authority); a net game's server, each player. The fork's asked
+	// every pawn within 500 units in a cone that took a length for a cosine,
+	// so a player looking never saw anything.
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		auto testCanSeeMe = [&](UPlayerPawn* viewer)
+		{
+			if (!viewer)
+				return false;
+			if (viewer->ViewTarget() == this)
+				return true;
+			vec3 d = Location() - viewer->Location();
+			float distSq = dot(d, d);
+			if ((CollisionRadius() + 3.6f) * 100000.0f <= distSq)
+				return false;
+			if (!viewer->bBehindView())
+			{
+				float along = dot(Coords::Rotation(viewer->ViewRotation()).XAxis, d);
+				if (distSq * 0.25f > along * along)
+					return false;
+			}
+			return viewer->LineOfSightTo(this, false);
+		};
+
+		uint8_t netMode = Level()->NetMode();
+		if (netMode == NM_Standalone || (netMode == NM_Client && (bNetTemporary() || Role() == ROLE_Authority)))
+			return testCanSeeMe(UObject::TryCast<UPlayerPawn>(engine->viewport->Actor()));
+		for (UPawn* pawn = Level()->PawnList(); pawn != nullptr; pawn = pawn->nextPawn())
+		{
+			if (testCanSeeMe(UObject::TryCast<UPlayerPawn>(pawn)))
+				return true;
+		}
+		return false;
+	}
+
 	for (UPawn* pawn = Level()->PawnList(); pawn != nullptr; pawn = pawn->nextPawn())
 	{
 		if (pawn == this)

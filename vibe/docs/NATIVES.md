@@ -1155,6 +1155,22 @@ says what changed, what stays the fork's own, and its by-hand check:
     `DataLinkTrigger0` the wrong way round; `FastTrace` stops at a closed
     door in both engines -- the original's BSP holds the movers' polygons
     too -- (19 of Liberty Island's movers alike).
+  - **`Pawn.LineOfSightTo` 514, `Pawn.CanSee` 533 and
+    `Actor.PlayerCanSeeMe` 532** (2026-09-28;
+    [the senses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-senses)): the original's --
+    `LineOfSightTo` UT's, its reaches set by the other's `Visibility`,
+    looking to the enemy's middle, to 0.8 of the other's height and to its
+    cylinder's corners, `CanSee` the same with the LOS flag, and
+    `PlayerCanSeeMe` a player's view within (collision radius + 3.6) ×
+    100,000 squared units and 60 degrees of its line either way, then its
+    `LineOfSightTo`. The fork's `LineOfSightTo` was three lines, to the
+    other's middle, top and bottom, within its sight radius, `CanSee` that
+    in its peripheral vision, and `PlayerCanSeeMe` asked every pawn, in a
+    cone that took a length for a cosine, so that a player looking saw
+    nothing: Deus Ex's `SequenceEvents` and `RandomEvents` that wait for
+    the player to see them never fired. Checked with `SightConsole`: 85 of
+    Liberty Island's 86 lines the original's (64 before), the other a
+    patrolling bot a little farther off in the fork's run.
   - **`Actor.ParabolicTrace` 722**: the original's defaults, gravity the
     right way up, the zone's velocity, terminal velocity and water,
     per-step tracing, bounces, and failure to the start. NPCs judge a
