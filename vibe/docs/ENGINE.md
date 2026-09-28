@@ -1153,3 +1153,12 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ring and tail and the wall's fade each within 0.2 dB or 0.05 s of the
   original's; proving runs on three maps clean, two with their sound
   recorded; the Smart Pro's cross build warning-free.
+- [**what counts as drawn: the render box and `BoundVisible`**](https://github.com/JuggyMcNutty/VibeEngine/commit/1d9567042483c7ff79fbfe8646aa81c44420241f) --
+  an actor's proxy rectangle as the original's sprite has it: a mesh's
+  from its render box, the boxes of its animation's frame and the next,
+  through `BoundVisible`'s rules, a sprite's its texture's size, set back
+  at the depth of its location, none for an actor behind the viewer
+  ([out of sight](NATIVES.md#out-of-sight)). **Checked:** `AIConsole` --
+  9 NPCs drawn at Liberty Island's start against the original's 3 (10
+  before), the rest a pixel's difference at the edges; `LaserConsole`'s
+  emitter as before; proving runs on three maps clean.
