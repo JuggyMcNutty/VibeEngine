@@ -595,7 +595,11 @@ bool TraceTextureIterator::Next()
 	*HitNorm = hit.Normal;
 	if (hit.Node)
 	{
-		const BspSurface& surface = engine->Level->Model->Surfaces[hit.Node->Surf];
+		// The node the line meets the level at, as the original's BSP check
+		// gives it -- the head of the plane's coplanar nodes -- not the
+		// polygon of them it crossed.
+		const BspNode* node = hit.NodeHead ? hit.NodeHead : hit.Node;
+		const BspSurface& surface = engine->Level->Model->Surfaces[node->Surf];
 		UTexture* texture = surface.Material;
 		*TexName = texture ? texture->Name : NameString();
 		*TexGroup = texture && texture->Outer() ? texture->Outer()->Name : NameString();

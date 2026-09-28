@@ -1030,7 +1030,21 @@ what changed, what stays the fork's own, and its by-hand check:
     texture. A laser beam stops at the player and NPCs now (they have no
     `Skin`, which the fork required) and at walls; an NPC seeking a spot
     no longer sees it through a wall. To check by hand: Liberty Island's
-    laser tripwires.
+    laser tripwires. Since 2026-09-28 a level hit's texture and flags are
+    the node's the line meets the level at, the first of its plane's
+    coplanar nodes, as the original's BSP check gives them, where the fork
+    took the polygon of them it crossed -- another texture where coplanar
+    polygons differ (`TraceConsole`: 104 of Liberty Island's 107 traces
+    alike, from 81; the rest are NPCs a little apart in the two runs).
+  - **A line that starts inside an actor's cylinder** (2026-09-28) is
+    stopped at once if it heads in toward the axis and passes out freely
+    otherwise, as the original's cylinder check counts only a line coming
+    in ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)). The fork gave the point where it left the
+    cylinder: a trace straight down from inside a pawn found the pawn's own
+    bottom before the floor (every NPC's on Liberty Island, `TraceConsole`),
+    and a move that began inside another actor's cylinder met its far side.
+    The scripts' footsteps passed over it (they read on to the level); a
+    shot or a turret's aim traced from inside its shooter did not.
   - **`Actor.ParabolicTrace` 722**: the original's defaults, gravity the
     right way up, the zone's velocity, terminal velocity and water,
     per-step tracing, bounces, and failure to the start. NPCs judge a

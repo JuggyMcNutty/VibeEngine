@@ -5,6 +5,7 @@
 #include "Collision/BottomLevel/TraceRayModel.h"
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Actors/Brush/UMover.h"
+#include "Engine.h"
 
 CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float height, float radius, bool traceActors, bool traceWorld, bool visibilityOnly)
 {
@@ -443,8 +444,23 @@ static int GetQuadraticRoots(double a, double b, double c, double& root_lower, d
 
 double TraceTester::RayCylinderTrace(const dvec3& rayOrigin, const dvec3& rayDirNormalized, double tmin, double tmax, const dvec3& cylinderCenter, double cylinderHeight, double cylinderRadius)
 {
+	// A line that starts inside the cylinder -- within its height, and its
+	// radius but for a unit's slack -- is stopped at once if it heads in
+	// toward the axis and leaves freely otherwise, as the original's
+	// cylinder check (UPrimitive::LineCheck) counts only a line coming in:
+	// a trace straight down from inside a pawn does not hit the pawn, where
+	// this found where it left through the bottom.
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		double dx = rayOrigin.x - cylinderCenter.x;
+		double dy = rayOrigin.y - cylinderCenter.y;
+		double dz = rayOrigin.z - cylinderCenter.z;
+		if (dx * dx + dy * dy - cylinderRadius * cylinderRadius < 1.0 && dz > -cylinderHeight && dz < cylinderHeight)
+			return (rayDirNormalized.x * dx + rayDirNormalized.y * dy) * tmax < -0.1 ? 0.0 : tmax;
+	}
+
 	//
-	// First, identify intersections between a line and an infinite cylinder. An infinite 
+	// First, identify intersections between a line and an infinite cylinder. An infinite
 	// cylinder has no base and extends in both directions.
 	//
 	dvec3 ct = cylinderCenter;
