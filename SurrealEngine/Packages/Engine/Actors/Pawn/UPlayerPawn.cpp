@@ -27,21 +27,26 @@ void UPlayerPawn::PausedInput(float elapsed)
 	}
 }
 
-void UPlayerPawn::Tick(float elapsed)
+bool UPlayerPawn::TickInput(float elapsed)
 {
-	UPawn::Tick(elapsed);
-
 	// A server's copy of a client's pawn reads no input here; the client
 	// does, and sends its moves.
 	bool clientsPawn = Level()->NetMode() != NM_Standalone && Role() == ROLE_Authority && RemoteRole() == ROLE_AutonomousProxy;
-	if (Role() >= ROLE_SimulatedProxy && !clientsPawn)
-	{
-		if (Player() && !UObject::TryCast<UCamera>(this))
-		{
-			CallEvent(this, EventName::PlayerInput, { ExpressionValue::FloatValue(elapsed) });
-			CallEvent(this, EventName::PlayerTick, { ExpressionValue::FloatValue(elapsed) });
-		}
-	}
+	if (Role() < ROLE_SimulatedProxy || clientsPawn || !Player() || UObject::TryCast<UCamera>(this))
+		return false;
+
+	CallEvent(this, EventName::PlayerInput, { ExpressionValue::FloatValue(elapsed) });
+	CallEvent(this, EventName::PlayerTick, { ExpressionValue::FloatValue(elapsed) });
+	return true;
+}
+
+void UPlayerPawn::Tick(float elapsed)
+{
+	// Deus Ex's input is read in the actor's own tick, before its physics
+	// (UActor::Tick); other games' after it.
+	UPawn::Tick(elapsed);
+	if (!engine->LaunchInfo.IsDeusEx())
+		TickInput(elapsed);
 
 	// TODO: is this the correct place to set this?
 	aForward() = 0.0f;

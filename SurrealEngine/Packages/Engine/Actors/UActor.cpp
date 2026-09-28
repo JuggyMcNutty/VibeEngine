@@ -336,7 +336,15 @@ void UActor::Tick(float elapsed)
 	float thinkElapsed = elapsed;
 	bool think = ThinkThisFrame(elapsed, thinkElapsed);
 
-	if (think && !clientsPawn && Role() >= ROLE_SimulatedProxy && IsEventEnabled(EventName::Tick))
+	// Deus Ex's local player reads its input and runs PlayerTick here, before
+	// its state code and physics, in place of Tick, as the original's actor
+	// tick has it: its physics take the move it makes the same tick, where
+	// the fork took it a tick later.
+	UPlayerPawn* player = engine->LaunchInfo.IsDeusEx() ? UObject::TryCast<UPlayerPawn>(this) : nullptr;
+	if (player && player->TickInput(elapsed))
+	{
+	}
+	else if (think && !clientsPawn && Role() >= ROLE_SimulatedProxy && IsEventEnabled(EventName::Tick))
 	{
 		CallEvent(this, EventName::Tick, { ExpressionValue::FloatValue(thinkElapsed) });
 	}

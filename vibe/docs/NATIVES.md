@@ -1283,11 +1283,23 @@ All landed 2026-09-25:
   stands at Z −256.20 in the fork and −256.25 in the original, both on
   `LevelInfo0`, a line down finding the floor at −303.5 in both, where
   the fork's stood at −260.00; proving runs on Liberty Island, UNATCO HQ
-  and Battery Park are clean. The console's walks go apart: in its 2 s
-  the original's player went 604 units and the fork's 254, the same way
-  (before and after the traces changed) -- the console sets the input in
-  its tick, and the order of that tick, the input's and the player's in
-  the fork is unread.
+  and Battery Park are clean.
+- **The player's input, before its physics** (2026-09-28): Deus Ex's
+  player reads its input and runs `PlayerInput` and `PlayerTick` in its
+  own tick before its state code and physics, as the original's actor
+  tick does for a pawn with a player (`AActor::Tick`,
+  [a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)), so its physics take the move it
+  makes the same tick; the fork read it after them, a tick late -- a
+  frame of lag, 33 ms at the handheld's 30 frames a second. Checked with
+  `StandConsole`: from the walk's second tick the player's acceleration
+  is the original's to the thousandth ((780.74, −624.86), its full
+  `AccelRate` of 1,000), where the fork's was still the script's 2,400
+  and its velocity 0; after the two walks it stands within a unit and 7
+  units of the original's, on the same step. The console walked the
+  fork less than half as far before it set the forward axis a held key
+  gives: the original's input scales an axis the console sets, the
+  fork's uses it as it is, and 300 made an acceleration of 120 ([scripted
+  runs](DEVELOPMENT.md#scripted-runs-of-both-engines)).
 - **The field of view** (2026-09-28): the player's `DefaultFOV` is Deus
   Ex's own config, 75 (`[Engine.PlayerPawn]` in `User.ini`), as the
   original's. Upstream read it from a key of its own, `MainFOV`, which the

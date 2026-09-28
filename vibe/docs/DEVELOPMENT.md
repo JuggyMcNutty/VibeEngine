@@ -109,7 +109,11 @@ The console classes:
   texture, group, flags and distance (`DXTRACE:`).
 - **`StandConsole`**: where a walking player rests over the floor -- at
   Liberty Island's start and after two short walks, its place, collision
-  height and base and the floor a line down finds logged.
+  height and base and the floor a line down finds logged, and its
+  velocity and acceleration through the first walk's first 12 ticks. It
+  walks with the forward axis a held key gives the fork (the binding's
+  speed, 300, times 20): the original's input scales an axis the console
+  sets, the fork's takes it as it is.
 - **`VisibleConsole`**: what `FastTrace` and the visible-actor iterators
   give -- Liberty Island from the menu map, 2 s into the level, for each
   mover a line across its box's thinnest side through its middle:

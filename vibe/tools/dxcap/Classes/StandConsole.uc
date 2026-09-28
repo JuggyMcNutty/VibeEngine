@@ -4,12 +4,16 @@
 // where the map starts it, then walked forward 2 s and let stand 3 s, then
 // turned and walked 2 s more and let stand 3 s: at each rest its place, its
 // collision height and the floor a line straight down finds are logged, and
-// the gap between the cylinder's bottom and that floor; then an exit.
+// the gap between the cylinder's bottom and that floor; through the first
+// walk's first 12 ticks its velocity and acceleration; then an exit. It
+// walks with the forward axis a held key gives (Speed 300, times 20): the
+// original's input scales an axis the console sets, the fork's does not,
+// and 300 walked the fork at an acceleration of 120.
 //=============================================================================
 class StandConsole extends Console;
 
 var float MapTime, StepTime;
-var int Step;
+var int Step, WalkTicks;
 var string CurrentMap;
 
 function string MapOf(PlayerPawn P)
@@ -80,7 +84,13 @@ event Tick(float Delta)
 	}
 	else if (Step == 1)
 	{
-		P.aBaseY = 300.0;
+		P.aBaseY = 6000.0;
+		if (WalkTicks < 12)
+		{
+			Log("DXSTAND: walking " $ (MapTime - StepTime) $ " velocity " $ P.Velocity $ " acceleration " $ P.Acceleration
+				$ " ground speed " $ P.GroundSpeed $ " accel rate " $ P.AccelRate $ " walking " $ P.bIsWalking $ " crouching " $ P.bIsCrouching);
+			WalkTicks++;
+		}
 		if (MapTime - StepTime > 2.0)
 		{
 			P.aBaseY = 0.0;
@@ -100,7 +110,7 @@ event Tick(float Delta)
 	}
 	else if (Step == 3)
 	{
-		P.aBaseY = 300.0;
+		P.aBaseY = 6000.0;
 		if (MapTime - StepTime > 2.0)
 		{
 			P.aBaseY = 0.0;
