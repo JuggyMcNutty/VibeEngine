@@ -173,6 +173,8 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Audio/AudioSource.cpp
 	SurrealEngine/Audio/AudioDevice.cpp
 	SurrealEngine/Audio/AudioDevice.h
+	SurrealEngine/Audio/GalaxyMixer.cpp
+	SurrealEngine/Audio/GalaxyMixer.h
 	SurrealEngine/Video/VideoPlayer.cpp
 	SurrealEngine/Video/VideoPlayer.h
 	SurrealEngine/Video/AVIFileReader.h

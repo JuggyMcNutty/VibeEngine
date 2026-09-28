@@ -166,13 +166,13 @@ check live there.
       `DopplerSpeed` (2026-09-25).
 - [x] Music: the fades, its place kept in `SongSection`, section 255 as
       silence (2026-09-25).
-- [x] Zone reverb over EFX, the mapping the fork's own; the owner's
-      copied `ALAudio.dll` stays the read-if-needed reference for a
-      closer take ([the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#the-binaries))
-      (2026-09-25).
+- [x] Zone reverb (2026-09-25, over EFX; Galaxy's own since
+      2026-09-28).
 - [x] The smaller notes: a sound beyond its radius dropped, the mouth
       shapes' `M` band gone, `bIsSpeaking` the script's alone
       (2026-09-25).
+- [x] Galaxy's mixer: its pan, the sliders' law, resampling and loops,
+      and its reverb, measured against the original's (2026-09-28).
 
 ## M6 -- polish
 

@@ -217,9 +217,9 @@ void USurrealAudioDevice::Update(const mat4& listener)
 	m_Device->SetMusicVolume(MusicVolume / 255.0f * musicFade);
 	if (engine->LaunchInfo.IsDeusEx())
 	{
-		// Each sound plays at its own slider, speech at the Speech slider, as the
-		// original's (galaxy-dll.md, Volume). Galaxy's equal-sliders quirk -- both
-		// scaled by the slider twice -- is not carried.
+		// Galaxy's sample volume is the louder of the two sliders, squared in its
+		// mixer; each sound's own share of the sliders is its voice's
+		// (GalaxyVoice, galaxy-dll.md, Volume).
 		m_Device->SetSoundVolume(SoundVolume / 255.0f);
 		m_Device->SetSpeechVolume(SpeechVolume / 255.0f);
 	}
@@ -376,14 +376,28 @@ void USurrealAudioDevice::UpdateSounds(const mat4& listener, float timeStep)
 
 			UpdateLipSync(Playing);
 
-			// Deus Ex: a wall between the player's eyes and the sound fades it
-			// toward a third of its volume over half a second, and back as it
-			// clears (galaxy-dll.md, Sounds behind walls).
-			float volume = Playing.Volume;
 			if (engine->LaunchInfo.IsDeusEx())
 			{
+				// Deus Ex: a wall between the player's eyes and the sound fades it
+				// toward a third of its volume over half a second, and back as it
+				// clears (galaxy-dll.md, Sounds behind walls); then the voice as
+				// Galaxy works it out, through Galaxy's mixer.
 				UpdateObstruction(Playing, timeStep);
-				volume *= std::max(1.0f - 2.0f * Playing.ObstructionTime, 0.33f);
+				int volume = 0, panning = 0;
+				GalaxyVoice(Playing, volume, panning);
+				if (Playing.IsActive)
+				{
+					if (m_Device->IsPlaying((int)i))
+						m_Device->UpdateMixedSound((int)i, volume, panning, Playing.Pitch);
+					else
+						PlayingSounds[i] = {};
+				}
+				else
+				{
+					m_Device->PlayMixedSound((int)i, Playing.Sound, volume, panning, Playing.Pitch);
+					Playing.IsActive = true;
+				}
+				continue;
 			}
 
 			// Update the sound.
@@ -391,7 +405,7 @@ void USurrealAudioDevice::UpdateSounds(const mat4& listener, float timeStep)
 			{
 				if (m_Device->IsPlaying((int)i))
 				{
-					m_Device->UpdateSound((int)i, Playing.Sound, Playing.Location, volume, Playing.Radius, Playing.Pitch);
+					m_Device->UpdateSound((int)i, Playing.Sound, Playing.Location, Playing.Volume, Playing.Radius, Playing.Pitch);
 				}
 				else
 				{
@@ -400,11 +414,51 @@ void USurrealAudioDevice::UpdateSounds(const mat4& listener, float timeStep)
 			}
 			else
 			{
-				m_Device->PlaySound((int)i, Playing.Sound, Playing.Location, volume, Playing.Radius, Playing.Pitch, (Playing.Id & 14) == SLOT_Talk * 2);
+				m_Device->PlaySound((int)i, Playing.Sound, Playing.Location, Playing.Volume, Playing.Radius, Playing.Pitch, (Playing.Id & 14) == SLOT_Talk * 2);
 				Playing.IsActive = true;
 			}
 		}
 	}
+}
+
+// A Deus Ex channel's voice, as Galaxy's Update works it out (galaxy-dll.md,
+// Each frame): heard from the eyes the view is drawn from, the sound falls off
+// as 1 - distance / radius; its angle off straight ahead, front and back
+// alike, becomes a pan of at most seven-eighths to a side, nearer the middle
+// within a tenth of its radius; and its volume is the script's times the
+// fall-off, the obstruction and its share of the sliders -- speech the Speech
+// slider over the Sound one when the Sound slider is the louder, the other
+// sounds the other way round --, full at 32767. Galaxy's equal-sliders quirk
+// (each sound scaled by the slider once more) and its floor of 128 are not
+// carried.
+void USurrealAudioDevice::GalaxyVoice(const PlayingSound& Playing, int& volume, int& panning)
+{
+	vec3 forward, right, up;
+	Coords::Rotation(engine->CameraRotation).GetAxes(forward, right, up);
+	vec3 offset = Playing.Location - engine->CameraLocation;
+	double x = dot(offset, right);
+	double z = dot(offset, forward);
+	double distance = length(offset);
+
+	double angle = std::atan2(x, std::abs(z));
+	double nearby = Playing.Radius * 0.1;
+	if (nearby * nearby > distance * distance)
+		angle = distance / nearby * angle;
+	panning = (int)std::clamp((int64_t)(angle * 28671.125 * 0.3183098861837907 + 16383.0), (int64_t)0, (int64_t)0x7fff);
+	if (ReverseStereo)
+		panning = 0x7fff - panning;
+	if (z < 0.0 && UseSurround)
+		panning = 49152;
+
+	double falloff = std::clamp(1.0 - distance / Playing.Radius, 0.0, 1.0);
+	double obstruction = std::max(1.0 - 2.0 * Playing.ObstructionTime, 0.33);
+	double share = 1.0;
+	bool speech = (Playing.Id & 14) == SLOT_Talk * 2;
+	if (!speech && SoundVolume < SpeechVolume)
+		share = (double)SoundVolume / SpeechVolume;
+	else if (speech && SoundVolume > SpeechVolume)
+		share = (double)SpeechVolume / SoundVolume;
+	volume = (int)std::clamp((int64_t)(obstruction * falloff * share * Playing.Volume * 32767.0), (int64_t)0, (int64_t)0x7fff);
 }
 
 void USurrealAudioDevice::UpdateObstruction(PlayingSound& Playing, float timeStep)
@@ -585,13 +639,15 @@ void USurrealAudioDevice::UpdateReverb()
 		return;
 	}
 
+	// Galaxy's values to the bit: its reverb takes an echo's delay in whole
+	// samples.
 	ReverbSettings settings;
-	settings.masterGain = reverbZone->MasterGain() / 255.0f;
-	settings.cutoffHz = (float)std::min(reverbZone->CutoffHz(), 44100);
+	settings.masterGain = (float)(reverbZone->MasterGain() * 0.00392156862745098);
+	settings.cutoffHz = (float)std::clamp(reverbZone->CutoffHz(), 0, 44100);
 	for (int i = 0; i < 6; i++)
 	{
-		settings.delaySeconds[i] = std::clamp(reverbZone->Delay()[i] * 2, 1, 340) / 1000.0f;
-		settings.gains[i] = reverbZone->Gain()[i] / 255.0f;
+		settings.delaySeconds[i] = (float)std::clamp(reverbZone->Delay()[i] * (double)0.002f, 0.001, 0.34);
+		settings.gains[i] = (float)std::clamp(reverbZone->Gain()[i] * (double)(1.0f / 255.0f), 0.001, (double)0.999f);
 	}
 	m_Device->SetReverb(&settings);
 }

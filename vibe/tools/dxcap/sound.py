@@ -156,7 +156,9 @@ def report_wall(rec, strength, evts):
         print('wall: not in the log')
         return -5.0
     beeps = beeps_after(wall, wall[0][0])
-    offset, score = align(rec, strength, beeps, -5.0, 30.0)
+    # The recording starts a few seconds before the level (6 s at most so
+    # far): a wider search can land on a louder triple of onsets further on.
+    offset, score = align(rec, strength, beeps, -5.0, 15.0)
     print('wall: beeps found at %+.3f s from the log (onset %.1f dB)' % (offset, score))
     moves = [(t, what) for t, what in wall if what in ('open', 'wall', 'wall scenario ends')]
     results = {'open': [], 'wall': []}

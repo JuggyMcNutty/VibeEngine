@@ -2,6 +2,7 @@
 #include "Precomp.h"
 #include "AudioDevice.h"
 #include "AudioSource.h"
+#include "GalaxyMixer.h"
 #include "Engine.h"
 #include "Native/NObject.h"
 #include "Packages/Engine/Actors/UActor.h"
@@ -14,17 +15,17 @@
 #include <queue>
 #include <thread>
 #include <chrono>
+#include <unordered_map>
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <AL/alext.h>
-#include <AL/efx.h>
 
 #define UU_PER_METER 43
 
-// Deus Ex takes Galaxy's distance shape (galaxy-dll.md, Each frame): gain
-// 1 - d/r from the sound to its radius, silent there, the product capped at
-// full. Other games keep the fork's tuning (rolloff 1.1, full within 0.1 r).
-static bool UseGalaxyFalloff()
+// Deus Ex's sounds are mixed as Galaxy mixes them (GalaxyMixer), the mix
+// streamed through one source; other games' sounds are OpenAL's own sources,
+// placed in 3D.
+static bool UseGalaxyMixer()
 {
 	return engine && engine->LaunchInfo.IsDeusEx();
 }
@@ -38,7 +39,7 @@ public:
 		if (alGetError() != AL_NO_ERROR)
 			Exception::Throw("Failed to generate AL source");
 
-		alSourcef(id, AL_ROLLOFF_FACTOR, UseGalaxyFalloff() ? 1.0f : 1.1f);
+		alSourcef(id, AL_ROLLOFF_FACTOR, 1.1f);
 	}
 
 	~ALSoundSource()
@@ -98,7 +99,7 @@ public:
 		{
 			radius = newRadius;
 			alSourcef(id, AL_MAX_DISTANCE, radius);
-			alSourcef(id, AL_REFERENCE_DISTANCE, UseGalaxyFalloff() ? 0.0f : 0.1f * radius);
+			alSourcef(id, AL_REFERENCE_DISTANCE, 0.1f * radius);
 		}
 	}
 
@@ -136,7 +137,7 @@ public:
 	}
 
 	// Which slider gains this source: the Speech slider for the talk slot,
-	// the Sound slider for the rest (galaxy-dll.md, Volume).
+	// the Sound slider for the rest.
 	void SetSpeech(bool newSpeech)
 	{
 		speech = newSpeech;
@@ -191,9 +192,7 @@ private:
 	void ApplyGain()
 	{
 		alSourcef(id, AL_GAIN, volume * globalVolume);
-		// Galaxy caps a voice at full: the slider is the ceiling however loud the
-		// script's volume, so the cap bites after AL's distance attenuation too.
-		alSourcef(id, AL_MAX_GAIN, UseGalaxyFalloff() ? globalVolume : volume * globalVolume);
+		alSourcef(id, AL_MAX_GAIN, volume * globalVolume);
 	}
 
 	UActor* actor = nullptr;
@@ -266,45 +265,21 @@ public:
 		alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
 		alSpeedOfSound(343.3f / (1.0f / UU_PER_METER));
 
-		// Deus Ex works Doppler out itself, for ambient sounds only, from the
-		// actor's own speed at the subsystem's DopplerSpeed (galaxy-dll.md,
-		// Each frame); AL's listener-velocity Doppler shifted every sound.
-		if (UseGalaxyFalloff())
-			alDopplerFactor(0.0f);
-
-		// Init sound sources
-		alcGetIntegerv(alDevice, ALC_MONO_SOURCES, 1, &monoSources);
-		alcGetIntegerv(alDevice, ALC_STEREO_SOURCES, 1, &stereoSources);
-
-		// TODO: how do we prioritize mono vs stereo source count?
-		sources.resize(monoSources);
-
-		// EFX for the zones' reverb: one aux slot every sound sends to. With
-		// the slot's effect NULL the send is silent, so an off reverb costs
-		// nothing; without EFX, SetReverb is a no-op.
-		if (alcIsExtensionPresent(alDevice, "ALC_EXT_EFX"))
+		if (UseGalaxyMixer())
 		{
-			alGenEffects = (LPALGENEFFECTS)alGetProcAddress("alGenEffects");
-			alDeleteEffects = (LPALDELETEEFFECTS)alGetProcAddress("alDeleteEffects");
-			alEffecti = (LPALEFFECTI)alGetProcAddress("alEffecti");
-			alEffectf = (LPALEFFECTF)alGetProcAddress("alEffectf");
-			alGenAuxiliaryEffectSlots = (LPALGENAUXILIARYEFFECTSLOTS)alGetProcAddress("alGenAuxiliaryEffectSlots");
-			alDeleteAuxiliaryEffectSlots = (LPALDELETEAUXILIARYEFFECTSLOTS)alGetProcAddress("alDeleteAuxiliaryEffectSlots");
-			alAuxiliaryEffectSloti = (LPALAUXILIARYEFFECTSLOTI)alGetProcAddress("alAuxiliaryEffectSloti");
-			if (alGenEffects && alDeleteEffects && alEffecti && alEffectf
-				&& alGenAuxiliaryEffectSlots && alDeleteAuxiliaryEffectSlots && alAuxiliaryEffectSloti)
-			{
-				alGetError();
-				alGenAuxiliaryEffectSlots(1, &alEffectSlot);
-				alGenEffects(1, &alReverbEffect);
-				alEffecti(alReverbEffect, AL_EFFECT_TYPE, AL_EFFECT_REVERB);
-				if (alGetError() == AL_NO_ERROR)
-				{
-					efxAvailable = true;
-					for (ALSoundSource& source : sources)
-						alSource3i(source.id, AL_AUXILIARY_SEND_FILTER, (ALint)alEffectSlot, 0, AL_FILTER_NULL);
-				}
-			}
+			// Galaxy's 32 channel records; the mix goes out at OutputRate, as
+			// Galaxy's does, so its reverb's delays are the original's samples.
+			mixer = std::make_unique<GalaxyMixer>(frequency, 32);
+			StartMixStream();
+		}
+		else
+		{
+			// Init sound sources
+			alcGetIntegerv(alDevice, ALC_MONO_SOURCES, 1, &monoSources);
+			alcGetIntegerv(alDevice, ALC_STEREO_SOURCES, 1, &stereoSources);
+
+			// TODO: how do we prioritize mono vs stereo source count?
+			sources.resize(monoSources);
 		}
 
 		// init music source/buffer
@@ -325,18 +300,15 @@ public:
 		lock.unlock();
 		musicThreadData.thread.join();
 
+		if (mixer)
+			StopMixStream();
+
 		alSourceStop(alMusicSource);
 		alDeleteSources(1, &alMusicSource);
 
 		alDeleteBuffers((ALsizei)alMusicBuffers.size(), &alMusicBuffers[0]);
 
 		sources.clear();
-
-		if (efxAvailable)
-		{
-			alDeleteEffects(1, &alReverbEffect);
-			alDeleteAuxiliaryEffectSlots(1, &alEffectSlot);
-		}
 
 		for (USound* sound : sounds)
 		{
@@ -349,11 +321,29 @@ public:
 
 	int GetTotalChannels() override
 	{
-		return (int)sources.size();
+		return mixer ? mixer->GetChannels() : (int)sources.size();
 	}
 
 	void AddSound(USound* sound) override
 	{
+		if (mixer)
+		{
+			// The mixer's own 16-bit copy, which a channel keeps while it plays,
+			// two silent frames past the end for the last frame's interpolation.
+			auto sample = std::make_shared<GalaxySample>();
+			sample->channels = std::max(sound->channels, 1);
+			sample->frames = sound->samples.size() / sample->channels;
+			sample->rate = sound->frequency;
+			sample->data.resize((sample->frames + 2) * sample->channels);
+			for (size_t i = 0, count = sample->frames * sample->channels; i < count; i++)
+				sample->data[i] = (int16_t)std::clamp((int)std::lround(sound->samples[i] * 32768.0f), -32768, 32767);
+			sample->looped = sound->loopInfo.Looped;
+			sample->loopStart = sound->loopInfo.LoopStart;
+			sample->loopEnd = sound->loopInfo.LoopEnd;
+			mixedSounds[sound] = std::move(sample);
+			return;
+		}
+
 		sounds.push_back(sound);
 
 		ALenum format = AL_FORMAT_MONO_FLOAT32;
@@ -372,8 +362,13 @@ public:
 
 	void RemoveSound(USound* sound) override
 	{
-		auto it = sounds.begin();
-		while (it != sounds.end())
+		if (mixer)
+		{
+			mixedSounds.erase(sound);
+			return;
+		}
+
+		for (auto it = sounds.begin(); it != sounds.end(); ++it)
 		{
 			if (*it == sound)
 			{
@@ -387,6 +382,8 @@ public:
 
 	bool IsPlaying(int channel) override
 	{
+		if (mixer)
+			return mixer->IsPlaying(channel);
 		ALSoundSource& source = sources[channel];
 		return source.IsPlaying();
 	}
@@ -404,57 +401,10 @@ public:
 		return musicThreadData.currentOrder.load();
 	}
 
-	// Galaxy's reverb is a six-tap echo network; EFX's is a reverb model, so
-	// this mapping is the fork's own (vibe/docs/NATIVES.md, Sound): the master gain and
-	// the cutoff carry over, the echo train gives the decay -- for a tap of
-	// delay d and gain g, repeating it decays 60 dB in d x ln(1000) / -ln(g)
-	// seconds, and the longest such tap sets AL_REVERB_DECAY_TIME -- and the
-	// earliest tap the reflections delay.
 	void SetReverb(const ReverbSettings* settings) override
 	{
-		if (!efxAvailable)
-			return;
-
-		if (!settings)
-		{
-			alAuxiliaryEffectSloti(alEffectSlot, AL_EFFECTSLOT_EFFECT, AL_EFFECT_NULL);
-			return;
-		}
-
-		float gain = std::clamp(settings->masterGain, 0.0f, 1.0f);
-
-		// A one-pole lowpass at the cutoff, read at EFX's 5 kHz reference.
-		float gainhf = 1.0f;
-		if (settings->cutoffHz < 44100.0f && settings->cutoffHz > 0.0f)
-		{
-			float ratio = 5000.0f / settings->cutoffHz;
-			gainhf = std::clamp(1.0f / std::sqrt(1.0f + ratio * ratio), 0.0f, 1.0f);
-		}
-
-		float decay = 0.1f;
-		float firstTap = 0.3f;
-		bool anyTap = false;
-		for (int i = 0; i < 6; i++)
-		{
-			float g = settings->gains[i];
-			float d = settings->delaySeconds[i];
-			if (g <= 0.0f || d <= 0.0f)
-				continue;
-			anyTap = true;
-			g = std::min(g, 0.999f);
-			decay = std::max(decay, d * 6.907755f / -std::log(g));
-			firstTap = std::min(firstTap, d);
-		}
-		decay = std::clamp(decay, 0.1f, 20.0f);
-		if (!anyTap)
-			firstTap = 0.007f;
-
-		alEffectf(alReverbEffect, AL_REVERB_GAIN, gain);
-		alEffectf(alReverbEffect, AL_REVERB_GAINHF, gainhf);
-		alEffectf(alReverbEffect, AL_REVERB_DECAY_TIME, decay);
-		alEffectf(alReverbEffect, AL_REVERB_REFLECTIONS_DELAY, std::clamp(firstTap, 0.0f, 0.3f));
-		// The changes reach the slot when the effect is loaded into it again.
-		alAuxiliaryEffectSloti(alEffectSlot, AL_EFFECTSLOT_EFFECT, (ALint)alReverbEffect);
+		if (mixer)
+			mixer->SetReverb(settings);
 	}
 
 	void SetMusicOrder(int order) override
@@ -502,8 +452,33 @@ public:
 		source.DoLoop();
 	}
 
+	void PlayMixedSound(int channel, USound* sound, int volume, int panning, float pitch) override
+	{
+		if (!mixer || channel >= mixer->GetChannels() || !std::isfinite(pitch))
+			Exception::Throw("Invalid PlayMixedSound arguments");
+
+		auto it = mixedSounds.find(sound);
+		mixer->Play(channel, it != mixedSounds.end() ? it->second : nullptr, volume, panning, pitch);
+	}
+
+	void UpdateMixedSound(int channel, int volume, int panning, float pitch) override
+	{
+		if (!mixer || channel >= mixer->GetChannels() || !std::isfinite(pitch))
+			Exception::Throw("Invalid UpdateMixedSound arguments");
+
+		mixer->Update(channel, volume, panning, pitch);
+	}
+
 	void StopSound(int channel) override
 	{
+		if (mixer)
+		{
+			if (channel >= mixer->GetChannels())
+				Exception::Throw("Invalid StopSound arguments");
+			mixer->Stop(channel);
+			return;
+		}
+
 		if (channel >= sources.size())
 			Exception::Throw("Invalid StopSound arguments");
 
@@ -594,6 +569,8 @@ public:
 	void SetSoundVolume(float volume) override
 	{
 		globalSoundVolume = volume;
+		if (mixer)
+			mixer->SetMasterVolume(std::max(globalSoundVolume, globalSpeechVolume));
 
 		for (auto& soundSource : sources)
 		{
@@ -605,6 +582,8 @@ public:
 	void SetSpeechVolume(float volume) override
 	{
 		globalSpeechVolume = volume;
+		if (mixer)
+			mixer->SetMasterVolume(std::max(globalSoundVolume, globalSpeechVolume));
 
 		for (auto& soundSource : sources)
 		{
@@ -695,6 +674,71 @@ public:
 		}
 	}
 
+	// The mixer's output: one stereo source, straight to the speakers, its
+	// queue 10 ms buffers deep to Galaxy's default Latency of 40 ms.
+	void StartMixStream()
+	{
+		mixBufferFrames = std::max(frequency / 100, 64);
+		alGenSources(1, &alMixSource);
+		alSourcei(alMixSource, AL_SOURCE_SPATIALIZE_SOFT, AL_FALSE);
+		alSourcei(alMixSource, AL_SOURCE_RELATIVE, AL_TRUE);
+		alSource3f(alMixSource, AL_POSITION, 0.0f, 0.0f, 0.0f);
+		alSourcef(alMixSource, AL_ROLLOFF_FACTOR, 0.0f);
+		if (alIsExtensionPresent("AL_SOFT_direct_channels"))
+			alSourcei(alMixSource, AL_DIRECT_CHANNELS_SOFT, AL_TRUE);
+		alMixBuffers.resize(4);
+		alGenBuffers((ALsizei)alMixBuffers.size(), &alMixBuffers[0]);
+		alGetError();
+		mixThread = std::thread([this]() { MixThreadMain(); });
+	}
+
+	void StopMixStream()
+	{
+		mixExit = true;
+		mixThread.join();
+		alSourceStop(alMixSource);
+		alSourcei(alMixSource, AL_BUFFER, 0);
+		alDeleteSources(1, &alMixSource);
+		alDeleteBuffers((ALsizei)alMixBuffers.size(), &alMixBuffers[0]);
+	}
+
+	void MixThreadMain()
+	{
+		std::vector<float> block(mixBufferFrames * 2);
+		auto queue = [&](ALuint buffer) {
+			mixer->Mix(block.data(), mixBufferFrames);
+			alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, block.data(), (ALsizei)(block.size() * sizeof(float)), frequency);
+			alSourceQueueBuffers(alMixSource, 1, &buffer);
+		};
+
+		for (ALuint buffer : alMixBuffers)
+			queue(buffer);
+		alSourcePlay(alMixSource);
+
+		while (!mixExit)
+		{
+			ALint processed = 0;
+			alGetSourcei(alMixSource, AL_BUFFERS_PROCESSED, &processed);
+			while (processed-- > 0)
+			{
+				ALuint buffer = 0;
+				alSourceUnqueueBuffers(alMixSource, 1, &buffer);
+				if (buffer == 0)
+					break;
+				queue(buffer);
+			}
+
+			// Played dry before a buffer came: on again.
+			ALint state = AL_PLAYING;
+			alGetSourcei(alMixSource, AL_SOURCE_STATE, &state);
+			if (state != AL_PLAYING)
+				alSourcePlay(alMixSource);
+
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(2ms);
+		}
+	}
+
 	ALCdevice* alDevice = nullptr;
 	ALCcontext* alContext = nullptr;
 	ALenum alError = 0;
@@ -704,17 +748,14 @@ public:
 	ALint monoSources = 0;
 	ALint stereoSources = 0;
 
-	// EFX, for the zones' reverb
-	bool efxAvailable = false;
-	ALuint alEffectSlot = 0;
-	ALuint alReverbEffect = 0;
-	LPALGENEFFECTS alGenEffects = nullptr;
-	LPALDELETEEFFECTS alDeleteEffects = nullptr;
-	LPALEFFECTI alEffecti = nullptr;
-	LPALEFFECTF alEffectf = nullptr;
-	LPALGENAUXILIARYEFFECTSLOTS alGenAuxiliaryEffectSlots = nullptr;
-	LPALDELETEAUXILIARYEFFECTSLOTS alDeleteAuxiliaryEffectSlots = nullptr;
-	LPALAUXILIARYEFFECTSLOTI alAuxiliaryEffectSloti = nullptr;
+	// Deus Ex's mixer, the sounds it holds, and its output
+	std::unique_ptr<GalaxyMixer> mixer;
+	std::unordered_map<USound*, std::shared_ptr<const GalaxySample>> mixedSounds;
+	ALuint alMixSource = 0;
+	Array<ALuint> alMixBuffers;
+	int mixBufferFrames = 0;
+	std::thread mixThread;
+	std::atomic<bool> mixExit{ false };
 
 	template<class T> class RingQueue
 	{

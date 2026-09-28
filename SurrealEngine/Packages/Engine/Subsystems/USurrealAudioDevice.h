@@ -83,6 +83,7 @@ private:
 	void UpdateAmbience();
 	void UpdateSounds(const mat4& listener, float timeStep);
 	void UpdateObstruction(PlayingSound& Playing, float timeStep);
+	void GalaxyVoice(const PlayingSound& Playing, int& volume, int& panning);
 
 	void UpdateLipSync(PlayingSound& Playing);
 	void UpdateMusic(float timeStep);

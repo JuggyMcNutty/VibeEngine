@@ -17,8 +17,8 @@ struct ReverbSettings
 {
 	float masterGain = 0.0f;        // 0-1
 	float cutoffHz = 44100.0f;
-	float delaySeconds[6] = {};     // each echo's delay
-	float gains[6] = {};            // each echo's gain, 0-1
+	float delaySeconds[6] = {};     // each echo's delay, 0.001-0.34
+	float gains[6] = {};            // each echo's gain, 0.001-0.999
 };
 
 class AudioDevice
@@ -34,6 +34,10 @@ public:
 	virtual void PlaySound(int channel, USound* sound, vec3& location, float volume, float radius, float pitch, bool speech = false) = 0;
 	virtual void PlayMusic(std::unique_ptr<AudioSource> source) = 0;
 	virtual void UpdateSound(int channel, USound* sound, vec3& location, float volume, float radius, float pitch) = 0;
+	// Deus Ex's sounds go through Galaxy's mixer instead (GalaxyMixer), each
+	// with Galaxy's voice volume, 0-32767, and pan, 0-32767 from the left.
+	virtual void PlayMixedSound(int channel, USound* sound, int volume, int panning, float pitch) = 0;
+	virtual void UpdateMixedSound(int channel, int volume, int panning, float pitch) = 0;
 	virtual void StopSound(int channel) = 0;
 	virtual void SetMusicVolume(float volume) = 0;
 	virtual void SetSoundVolume(float volume) = 0;
@@ -42,7 +46,7 @@ public:
 	// jump to another order without reloading the song.
 	virtual int GetMusicOrder() = 0;
 	virtual void SetMusicOrder(int order) = 0;
-	// The reverb every sound plays through; nullptr turns it off.
+	// The reverb every mixed sound plays through; nullptr turns it off.
 	virtual void SetReverb(const ReverbSettings* settings) = 0;
 	virtual void Update() = 0;
 };

@@ -927,11 +927,15 @@ checks:
 
 ## Sound
 
-The fork's audio is its own, over OpenAL; the original's is `Galaxy.dll`
-([`galaxy-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md)). Both scan every actor for ambient sounds
-each frame, keep one record a channel and choose which sound wins alike.
-Every difference read from both codes landed 2026-09-25; each bullet says
-what changed, what stays the fork's own, and its by-hand check:
+The original's audio is `Galaxy.dll`
+([`galaxy-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md)). The fork's scans every actor for ambient
+sounds each frame, keeps one record a channel and chooses which sound wins
+as it does, and since 2026-09-28 mixes Deus Ex's sounds as Galaxy's mixer
+does -- its pan, its volumes, its resampling and its reverb, at
+`OutputRate` --, the mix going out through one OpenAL source; the music is
+OpenAL's own source still, and other games' sounds OpenAL's, placed in 3D.
+Every difference read from both codes landed 2026-09-25 or 28; each bullet
+says what changed, what stays the fork's own, and its by-hand check:
 
 - **Sounds behind walls.** Landed (2026-09-25): a sound fades over half a
   second to a third of its volume while the level's BSP stands between the
@@ -943,26 +947,26 @@ what changed, what stays the fork's own, and its by-hand check:
   their true distances, one blocked behind terrain at a third, and a
   boat's idle crossing both ways. To check by hand: a guard's radio or
   a generator dulling through a wall and opening back up in a doorway,
-  never a conversation line. Measured (2026-09-26, a fan heard 400 units
-  off in the open and 422 behind Liberty Island's rock): 10.0 dB down in
-  the original, 9.9 in the fork, neither filtering.
+  never a conversation line. Measured (a fan heard 400 units off in the
+  open and 422 behind Liberty Island's rock): 10.0 dB down in the original
+  and in the fork, neither filtering, and the fan in the open at −17.5 and
+  −17.4 dB of full scale (2026-09-28; −20.1 in the fork before its
+  mixer was Galaxy's).
 - **Reverb.** Landed (2026-09-25): a zone with `bReverbZone` gives every
   sound its reverb -- 21 zones in 16 maps, Battery Park to the endgame
-  (the data) -- set again only when the view target's zone changes,
-  over OpenAL's EFX ([reverb](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#reverb)). The mapping is
-  the fork's own, since Galaxy's reverb is a six-tap echo network and
-  EFX's a reverb model: `MasterGain` the gain, `CutoffHz` a one-pole
-  lowpass read at EFX's 5 kHz reference, the echo train's longest tap
-  the decay time, its earliest the reflections delay; music stays dry,
-  as the original's. OldUnreal's `ALAudio.dll` remains the
-  read-if-needed reference for a closer take
-  ([the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#the-binaries)). To check by hand: Battery
-  Park's underground echoing against the open park, and the echo
-  gone on stepping back out. Measured (2026-09-26, gunshots in Battery
-  Park's `ZoneInfo5`, dry outside it in both): the original's ring about
-  2 s before falling 60 dB under their peak, the fork's 0.74 s, and their
-  tail, 0.5 to 1.5 s after the peak, is 32 dB under the shot in the
-  original and 40 in the fork -- the mapping falls short, open.
+  (the data) -- set again only when it changes, starting from silence;
+  music stays dry, as the original's. Galaxy's own since 2026-09-28
+  ([reverb](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#reverb)): three stages of stereo allpass
+  filters, each echo one side of a stage, a lowpass at the cutoff in their
+  feedback, the last stage fed back into the first with its sides swapped,
+  the echoes' delays whole samples at `OutputRate`, where the fork mapped
+  the zone onto OpenAL's EFX reverb, a model of its own. To check by
+  hand: Battery Park's underground echoing against the open park, and
+  the echo gone on stepping back out. Measured (gunshots in Battery
+  Park's `ZoneInfo5`, dry outside it in both): the original's ring
+  2.04 s before falling 60 dB under their peak and the fork's 2.00, and
+  their tail, 0.5 to 1.5 s after the peak, is 32.4 dB under the shot in
+  both (2026-09-28; 0.74 s and 40.3 dB with EFX).
 - **Ambient sounds on lights.** Landed (2026-09-25): the fork scales such
   a sound by `LightBrightness` ÷ 255 -- a quarter or less for 235 of the
   402 actors in 46 maps that carry both -- and follows the light's pulse,
@@ -986,28 +990,47 @@ what changed, what stays the fork's own, and its by-hand check:
   of the fork's audio device (default 255, the game's), speech -- the talk
   slot -- gains by it and the rest by the Sound slider, and the three
   instant-volume natives set the sliders themselves, so a menu drag holds
-  instead of lasting one frame ([volume](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#volume)). Not
-  carried: Galaxy's equal-sliders quirk, both scaled by the slider twice.
-  To check by hand: the Speech slider moving a conversation's loudness
-  mid-line and not the world's, the Sound slider the other way round.
+  instead of lasting one frame ([volume](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#volume)). Since
+  2026-09-28 the sliders' law is Galaxy's: each sound plays at its own
+  slider times the louder one, the mixer squaring the louder -- at the
+  game's 204 and 255, as before, the other sounds at 0.8 and speech at 1
+  (times Galaxy's 0.97); with the Speech slider lowered below the Sound
+  one, both quieter than the fork had them. Not carried: Galaxy's
+  equal-sliders quirk, both scaled by the slider once more. To check by
+  hand: the Speech slider moving a conversation's loudness mid-line and
+  not the world's, the Sound slider the other way round.
 - **Loudness.** Landed (2026-09-25): the fork plays the script's volume
   as the original does -- no rescale toward 1, no halving -- with
   fall-off linear from the sound to its radius and silent there, and the
-  product capped at full, the Sound slider its ceiling
-  ([volume](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#volume)). Not carried: the original's 1/256
-  volume floor, an integer artifact. Other games keep the fork's old
-  loudness. To check by hand: a humming light or a generator fading
-  steadily on the walk away and silent right at its radius, not gone
-  early; effects sitting louder against the music than before. A sound
-  straight ahead records 2.5 to 3 dB quieter in the fork than in the
-  original: the pan's, below.
-- **Pan.** Not carried: the fork leaves a sound's place to OpenAL, which
-  pans it hard, where the original turns the sound's angle into Galaxy's
-  pan, at most seven-eighths of the way to a side
-  ([each frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#each-frame)). Measured (2026-09-26, a beep
-  234 units off, 90° to one side): the far channel 5.1 dB under the near
-  one in the original, 42 in the fork; straight ahead, each channel 1.8 dB
-  under the side's near one in the original, 6.2 in the fork -- open.
+  product capped at full ([volume](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#volume)); the fall-off
+  runs from the eyes the view is drawn from since 2026-09-28, as
+  Galaxy's, where the fork's ran from the view's actor. Not carried: the
+  original's 1/256 volume floor, an integer artifact. Other games keep
+  the fork's old loudness. To check by hand: a humming light or a
+  generator fading steadily on the walk away and silent right at its
+  radius, not gone early; effects sitting louder against the music than
+  before. A gunshot from the player records at −3.6 dB of full scale in
+  the fork and −3.7 in the original (2026-09-28; −6.7 before, the pan's).
+- **Pan.** Galaxy's since 2026-09-28
+  ([each frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#each-frame), [the mixer](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#the-mixer)): the
+  sound's angle off straight ahead, front and back alike, seen from the
+  view's eyes and scaled down within a tenth of its radius, is a pan of at
+  most seven-eighths to a side, and each side plays at the square root of
+  its share of it, where the fork left the sound's place to OpenAL, which
+  panned it hard and dropped a sound ahead to half on each side.
+  `ReverseStereo` swaps the sides, and `UseSurround` (off in the game's
+  ini) plays a sound behind centred with its right side inverted.
+  Measured (a beep 234 units off, 90° to one side): the far channel
+  5.1 dB under the near one in both, each channel at −7.1 dB of full scale
+  straight ahead in the fork and −7.2 in the original (2026-09-28; 42 dB
+  and −11.5 before). To check by hand: with headphones, a sound off to one
+  side heard in both ears, the far one softer.
+- **Resampling and loops.** Galaxy's since 2026-09-28
+  ([the mixer](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#the-mixer)): a sound steps through its
+  samples at its rate times its pitch in whole hertz, interpolating
+  linearly as the original does on a CPU with SSE, and a looping sound
+  loops exactly between its `smpl` points, where OpenAL looped the whole
+  sample and the fork jumped back once a frame after the loop's end.
 - **Doppler.** Landed (2026-09-25): the fork shifts only an ambient
   sound's pitch, by its actor's speed away from the view target at
   `DopplerSpeed` (a real setting, default 6,500 units a second), kept to
