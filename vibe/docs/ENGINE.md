@@ -1186,3 +1186,13 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   1999.5), and the first laser view fitted as the original's; `TraceConsole`
   and `AIConsole` as before; `MeshConsole`'s decorations resting 0.1 over
   the floor (1.0 before); proving runs on three maps clean.
+- [**the visible-actor iterators as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/819b54210f05559061da01a7f5494a89d2c4cdd4) --
+  `VisibleCollidingActors` lists the colliding actors, movers too, whose
+  locations lie within the radius (1000 for none), passes over the hidden
+  only when asked and asks the line to each as `FastTrace` does, where the
+  fork's asked no line and so let `HurtRadius` hurt through walls;
+  `VisibleActors`' radius of 0 is no limit; other games keep the fork's;
+  the harness's `VisibleConsole`
+  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `VisibleConsole`
+  alike in both engines, movers and lists; proving runs on three maps
+  clean.
