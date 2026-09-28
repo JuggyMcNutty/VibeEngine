@@ -1206,3 +1206,11 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `SightConsole`
   85 of 86 lines the original's (64 before); `AIConsole` as before;
   proving runs on three maps clean.
+- [**the player's input before its physics**](https://github.com/JuggyMcNutty/VibeEngine/commit/0350c240b0e0004722f741b98b89d368642e67f7) --
+  Deus Ex's player runs `PlayerInput` and `PlayerTick` in its own tick
+  before its state code and physics, as the original's actor tick does,
+  where the fork ran them after and took each move a tick late; other
+  games keep the fork's order; `StandConsole` walks with a held key's
+  forward axis ([small](NATIVES.md#small)). **Checked:** `StandConsole`
+  -- the acceleration the original's from the walk's second tick, the
+  walks' ends within a unit and 7; proving runs on three maps clean.
