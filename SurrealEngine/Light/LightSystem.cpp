@@ -66,7 +66,8 @@ void LightSystem::BeginFrame()
 		{
 			constexpr float flickerFrameRate = 25.0f;
 			actor->Light.NextFlickerTime = actor->Level()->TimeSeconds() + 1.0f / flickerFrameRate;
-			actor->Light.FlickerRandom = (RandInt(1) != 0);
+			actor->Light.FlickerValue = RandInt(32767) * (1.0f / 32768.0f);
+			actor->Light.FlickerRandom = actor->Light.FlickerValue >= 0.5f;
 		}
 
 		// An animating light invalidates what was built from it -- unless

@@ -14,41 +14,9 @@
 #include "Packages/Engine/Resources/USound.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Collision/BottomLevel/TraceRayModel.h"
+#include "Light/LightmapBuilder.h"
 
 static float square(float x) { return x * x; }
-
-// The light's momentary animation scalar, the same shapes the renderer's
-// LightmapBuilder::GetLightColor gives a lightmap (a steady light is 1): the
-// original scales an ambient sound on a light by the renderer's own
-// GlobalLighting (galaxy-dll.md, Each frame). The palette types stay 1.
-static float AmbientLightScalar(UActor* light)
-{
-	constexpr float phaseScale = (1.0f / 255.0f);
-	constexpr float periodSpeed = 40.0f;
-	constexpr float turnsToRadians = 2.0f * 3.14159265359f;
-	constexpr float strobeSpeed = 10.0f;
-	switch (light->LightType())
-	{
-	default:
-		return 1.0f;
-	case LT_Pulse:
-	{
-		float pulseTurns = light->LightPhase() * phaseScale + light->Level()->TimeSeconds() * periodSpeed / std::max(light->LightPeriod(), (uint8_t)1);
-		return 0.65f + 0.35f * std::sin(pulseTurns * turnsToRadians);
-	}
-	case LT_SubtlePulse:
-	{
-		float pulseTurns = light->LightPhase() * phaseScale + light->Level()->TimeSeconds() * periodSpeed / std::max(light->LightPeriod(), (uint8_t)1);
-		return 0.8f + 0.2f * std::sin(pulseTurns * turnsToRadians);
-	}
-	case LT_Blink:
-		return std::fmod(light->LightPhase() * phaseScale + light->Level()->TimeSeconds() * periodSpeed / std::max(light->LightPeriod(), (uint8_t)1), 2.0f) < 1.0f ? 1.0f : 0.0f;
-	case LT_Strobe:
-		return std::fmod(light->Level()->TimeSeconds() * strobeSpeed, 2.0f) < 1.0f ? 1.0f : 0.0f;
-	case LT_Flicker:
-		return light->Light.FlickerRandom ? 1.0f : 0.0f;
-	}
-}
 
 std::string USurrealAudioDevice::GetPropertyAsString(const NameString& propertyName) const
 {
@@ -323,9 +291,10 @@ void USurrealAudioDevice::UpdateAmbience()
 
 				// An actor with a light has its sound follow the light: the volume
 				// times LightBrightness / 255 and the light's momentary pulse or
-				// flicker, then at most 1 (galaxy-dll.md, Each frame).
+				// flicker -- the renderer's GlobalLighting of a steady 1 --, then at
+				// most 1 (galaxy-dll.md, Each frame).
 				if (engine->LaunchInfo.IsDeusEx() && Playing.Actor->LightType() != LT_None)
-					Playing.Volume = std::min(Playing.Volume * (Playing.Actor->LightBrightness() / 255.0f) * AmbientLightScalar(Playing.Actor), 1.0f);
+					Playing.Volume = std::min(Playing.Volume * (Playing.Actor->LightBrightness() / 255.0f) * LightmapBuilder::GlobalLighting(Playing.Actor, 1.0f, nullptr), 1.0f);
 
 				// Deus Ex's Doppler is the ambient sound's alone: the pitch times
 				// 1 - the actor's speed away from the view target / DopplerSpeed,

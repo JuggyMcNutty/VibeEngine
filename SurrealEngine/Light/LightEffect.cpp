@@ -5,6 +5,7 @@
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Math/coords.h"
+#include "Engine.h"
 
 #ifdef USE_SSE2
 #include <immintrin.h>
@@ -52,9 +53,16 @@ void LightEffect::Run(UActor* light, int width, const Array<LightmapSpan>& spans
 	args.radius = light->WorldLightRadius();
 	args.invRadius = 1.0f / args.radius;
 	args.invRadiusSquared = args.invRadius * args.invRadius;
+	args.smoothFalloff = engine->LaunchInfo.IsDeusEx();
 
 	uint8_t effect = light->LightEffect();
 	EffectFunc func = (effect <= LE_Unused) ? Effects[effect] : &LightEffect::NoneEffect;
+	// Deus Ex's torch and fire wavers and watery shimmer are shaped as a
+	// plain light, their texels dimmed at random as they are added
+	// (LightmapBuilder::AddLightContributionDX), and the omni bump map is a
+	// plain light too (dx-reverse-info/render-dll.md, light maps)
+	if (args.smoothFalloff && (effect == LE_TorchWaver || effect == LE_FireWaver || effect == LE_WateryShimmer || effect == LE_OmniBumpMap))
+		func = &LightEffect::NoneEffect;
 	for (const LightmapSpan& span : spans)
 	{
 		int offset = span.y * width + span.x0;
@@ -77,6 +85,7 @@ void LightEffect::NoneEffect(LightEffectArgs* args)
 	const float Nz = args->N.z;
 	const float invRadius = args->invRadius;
 	const float invRadiusSquared = args->invRadiusSquared;
+	const bool smoothFalloff = args->smoothFalloff;
 	const float* locations = (float*)args->locations; // vec3
 	const float* shadowmap = args->shadowmap;
 	float* result = args->result;
@@ -122,8 +131,12 @@ void LightEffect::NoneEffect(LightEffectArgs* args)
 			__m128 v = _mm_mul_ps(len, mmInvRadius); // float v = len * invRadius;
 			__m128 v2 = _mm_mul_ps(v, v); // float v2 = v * v;
 			__m128 v3 = _mm_mul_ps(v2, v); // float v3 = v2 * v;
-			__m128 distanceAttenuation = _mm_div_ps(_mm_sub_ps(_mm_add_ps(_mm_set_ps1(1.0f), _mm_mul_ps(_mm_set_ps1(2.0f), v3)), _mm_mul_ps(_mm_set_ps1(3.0f), v2)), v); // float distanceAttenuation = (1.0f + 2.0f * v3 - 3.0f * v2) / v;
-			distanceAttenuation = _mm_min_ps(distanceAttenuation, _mm_set_ps1(1.0f)); // distanceAttenuation = std::min(distanceAttenuation, 1.0f);
+			__m128 distanceAttenuation = _mm_sub_ps(_mm_add_ps(_mm_set_ps1(1.0f), _mm_mul_ps(_mm_set_ps1(2.0f), v3)), _mm_mul_ps(_mm_set_ps1(3.0f), v2)); // float distanceAttenuation = 1.0f + 2.0f * v3 - 3.0f * v2;
+			if (!smoothFalloff)
+			{
+				distanceAttenuation = _mm_div_ps(distanceAttenuation, v); // distanceAttenuation /= v;
+				distanceAttenuation = _mm_min_ps(distanceAttenuation, _mm_set_ps1(1.0f)); // distanceAttenuation = std::min(distanceAttenuation, 1.0f);
+			}
 
 			__m128 value = _mm_mul_ps(_mm_loadu_ps(shadowmap), _mm_mul_ps(distanceAttenuation, angleAttenuation));
 			value = _mm_or_ps(_mm_and_ps(cmpdistmask, value), _mm_andnot_ps(cmpdistmask, _mm_setzero_ps()));
@@ -177,7 +190,7 @@ void LightEffect::NoneEffect(LightEffectArgs* args)
 			float32x4_t v2 = vmulq_f32(v, v);
 			float32x4_t v3 = vmulq_f32(v2, v);
 			float32x4_t num = vsubq_f32(vfmaq_f32(one, two, v3), vmulq_f32(three, v2));
-			float32x4_t dist = vminq_f32(vdivq_f32(num, v), one);
+			float32x4_t dist = smoothFalloff ? num : vminq_f32(vdivq_f32(num, v), one);
 
 			float32x4_t value = vmulq_f32(vld1q_f32(shadowmap), vmulq_f32(dist, angle));
 			value = vreinterpretq_f32_u32(vandq_u32(vreinterpretq_u32_f32(value), inRange));
@@ -221,8 +234,12 @@ void LightEffect::NoneEffect(LightEffectArgs* args)
 			float v = len * invRadius;
 			float v2 = v * v;
 			float v3 = v2 * v;
-			float distanceAttenuation = (1.0f + 2.0f * v3 - 3.0f * v2) / v;
-			distanceAttenuation = distanceAttenuation <= 1.0f ? distanceAttenuation : 1.0f;
+			float distanceAttenuation = 1.0f + 2.0f * v3 - 3.0f * v2;
+			if (!smoothFalloff)
+			{
+				distanceAttenuation /= v;
+				distanceAttenuation = distanceAttenuation <= 1.0f ? distanceAttenuation : 1.0f;
+			}
 
 			*result = (*shadowmap) * distanceAttenuation * angleAttenuation;
 		}
@@ -510,6 +527,12 @@ float LightEffect::CalcLightDistanceFalloff(float distsqr)
 	float v = std::sqrt(distsqr + 0.0001f);
 	float v2 = v * v;
 	float v3 = v2 * v;
+	// Deus Ex's shape is the original's: its table's (1 + 2v^3 - 3v^2) / v,
+	// times the light's height over the surface / the radius, which is
+	// 1 + 2v^3 - 3v^2 times the angle's cosine the effects apply
+	// (dx-reverse-info/render-dll.md, light maps)
+	if (engine->LaunchInfo.IsDeusEx())
+		return std::max(1.0f + 2.0f * v3 - 3.0f * v2, 0.0f);
 	return std::min((1.0f + 2.0f * v3 - 3.0f * v2) / v, 1.0f);
 }
 

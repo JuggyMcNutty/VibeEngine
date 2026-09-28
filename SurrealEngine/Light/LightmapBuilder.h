@@ -36,6 +36,12 @@ public:
 
 	static vec3 GetLightColor(UActor* light);
 
+	// URender::GlobalLighting (dx-reverse-info/render-dll.md, lighting): the
+	// brightness given, shaped by the light's type at this moment and kept
+	// to 0-1, and the light's colour, FGetHSV's at full value -- a palette
+	// light's its palette's. Deus Ex's light maps and ambient sounds use it.
+	static float GlobalLighting(UActor* light, float brightness, vec3* color);
+
 private:
 	const vec3* WorldLocations() const { return points.data(); }
 	const vec3& WorldNormal() const { return normal; }
@@ -47,6 +53,7 @@ private:
 
 	void AddLightContribution(UActor* light);
 	static void AddLightContribution(const vec3& lightcolor, const float* src, float* dest, int size);
+	void AddLightContributionDX(UActor* light);
 
 	int width = 0;
 	int height = 0;

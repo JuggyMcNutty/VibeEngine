@@ -540,12 +540,12 @@ the fork drew none. The beam's texture, `LaserBeam1`, is a fire texture
 since, it draws the beams (2026-09-27, `LaserConsole`), both engines' logs
 agreeing on the emitter, its iterator and its proxy -- a translucent sprite
 of that texture, moved along the beam --, the dashes where the original's
-are and as far apart, but fainter, over a floor and walls the fork draws
-brighter than the original's frames show them -- in linear terms, the
-frames' gamma taken out ([brightness](#brightness)), 3.7 to 4 times, where
-`FlashConsole`'s outdoor view is about 2.2 times (2026-09-27), the
-original's `OpenGLDrv` and `D3DDrv` alike --: the dashes are not yet
-compared for brightness.
+are and as far apart. They looked fainter over a floor the fork drew 3.7
+to 4 times too bright; with the light maps the original's
+([lighting](#lighting)) the floor matches, and the dashes are a little
+stronger than the original's: in the two beams' bands 60 to 70% more
+pixels red over green by 40 or more, their red about 7% higher
+(2026-09-28, against `D3DDrv`).
 Walked into, a tripwire sounds its alarm in both.
 
 ### Coronas
@@ -612,27 +612,52 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   animating effect -- are added over the loaded static colors every
   frame, each through its own shadow bits; the moving lights stay the
   shadowless per-frame pass; and a mover's maps are rebuilt when the
-  mover moved or turned since, not every frame. Still the fork's own:
-  the maps are floats, converted for the Smart Pro's GPU on the CPU
-  (engine patches 0002 and 0024), where the original's are bytes -- and
-  the fork clamps each texel at 1.0 on upload, where the original's byte
-  reaches twice unit brightness (64 unit, 127 double:
-  [the driver](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)), so its
-  brightest lights top out at half the original's overbright; a
-  changed map goes to the GPU whole in both; the lookup is a `std::map`
-  where the original's cache hashes and first checks the item it found
-  last; and a still-shaped animated light is re-run rather than kept as
-  its shadowed light and rescaled. To check by hand: a flickering
-  sconce's wall (the 'Ton's entrance), a pulsing light throbbing, and a
-  triggered light going dark, each with its shadows still there.
+  mover moved or turned since, not every frame. And a map holds the
+  original's bytes now (2026-09-28,
+  [the maps](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps)): the zone's ambient light,
+  `FGetHSV`'s colour times 64; each light's illumination -- its shadow
+  byte, 254 lit (the original's 3 x 3 kernel), 127 all over for a light
+  without shadow bits, times its effect's shape, the plain one
+  1 − 3v² + 2v³ of v, its distance over its radius, times the cosine of
+  its angle to the surface -- times its colour, `FGetHSV`'s at full value
+  by `GlobalLighting`'s brightness and the level's `Brightness`, at most
+  127; each channel held to 127 as the lights add up; a byte a 255th,
+  which the shader's doubling makes `D3DDrv`'s 2/255
+  ([brightness](#brightness)). The fork had the colour of
+  √`LightBrightness`, a falloff of (1 − 3v² + 2v³) / v held to 1, a lit
+  shadow of 2, the ambient light doubled and no ceiling short of twice
+  the texture: its lit surfaces were 3.7 to 4 times the original's indoors
+  and about 2.2 outdoors, in linear terms. Now `ViewConsole`'s Liberty
+  Island and `LaserConsole`'s corridor come out within a level or two of
+  256 of `D3DDrv`'s frames, region for region. A pulse is the original's
+  0.6 + 0.39 sin (a subtle one 0.9 + 0.09 sin), 35 turns a second over
+  `LightPeriod` from `LightPhase`'s 256ths of a turn; a flicker's draw,
+  when at least one half, lights it at that fraction; a palette light's
+  colour and brightness are its palette's. Still the fork's own: the
+  maps are floats, converted for the Smart Pro's GPU on the CPU (engine
+  patches 0002 and 0024); a changed map goes to the GPU whole in both; the
+  lookup is a `std::map` where the original's cache hashes and first
+  checks the item it found last; a still-shaped animated light is re-run
+  rather than kept as its shadowed light and rescaled; blink and strobe
+  keep the fork's timing, where the original's blink goes by the lowest
+  bit of its turn count and its strobe turns over each frame, both at the
+  frame rate; a flicker draws at most 25 times a second; the sample
+  points of a map's texels are the fork's; and the other effects' shapes
+  (below) sit on the plain falloff as the original's do. To check by hand:
+  a flickering sconce's wall (the 'Ton's entrance), a pulsing light
+  throbbing, and a triggered light going dark, each with its shadows still
+  there.
 - **`NoDynamicLights`**: works now (2026-09-25) -- animated lights count
   as still and bake into the static map, and moving ones are left out;
   by hand with the ini setting on.
 - **`LE_CloudCast`**: the fork builds it once, and its effect's shape is
-  a placeholder (upstream's to-do), as are the torch and fire wavers and
-  the watery shimmer; in the original the cloud shape changes over time
-  and is run every frame, and the wavers dim each texel by up to 5% and
-  20% as a map is merged. The formulas are unread.
+  a placeholder (upstream's to-do); in the original the cloud shape
+  changes over time and is run every frame, its formula unread. The torch
+  and fire wavers and the watery shimmer are the original's now
+  (2026-09-28): the plain shape, each texel dimmed at random by up to 5%,
+  20% and 40% as the light is added -- the shimmer's randomness plain,
+  where the original's has a table of its own; and the omni bump map is a
+  plain light, as in the original's table of effects.
 - **Meshes.** The fork keeps the original's now (2026-09-25): the
   candidates from the actor's leaf of the BSP plus the moving lights near
   it and last frame's, the strongest picked first -- statics until 8, none
@@ -928,10 +953,10 @@ what changed, what stays the fork's own, and its by-hand check:
 - **Ambient sounds on lights.** Landed (2026-09-25): the fork scales such
   a sound by `LightBrightness` ÷ 255 -- a quarter or less for 235 of the
   402 actors in 46 maps that carry both -- and follows the light's pulse,
-  blink, strobe or flicker with the renderer's own animation shapes,
-  capped at 1, where the original reads its renderer's `GlobalLighting`
-  ([each frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#each-frame)); the palette light types stay
-  steady, the fork's own. To check by hand: a security camera's hum
+  blink, strobe or flicker, capped at 1: the renderer's `GlobalLighting`
+  ([each frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#each-frame)), the fork's the original's
+  since 2026-09-28, a palette light's with it, but for the blink's and
+  strobe's timing ([lighting](#lighting)). To check by hand: a security camera's hum
   quieter than an unlit machine's of the same volume, and a flickering
   or pulsing light's hum wavering with it.
 - **Music.** Landed (2026-09-25): a transition fades the playing music

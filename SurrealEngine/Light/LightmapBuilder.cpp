@@ -10,6 +10,7 @@
 #include "Packages/Core/UClass.h"
 #include "RenderDevice/RenderDevice.h"
 #include "Math/hsb.h"
+#include "Utils/Random.h"
 #include <cstring>
 
 #ifdef USE_SSE2
@@ -40,6 +41,19 @@ void LightmapBuilder::Setup(UModel* model, const Coords& mapCoords, int lightMap
 
 void LightmapBuilder::SetAmbientLight(UZoneInfo* zoneActor)
 {
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		// Deus Ex's maps are the original's bytes, 127 at most, a byte worth
+		// 2/255 on the screen as D3DDrv shows it (dx-reverse-info/render-dll.md,
+		// light maps): the zone's ambient light starts them, FGetHSV's
+		// colour times 64
+		vec3 ambient = FGetHSV(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
+		vec3 bytes(std::floor(ambient.r * 64.0f), std::floor(ambient.g * 64.0f), std::floor(ambient.b * 64.0f));
+		for (vec3& c : lightcolors)
+			c = bytes;
+		return;
+	}
+
 	// Initialize lightmap with the ambient color
 
 	vec3 ambientColor = hsbtorgb(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness()); // To do: is this the correct scale?
@@ -206,6 +220,12 @@ void LightmapBuilder::FindLitSpans(UActor* light)
 
 void LightmapBuilder::AddLightContribution(UActor* light)
 {
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		AddLightContributionDX(light);
+		return;
+	}
+
 	vec3 lightcolor = GetLightColor(light);
 	for (const LightmapSpan& span : spans)
 	{
@@ -257,6 +277,120 @@ void LightmapBuilder::AddLightContribution(const vec3& lightcolor, const float* 
 		src++;
 		dest += 3;
 	}
+}
+
+void LightmapBuilder::AddLightContributionDX(UActor* light)
+{
+	// The original's merge (dx-reverse-info/render-dll.md, light maps): a
+	// texel's illumination i, its shadow byte (254 lit, a light without
+	// shadow bits 127) times the effect's shape, rounded, goes through the
+	// light's table -- i x its colour in 65536ths, at most 127 a channel --
+	// and is added to the map, each channel held to 127. The colour is
+	// GlobalLighting's times its brightness and the level's Brightness. A
+	// torch or fire waver or a watery shimmer dims each texel by up to 5%,
+	// 20% or 40% at random.
+	vec3 color;
+	float brightness = GlobalLighting(light, light->LightBrightness() * (1.0f / 255.0f), &color);
+	vec3 scale = color * (brightness * light->Level()->Brightness() * 65536.0f);
+	int scaleR = std::max((int)std::floor(scale.r), 0);
+	int scaleG = std::max((int)std::floor(scale.g), 0);
+	int scaleB = std::max((int)std::floor(scale.b), 0);
+
+	float waver = 0.0f;
+	switch (light->LightEffect())
+	{
+	case LE_TorchWaver: waver = 0.05f; break;
+	case LE_FireWaver: waver = 0.2f; break;
+	case LE_WateryShimmer: waver = 0.4f; break;
+	}
+
+	for (const LightmapSpan& span : spans)
+	{
+		const float* src = illuminationmap.data() + span.y * width + span.x0;
+		vec3* dest = lightcolors.data() + span.y * width + span.x0;
+		for (int x = span.x0; x < span.x1; x++, src++, dest++)
+		{
+			int i = std::clamp((int)(*src + 0.5f), 0, 255);
+			if (waver != 0.0f)
+				i = (int)(i * (1.0f - waver + waver * (RandInt(32767) * (1.0f / 32768.0f))));
+			dest->r = std::min(dest->r + (float)std::min((i * scaleR) >> 16, 127), 127.0f);
+			dest->g = std::min(dest->g + (float)std::min((i * scaleG) >> 16, 127), 127.0f);
+			dest->b = std::min(dest->b + (float)std::min((i * scaleB) >> 16, 127), 127.0f);
+		}
+	}
+}
+
+float LightmapBuilder::GlobalLighting(UActor* light, float brightness, vec3* color)
+{
+	if (color)
+		*color = FGetHSV(light->LightHue(), light->LightSaturation(), 255);
+
+	double time = light->Level()->TimeSeconds();
+	switch (light->LightType())
+	{
+	case LT_None:
+		brightness = 0.0f;
+		break;
+	case LT_Pulse:
+	case LT_SubtlePulse:
+	{
+		// 35 turns a second over the period, from the phase's 256ths of a turn
+		double turns = time * 35.0 / std::max((int)light->LightPeriod(), 1) + light->LightPhase() * (1.0 / 256.0);
+		float wave = (float)std::sin((turns - std::floor(turns)) * (2.0 * 3.14159265358979));
+		brightness *= light->LightType() == LT_Pulse ? 0.6f + 0.39f * wave : 0.9f + 0.09f * wave;
+		break;
+	}
+	case LT_Blink:
+		// The original's blink goes by the lowest bit of its turn count, so
+		// by the frame: the fork's own even blink instead
+		if (std::fmod(light->LightPhase() * (1.0 / 255.0) + time * 40.0 / std::max((int)light->LightPeriod(), 1), 2.0) >= 1.0)
+			brightness = 0.0f;
+		break;
+	case LT_Strobe:
+		// The original's strobe turns over each frame: the fork's own 5 Hz
+		if (std::fmod(time * 10.0, 2.0) >= 1.0)
+			brightness = 0.0f;
+		break;
+	case LT_Flicker:
+		// A random draw, at most 25 times a second (LightSystem::BeginFrame):
+		// out below one half, else that much of the brightness
+		brightness = light->Light.FlickerValue >= 0.5f ? brightness * light->Light.FlickerValue : 0.0f;
+		break;
+	case LT_TexturePaletteOnce:
+	case LT_TexturePaletteLoop:
+	{
+		// The skin's palette gives the colour, its direction, and the
+		// brightness, (2 red + 3 green + blue) / 1536 x 2.8 of it: through the
+		// palette over the light's life once, or at 35 turns a second over the
+		// period
+		UTexture* skin = light->Skin();
+		UPalette* palette = skin ? skin->Palette() : nullptr;
+		if (!palette || palette->Colors.empty())
+			break;
+		int index;
+		if (light->LightType() == LT_TexturePaletteOnce)
+		{
+			float lifeSpan = light->Class->GetDefaultObject<UActor>()->LifeSpan();
+			float t = lifeSpan != 0.0f ? std::clamp(1.0f - light->LifeSpan() / lifeSpan, 0.0f, 1.0f) : 0.0f;
+			index = (int)std::floor(t * 255.0f);
+		}
+		else
+		{
+			double turns = time * 35.0 / std::max((int)light->LightPeriod(), 1) + light->LightPhase();
+			index = (uint8_t)(int64_t)(turns * 256.0) % 255;
+		}
+		uint32_t c = palette->Colors[std::min(index, (int)palette->Colors.size() - 1)];
+		vec3 rgb((float)(c & 0xff), (float)((c >> 8) & 0xff), (float)((c >> 16) & 0xff));
+		if (color)
+		{
+			float len2 = dot(rgb, rgb);
+			*color = len2 > 0.0f ? rgb / std::sqrt(len2) : vec3(0.0f);
+		}
+		brightness *= (2.0f * rgb.r + 3.0f * rgb.g + rgb.b) * (2.8f / 1536.0f);
+		break;
+	}
+	}
+	return std::clamp(brightness, 0.0f, 1.0f);
 }
 
 vec3 LightmapBuilder::GetLightColor(UActor* light)

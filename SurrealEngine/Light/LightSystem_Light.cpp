@@ -246,11 +246,14 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 		vec4* dest = (vec4*)lmmip.Data.data();
 		const vec3* src = Builder.Pixels();
 		int count = lmmip.Width * lmmip.Height;
+		// Deus Ex's maps are the original's bytes, up to 127: a 255th each,
+		// which the light map's doubling on the screen makes D3DDrv's 2/255
+		float scale = engine->LaunchInfo.IsDeusEx() ? 1.0f / 255.0f : 1.0f;
 		for (int i = 0; i < count; i++)
 		{
-			dest[i].r = std::min(src[i].r, 1.0f);
-			dest[i].g = std::min(src[i].g, 1.0f);
-			dest[i].b = std::min(src[i].b, 1.0f);
+			dest[i].r = std::min(src[i].r * scale, 1.0f);
+			dest[i].g = std::min(src[i].g * scale, 1.0f);
+			dest[i].b = std::min(src[i].b * scale, 1.0f);
 			dest[i].a = 1.0f;
 		}
 

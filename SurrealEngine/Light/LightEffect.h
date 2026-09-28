@@ -24,6 +24,7 @@ struct LightEffectArgs
 	float invRadiusSquared;
 	vec3 N;
 	const float* shadowmap;
+	bool smoothFalloff; // Deus Ex's: the original's 1 + 2v^3 - 3v^2 (CalcLightDistanceFalloff)
 };
 
 class LightEffect

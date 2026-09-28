@@ -16,6 +16,8 @@ public:
 	const float* Pixels() const { return pixels.data(); }
 
 private:
+	void LoadDX(const uint8_t* bits, int pitch);
+
 	int width = 0;
 	int height = 0;
 	Array<float> pixels;

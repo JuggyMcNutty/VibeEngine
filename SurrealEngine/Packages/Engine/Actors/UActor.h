@@ -552,6 +552,7 @@ public:
 		int LastCheck = -1;
 		int LightmapCheckCounter = -1;
 		bool FlickerRandom = false;
+		float FlickerValue = 0.0f; // the draw FlickerRandom is: at least one half
 		float NextFlickerTime = 0.0f;
 	} Light;
 
