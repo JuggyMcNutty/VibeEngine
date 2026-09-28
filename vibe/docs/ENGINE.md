@@ -1080,3 +1080,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `AIConsole` -- Liberty Island's Terrorist7 patrols on, where it fought
   the security bot, and NPCs inside the island no longer count as drawn;
   proving runs on three maps clean, their shots as before.
+- [**the listeners called after the pass**](https://github.com/JuggyMcNutty/VibeEngine/commit/99e01bb72537fc2b02c15c9dab5b56e1bff51101) --
+  the event manager queues each turn's call and makes them all once the
+  senders' slots have moved on, as the original's: a pulse a call raises
+  goes to the next frame, for every listener
+  ([hearing](NATIVES.md#hearing-the-ai-event-system)). **Checked:** 39
+  calls over Battery Park's opening minute, none raising another event
+  inside the call; proving runs on three maps clean.
