@@ -1214,3 +1214,12 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   forward axis ([small](NATIVES.md#small)). **Checked:** `StandConsole`
   -- the acceleration the original's from the walk's second tick, the
   walks' ends within a unit and 7; proving runs on three maps clean.
+- [**`MoveTo` and `MoveToward` as the original's; a touched node a cylinder's**](https://github.com/JuggyMcNutty/VibeEngine/commit/43541c9d43227fc1aa84ea0bd3e7c1af5cdc2aab) --
+  Deus Ex's latent moves step as the original's `moveToward` and its
+  polls (a spot reached within 16 units across, the slowdown near it, the
+  steering, `AlterDestination` for a pawn walking around what it bumped,
+  the first step at once), and a path's node the pawn stands on counts as
+  touched by its cylinder, for every game
+  ([moving](NATIVES.md#moving-wandering-and-tactical-movement)). **Checked:** `AIConsole` --
+  Terrorist15 patrols, within 4 units of the original's at 20 s (374
+  before), where it backed off; proving runs on three maps clean.
