@@ -100,7 +100,8 @@ All read; the inventory is
 
 - [x] First, render time and stasis: the native tick and the event manager
       both read them (2026-09-25;
-      [out of sight](NATIVES.md#out-of-sight)). **[perf]**
+      [out of sight](NATIVES.md#out-of-sight)). **[perf]** re-measured on
+      the device 2026-09-29.
 - [x] The AI event system, `UEventManager` and `AICanHear`: NPCs hear
       gunfire, footsteps, alarms, distress and bodies (2026-09-25;
       [hearing](NATIVES.md#hearing-the-ai-event-system) has what was
@@ -126,13 +127,13 @@ All read; the inventory is
       [its section](NATIVES.md#particles-and-lasers-render-iterators)
       has what changed and the by-hand checks left).
 - [x] Mesh detail (2026-09-25; [its section](NATIVES.md#mesh-detail)
-      has what changed and the by-hand check). **[perf]** re-measure on
-      the device.
+      has what changed and the by-hand check). **[perf]** re-measured on
+      the device 2026-09-29.
 - [x] Lighting (2026-09-25, the light maps' and meshes' brightness the
       original's since 2026-09-28; [its section](NATIVES.md#lighting) has
       what changed, what stays the fork's own -- float maps, the lookup,
       the unread effect shapes -- and the by-hand checks). **[perf]**
-      re-measure on the device.
+      re-measured on the device 2026-09-29.
 - [x] Coronas (2026-09-25; [coronas](NATIVES.md#coronas) has what
       changed and the by-hand checks).
 - [x] Blend animations: head turns and lip sync (2026-09-25;
