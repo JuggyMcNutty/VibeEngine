@@ -121,6 +121,7 @@ public:
 	static Uint32 TimerEventNumber;
 	
 	SDL_GLContext m_GLContext = nullptr;
+	bool m_GLIsES = false; // RenderAPI::GLES: create an OpenGL ES context
 
 	void CreateGLContext() override;
 	void MakeGLContextCurrent() override;

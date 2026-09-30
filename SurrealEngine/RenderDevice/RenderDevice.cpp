@@ -33,8 +33,10 @@ std::unique_ptr<RenderDevice> RenderDevice::Create(Widget* viewport, RenderAPI r
 	{
 		return std::make_unique<VulkanRenderDevice>(viewport);
 	}
-	else if (renderAPI == RenderAPI::OpenGL)
+	else if (renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::GLES)
 	{
+		// The GL device runs on both a desktop core context and an OpenGL ES
+		// one (RenderAPI::GLES); it detects which it got at init.
 		return std::make_unique<GLRenderDevice>(viewport);
 	}
 #ifdef WIN32

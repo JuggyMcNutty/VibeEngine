@@ -14,10 +14,12 @@ std::unordered_map<unsigned int, SDL3DisplayWindow*> SDL3DisplayWindow::WindowLi
 
 SDL3DisplayWindow::SDL3DisplayWindow(DisplayWindowHost* windowHost, WidgetType type, SDL3DisplayWindow* owner, RenderAPI renderAPI, double uiscale) : WindowHost(windowHost), UIScale(uiscale)
 {
+	m_GLIsES = renderAPI == RenderAPI::GLES;
+
 	unsigned int flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 	if (renderAPI == RenderAPI::Vulkan)
 		flags |= SDL_WINDOW_VULKAN;
-	else if (renderAPI == RenderAPI::OpenGL)
+	else if (renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::GLES)
 		flags |= SDL_WINDOW_OPENGL;
 #if defined(__APPLE__)
 	else if (renderAPI == RenderAPI::Metal)
@@ -26,7 +28,7 @@ SDL3DisplayWindow::SDL3DisplayWindow(DisplayWindowHost* windowHost, WidgetType t
 	if (type == WidgetType::Popup)
 		flags |= SDL_WINDOW_BORDERLESS;
 
-	if (renderAPI == RenderAPI::Vulkan || renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::Metal)
+	if (renderAPI == RenderAPI::Vulkan || renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::GLES || renderAPI == RenderAPI::Metal)
 	{
 		Handle.window = SDL_CreateWindow("", 320, 200, flags);
 		if (!Handle.window)
@@ -667,9 +669,19 @@ void SDL3DisplayWindow::OnTimerEvent(const SDL_UserEvent& event)
 
 void SDL3DisplayWindow::CreateGLContext()
 {
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	if (m_GLIsES)
+	{
+		// OpenGL ES 3.2: the GL device's ES shaders are GLSL ES 3.20.
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	}
+	else
+	{
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	}
 
 	m_GLContext = SDL_GL_CreateContext(Handle.window);
 }

@@ -94,10 +94,12 @@ void GLTextureManager::ClearCache()
 GLCachedTexture* GLTextureManager::CreateNullTexture()
 {
 	NullTexture.reset(new GLCachedTexture());
-	uint32_t white = 0xffffffff;
+	// GL_UNSIGNED_INT_8_8_8_8 (the desktop type this used) is not a valid
+	// upload type for GL_RGBA8 under OpenGL ES; four bytes are the same image.
+	uint8_t white[4] = { 255, 255, 255, 255 };
 	NullTexture->Texture = std::make_shared<GLTexture2D>();
 	glBindTexture(GL_TEXTURE_2D, NullTexture->Texture->Handle);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, &white);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	return NullTexture.get();
 }

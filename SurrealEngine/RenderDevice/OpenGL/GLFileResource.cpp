@@ -9,7 +9,7 @@ std::string GLFileResource::readAllText(const std::string& filename)
 	if (filename == "shaders/Scene.vert")
 	{
 		return R"(
-			uniform ScenePushConstants
+			layout(std140) uniform ScenePushConstants
 			{
 				mat4 objectToProjection;
 				mat4 objectToView;
@@ -82,35 +82,35 @@ std::string GLFileResource::readAllText(const std::string& filename)
 
 			void main()
 			{
-				float actorXBlending = (flags & 32) != 0 ? 1.5 : 1.0;
-				float oneXBlending = (flags & 64) != 0 ? 1.0 : 2.0;
+				float actorXBlending = (flags & 32u) != 0u ? 1.5 : 1.0;
+				float oneXBlending = (flags & 64u) != 0u ? 1.0 : 2.0;
 
 				outColor = darkClamp(textureTex(texCoord)) * color;
 				outColor.rgb *= actorXBlending;
 
-				if ((flags & 2) != 0) // Macro texture
+				if ((flags & 2u) != 0u) // Macro texture
 				{
 					outColor *= darkClamp(textureMacro(texCoord3));
 				}
 
-				if ((flags & 1) != 0) // Lightmap
+				if ((flags & 1u) != 0u) // Lightmap
 				{
 					outColor.rgb *= clamp(textureLightmap(texCoord2).rgb, 0.0, 1.0) * oneXBlending;
 				}
 
-				if ((flags & 4) != 0) // Detail texture
+				if ((flags & 4u) != 0u) // Detail texture
 				{
 					float fadedistance = 380.0f;
 					float a = clamp(2.0f - (1.0f / gl_FragCoord.w) / fadedistance, 0.0f, 1.0f);
 					vec4 detailColor = (textureDetail(texCoord4) - 0.5) * 0.8 + 1.0;
 					outColor.rgb = mix(outColor.rgb, outColor.rgb * detailColor.rgb, a);
 				}
-				else if ((flags & 8) != 0) // Fog map
+				else if ((flags & 8u) != 0u) // Fog map
 				{
 					vec4 fogcolor = textureDetail(texCoord4);
 					outColor.rgb = fogcolor.rgb + outColor.rgb * (1.0 - fogcolor.a);
 				}
-				else if ((flags & 16) != 0) // Fog color
+				else if ((flags & 16u) != 0u) // Fog color
 				{
 					vec4 fogcolor = vec4(texCoord2, texCoord3);
 					outColor.rgb = fogcolor.rgb + outColor.rgb * (1.0 - fogcolor.a);
@@ -151,7 +151,7 @@ std::string GLFileResource::readAllText(const std::string& filename)
 	else if (filename == "shaders/Present.frag")
 	{
 		return R"(
-			uniform PresentPushConstants
+			layout(std140) uniform PresentPushConstants
 			{
 				float Contrast;
 				float Saturation;
@@ -230,7 +230,7 @@ std::string GLFileResource::readAllText(const std::string& filename)
 			vec3 colorCorrect(vec3 c)
 			{
 				float v = c.r + c.g + c.b;
-				vec3 valgray = vec3(v, v, v) * (1 - Saturation) / 3 + c * Saturation;
+				vec3 valgray = vec3(v, v, v) * (1.0 - Saturation) / 3.0 + c * Saturation;
 				vec3 val = valgray * Contrast - (Contrast - 1.0) * 0.5;
 				val += Brightness * 0.5;
 				return max(val, vec3(0.0, 0.0, 0.0));
@@ -296,7 +296,7 @@ std::string GLFileResource::readAllText(const std::string& filename)
 	else if (filename == "shaders/BloomExtract.frag")
 	{
 		return R"(
-			uniform BloomPushConstants
+			layout(std140) uniform BloomPushConstants
 			{
 				float SampleWeights0;
 				float SampleWeights1;
@@ -321,7 +321,7 @@ std::string GLFileResource::readAllText(const std::string& filename)
 	else if (filename == "shaders/BloomCombine.frag")
 	{
 		return R"(
-			uniform BloomPushConstants
+			layout(std140) uniform BloomPushConstants
 			{
 				float SampleWeights0;
 				float SampleWeights1;
@@ -346,7 +346,7 @@ std::string GLFileResource::readAllText(const std::string& filename)
 	else if (filename == "shaders/Blur.frag")
 	{
 		return R"(
-			uniform BloomPushConstants
+			layout(std140) uniform BloomPushConstants
 			{
 				float SampleWeights0;
 				float SampleWeights1;

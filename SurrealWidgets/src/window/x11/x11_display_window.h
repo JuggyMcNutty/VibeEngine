@@ -149,6 +149,7 @@ private:
 	EGLDisplay m_EGLDisplay = nullptr;
 	EGLContext m_EGLContext = nullptr;
 	EGLSurface m_EGLSurface = nullptr;
+	bool m_GLIsES = false; // RenderAPI::GLES: create an OpenGL ES context
 
 	int minWindowWidth = 0;
 	int minWindowHeight = 0;

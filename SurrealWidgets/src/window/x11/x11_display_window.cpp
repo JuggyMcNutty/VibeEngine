@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <iostream>
 
-X11DisplayWindow::X11DisplayWindow(DisplayWindowHost* windowHost, WidgetType windowType, X11DisplayWindow* owner, RenderAPI renderAPI) : windowHost(windowHost), owner(owner)
+X11DisplayWindow::X11DisplayWindow(DisplayWindowHost* windowHost, WidgetType windowType, X11DisplayWindow* owner, RenderAPI renderAPI) : windowHost(windowHost), owner(owner), m_GLIsES(renderAPI == RenderAPI::GLES)
 {
 	auto connection = GetX11Connection();
 	display = connection->display;
@@ -1240,17 +1240,27 @@ void X11DisplayWindow::CreateGLContext()
 {
 	EGLint majorVer, minorVer;
 
-	EGLint ctxAttrs[] = {
-		EGL_CONTEXT_MAJOR_VERSION, 3,
-		EGL_CONTEXT_MINOR_VERSION, 2,
-		EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
-		EGL_NONE
-	};
+	// OpenGL ES 3.2 (the GL device's ES shaders are GLSL ES 3.20) or desktop
+	// 3.2 core: ES takes the ES3 bit and no profile mask.
+	EGLint ctxAttrs[7];
+	int ctxAttrCount = 0;
+	ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_MAJOR_VERSION;
+	ctxAttrs[ctxAttrCount++] = 3;
+	ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_MINOR_VERSION;
+	ctxAttrs[ctxAttrCount++] = 2;
+	if (!m_GLIsES)
+	{
+		ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_OPENGL_PROFILE_MASK;
+		ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT;
+	}
+	ctxAttrs[ctxAttrCount++] = EGL_NONE;
+
+	EGLint renderableBit = m_GLIsES ? EGL_OPENGL_ES3_BIT : EGL_OPENGL_BIT;
 
 	EGLint confAttrs[] = {
 		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-		EGL_CONFORMANT,	EGL_OPENGL_BIT,
-		EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+		EGL_CONFORMANT,	renderableBit,
+		EGL_RENDERABLE_TYPE, renderableBit,
 		EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
 
 		EGL_RED_SIZE, 8,
@@ -1262,6 +1272,9 @@ void X11DisplayWindow::CreateGLContext()
 		EGL_NONE
 	};
 
+	if (!eglBindAPI(m_GLIsES ? EGL_OPENGL_ES_API : EGL_OPENGL_API))
+		throw std::runtime_error("EGL cannot bind to the GL API");
+
 	m_EGLDisplay = eglGetPlatformDisplay(EGL_PLATFORM_X11_KHR, display, nullptr);
 
 	if (m_EGLDisplay == EGL_NO_DISPLAY)
@@ -1272,9 +1285,6 @@ void X11DisplayWindow::CreateGLContext()
 
 	if (majorVer < 1 || (majorVer == 1 && minorVer < 5))
 		throw std::runtime_error("EGL version 1.5 or higher required");
-
-	if (!eglBindAPI(EGL_OPENGL_API))
-		throw std::runtime_error("EGL cannot bind to OpenGL API");
 
 	m_EGLContext = eglCreateContext(m_EGLDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, ctxAttrs);
 	if (m_EGLContext == EGL_NO_CONTEXT)

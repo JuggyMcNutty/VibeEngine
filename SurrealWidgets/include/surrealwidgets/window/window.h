@@ -271,6 +271,7 @@ enum class RenderAPI
 	Bitmap,
 	Vulkan,
 	OpenGL,
+	GLES,
 	D3D11,
 	D3D12,
 	Metal

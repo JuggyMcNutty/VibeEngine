@@ -10,7 +10,7 @@ WaylandDisplayWindow::WaylandDisplayWindow(WaylandDisplayBackend* backend, Displ
 {
 	m_WindowSurface = backend->m_waylandCompositor.create_surface();
 
-	if (m_renderAPI == RenderAPI::OpenGL)
+	if (m_renderAPI == RenderAPI::OpenGL || m_renderAPI == RenderAPI::GLES)
 	{
 		m_EGLWindow = wayland::egl_window_t(m_WindowSurface, 320, 240);
 	}
@@ -608,17 +608,28 @@ void WaylandDisplayWindow::CreateGLContext()
 {
 	EGLint majorVer, minorVer;
 
-	EGLint ctxAttrs[] = {
-		EGL_CONTEXT_MAJOR_VERSION, 3,
-		EGL_CONTEXT_MINOR_VERSION, 2,
-		EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
-		EGL_NONE
-	};
+	// OpenGL ES 3.2 (the GL device's ES shaders are GLSL ES 3.20) or desktop
+	// 3.2 core: ES takes the ES3 bit and no profile mask.
+	const bool es = m_renderAPI == RenderAPI::GLES;
+	EGLint ctxAttrs[7];
+	int ctxAttrCount = 0;
+	ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_MAJOR_VERSION;
+	ctxAttrs[ctxAttrCount++] = 3;
+	ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_MINOR_VERSION;
+	ctxAttrs[ctxAttrCount++] = 2;
+	if (!es)
+	{
+		ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_OPENGL_PROFILE_MASK;
+		ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT;
+	}
+	ctxAttrs[ctxAttrCount++] = EGL_NONE;
+
+	EGLint renderableBit = es ? EGL_OPENGL_ES3_BIT : EGL_OPENGL_BIT;
 
 	EGLint confAttrs[] = {
 		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-		EGL_CONFORMANT,	EGL_OPENGL_BIT,
-		EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+		EGL_CONFORMANT,	renderableBit,
+		EGL_RENDERABLE_TYPE, renderableBit,
 		EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
 
 		EGL_RED_SIZE, 8,
@@ -641,8 +652,8 @@ void WaylandDisplayWindow::CreateGLContext()
 	if (majorVer < 1 || (majorVer == 1 && minorVer < 5))
 		throw std::runtime_error("EGL version 1.5 or higher required");
 
-	if (!eglBindAPI(EGL_OPENGL_API))
-		throw std::runtime_error("EGL cannot bind to OpenGL API");
+	if (!eglBindAPI(es ? EGL_OPENGL_ES_API : EGL_OPENGL_API))
+		throw std::runtime_error("EGL cannot bind to the GL API");
 
 	EGLConfig config;
 	EGLint config_count;

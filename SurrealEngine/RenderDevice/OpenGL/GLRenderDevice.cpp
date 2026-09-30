@@ -58,6 +58,13 @@ bool GLRenderDevice::Init(int NewX, int NewY, bool Fullscreen)
 		if (result == ogl_LOAD_FAILED)
 			throw std::runtime_error("ogl_LoadFunctions failed");
 
+		// An ES context (RenderAPI::GLES) reports its version as
+		// "OpenGL ES 3.2 <driver>"; the desktop one as "4.6 (Core Profile) ...".
+		const GLubyte* version = glGetString(GL_VERSION);
+		IsGLES = version && strncmp((const char*)version, "OpenGL ES", 9) == 0;
+		if (IsGLES)
+			LogMessage(std::string("GLDrv: OpenGL ES context, ") + (const char*)version);
+
 		CreateScenePass();
 		CreatePresentPass();
 		CreateBloomPass();
@@ -686,7 +693,7 @@ void GLRenderDevice::RunBloomPass()
 
 	srvs[0] = SceneBuffers.PPImage[0].get();
 	glBindFramebuffer(GL_FRAMEBUFFER, SceneBuffers.BlurLevels[0].VFramebuffer->Handle);
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glUseProgram(BloomPass.ExtractProgram->Handle);
 	SetViewport(viewport);
@@ -711,7 +718,7 @@ void GLRenderDevice::RunBloomPass()
 		srvs[0] = blevel.VTexture.get();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, next.VFramebuffer->Handle);
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glUseProgram(BloomPass.CombineProgram->Handle);
 		SetViewport(viewport);
@@ -736,7 +743,7 @@ void GLRenderDevice::RunBloomPass()
 		viewport.Height = (float)next.Height;
 		srvs[0] = blevel.VTexture.get();
 		glBindFramebuffer(GL_FRAMEBUFFER, next.VFramebuffer->Handle);
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glUseProgram(BloomPass.CombineProgram->Handle);
 		SetViewport(viewport);
@@ -755,7 +762,7 @@ void GLRenderDevice::RunBloomPass()
 	viewport.Height = (float)SceneBuffers.Height;
 	srvs[0] = SceneBuffers.BlurLevels[0].VTexture.get();
 	glBindFramebuffer(GL_FRAMEBUFFER, SceneBuffers.PPFramebuffer[0]->Handle);
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glUseProgram(BloomPass.CombineProgram->Handle);
 	SetBlendState(BloomPass.AdditiveBlendState.get());
@@ -767,7 +774,7 @@ void GLRenderDevice::RunBloomPass()
 void GLRenderDevice::BlurStep(GLTexture2D* input, GLFramebuffer* output, bool vertical)
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, output->Handle);
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glUseProgram(vertical ? BloomPass.BlurVerticalProgram->Handle : BloomPass.BlurHorizontalProgram->Handle);
 	SetTextures(0, 1, &input);
@@ -1016,7 +1023,7 @@ void GLRenderDevice::Lock(vec4 InFlashScale, vec4 InFlashFog, vec4 ScreenClear, 
 	glEnable(GL_DEPTH_TEST);
 
 	glClearColor(color[0], color[1], color[2], color[3]);
-	glClearDepth(1.0f);
+	glClearDepthf(1.0f); // ES has only the f variant; desktop 4.2+ core
 	//glClearStencil(0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT /* | GL_STENCIL_BUFFER_BIT*/);
 
@@ -1111,7 +1118,7 @@ void GLRenderDevice::Unlock(bool Blit)
 	{
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, SceneBuffers.Framebuffer->Handle);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, SceneBuffers.PPFramebuffer[0]->Handle);
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glBlitFramebuffer(0, 0, CurrentSizeX, CurrentSizeY, 0, 0, CurrentSizeX, CurrentSizeY, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
@@ -1129,7 +1136,7 @@ void GLRenderDevice::Unlock(bool Blit)
 		if (pushconstants.Brightness != 0.0f || pushconstants.Contrast != 1.0f || pushconstants.Saturation != 1.0f) presentShader |= (clamp(GrayFormula, 0, 2) + 1) << 2;
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glDrawBuffer(GL_BACK);
+		{ GLenum glBack = GL_BACK; glDrawBuffers(1, &glBack); } // ES has only glDrawBuffers
 		glReadBuffer(GL_BACK);
 		glUseProgram(PresentPass.PresentProgram[presentShader]->Handle);
 
@@ -1181,7 +1188,7 @@ void GLRenderDevice::Unlock(bool Blit)
 		if (SceneBuffers.Multisample > 1)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, SceneBuffers.PPHitFramebuffer->Handle);
-			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glUseProgram(PresentPass.HitResolveProgram->Handle);
 
@@ -1206,7 +1213,7 @@ void GLRenderDevice::Unlock(bool Blit)
 		{
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, SceneBuffers.PPHitFramebuffer->Handle);
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, SceneBuffers.HitFramebuffer->Handle);
-			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glBlitFramebuffer(HitX, HitY, HitX + HitWidth, HitY + HitHeight, HitX, HitY, HitX + HitWidth, HitY + HitHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
@@ -1251,7 +1258,7 @@ void GLRenderDevice::Unlock(bool Blit)
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDrawBuffer(GL_BACK);
+	{ GLenum glBack = GL_BACK; glDrawBuffers(1, &glBack); } // ES has only glDrawBuffers
 	glReadBuffer(GL_BACK);
 
 	HitQueryStack.clear();
@@ -1774,7 +1781,7 @@ void GLRenderDevice::ClearZ()
 	DrawBatches();
 
 	glDepthMask(GL_TRUE);
-	glClearDepth(1.0f);
+	glClearDepthf(1.0f); // ES has only the f variant
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
 
@@ -1793,7 +1800,7 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 		if (pushconstants.Brightness != 0.0f || pushconstants.Contrast != 1.0f || pushconstants.Saturation != 1.0f) presentShader |= (clamp(GrayFormula, 0, 2) + 1) << 2;
 
 		glBindFramebuffer(GL_FRAMEBUFFER, SceneBuffers.PPFramebuffer[1]->Handle);
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glUseProgram(PresentPass.PresentProgram[presentShader]->Handle);
 
@@ -1935,7 +1942,11 @@ void GLRenderDevice::SetBufferData(GLenum target, GLenum usage, GLBuffer* buffer
 
 void GLRenderDevice::SetBlendState(GLBlendState* blendState, const float* blendConstants)
 {
-	if (blendState->desc.IndependentBlendEnable)
+	// Per-draw-buffer blend (the i variants) is desktop GL 4.0+ and in no ES
+	// version. On ES the non-indexed calls apply to every draw buffer: the
+	// blend describes the color attachment, and the integer hit attachment
+	// ignores blending by the spec itself.
+	if (blendState->desc.IndependentBlendEnable && !IsGLES)
 	{
 		// To do: this might require OpenGL 4.0 - glBlendFuncSeparatei does, not sure about glEnablei(GL_BLEND)
 		for (int i = 0; i < 2; i++)
@@ -1996,15 +2007,21 @@ void GLRenderDevice::SetRasterizerState(GLRasterizerState* rasterizerState)
 
 	glFrontFace(rasterizerState->desc.FrontCounterClockwise ? GL_CCW : GL_CW);
 
-	if (rasterizerState->desc.DepthClipEnable)
-		glEnable(GL_DEPTH_CLAMP);
-	else
-		glDisable(GL_DEPTH_CLAMP);
+	// GL_DEPTH_CLAMP and GL_MULTISAMPLE are desktop GL only (GL_INVALID_ENUM
+	// on ES); ES always rasterizes the samples its target carries and clips at
+	// the frustum, which is what the two states describe here anyway.
+	if (!IsGLES)
+	{
+		if (rasterizerState->desc.DepthClipEnable)
+			glEnable(GL_DEPTH_CLAMP);
+		else
+			glDisable(GL_DEPTH_CLAMP);
 
-	if (rasterizerState->desc.MultisampleEnable)
-		glEnable(GL_MULTISAMPLE);
-	else
-		glDisable(GL_MULTISAMPLE);
+		if (rasterizerState->desc.MultisampleEnable)
+			glEnable(GL_MULTISAMPLE);
+		else
+			glDisable(GL_MULTISAMPLE);
+	}
 }
 
 void GLRenderDevice::SetUniformBuffers(int start, int count, GLBuffer** buffers)
@@ -2036,7 +2053,9 @@ void GLRenderDevice::SetSamplers(int start, int count, GLSampler** samplers)
 void GLRenderDevice::SetViewport(const GLViewport& viewport)
 {
 	glViewport((GLint)std::round(viewport.X), (GLint)std::round(viewport.Y), (GLsizei)std::round(viewport.Width), (GLsizei)std::round(viewport.Height));
-	glDepthRange((GLdouble)viewport.MinDepth, (GLdouble)viewport.MaxDepth);
+	// The f variants: ES has only them, and they are desktop GL 4.2+ core,
+	// which the GLSL-4.20 shaders already require.
+	glDepthRangef((GLfloat)viewport.MinDepth, (GLfloat)viewport.MaxDepth);
 }
 
 void GLRenderDevice::PrecacheTexture(TextureInfo& Info, uint32_t PolyFlags)
@@ -2192,7 +2211,7 @@ std::shared_ptr<GLVertexShader> GLRenderDevice::CreateVertexShader(const std::st
 {
 	auto shader = std::make_shared<GLVertexShader>();
 	SetDebugName(shader, shaderName.c_str());
-	CompileGlsl(shader.get(), filename, defines);
+	CompileGlsl(shader.get(), filename, defines, false);
 	return shader;
 }
 
@@ -2200,13 +2219,28 @@ std::shared_ptr<GLFragmentShader> GLRenderDevice::CreateFragmentShader(const std
 {
 	auto shader = std::make_shared<GLFragmentShader>();
 	SetDebugName(shader, shaderName.c_str());
-	CompileGlsl(shader.get(), filename, defines);
+	CompileGlsl(shader.get(), filename, defines, true);
 	return shader;
 }
 
-void GLRenderDevice::CompileGlsl(GLShader* shader, const std::string& filename, const std::vector<std::string> defines)
+void GLRenderDevice::CompileGlsl(GLShader* shader, const std::string& filename, const std::vector<std::string> defines, bool isFragmentShader)
 {
-	std::string code = "#version 420\r\n";
+	std::string code;
+	if (IsGLES)
+	{
+		// GLSL ES 3.20: the shader sources bind their samplers with
+		// layout(binding = N), which is 3.20's (3.00 has none); the device is
+		// GLES 3.2. An ES fragment shader has no default float precision, so
+		// declare highp. The sources are otherwise the same as the desktop
+		// ones -- gl_FragCoord.w is 1/w in ES as well.
+		code = "#version 320 es\r\n";
+		if (isFragmentShader)
+			code += "precision highp float;\r\nprecision highp int;\r\nprecision highp sampler2D;\r\n";
+	}
+	else
+	{
+		code = "#version 420\r\n";
+	}
 	for (const std::string& define : defines)
 	{
 		code += "#define ";

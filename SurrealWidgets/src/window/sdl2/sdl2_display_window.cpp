@@ -13,10 +13,12 @@ std::unordered_map<int, SDL2DisplayWindow*> SDL2DisplayWindow::WindowList;
 
 SDL2DisplayWindow::SDL2DisplayWindow(DisplayWindowHost* windowHost, WidgetType type, SDL2DisplayWindow* owner, RenderAPI renderAPI, double uiscale) : WindowHost(windowHost), UIScale(uiscale)
 {
+	m_GLIsES = renderAPI == RenderAPI::GLES;
+
 	unsigned int flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE /*| SDL_WINDOW_ALLOW_HIGHDPI*/;
 	if (renderAPI == RenderAPI::Vulkan)
 		flags |= SDL_WINDOW_VULKAN;
-	else if (renderAPI == RenderAPI::OpenGL)
+	else if (renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::GLES)
 		flags |= SDL_WINDOW_OPENGL;
 #if defined(__APPLE__)
 	else if (renderAPI == RenderAPI::Metal)
@@ -25,7 +27,7 @@ SDL2DisplayWindow::SDL2DisplayWindow(DisplayWindowHost* windowHost, WidgetType t
 	if (type == WidgetType::Popup)
 		flags |= SDL_WINDOW_BORDERLESS;
 
-	if (renderAPI == RenderAPI::Vulkan || renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::Metal)
+	if (renderAPI == RenderAPI::Vulkan || renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::GLES || renderAPI == RenderAPI::Metal)
 	{
 		Handle.window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 320, 200, flags);
 		if (!Handle.window)
@@ -654,9 +656,21 @@ void SDL2DisplayWindow::OnTimerEvent(const SDL_UserEvent& event)
 
 void SDL2DisplayWindow::CreateGLContext()
 {
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	if (m_GLIsES)
+	{
+		// OpenGL ES 3.2: the shaders are GLSL ES 3.20 (sampler layout(binding)
+		// is 3.20's). SDL then selects an EGL config with EGL_OPENGL_ES3_BIT and
+		// binds EGL_OPENGL_ES_API (verified against SDL 2.30's SDL_egl.c).
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	}
+	else
+	{
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	}
 
 	m_GLContext = SDL_GL_CreateContext(Handle.window);
 }

@@ -318,7 +318,7 @@ private:
 	std::shared_ptr<GLProgram> CreateProgram(const std::string& programName, std::shared_ptr<GLVertexShader> vertexShader, std::shared_ptr<GLFragmentShader> fragmentShader);
 	std::shared_ptr<GLVertexShader> CreateVertexShader(const std::string& shaderName, const std::string& filename, const std::vector<std::string> defines = {});
 	std::shared_ptr<GLFragmentShader> CreateFragmentShader(const std::string& shaderName, const std::string& filename, const std::vector<std::string> defines = {});
-	void CompileGlsl(GLShader* shader, const std::string& filename, const std::vector<std::string> defines = {});
+	void CompileGlsl(GLShader* shader, const std::string& filename, const std::vector<std::string> defines = {}, bool isFragmentShader = false);
 
 	vec4 ApplyInverseGamma(vec4 color);
 
@@ -366,6 +366,7 @@ private:
 
 	bool IsLocked = false;
 	bool Exited = false; // set by Exit(); after it no GL work is done
+	bool IsGLES = false; // an OpenGL ES context (RenderAPI::GLES): GLSL ES sources, no desktop versions
 	bool ActiveHdr = false;
 
 	bool CurrentFullscreen = 0;

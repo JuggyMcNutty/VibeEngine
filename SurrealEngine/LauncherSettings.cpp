@@ -30,6 +30,8 @@ LauncherSettings::LauncherSettings()
 			RenderDevice.Type = RenderDeviceType::D3D12;
 		else if (rendevtype == "OpenGL")
 			RenderDevice.Type = RenderDeviceType::OpenGL;
+		else if (rendevtype == "GLES")
+			RenderDevice.Type = RenderDeviceType::GLES;
 
 		std::string rendevaa = settings["RenderDevice"]["Antialias"].to_string();
 		if (rendevaa == "Off")
@@ -98,6 +100,7 @@ void LauncherSettings::Save()
 	case RenderDeviceType::D3D11: rendev["Type"] = JsonValue::string("D3D11"); break;
 	case RenderDeviceType::D3D12: rendev["Type"] = JsonValue::string("D3D12"); break;
 	case RenderDeviceType::OpenGL: rendev["Type"] = JsonValue::string("OpenGL"); break;
+	case RenderDeviceType::GLES: rendev["Type"] = JsonValue::string("GLES"); break;
 	}
 
 	switch (RenderDevice.Antialias)
