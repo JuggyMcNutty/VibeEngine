@@ -65,6 +65,36 @@ bool GLRenderDevice::Init(int NewX, int NewY, bool Fullscreen)
 		if (IsGLES)
 			LogMessage(std::string("GLDrv: OpenGL ES context, ") + (const char*)version);
 
+		// The ES path can sample and linearly filter everything the game
+		// uploads only where the driver has the extensions for it: the GE8300
+		// has no S3TC at all (BC1 textures decode to RGBA8 on the CPU) and
+		// samples RGBA32F but cannot filter it (lightmaps and fog maps,
+		// which would come up speckled). Decode both on the CPU to RGBA8,
+		// the same substitutions the Vulkan device makes for that GPU
+		// (patch 0002's decoders; GL gets its own below).
+		if (IsGLES)
+		{
+			// BC1: EXT_texture_compression_s3tc. RGBA32F filtering:
+			// OES_texture_float_linear. ES 3.0 has no glGetString(GL_EXTENSIONS);
+			// enumerate with glGetStringi, as the loader does.
+			bool s3tc = false;
+			bool floatLinear = false;
+			GLint numExtensions = 0;
+			glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+			for (GLint i = 0; i < numExtensions; i++)
+			{
+				const GLubyte* e = glGetStringi(GL_EXTENSIONS, (GLuint)i);
+				if (e)
+				{
+					const char* name = (const char*)e;
+					s3tc = s3tc || strcmp(name, "GL_EXT_texture_compression_s3tc") == 0 || strcmp(name, "GL_WEBGL_compressed_texture_s3tc") == 0;
+					floatLinear = floatLinear || strcmp(name, "GL_OES_texture_float_linear") == 0;
+				}
+			}
+			GLTextureUploader::SetS3TCSupported(s3tc);
+			GLTextureUploader::SetRGBA32FLinearSupported(floatLinear);
+		}
+
 		CreateScenePass();
 		CreatePresentPass();
 		CreateBloomPass();
@@ -990,7 +1020,9 @@ void GLRenderDevice::Lock(vec4 InFlashScale, vec4 InFlashFog, vec4 ScreenClear, 
 	{
 		try
 		{
-			ResizeSceneBuffers(CurrentSizeX, CurrentSizeY, GetSettingsMultisample());
+			// The scene buffers live at the render size (the window's times
+			// Performance.RenderScale); the present pass scales them up.
+			ResizeSceneBuffers(GetRenderWidth(), GetRenderHeight(), GetSettingsMultisample());
 		}
 		catch (const std::exception& e)
 		{
@@ -1012,8 +1044,8 @@ void GLRenderDevice::Lock(vec4 InFlashScale, vec4 InFlashFog, vec4 ScreenClear, 
 	glDrawBuffers(2, bufs);
 
 	GLViewport viewport = {};
-	viewport.Width = (float)CurrentSizeX;
-	viewport.Height = (float)CurrentSizeY;
+	viewport.Width = (float)SceneBuffers.Width;
+	viewport.Height = (float)SceneBuffers.Height;
 	viewport.MaxDepth = 1.0f;
 	SetViewport(viewport);
 
@@ -1120,7 +1152,9 @@ void GLRenderDevice::Unlock(bool Blit)
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, SceneBuffers.PPFramebuffer[0]->Handle);
 		{ GLenum glAtt = GL_COLOR_ATTACHMENT0; glDrawBuffers(1, &glAtt); } // ES has only glDrawBuffers
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
-		glBlitFramebuffer(0, 0, CurrentSizeX, CurrentSizeY, 0, 0, CurrentSizeX, CurrentSizeY, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		// Scene to PP at the render size; the present draw below samples it
+		// over the whole window and so scales it up.
+		glBlitFramebuffer(0, 0, SceneBuffers.Width, SceneBuffers.Height, 0, 0, SceneBuffers.Width, SceneBuffers.Height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 		if (Bloom)
 		{
@@ -1805,8 +1839,8 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 		glUseProgram(PresentPass.PresentProgram[presentShader]->Handle);
 
 		GLViewport viewport = {};
-		viewport.Width = (float)CurrentSizeX;
-		viewport.Height = (float)CurrentSizeY;
+		viewport.Width = (float)SceneBuffers.Width;
+		viewport.Height = (float)SceneBuffers.Height;
 		viewport.MaxDepth = 1.0f;
 		SetViewport(viewport);
 
@@ -1833,8 +1867,8 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 	glBindFramebuffer(GL_FRAMEBUFFER, fb->Handle);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-	int w = CurrentSizeX;
-	int h = CurrentSizeY;
+	int w = SceneBuffers.Width;
+	int h = SceneBuffers.Height;
 	std::vector<float> col((size_t)w * h * 4);
 	glReadPixels(0, 0, w, h, GL_RGBA, GL_FLOAT, col.data());
 

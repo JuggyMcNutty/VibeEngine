@@ -65,6 +65,11 @@ public:
 	GLRenderDevice(Widget* viewport);
 	~GLRenderDevice();
 
+	// The scene lives in offscreen buffers and the present pass scales it to
+	// the window, so it can be drawn smaller (Settings.json
+	// Performance.RenderScale -- the handheld's 853×480).
+	bool SupportsRenderScale() const override { return true; }
+
 	// To do: port this
 	bool Init(int NewX, int NewY, bool Fullscreen);
 	bool SetRes(int NewX, int NewY, bool Fullscreen);

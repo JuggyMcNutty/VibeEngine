@@ -9,6 +9,25 @@
 #include <immintrin.h>
 #endif
 
+#ifdef USE_NEON
+#include <arm_neon.h>
+#endif
+
+// Capability switches for ES drivers without the extensions (the PowerVR
+// GE8300 has none): default on, as desktop GL has both.
+static bool S3TCSupported = true;
+static bool RGBA32FLinearSupported = true;
+
+void GLTextureUploader::SetS3TCSupported(bool supported)
+{
+	S3TCSupported = supported;
+}
+
+void GLTextureUploader::SetRGBA32FLinearSupported(bool supported)
+{
+	RGBA32FLinearSupported = supported;
+}
+
 GLTextureUploader* GLTextureUploader::GetUploader(TextureFormat format)
 {
 	static std::map<TextureFormat, std::unique_ptr<GLTextureUploader>> Uploaders;
@@ -25,7 +44,26 @@ GLTextureUploader* GLTextureUploader::GetUploader(TextureFormat format)
 
 	auto it = Uploaders.find(format);
 	if (it != Uploaders.end())
+	{
+		// A driver without the extension samples an unsupported format as
+		// garbage, and one that cannot linearly filter (RGBA32F on the GE8300)
+		// speckles every lightmap -- the same substitutions the Vulkan device
+		// makes for that GPU: decode to RGBA8 on the CPU.
+		static std::map<TextureFormat, std::unique_ptr<GLTextureUploader>> Decoders;
+		if (format == TextureFormat::BC1 && !S3TCSupported)
+		{
+			if (!Decoders[TextureFormat::BC1])
+				Decoders[TextureFormat::BC1].reset(new GLTextureUploader_BC1_Decode());
+			return Decoders[TextureFormat::BC1].get();
+		}
+		if (format == TextureFormat::RGBA32_F && !RGBA32FLinearSupported)
+		{
+			if (!Decoders[TextureFormat::RGBA32_F])
+				Decoders[TextureFormat::RGBA32_F].reset(new GLTextureUploader_RGBA32F_Decode());
+			return Decoders[TextureFormat::RGBA32_F].get();
+		}
 		return it->second.get();
+	}
 	else
 		return nullptr;
 }
@@ -350,4 +388,153 @@ void GLTextureUploader_2DBlock::UploadRect(void* d, UnrealMipmap* mip, int x, in
 		dst += size;
 		src += pitch;
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CPU decoders for drivers without the extension (the Vulkan device's
+// decoders, the same algorithms, for the GL device's format table)
+
+static void DecodeColorBlock(const uint8_t* src, uint8_t* dst, int dstWidth, bool oneBitAlpha)
+{
+	uint16_t c0 = src[0] | (src[1] << 8);
+	uint16_t c1 = src[2] | (src[3] << 8);
+	uint32_t idx = src[4] | (src[5] << 8) | (src[6] << 16) | ((uint32_t)src[7] << 24);
+
+	uint8_t r[4], g[4], b[4], a[4];
+	r[0] = (uint8_t)(((c0 >> 11) << 3) | ((c0 >> 11) >> 2));
+	g[0] = (uint8_t)((((c0 >> 5) & 63) << 2) | (((c0 >> 5) & 63) >> 4));
+	b[0] = (uint8_t)(((c0 & 31) << 3) | ((c0 & 31) >> 2));
+	r[1] = (uint8_t)(((c1 >> 11) << 3) | ((c1 >> 11) >> 2));
+	g[1] = (uint8_t)((((c1 >> 5) & 63) << 2) | (((c1 >> 5) & 63) >> 4));
+	b[1] = (uint8_t)(((c1 & 31) << 3) | ((c1 & 31) >> 2));
+
+	if (oneBitAlpha && c0 <= c1)
+	{
+		// DXTC1 transparency: index 3 is a fully transparent texel.
+		r[2] = (uint8_t)((r[0] + r[1]) / 2);
+		g[2] = (uint8_t)((g[0] + g[1]) / 2);
+		b[2] = (uint8_t)((b[0] + b[1]) / 2);
+		a[2] = 255;
+		r[3] = g[3] = b[3] = 0;
+		a[3] = 0;
+	}
+	else
+	{
+		r[2] = (uint8_t)((2 * r[0] + r[1]) / 3);
+		g[2] = (uint8_t)((2 * g[0] + g[1]) / 3);
+		b[2] = (uint8_t)((2 * b[0] + b[1]) / 3);
+		r[3] = (uint8_t)((r[0] + 2 * r[1]) / 3);
+		g[3] = (uint8_t)((g[0] + 2 * g[1]) / 3);
+		b[3] = (uint8_t)((b[0] + 2 * b[1]) / 3);
+		a[2] = a[3] = 255;
+	}
+	a[0] = a[1] = 255;
+
+	for (int i = 0; i < 16; i++)
+	{
+		int t = (idx >> (2 * i)) & 3;
+		dst[i * 4 + 0] = r[t];
+		dst[i * 4 + 1] = g[t];
+		dst[i * 4 + 2] = b[t];
+		dst[i * 4 + 3] = a[t];
+	}
+}
+
+template<int DstBytes>
+static void UploadDecoded(void* d, UnrealMipmap* mip, int x, int y, int w, int h, int blockBytes, int blockX, int blockY, void (*blockToTexels)(const uint8_t*, uint8_t*))
+{
+	int bx0 = x / blockX;
+	int by0 = y / blockY;
+	int bx1 = (x + w + blockX - 1) / blockX;
+	int by1 = (y + h + blockY - 1) / blockY;
+	int blockCols = (mip->Width + blockX - 1) / blockX;
+	int pitch = blockCols * blockBytes;
+	uint8_t* dst = (uint8_t*)d;
+	for (int by = by0; by < by1; by++)
+	{
+		for (int bx = bx0; bx < bx1; bx++)
+		{
+			const uint8_t* block = mip->Data.data() + ((size_t)by * blockCols + bx) * blockBytes;
+			uint8_t texels[16 * 4]; // up to 4x4 RGBA8
+			blockToTexels(block, texels);
+			for (int ty = 0; ty < blockY; ty++)
+			{
+				int gy = by * blockY + ty - y;
+				if (gy < 0 || gy >= h) continue;
+				for (int tx = 0; tx < blockX; tx++)
+				{
+					int gx = bx * blockX + tx - x;
+					if (gx < 0 || gx >= w) continue;
+					memcpy(dst + ((size_t)gy * w + gx) * DstBytes, texels + ((size_t)ty * blockX + tx) * DstBytes, DstBytes);
+				}
+			}
+		}
+	}
+}
+
+int GLTextureUploader_BC1_Decode::GetUploadSize(int x, int y, int w, int h)
+{
+	return w * h * 4;
+}
+
+static void BC1BlockToTexels(const uint8_t* block, uint8_t* texels)
+{
+	DecodeColorBlock(block, texels, 4, true);
+}
+
+void GLTextureUploader_BC1_Decode::UploadRect(void* d, UnrealMipmap* mip, int x, int y, int w, int h, TextureColor* palette, bool masked)
+{
+	UploadDecoded<4>(d, mip, x, y, w, h, 8, 4, 4, BC1BlockToTexels);
+}
+
+int GLTextureUploader_RGBA32F_Decode::GetUploadSize(int x, int y, int w, int h)
+{
+	return w * h * 4;
+}
+
+void GLTextureUploader_RGBA32F_Decode::UploadRect(void* d, UnrealMipmap* mip, int x, int y, int w, int h, TextureColor* palette, bool masked)
+{
+	int pitch = mip->Width * 16;
+	float* src = (float*)(mip->Data.data() + (size_t)x * 16 + (size_t)y * pitch);
+	uint8_t* dst = (uint8_t*)d;
+#ifdef USE_NEON
+	// Every lightmap rebuilt goes through here, several a frame on the
+	// handheld. The same clamp, scale and truncation, four channels at once
+	// (the Vulkan device's decoder, checked on the device against the loop
+	// below for every float from 0 to 1 and for negatives, overflows,
+	// infinities and NaNs -- all the same).
+	const float32x4_t zero = vdupq_n_f32(0.0f), one = vdupq_n_f32(1.0f), scale = vdupq_n_f32(255.0f), half = vdupq_n_f32(0.5f);
+	for (int i = 0; i < h; i++)
+	{
+		for (int j = 0; j < w; j++)
+		{
+			float32x4_t c = vld1q_f32(src + (size_t)j * 4);
+			uint32x4_t lt = vcltq_f32(c, zero), gt = vcgtq_f32(c, one);
+			c = vbslq_f32(lt, zero, vbslq_f32(gt, one, c));
+			uint32x4_t u = vcvtq_u32_f32(vaddq_f32(vmulq_f32(c, scale), half));
+			uint16x4_t u16 = vmovn_u32(u);
+			uint8x8_t u8 = vmovn_u16(vcombine_u16(u16, u16));
+			vst1_lane_u32((uint32_t*)(dst + (size_t)j * 4), vreinterpret_u32_u8(u8), 0);
+		}
+		dst += (size_t)w * 4;
+		src = (float*)((uint8_t*)src + pitch);
+	}
+#else
+	for (int i = 0; i < h; i++)
+	{
+		for (int j = 0; j < w; j++)
+		{
+			float r = std::clamp(src[(size_t)j * 4 + 0], 0.0f, 1.0f);
+			float g = std::clamp(src[(size_t)j * 4 + 1], 0.0f, 1.0f);
+			float b = std::clamp(src[(size_t)j * 4 + 2], 0.0f, 1.0f);
+			float a = std::clamp(src[(size_t)j * 4 + 3], 0.0f, 1.0f);
+			dst[(size_t)j * 4 + 0] = (uint8_t)(r * 255.0f + 0.5f);
+			dst[(size_t)j * 4 + 1] = (uint8_t)(g * 255.0f + 0.5f);
+			dst[(size_t)j * 4 + 2] = (uint8_t)(b * 255.0f + 0.5f);
+			dst[(size_t)j * 4 + 3] = (uint8_t)(a * 255.0f + 0.5f);
+		}
+		dst += (size_t)w * 4;
+		src = (float*)((uint8_t*)src + pitch);
+	}
+#endif
 }
