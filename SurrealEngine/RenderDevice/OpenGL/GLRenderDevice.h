@@ -365,6 +365,7 @@ private:
 	HitQuery ForceHit;
 
 	bool IsLocked = false;
+	bool Exited = false; // set by Exit(); after it no GL work is done
 	bool ActiveHdr = false;
 
 	bool CurrentFullscreen = 0;

@@ -95,9 +95,27 @@ bool GLRenderDevice::SetRes(int NewX, int NewY, bool Fullscreen)
 
 void GLRenderDevice::Exit()
 {
+	if (Exited)
+		return;
+	Exited = true;
+
 	LogMessage("GLDrv: exit called");
 
-	UnmapVertices();
+	// Teardown must not throw: the engine closes the window -- and with it
+	// the GL context -- before the device is destroyed, so if a frame was
+	// still mapped when the game ended (the intro level ends mid-frame),
+	// the unmap runs with no context and fails. Forget the mappings and
+	// carry on; Exit() is also called from the destructor, where a throw
+	// aborts the process.
+	try
+	{
+		UnmapVertices();
+	}
+	catch (...)
+	{
+		SceneVertices = nullptr;
+		SceneIndexes = nullptr;
+	}
 
 	Uploads.reset();
 	Textures.reset();
@@ -2054,6 +2072,9 @@ void GLRenderDevice::AddDrawBatch()
 
 void GLRenderDevice::DrawBatches(bool nextBuffer)
 {
+	if (Exited)
+		return; // a frame may still be in flight when the engine tears us down (the intro ends mid-frame)
+
 	AddDrawBatch();
 
 	ThrowIfGLError("DrawBatches failed (before draw)");
