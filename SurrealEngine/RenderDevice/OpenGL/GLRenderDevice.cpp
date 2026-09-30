@@ -1764,25 +1764,6 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 {
 	UnmapVertices();
 
-#if 0
-	GLTexture2D* stagingTexture = nullptr;
-
-	GL_TEXTURE2D_DESC texDesc = {};
-	texDesc.Usage = GL_USAGE_STAGING;
-	texDesc.BindFlags = 0;
-	texDesc.Width = SceneBuffers.Width;
-	texDesc.Height = SceneBuffers.Height;
-	texDesc.MipLevels = 1;
-	texDesc.ArraySize = 1;
-	texDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.CPUAccessFlags = GL_CPU_ACCESS_READ;
-	HRESULT result = Device->CreateTexture2D(&texDesc, nullptr, &stagingTexture);
-	if (FAILED(result))
-		return;
-	SetDebugName(stagingTexture, "ReadPixels.StagingTexture");
-#endif
 	if (GammaCorrectScreenshots)
 	{
 		GLPresentPushConstants pushconstants = GetGLPresentPushConstants();
@@ -1816,53 +1797,36 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 		SetDepthStencilState(PresentPass.DepthStencilState.get());
 		SetBlendState(PresentPass.BlendState.get());
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-#if 0
-		Context->CopyResource(stagingTexture, SceneBuffers.PPImage[1]);
-#endif
-	}
-	else
-	{
-#if 0
-		Context->CopyResource(stagingTexture, SceneBuffers.PPImage[0]);
-#endif
 	}
 
-#if 0
-	GL_MAPPED_SUBRESOURCE mapped = {};
-	result = Context->Map(stagingTexture, 0, GL_MAP_READ, 0, &mapped);
-	if (SUCCEEDED(result))
-	{
-		uint8_t* srcpixels = (uint8_t*)mapped.pData;
-		int w = CurrentSizeX;
-		int h = CurrentSizeY;
-		void* data = Pixels;
+	// Read the frame back and hand the engine blue, green, red, alpha, top
+	// row first -- the same bytes the Vulkan device's BGRA8 readback gives.
+	// The frame the player saw is PPImage[0]; with GammaCorrectScreenshots the
+	// present pass above has drawn it into PPImage[1]. GL reads framebuffer
+	// rows bottom-up, so flip them.
+	GLFramebuffer* fb = GammaCorrectScreenshots ? SceneBuffers.PPFramebuffer[1].get() : SceneBuffers.PPFramebuffer[0].get();
+	glBindFramebuffer(GL_FRAMEBUFFER, fb->Handle);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-		for (int y = 0; y < h; y++)
+	int w = CurrentSizeX;
+	int h = CurrentSizeY;
+	std::vector<float> col((size_t)w * h * 4);
+	glReadPixels(0, 0, w, h, GL_RGBA, GL_FLOAT, col.data());
+
+	for (int y = 0; y < h; y++)
+	{
+		const float* src = &col[(size_t)(h - 1 - y) * w * 4];
+		TextureColor* dest = Pixels + (size_t)y * w;
+		for (int x = 0; x < w; x++)
 		{
-			int desty = GammaCorrectScreenshots ? y : (h - y - 1);
-			uint8_t* dest = (uint8_t*)data + desty * w * 4;
-			uint16_t* src = (uint16_t*)(srcpixels + y * mapped.RowPitch);
-			for (int x = 0; x < w; x++)
-			{
-				float red = halfToFloatSimple(*(src++));
-				float green = halfToFloatSimple(*(src++));
-				float blue = halfToFloatSimple(*(src++));
-				float alpha = halfToFloatSimple(*(src++));
-
-				dest[0] = (int)clamp(std::round(blue * 255.0f), 0.0f, 255.0f);
-				dest[1] = (int)clamp(std::round(green * 255.0f), 0.0f, 255.0f);
-				dest[2] = (int)clamp(std::round(red * 255.0f), 0.0f, 255.0f);
-				dest[3] = (int)clamp(std::round(alpha * 255.0f), 0.0f, 255.0f);
-				dest += 4;
-			}
+			dest[x].R = (uint8_t)clamp(std::round(src[x * 4 + 2] * 255.0f), 0.0f, 255.0f);
+			dest[x].G = (uint8_t)clamp(std::round(src[x * 4 + 1] * 255.0f), 0.0f, 255.0f);
+			dest[x].B = (uint8_t)clamp(std::round(src[x * 4 + 0] * 255.0f), 0.0f, 255.0f);
+			dest[x].A = (uint8_t)clamp(std::round(src[x * 4 + 3] * 255.0f), 0.0f, 255.0f);
 		}
-
-		Context->Unmap(stagingTexture, 0);
 	}
 
-	stagingTexture->Release();
-#endif
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	if (IsLocked)
 		MapVertices(false);
