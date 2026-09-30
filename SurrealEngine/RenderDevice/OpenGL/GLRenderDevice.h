@@ -372,6 +372,8 @@ private:
 	bool IsLocked = false;
 	bool Exited = false; // set by Exit(); after it no GL work is done
 	bool IsGLES = false; // an OpenGL ES context (RenderAPI::GLES): GLSL ES sources, no desktop versions
+	bool SamplerAnisotropy = true; // EXT_texture_filter_anisotropic; off where absent
+	bool SamplerMirrorClampEdge = true; // GL_MIRROR_CLAMP_TO_EDGE; probed (absent on the GE8300)
 	bool ActiveHdr = false;
 
 	bool CurrentFullscreen = 0;

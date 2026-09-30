@@ -122,8 +122,22 @@ void SDL2DisplayWindow::Show()
 
 void SDL2DisplayWindow::ShowFullscreen()
 {
+	// Not SDL_SetWindowFullscreen: on some vendor SDL2 builds (the Smart
+	// Pro's mali backend) switching a GL window to fullscreen deadlocks --
+	// the EGL surface recreation the switch waits on never completes --
+	// where a Vulkan window switches fine. FULLSCREEN_DESKTOP is borderless
+	// cover at the desktop's size anyway; do exactly that by hand, every
+	// step on the still-hidden window (hidden resizes are safe on that
+	// backend), and show it last.
+	SDL_SetWindowBordered(Handle.window, SDL_FALSE);
+	int idx = SDL_GetWindowDisplayIndex(Handle.window);
+	SDL_Rect bounds;
+	if (idx >= 0 && SDL_GetDisplayBounds(idx, &bounds) == 0)
+	{
+		SDL_SetWindowPosition(Handle.window, bounds.x, bounds.y);
+		SDL_SetWindowSize(Handle.window, bounds.w, bounds.h);
+	}
 	SDL_ShowWindow(Handle.window);
-	SDL_SetWindowFullscreen(Handle.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	isFullscreen = true;
 }
 
@@ -141,8 +155,11 @@ void SDL2DisplayWindow::ShowMinimized()
 
 void SDL2DisplayWindow::ShowNormal()
 {
+	// Leaving fullscreen never goes through SDL_SetWindowFullscreen either
+	// (the same vendor deadlock, and our fullscreen was borderless).
+	if (isFullscreen)
+		SDL_SetWindowBordered(Handle.window, SDL_TRUE);
 	SDL_ShowWindow(Handle.window);
-	SDL_SetWindowFullscreen(Handle.window, 0);
 	isFullscreen = false;
 }
 

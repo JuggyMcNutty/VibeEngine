@@ -79,6 +79,7 @@ bool GLRenderDevice::Init(int NewX, int NewY, bool Fullscreen)
 			// enumerate with glGetStringi, as the loader does.
 			bool s3tc = false;
 			bool floatLinear = false;
+			bool anisotropic = false;
 			GLint numExtensions = 0;
 			glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
 			for (GLint i = 0; i < numExtensions; i++)
@@ -89,10 +90,27 @@ bool GLRenderDevice::Init(int NewX, int NewY, bool Fullscreen)
 					const char* name = (const char*)e;
 					s3tc = s3tc || strcmp(name, "GL_EXT_texture_compression_s3tc") == 0 || strcmp(name, "GL_WEBGL_compressed_texture_s3tc") == 0;
 					floatLinear = floatLinear || strcmp(name, "GL_OES_texture_float_linear") == 0;
+					anisotropic = anisotropic || strcmp(name, "GL_EXT_texture_filter_anisotropic") == 0;
 				}
 			}
 			GLTextureUploader::SetS3TCSupported(s3tc);
 			GLTextureUploader::SetRGBA32FLinearSupported(floatLinear);
+			SamplerAnisotropy = anisotropic;
+		}
+
+		// GL_MIRROR_CLAMP_TO_EDGE: 4.4 desktop and 3.2 ES core on paper, but
+		// optional in practice (the GE8300's ES 3.2 driver rejects it — the
+		// on-device probe, plans/gles-sampler-probe.c). Probe once; fall back
+		// to CLAMP_TO_EDGE where absent.
+		{
+			GLuint probe = 0;
+			glGenSamplers(1, &probe);
+			glSamplerParameteri(probe, GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE);
+			SamplerMirrorClampEdge = glGetError() == GL_NO_ERROR;
+			while (glGetError() != GL_NO_ERROR) {}
+			glDeleteSamplers(1, &probe);
+			if (!SamplerMirrorClampEdge)
+				LogMessage("GLDrv: GL_MIRROR_CLAMP_TO_EDGE absent; clamping to edge");
 		}
 
 		CreateScenePass();
@@ -541,7 +559,7 @@ void GLRenderDevice::CreateSceneSamplers()
 		GLuint sampler = ScenePass.Samplers[i]->Handle;
 
 		int dummyMipmapCount = (i >> 2) & 3;
-		GLint addressmode = (i & 2) ? GL_MIRROR_CLAMP_TO_EDGE : GL_REPEAT;
+		GLint addressmode = (i & 2) ? (SamplerMirrorClampEdge ? GL_MIRROR_CLAMP_TO_EDGE : GL_CLAMP_TO_EDGE) : GL_REPEAT;
 
 #if 0
 		glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, (i & 1) ? GL_NEAREST : GL_LINEAR);
@@ -549,14 +567,19 @@ void GLRenderDevice::CreateSceneSamplers()
 #else
 		glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, (i & 1) ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR);
 		glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, (i & 1) ? GL_NEAREST : GL_LINEAR);
-		if (i & 1)
-			glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f); // To do: we should check for this extension
+		if ((i & 1) && SamplerAnisotropy)
+			glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f); // needs EXT_texture_filter_anisotropic
 #endif
 		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, addressmode);
 		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, addressmode);
 		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_R, addressmode);
 		glSamplerParameterf(sampler, GL_TEXTURE_MIN_LOD, (float)dummyMipmapCount);
-		glSamplerParameterf(sampler, GL_TEXTURE_LOD_BIAS, (float)dummyMipmapCount + LODBias);
+		if (!IsGLES)
+		{
+			// GL_TEXTURE_LOD_BIAS is desktop GL only (Mesa tolerates it, the
+			// GE8300 rejects it); ES has no sampler LOD bias at all.
+			glSamplerParameterf(sampler, GL_TEXTURE_LOD_BIAS, (float)dummyMipmapCount + LODBias);
+		}
 
 		ThrowIfGLError("Could not create sampler");
 	}
