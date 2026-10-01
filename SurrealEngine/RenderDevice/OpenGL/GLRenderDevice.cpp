@@ -1872,10 +1872,12 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 	// Read the frame back and hand the engine blue, green, red, alpha, top
 	// row first -- the same bytes the Vulkan device's BGRA8 readback gives.
 	// The frame the player saw is PPImage[0]; with GammaCorrectScreenshots the
-	// present pass above has drawn it into PPImage[1]. GL reads framebuffer
-	// rows bottom-up, so flip them. The read type must match the buffer: an
-	// 8-bit buffer guarantees an UNSIGNED_BYTE read (a GL_FLOAT read of it is
-		// an error on ES), a float buffer a GL_FLOAT one.
+	// present pass above has drawn it into PPImage[1]. The GL scene buffers
+	// store the frame top-row-first in their rows (the engine's Y-down
+	// convention flows through the device's viewport and tile math), so the
+	// direct read of PPImage[0] needs no flip -- verified against the Vulkan
+	// device's shots. PPImage[1] is the present pass's output, which samples
+	// with 1.0 - texCoord.y: it IS mirrored, and its read flips back.
 	GLFramebuffer* fb = GammaCorrectScreenshots ? SceneBuffers.PPFramebuffer[1].get() : SceneBuffers.PPFramebuffer[0].get();
 	glBindFramebuffer(GL_FRAMEBUFFER, fb->Handle);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
@@ -1890,7 +1892,7 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 
 		for (int y = 0; y < h; y++)
 		{
-			const float* src = &col[(size_t)(h - 1 - y) * w * 4];
+			const float* src = &col[(size_t)(GammaCorrectScreenshots ? (h - 1 - y) : y) * w * 4];
 			TextureColor* dest = Pixels + (size_t)y * w;
 			for (int x = 0; x < w; x++)
 			{
@@ -1909,7 +1911,7 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 
 		for (int y = 0; y < h; y++)
 		{
-			const uint8_t* src = &col[(size_t)(h - 1 - y) * w * 4];
+			const uint8_t* src = &col[(size_t)y * w * 4];
 			TextureColor* dest = Pixels + (size_t)y * w;
 			for (int x = 0; x < w; x++)
 			{
