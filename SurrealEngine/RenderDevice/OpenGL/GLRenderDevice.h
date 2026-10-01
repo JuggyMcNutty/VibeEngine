@@ -184,11 +184,20 @@ public:
 	std::vector<DrawBatchEntry> QueuedBatches;
 	GLCachedTexture* nulltex = nullptr;
 
+	// The draw code writes into CPU staging arrays; every flush uploads the
+	// range written since the last one (glBufferSubData) and draws it. The
+		// mapped-buffer streaming this replaced spent 2/3 of the frame on the
+		// GE8300 in per-flush glMapBufferRange/glUnmapBuffer of the buffers'
+		// whole unused tails (which GL cannot unmap partially).
+	std::vector<GLSceneVertex> StagingVertices;
+	std::vector<uint32_t> StagingIndexes;
 	GLSceneVertex* SceneVertices = nullptr;
 	size_t GLSceneVertexPos = 0;
 
 	uint32_t* SceneIndexes = nullptr;
 	size_t SceneIndexPos = 0;
+	size_t UploadedVertexPos = 0;
+	size_t UploadedIndexPos = 0;
 
 	struct
 	{

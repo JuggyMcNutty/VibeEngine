@@ -978,53 +978,35 @@ void GLRenderDevice::Flush(bool AllowPrecache)
 
 void GLRenderDevice::MapVertices(bool nextBuffer)
 {
+	if (StagingVertices.empty())
+	{
+		StagingVertices.resize(SceneVertexBufferSize);
+		StagingIndexes.resize(SceneIndexBufferSize);
+	}
+
 	if (nextBuffer)
 	{
+		// Orphan both stores: the previous frame's draws keep their copy
+		// alive while the new frame writes from the start of fresh ones.
+		glBindBuffer(GL_ARRAY_BUFFER, ScenePass.VertexBuffer->Handle);
+		glBufferData(GL_ARRAY_BUFFER, SceneVertexBufferSize * sizeof(GLSceneVertex), nullptr, GL_STREAM_DRAW);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ScenePass.IndexBuffer->Handle);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, SceneIndexBufferSize * sizeof(uint32_t), nullptr, GL_STREAM_DRAW);
 		GLSceneVertexPos = 0;
 		SceneIndexPos = 0;
+		UploadedVertexPos = 0;
+		UploadedIndexPos = 0;
 		Stats.BuffersUsed++;
 	}
 
-	if (!SceneVertices)
-	{
-		glBindBuffer(GL_ARRAY_BUFFER, ScenePass.VertexBuffer->Handle);
-		if (nextBuffer)
-			glBufferData(GL_ARRAY_BUFFER, SceneVertexBufferSize * sizeof(GLSceneVertex), nullptr, GL_STREAM_DRAW); // Should we use GL_MAP_INVALIDATE_BUFFER_BIT here instead? OpenGL truly sucked.
-		SceneVertices = (GLSceneVertex*)glMapBufferRange(GL_ARRAY_BUFFER, GLSceneVertexPos * sizeof(GLSceneVertex), (SceneVertexBufferSize - GLSceneVertexPos) * sizeof(GLSceneVertex), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-		SceneVertices -= GLSceneVertexPos; // Draw code assumes the pointer is relative to the start of the buffer, even if we never touch that part
-		if (!SceneVertices)
-			throw std::runtime_error("Could not map ScenePass.VertexBuffer");
-	}
-
-	if (!SceneIndexes)
-	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ScenePass.IndexBuffer->Handle);
-		if (nextBuffer)
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, SceneIndexBufferSize * sizeof(uint32_t), nullptr, GL_STREAM_DRAW); // Should we use GL_MAP_INVALIDATE_BUFFER_BIT here instead? OpenGL truly sucked.
-		SceneIndexes = (uint32_t*)glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, SceneIndexPos * sizeof(uint32_t), (SceneIndexBufferSize - SceneIndexPos) * sizeof(uint32_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-		SceneIndexes -= SceneIndexPos; // Draw code assumes the pointer is relative to the start of the buffer, even if we never touch that part
-		if (!SceneIndexes)
-			throw std::runtime_error("Could not map ScenePass.SceneIndexes");
-	}
+	SceneVertices = StagingVertices.data();
+	SceneIndexes = StagingIndexes.data();
 }
 
 void GLRenderDevice::UnmapVertices()
 {
-	if (SceneVertices)
-	{
-		glBindBuffer(GL_ARRAY_BUFFER, ScenePass.VertexBuffer->Handle);
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-		SceneVertices = nullptr;
-		ThrowIfGLError("Could not unmap ScenePass.VertexBuffer");
-	}
-
-	if (SceneIndexes)
-	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ScenePass.IndexBuffer->Handle);
-		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-		ThrowIfGLError("Could not unmap ScenePass.IndexBuffer");
-		SceneIndexes = nullptr;
-	}
+	// The staging arrays replaced the mapped buffers; the upload of what was
+	// written happens per flush in DrawBatches.
 }
 
 void GLRenderDevice::Lock(vec4 InFlashScale, vec4 InFlashFog, vec4 ScreenClear, uint8_t* InHitData, int* InHitSize)
@@ -2182,11 +2164,28 @@ void GLRenderDevice::DrawBatches(bool nextBuffer)
 	if (Exited)
 		return; // a frame may still be in flight when the engine tears us down (the intro ends mid-frame)
 
+	// Nothing queued and nothing written since the last flush: keep the
+	// current mapping. SetSceneNode flushes per BSP node -- hundreds a
+	// frame -- and every unmap/remap of the stream buffers' unused ranges
+		// submits the vendor driver's command buffer (measured at 2/3 of the
+		// frame on the GE8300).
+	if (!nextBuffer && QueuedBatches.empty() && Batch.SceneIndexStart == SceneIndexPos)
+		return;
+
 	AddDrawBatch();
 
 	ThrowIfGLError("DrawBatches failed (before draw)");
 
-	UnmapVertices();
+	// Upload what the draw code wrote since the last flush, then draw it.
+	if (GLSceneVertexPos > UploadedVertexPos || SceneIndexPos > UploadedIndexPos)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, ScenePass.VertexBuffer->Handle);
+		glBufferSubData(GL_ARRAY_BUFFER, UploadedVertexPos * sizeof(GLSceneVertex), (GLSceneVertexPos - UploadedVertexPos) * sizeof(GLSceneVertex), StagingVertices.data() + UploadedVertexPos);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ScenePass.IndexBuffer->Handle);
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, UploadedIndexPos * sizeof(uint32_t), (SceneIndexPos - UploadedIndexPos) * sizeof(uint32_t), StagingIndexes.data() + UploadedIndexPos);
+		UploadedVertexPos = GLSceneVertexPos;
+		UploadedIndexPos = SceneIndexPos;
+	}
 
 	for (const DrawBatchEntry& entry : QueuedBatches)
 		DrawEntry(entry);
