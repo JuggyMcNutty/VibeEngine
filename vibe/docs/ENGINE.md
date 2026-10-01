@@ -305,6 +305,61 @@ to work, where the message does not already say.
 - [**0024**](https://github.com/JuggyMcNutty/VibeEngine/commit/03e4d0cb9696bbad5b26cdc0489dcc028152c29b)
   `lightmap-neon-conversion` -- the lightmaps' float-to-byte conversion for the
   GPU in NEON on ARM. **Smart Pro:** texture uploads ~3.9 → ~2.1 ms.
+- **the GLES renderer (0035–0042)** -- the GL device runs on desktop GL 4.2+ and
+  OpenGL ES 3.2 from the same code: `RenderAPI::GLES` / `RenderDeviceType::GLES`
+  (`"Type": "GLES"` in Settings.json; the Smart Pro launcher's `[GLES]` Video-tab
+  row), an ES 3.2 context from every window backend (SDL2 and SDL3 through
+  `SDL_GL_CONTEXT_PROFILE_ES`, X11 and Wayland through EGL with the ES3 bit),
+  detected at init from `glGetString(GL_VERSION)`. The ES specifics, found against
+  the device (each below says where):
+  - the same shader sources compile as GLSL ES 3.20 (`CompileGlsl` prepends the
+    version and the fragment stages' highp precision); the sources needed only
+    `u`-suffixed flag masks and float literals (ES converts no int literals),
+    and `std140` on the push-constant blocks (0037,
+    [db0961e](https://github.com/JuggyMcNutty/VibeEngine/commit/db0961e));
+  - desktop-only GL calls replaced: `glClearDepthf`/`glDepthRangef` (4.2+ desktop
+    core), `glDrawBuffers` for every `glDrawBuffer`, `GL_DEPTH_CLAMP`,
+    `GL_MULTISAMPLE` and the indexed-blend calls skipped on ES, the null texture
+    uploaded as `UNSIGNED_BYTE` (0037);
+  - `ReadPixels` implemented (the upstream stub was `#if 0` D3D11: every
+    screenshot black) against the Vulkan device's contract, reading what the
+    buffer is (0035, [e77ac55](https://github.com/JuggyMcNutty/VibeEngine/commit/e77ac55);
+    the 8-bit read and its orientation 0040/0042,
+    [765f180](https://github.com/JuggyMcNutty/VibeEngine/commit/765f180),
+    [469bd9c](https://github.com/JuggyMcNutty/VibeEngine/commit/469bd9c));
+  - `Exit()` tolerates a failed unmap and runs once (the intro ends the game
+    mid-frame and the window's context dies first; a throw out of the
+    destructor aborted) (0036,
+    [494e22e](https://github.com/JuggyMcNutty/VibeEngine/commit/494e22e));
+  - render scale: `SupportsRenderScale()` -- the scene buffers at the render
+    size (`GetRenderWidth()` and `GetRenderHeight()`), the present pass scales
+    to the window (0038,
+    [aa94a7a](https://github.com/JuggyMcNutty/VibeEngine/commit/aa94a7a));
+  - CPU decoders for what an ES driver cannot sample or filter -- BC1 without
+    S3TC, RGBA32F without linear filtering (the lightmaps) -- the Vulkan device's
+    0002 algorithms in the GL uploader, gated on the context's extension list
+    (0038);
+  - the GE8300's sampler set: no `GL_TEXTURE_LOD_BIAS` (no ES sampler has it),
+    anisotropy only under its extension, `GL_MIRROR_CLAMP_TO_EDGE` probed once
+    and `CLAMP_TO_EDGE` where the driver rejects it (0039,
+    [b9bc870](https://github.com/JuggyMcNutty/VibeEngine/commit/b9bc870)); and
+    the SDL2 backend's fullscreen is borderless cover done on the hidden window
+    -- `SDL_SetWindowFullscreen` deadlocks on a GL window there (0039);
+  - the scene buffers 8-bit unless HDR is asked for, and `ReadPixels` reads what
+    the buffer is (0040, [765f180](https://github.com/JuggyMcNutty/VibeEngine/commit/765f180));
+  - the vertices stream through CPU staging arrays, each flush uploading the
+    range written since the last one: the per-flush map/unmap of the buffers'
+    whole unused tails was 2/3 of the frame on the GE8300 (0041,
+    [0c8e99b](https://github.com/JuggyMcNutty/VibeEngine/commit/0c8e99b)).
+  **Smart Pro (PowerVR Rogue GE8300, `Type=GLES`):** the Liberty Island level
+  start runs at 8.5–8.8 fps native 1280×720 and 10.0 at 853×480 -- the Vulkan
+  device's same-build numbers are 11.4 and ~11.5 -- and its captures match the
+  Vulkan device's to 1.4 % (display) and 0.15 % (ReadPixels) at the same moment.
+  **Checked:** the level-start proving runs clean on desktop GL and GLES (means
+  0.0400 through every change); the GLES captures match the desktop GL device's
+  to 0.036 % and the Vulkan device's verified look to 0.15 %; D3DDrv's to the
+  look work's documented deltas (5.9 %); the intro exits cleanly; the unit tests
+  12/12.
 
 ### Script VM
 
