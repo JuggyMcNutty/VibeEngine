@@ -3,9 +3,7 @@
 #include "GLRenderDevice.h"
 #include "GLCachedTexture.h"
 #include "GLFileResource.h"
-#include "Utils/UTF16.h"
 #include "Utils/Logger.h"
-#include "Math/halffloat.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include <surrealwidgets/core/widget.h>
 #include <cmath>
@@ -213,12 +211,20 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 	SceneBuffers.Height = height;
 	SceneBuffers.Multisample = multisample;
 
+	// The scene and post-process color buffers are 8-bit unless HDR is asked
+	// for: half the bandwidth on the handheld's shared-memory SoC, and what
+	// the original XOpenGLDrv's own 8-bit buffer was (the overbright the
+		// scene shader can write clamps at the write, as it did there).
+	GLenum colorInternal = ActiveHdr ? GL_RGBA16F : GL_RGBA8;
+	GLenum colorFormat = GL_RGBA;
+	GLenum colorType = ActiveHdr ? GL_FLOAT : GL_UNSIGNED_BYTE;
+
 	SceneBuffers.ColorBuffer = std::make_shared<GLTexture2D>();
 	if (SceneBuffers.Multisample > 1)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.ColorBuffer->Handle);
 		SetDebugName(SceneBuffers.ColorBuffer, "SceneBuffers.ColorBuffer");
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.Multisample, GL_RGBA16F, SceneBuffers.Width, SceneBuffers.Height, GL_FALSE);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.Multisample, colorInternal, SceneBuffers.Width, SceneBuffers.Height, GL_FALSE);
 		glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexStorage2DMultisample(SceneBuffers.ColorBuffer) failed");
 	}
@@ -226,7 +232,7 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 	{
 		glBindTexture(GL_TEXTURE_2D, SceneBuffers.ColorBuffer->Handle);
 		SetDebugName(SceneBuffers.ColorBuffer, "SceneBuffers.ColorBuffer");
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SceneBuffers.Width, SceneBuffers.Height, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, colorInternal, SceneBuffers.Width, SceneBuffers.Height, 0, colorFormat, colorType, nullptr);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexImage2D(SceneBuffers.ColorBuffer) failed");
 	}
@@ -287,7 +293,7 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 		SceneBuffers.PPImage[i] = std::make_shared<GLTexture2D>();
 		glBindTexture(GL_TEXTURE_2D, SceneBuffers.PPImage[i]->Handle);
 		SetDebugName(SceneBuffers.PPImage[i], "SceneBuffers.PPImage");
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SceneBuffers.Width, SceneBuffers.Height, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, colorInternal, SceneBuffers.Width, SceneBuffers.Height, 0, colorFormat, colorType, nullptr);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexImage2D(SceneBuffers.PPImage) failed");
 	}
@@ -331,14 +337,14 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 		level.VTexture = std::make_shared<GLTexture2D>();
 		glBindTexture(GL_TEXTURE_2D, level.VTexture->Handle);
 		SetDebugName(level.VTexture, "SceneBuffers.BlurLevels.VTexture");
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, bloomWidth, bloomHeight, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, colorInternal, bloomWidth, bloomHeight, 0, colorFormat, colorType, nullptr);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexImage2D(SceneBuffers.BlurLevels.VTexture) failed");
 
 		level.HTexture = std::make_shared<GLTexture2D>();
 		glBindTexture(GL_TEXTURE_2D, level.HTexture->Handle);
 		SetDebugName(level.HTexture, "SceneBuffers.BlurLevels.HTexture");
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, bloomWidth, bloomHeight, 0, GL_RGBA, GL_FLOAT, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, colorInternal, bloomWidth, bloomHeight, 0, colorFormat, colorType, nullptr);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexImage2D(SceneBuffers.BlurLevels.HTexture) failed");
 
@@ -1885,26 +1891,51 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 	// row first -- the same bytes the Vulkan device's BGRA8 readback gives.
 	// The frame the player saw is PPImage[0]; with GammaCorrectScreenshots the
 	// present pass above has drawn it into PPImage[1]. GL reads framebuffer
-	// rows bottom-up, so flip them.
+	// rows bottom-up, so flip them. The read type must match the buffer: an
+	// 8-bit buffer guarantees an UNSIGNED_BYTE read (a GL_FLOAT read of it is
+		// an error on ES), a float buffer a GL_FLOAT one.
 	GLFramebuffer* fb = GammaCorrectScreenshots ? SceneBuffers.PPFramebuffer[1].get() : SceneBuffers.PPFramebuffer[0].get();
 	glBindFramebuffer(GL_FRAMEBUFFER, fb->Handle);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 
 	int w = SceneBuffers.Width;
 	int h = SceneBuffers.Height;
-	std::vector<float> col((size_t)w * h * 4);
-	glReadPixels(0, 0, w, h, GL_RGBA, GL_FLOAT, col.data());
-
-	for (int y = 0; y < h; y++)
+	if (ActiveHdr)
 	{
-		const float* src = &col[(size_t)(h - 1 - y) * w * 4];
-		TextureColor* dest = Pixels + (size_t)y * w;
-		for (int x = 0; x < w; x++)
+		std::vector<float> col((size_t)w * h * 4);
+		glReadPixels(0, 0, w, h, GL_RGBA, GL_FLOAT, col.data());
+		ThrowIfGLError("ReadPixels failed");
+
+		for (int y = 0; y < h; y++)
 		{
-			dest[x].R = (uint8_t)clamp(std::round(src[x * 4 + 2] * 255.0f), 0.0f, 255.0f);
-			dest[x].G = (uint8_t)clamp(std::round(src[x * 4 + 1] * 255.0f), 0.0f, 255.0f);
-			dest[x].B = (uint8_t)clamp(std::round(src[x * 4 + 0] * 255.0f), 0.0f, 255.0f);
-			dest[x].A = (uint8_t)clamp(std::round(src[x * 4 + 3] * 255.0f), 0.0f, 255.0f);
+			const float* src = &col[(size_t)(h - 1 - y) * w * 4];
+			TextureColor* dest = Pixels + (size_t)y * w;
+			for (int x = 0; x < w; x++)
+			{
+				dest[x].R = (uint8_t)clamp(std::round(src[x * 4 + 2] * 255.0f), 0.0f, 255.0f);
+				dest[x].G = (uint8_t)clamp(std::round(src[x * 4 + 1] * 255.0f), 0.0f, 255.0f);
+				dest[x].B = (uint8_t)clamp(std::round(src[x * 4 + 0] * 255.0f), 0.0f, 255.0f);
+				dest[x].A = (uint8_t)clamp(std::round(src[x * 4 + 3] * 255.0f), 0.0f, 255.0f);
+			}
+		}
+	}
+	else
+	{
+		std::vector<uint8_t> col((size_t)w * h * 4);
+		glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, col.data());
+		ThrowIfGLError("ReadPixels failed");
+
+		for (int y = 0; y < h; y++)
+		{
+			const uint8_t* src = &col[(size_t)(h - 1 - y) * w * 4];
+			TextureColor* dest = Pixels + (size_t)y * w;
+			for (int x = 0; x < w; x++)
+			{
+				dest[x].R = src[x * 4 + 2];
+				dest[x].G = src[x * 4 + 1];
+				dest[x].B = src[x * 4 + 0];
+				dest[x].A = src[x * 4 + 3];
+			}
 		}
 	}
 
