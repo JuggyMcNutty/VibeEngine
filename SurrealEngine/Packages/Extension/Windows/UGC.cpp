@@ -141,17 +141,19 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 	DestX += offsetX;
 	DestY += offsetY;
 
-	float tlX = 0.0f, trX = 0.0f;
-	float tlY = 0.0f, trY = 0.0f;
-	float blX = destWidth, brX = destWidth;
-	float blY = destHeight, brY = destHeight;
+	// Where each edge starts and ends: at the inner side of the corner beside
+	// it, or at the box's own corner where that corner has no texture.
+	float tlX = DestX, trX = DestX + destWidth;
+	float tlY = DestY, trY = DestY;
+	float blX = DestX, brX = DestX + destWidth;
+	float blY = DestY + destHeight, brY = DestY + destHeight;
 
 	// Margins (extension-dll.md, Borders): each side's is the largest of its
 	// own textures -- left from the two left corners and the left edge, and so
 	// on -- and a margin given above 0 replaces it. When the box is narrower
 	// or shorter than two of them, both shrink in proportion. The corners are
 	// drawn at their own size whatever the margins say, one texel a pixel; the
-	// margins are where the edges and the centre sit.
+	// margins are where the centre sits, and the edges run between the corners.
 	auto sizeOf = [](UTexture* tex, bool horizontal) { return horizontal ? (float)tex->USize() : (float)tex->VSize(); };
 	auto largestOf = [](std::initializer_list<float> sizes)
 	{
@@ -202,12 +204,6 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX, DestY, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		brX = dest.left;
-		brY = dest.top;
-		blX = dest.right;
-		blY = dest.top;
-		trX = dest.left;
-		trY = dest.bottom;
 		tlX = dest.right;
 		tlY = dest.bottom;
 	}
@@ -217,6 +213,8 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, DestY, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		trX = dest.left;
+		trY = dest.bottom;
 	}
 	if (auto tex = bl) // bottom left corner
 	{
@@ -224,6 +222,8 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX, DestY + destHeight - sheight, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		blX = dest.right;
+		blY = dest.top;
 	}
 	if (auto tex = br) // bottom right corner
 	{
@@ -231,6 +231,8 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, DestY + destHeight - sheight, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		brX = dest.left;
+		brY = dest.top;
 	}
 	if (auto tex = left) // left side
 	{
@@ -260,7 +262,7 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 	{
 		float swidth = (float)tex->USize();
 		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(tlX, DestY + destHeight - sheight, brX - blX, sheight);
+		Rectf dest = Rectf::xywh(blX, DestY + destHeight - sheight, brX - blX, sheight);
 		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : brX - blX, sheight);
 		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
 	}

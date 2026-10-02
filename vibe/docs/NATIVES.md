@@ -1010,17 +1010,22 @@ checks:
   proportion, which is what the centre is inset by. The last `Unimplemented`
   in a native the game calls goes; the audit has `GC.DrawBorders`
   implemented rather than partial. The game's own 13 calls pass no margins,
-  so what the margins are for it is the inset the centre already had --
-  checked with `BeltConsole`, whose belt band is byte-identical before and
-  after in three of its four shots (the fourth differs only in the belt's
-  own position and the weapon's pose, both of which move between runs).
+  so what the margins are for it is the inset the centre already had.
+  **That commit dropped the edges** (fixed the same day): it moved the other
+  three corners' edge ends into the top-left corner's, so every edge of a
+  frame with a top-left corner came out with a negative length and only the
+  corners drew -- an inventory item's selection frame was four dots
+  (`BorderConsole`, which selects items on the inventory screen and shoots
+  them in both engines; the HUD's panels and the belt, which `BeltConsole`
+  shoots and the commit was checked with, draw their own frames and never
+  showed it). Each corner ends its own edges again, an edge without a
+  corner runs to the box's own corner, and a selected item's frame is
+  whole, as the original's is.
   **Left open:** where the *edges* sit. The RE's rule reads as the edges
   tiling along the margin lines, where the fork draws them flush with the
-  corners; changing that moves the frame's lines by a pixel or two on the
-  HUD, and there is no capture of the original's belt in the same state to
-  settle it (the original's run shows a populated belt, the fork's runs at
-  the same shot an empty one). So the edges stay where Surreal puts them
-  until an original capture answers it. To check by hand: a selection
+  corners; `BorderConsole`'s shots of the original are the capture to
+  settle it with, and until they are read for it the edges stay where
+  Surreal puts them. To check by hand: a selection
   border in the inventory and a themed HUD frame crisp, their patterns
   repeating instead of smearing over the run.
 - **Save pictures.** Landed (2026-09-26): `GenerateSnapshot` makes the

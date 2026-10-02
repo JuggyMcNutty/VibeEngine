@@ -167,6 +167,11 @@ The console classes:
   choices, each button's selectability and the focus window logged, the
   root window's own key handler driving Down, Down and Up between them
   with a marked shot after each, then the focused choice picked.
+- **`BorderConsole`**: frames `GC.DrawBorders` draws -- on Liberty Island
+  the player given items as `BeltConsole` gives them, the inventory screen
+  opened and shot, then the lockpick and the assault gun selected there and
+  shot each time: a selected item's button draws its frame with
+  `DrawBorders`.
 - **`MoveConsole`**: how the level moves -- every in-world ScriptedPawn's
   state, orders, move target, destination, velocity and distance moved,
   every 2 s for 120 s on Liberty Island, for a trajectory diff between
