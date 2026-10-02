@@ -122,12 +122,6 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 	if (!bDrawEnabled())
 		return;
 
-	if (leftMargin != 0.0f || rightMargin != 0.0f || TopMargin != 0.0f || BottomMargin != 0.0f)
-	{
-		// margins are always zero from the game's script (extension-dll.md, Borders)
-		LogUnimplemented("GC.DrawBorders");
-	}
-
 	// The edges and the centre tile at one texel a pixel, as the original's
 	// DrawIconPattern with a source size of 0, unless stretching is asked for
 	// across or down; the game never asks (extension-dll.md, Borders).
@@ -152,44 +146,53 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 	float blX = destWidth, brX = destWidth;
 	float blY = destHeight, brY = destHeight;
 
+	// Margins (extension-dll.md, Borders): each side's is the largest of its
+	// own textures -- left from the two left corners and the left edge, and so
+	// on -- and a margin given above 0 replaces it. When the box is narrower
+	// or shorter than two of them, both shrink in proportion. The corners are
+	// drawn at their own size whatever the margins say, one texel a pixel; the
+	// margins are where the edges and the centre sit.
+	auto sizeOf = [](UTexture* tex, bool horizontal) { return horizontal ? (float)tex->USize() : (float)tex->VSize(); };
+	auto largestOf = [](std::initializer_list<float> sizes)
+	{
+		float out = 0.0f;
+		for (float s : sizes)
+			out = std::max(out, s);
+		return out;
+	};
+
+	float marginLeft = largestOf({ tl ? sizeOf(tl, true) : 0.0f, bl ? sizeOf(bl, true) : 0.0f, left ? sizeOf(left, true) : 0.0f });
+	float marginRight = largestOf({ tr ? sizeOf(tr, true) : 0.0f, br ? sizeOf(br, true) : 0.0f, right ? sizeOf(right, true) : 0.0f });
+	float marginTop = largestOf({ tl ? sizeOf(tl, false) : 0.0f, tr ? sizeOf(tr, false) : 0.0f, top ? sizeOf(top, false) : 0.0f });
+	float marginBottom = largestOf({ bl ? sizeOf(bl, false) : 0.0f, br ? sizeOf(br, false) : 0.0f, bottom ? sizeOf(bottom, false) : 0.0f });
+
+	if (leftMargin > 0.0f)
+		marginLeft = leftMargin;
+	if (rightMargin > 0.0f)
+		marginRight = rightMargin;
+	if (TopMargin > 0.0f)
+		marginTop = TopMargin;
+	if (BottomMargin > 0.0f)
+		marginBottom = BottomMargin;
+
+	if (marginLeft + marginRight > destWidth)
+	{
+		marginLeft = destWidth * marginLeft / (marginLeft + marginRight);
+		marginRight = destWidth - marginLeft;
+	}
+	if (marginTop + marginBottom > destHeight)
+	{
+		marginTop = destHeight * marginTop / (marginTop + marginBottom);
+		marginBottom = destHeight - marginTop;
+	}
+
 	if (auto tex = center)
 	{
-		float gridX[2] = { 0.0f, 0.0f };
-		float gridY[2] = { 0.0f, 0.0f };
-		if (tl)
-		{
-			gridX[0] = std::max(gridX[0], (float)tl->USize());
-			gridY[0] = std::max(gridY[0], (float)tl->VSize());
-		}
-		if (tr)
-		{
-			gridX[1] = std::max(gridX[1], (float)tr->USize());
-			gridY[0] = std::max(gridY[0], (float)tr->VSize());
-		}
-		if (bl)
-		{
-			gridX[0] = std::max(gridX[0], (float)bl->USize());
-			gridY[1] = std::max(gridY[1], (float)bl->VSize());
-		}
-		if (br)
-		{
-			gridX[1] = std::max(gridX[1], (float)br->USize());
-			gridY[1] = std::max(gridY[1], (float)br->VSize());
-		}
-		if (left)
-			gridX[0] = std::max(gridX[0], (float)left->USize());
-		if (right)
-			gridX[1] = std::max(gridX[1], (float)right->USize());
-		if (top)
-			gridY[0] = std::max(gridY[0], (float)top->VSize());
-		if (bottom)
-			gridY[1] = std::max(gridY[1], (float)bottom->VSize());
-
+		float dwidth = std::max(destWidth - marginLeft - marginRight, 0.0f);
+		float dheight = std::max(destHeight - marginTop - marginBottom, 0.0f);
 		float swidth = (float)tex->USize();
 		float sheight = (float)tex->VSize();
-		float dwidth = std::max(destWidth - gridX[0] - gridX[1], 0.0f);
-		float dheight = std::max(destHeight - gridY[0] - gridY[1], 0.0f);
-		Rectf dest = Rectf::xywh(DestX + gridX[0], DestY + gridY[0], dwidth, dheight);
+		Rectf dest = Rectf::xywh(DestX + marginLeft, DestY + marginTop, dwidth, dheight);
 		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : dwidth, stretchDown ? sheight : dheight);
 		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
 	}
@@ -199,6 +202,12 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX, DestY, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
+		brX = dest.left;
+		brY = dest.top;
+		blX = dest.right;
+		blY = dest.top;
+		trX = dest.left;
+		trY = dest.bottom;
 		tlX = dest.right;
 		tlY = dest.bottom;
 	}
@@ -208,8 +217,6 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, DestY, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		trX = dest.left;
-		trY = dest.bottom;
 	}
 	if (auto tex = bl) // bottom left corner
 	{
@@ -217,8 +224,6 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX, DestY + destHeight - sheight, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		blX = dest.right;
-		blY = dest.top;
 	}
 	if (auto tex = br) // bottom right corner
 	{
@@ -226,8 +231,6 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 		float sheight = (float)tex->VSize();
 		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, DestY + destHeight - sheight, swidth, sheight);
 		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		brX = dest.left;
-		brY = dest.top;
 	}
 	if (auto tex = left) // left side
 	{

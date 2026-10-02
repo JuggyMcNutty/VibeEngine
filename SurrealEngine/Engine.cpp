@@ -282,8 +282,13 @@ void Engine::Run()
 		std::time_t now = std::time(nullptr);
 		std::tm* timedesc = std::localtime(&now);
 
-		LevelInfo->Year() = timedesc->tm_year;
-		LevelInfo->Month() = timedesc->tm_mon;
+		// As the original has them: the full year and the month 1 to 12, which is
+		// what the scripts read them as -- StatLog pads a month below 10 and
+		// writes the year as it stands, and MenuScreenSaveGame builds its
+		// timestamp from the save info's the same way. tm counts the year
+		// from 1900 and the month from 0.
+		LevelInfo->Year() = timedesc->tm_year + 1900;
+		LevelInfo->Month() = timedesc->tm_mon + 1;
 		LevelInfo->Day() = timedesc->tm_mday;
 		LevelInfo->DayOfWeek() = timedesc->tm_wday;
 		LevelInfo->Hour() = timedesc->tm_hour;

@@ -1003,8 +1003,24 @@ checks:
 - **Borders.** Landed (2026-09-25): `GC.DrawBorders` tiles each edge and
   the centre at one texel a pixel, as the original's `DrawIconPattern`
   does, and honours the stretch flags the game never passes
-  ([borders](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#borders)); margins, which the game never
-  passes either, stay unimplemented. To check by hand: a selection
+  ([borders](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#borders)). **Margins (2026-10-02):**
+  each side's is the largest of its own textures -- left from the two left
+  corners and the left edge, and so on -- a margin given above 0 replaces
+  it, and a box narrower or shorter than two of them has both shrink in
+  proportion, which is what the centre is inset by. The last `Unimplemented`
+  in a native the game calls goes; the audit has `GC.DrawBorders`
+  implemented rather than partial. The game's own 13 calls pass no margins,
+  so what the margins are for it is the inset the centre already had --
+  checked with `BeltConsole`, whose belt band is byte-identical before and
+  after in three of its four shots (the fourth differs only in the belt's
+  own position and the weapon's pose, both of which move between runs).
+  **Left open:** where the *edges* sit. The RE's rule reads as the edges
+  tiling along the margin lines, where the fork draws them flush with the
+  corners; changing that moves the frame's lines by a pixel or two on the
+  HUD, and there is no capture of the original's belt in the same state to
+  settle it (the original's run shows a populated belt, the fork's runs at
+  the same shot an empty one). So the edges stay where Surreal puts them
+  until an original capture answers it. To check by hand: a selection
   border in the inventory and a themed HUD frame crisp, their patterns
   repeating instead of smearing over the run.
 - **Save pictures.** Landed (2026-09-26): `GenerateSnapshot` makes the
@@ -1206,9 +1222,16 @@ says what changed, what stays the fork's own, and its by-hand check:
   [what the player reads](#what-the-player-reads) and [coronas](#coronas).
 - **`DeusExPlayer.GetDeusExVersion`.** The fork's own string, by choice; the
   original's is "Mon Mar 19 12:06:14 2001 v1.112fm".
-- **`LevelInfo`'s clock.** The fork's main loop fills `Year` counted from 1900
-  and `Month` from 0, as in its save dates; the original's are the full year
-  and 1 to 12. In Deus Ex only `StatLog` reads them.
+- **`LevelInfo`'s clock** (2026-10-02): the full year and the month 1 to 12,
+  where the fork's main loop filled the year counted from 1900 and the month
+  from 0. What pins the original's convention is its own scripts, not the DLL:
+  the properties are `transient` ints (`Engine.u`, `LevelInfo`), and the one
+  reader of them, `StatLog`, zero-pads a month below 10 and writes the year as
+  it stands -- a month counted from 0 or a year from 1900 would come out wrong
+  there; `MenuScreenSaveGame` builds its stamp the same way from the save
+  info's, which the fork already stores the original's way. (Where the original
+  fills them is not found: no C++ in `Engine.dll` writes those offsets outside
+  the property system's copies.) In Deus Ex only `StatLog` reads them.
 - **The roadmap's M3 traces-and-moves item is the original's now**
   (2026-09-25; the originals: [traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces),
   [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving),
