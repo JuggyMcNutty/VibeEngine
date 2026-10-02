@@ -260,6 +260,18 @@ the game's script does the rest. The fork's differences here were closed on
   `DeusExConAudio<name>` outright, where the original's prefix follows the
   conversation's package, as a mod's would need. `GetSpeechLength` answers
   0 for -1 or no sound, as the original.
+- **A skipped line's speech stops** (2026-10-01). `ConPlay.StopSpeech`
+  calls the *player's* `StopSound` with the *speaker's* sound ID, and the
+  original's `Actor.StopSound` (Engine.dll, [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small))
+  stops the channel by ID alone, whoever played it -- Galaxy's
+  `StopSoundId`. The fork's audio device matched the caller as well and
+  found nothing, so every skipped NPC line played on under the next (the
+  player's own lines stopped, as the player was both caller and actor).
+  It matches by ID alone now. Proven by `SkipConsole`
+  (vibe/tools/dxcap): MeetKaplan with every line skipped mid-line,
+  `skip.py` reading the recorded runs -- all 7 NPC tails +1.1..+2.9 dB
+  louder in the unfixed fork, the player's 4 level, and nothing above the
+  speech level in the fixed fork or the original.
 
 ## What the player reads
 
@@ -440,6 +452,23 @@ and a seeking NPC got no overshoot destination:
   a patroller back to the node it stood on until `CheckDestLoc` backed it
   off (`BackingOff`, 4 s in, Terrorist15 on Liberty Island); it patrols
   now, within 4 units of the original's at 20 s (`AIConsole`, 374 before).
+- **A directly reachable target is walked to straight** (2026-10-01): the
+  original's `findPathToward` (Engine.dll `0x103db3f0`) first asks
+  whether the target itself can be walked to -- `CanMoveTo` for a
+  navigation point, `pointReachable` for a spot, then a pass over the
+  candidate nodes -- and returns the target as the route when so. The
+  fork always searched, so a bot whose next patrol point was in plain
+  sight walked off through path nodes to reach it. Proven by
+  `MoveConsole` (vibe/tools/dxcap): SecurityBot1's route now matches the
+  original's exactly. What remains the fork's own: the search itself --
+  the original's `breadthPathFrom` (`0x103dcd60`) is a best-first walk
+  over the reach-spec table with per-node penalties, where the fork's is
+  a Dijkstra by distance, so their routes differ where the two disagree
+  (MoveConsole: UNATCOTroop1 stuck pressing on one such route).
+  Compared on the way (DeathConsole): the death path matches the
+  original's throughout -- the same animation, lurch, hide timing and
+  carcass mesh -- and the robots' freeze in Dying forever is the
+  original's own behaviour.
 
 To check by hand: NPCs wandering their bit of Liberty Island, and a
 searching NSF stepping around corners in a fight
@@ -940,6 +969,39 @@ checks:
   window measures its progress lines that way and draws them in a box that
   wide: the fork broke them a word to a line. Checked: a join's
   Connecting lines drawn whole and centred, in a run's shot.
+- **Centred and right-aligned text with word wrap off.** Landed
+  (2026-10-01): the fork centered and right-aligned each line within the
+  *wrap* width, which the no-wrap path had widened to 100,000 -- every
+  such text drew tens of thousands of pixels off-screen, so the object
+  belt's descriptions, counts and slot numbers never showed. The
+  original's `XGC::DrawText` (Extension.dll `0x10028180`) hands the wrap
+  width only to line breaking and aligns within the width as passed;
+  the fork keeps an alignment width beside the wrap width now. Proven by
+  `BeltConsole` (vibe/tools/dxcap): the belt's text draws, structure
+  matching the original's, and the menu regression (GetConsole) is
+  99.9 % identical. Checked on the way: the fork's own `shot` command
+  reads the framebuffer before the present pass's gamma, so its shots
+  are darker than the screen shows.
+- **Focus moves between windows.** Landed (2026-10-01): the fork's
+  `MoveFocusDown/Up/Left/Right` were stubs and its buttons were not
+  selectable, so no keyboard focus ever moved -- a conversation's choices
+  had no selector (the blue) and never answered Up/Down, and a menu's
+  buttons could not be focused by key. The original's
+  `XWindow::MoveFocus` (Extension.dll `0x1004ef30`) walks the focus's
+  group's row/column-major window lists (position-sorted, wrapping,
+  skipping `IsTraversable` failures: selectable, the parent chain visible
+  and sensitive, under the topmost modal), seeds the focus when nothing
+  has it (the root's tick, `0x1003a540`, through the topmost modal's
+  group), and buttons draw their focused state
+  (`ChangeButtonAppearance` `0x10008380`). All ported: the lists are
+  built on demand (same membership and order as the original's
+  maintained tables), `windowType` is set at creation (root 3, modal 2,
+  tab group 1) so `GetTabGroupWindow` finds any non-generic ancestor --
+  a conversation window is its choices' group -- buttons are selectable
+  by default, and `UButtonWindow` draws by state instead of always the
+  normal colour. Proven by `ChoiceConsole` (vibe/tools/dxcap): the focus
+  cycles exactly as the original's (seeded on the first choice, Down to
+  the second, wrapping) and the blue moves with it.
 - **Keys.** Landed (2026-09-25): `EditWindow.Undo` and `Redo` walk a real
   change list -- typing joins, `maxUndos` caps, Ctrl+Z and Ctrl+Y call
   them -- with two edit bugs fixed on the way (inserting over a selection

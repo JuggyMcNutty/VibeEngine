@@ -343,6 +343,11 @@ cmd_original() {
     local dir="$CAP/runs/original-$console-$(date +%H%M%S)"
     make_ini original "$console" "$ini"
     user_ini "$userini"
+    # A console that travels to a named map (the sweep's MissionConsole):
+    # the game starts at the menu map, so the map comes through the ini.
+    if [ -n "${DXCAP_MISSION_MAP:-}" ]; then
+        printf '[DXCapture.%s]\nTargetMap=%s\n' "$console" "$DXCAP_MISSION_MAP" >> "$ini"
+    fi
     make_view
     mkdir -p "$dir"
 

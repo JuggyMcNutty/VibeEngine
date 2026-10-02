@@ -149,6 +149,34 @@ The console classes:
   pawns, whatever watches for the player, datalinks) and starts each part
   with three beeps; `vibe/tools/dxcap/sound.py <run>` lays the recording against
   the log by them and measures.
+- **`SkipConsole`**: the conversation skip -- Kaplan's MeetKaplan on
+  Liberty Island with every line skipped mid-line, its speech and lengths
+  logged; `DXCAP_RECORD=1` records it, and `vibe/tools/dxcap/skip.py <run>
+  [<run> ...]` lays the recording against the log by the run's two beeps
+  and measures each line's tail: stopped, or playing on.
+- **`BeltConsole`**: the object belt -- items given as the game's pickups
+  give them, the belt's slots logged after each with the player's in-hand
+  state through a use, a swap and a new pickup, and marked shots of the
+  belt.
+- **`DeathConsole`**: an NPC's death -- two isolated humans killed from
+  behind and from the front (and robots on the way), the Dying state's
+  animation, acceleration and place logged through the fall, then the
+  carcass's class, mesh, place and base until it settles, with marked
+  shots.
+- **`ChoiceConsole`**: a conversation's choices -- MeetKaplan run to its
+  choices, each button's selectability and the focus window logged, the
+  root window's own key handler driving Down, Down and Up between them
+  with a marked shot after each, then the focused choice picked.
+- **`MoveConsole`**: how the level moves -- every in-world ScriptedPawn's
+  state, orders, move target, destination, velocity and distance moved,
+  every 2 s for 120 s on Liberty Island, for a trajectory diff between
+  the engines.
+- **`MissionConsole`**: a mission map's script -- the DeusExLevelInfo, its
+  MissionScript, and the state machine's initialization polled from the
+  player's flag base, `DXMISSION:` lines saying OK or what is missing.
+  The fork's runs land on the map by their URL; an original's run starts
+  at the menu map, so `DXCAP_MISSION_MAP=<map> original MissionConsole`
+  names the target through the run's ini.
 
 **Net tests** pair the two consoles, one engine each side, on this machine:
 start the server (`original ServeConsole 300` in the background, or `fork
