@@ -8,9 +8,14 @@
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Utils/Logger.h"
+#include "Engine.h"
 
 bool UPawn::ActorReachable(UActor* anActor, bool checkNavpoint)
 {
+	// Deus Ex's is the original's actorReachable (UPawn_ReachDeusEx.cpp).
+	if (engine->LaunchInfo.IsDeusEx())
+		return DeusExActorReachable(anActor, false);
+
 	if (!anActor)
 		return false;
 
@@ -149,8 +154,12 @@ bool UPawn::ActorReachable(UActor* anActor, bool checkNavpoint)
 	}
 }
 
-bool UPawn::PointReachable(vec3 aPoint)
+bool UPawn::PointReachable(vec3 aPoint, bool knowVisible)
 {
+	// Deus Ex's is the original's pointReachable (UPawn_ReachDeusEx.cpp).
+	if (engine->LaunchInfo.IsDeusEx())
+		return DeusExPointReachable(aPoint, knowVisible);
+
 	PointRegion pointRegion = XLevel()->Model->FindRegion(aPoint, Level());
 
 	if (!Region().Zone->bWaterZone() && !bCanSwim() && pointRegion.Zone->bWaterZone())

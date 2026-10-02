@@ -486,7 +486,7 @@ namespace
 		while (list.NumPoints > 0)
 		{
 			UNavigationPoint* node = list.Path[0];
-			if (pawn->FastTrace(node->Location(), eye) && pawn->PointReachable(node->Location()))
+			if (pawn->FastTrace(node->Location(), eye) && pawn->PointReachable(node->Location(), true))
 				break;
 			list.RemovePath(0);
 		}
@@ -519,7 +519,7 @@ namespace
 		{
 			if (pawn->TestMoveTo(anchor->Location(), false))
 			{
-				if (pawn->PointReachable(goal))
+				if (pawn->PointReachable(goal, false))
 					return true;
 				pawn->TestMoveTo(standing, true);
 			}
@@ -557,7 +557,7 @@ namespace
 		{
 			UNavigationPoint* node = candidates.Path[i];
 			bool visible = pawn->FastTrace(node->Location(), eye);
-			bool reachable = pawn->PointReachable(node->Location());
+			bool reachable = pawn->PointReachable(node->Location(), true);
 			if (visible && reachable)
 			{
 				bestPath = node;
@@ -841,7 +841,7 @@ UActor* UPawn::DeusExFindPath(UActor* goalActor, vec3 goalPoint, bool singlePath
 			UNavigationPoint* node = goalList.Path[i];
 			if (!FastTrace(goal, node->Location()))
 				continue;
-			if (TestMoveTo(node->Location(), false) && (goalActor ? ActorReachable(goalActor) : PointReachable(goal)))
+			if (TestMoveTo(node->Location(), false) && (goalActor ? DeusExActorReachable(goalActor, true) : PointReachable(goal, true)))
 			{
 				goalNode = true;
 				goalList.Path[0] = node;
@@ -900,7 +900,7 @@ UActor* UPawn::DeusExFindPath(UActor* goalActor, vec3 goalPoint, bool singlePath
 						vec3 eye = Location();
 						eye.z += BaseEyeHeight();
 						bool visible = FastTrace(next->Location(), eye);
-						bool reachable = PointReachable(next->Location());
+						bool reachable = PointReachable(next->Location(), true);
 						UActor* route = (visible && reachable) ? (UActor*)next : (UActor*)last;
 						putBack();
 						return route;

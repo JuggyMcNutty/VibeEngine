@@ -122,6 +122,11 @@ The console classes:
   without `bIgnoreHidden`, and each `VisibleActors` lists (`DXVIS:`). The
   player and its shadow are numbered one higher in the original's log,
   whose menu map made the first.
+- **`ReachConsole`**: the reachability tests asked from script -- on
+  Liberty Island, for 12 ScriptedPawns by name, `AIDirectionReachable` along
+  four yaws (150 to 500 units), `PointReachable` to a spot 300 units along
+  each, and `ActorReachable` to the player and to the three nearest
+  navigation points, each answer a `DXREACH:` line.
 - **`RestConsole`**: where a falling decoration comes to rest -- on
   Liberty Island the large crate, the barrel and the large box placed as
   `MeshConsole` places them, the colliding actors near each listed, a line

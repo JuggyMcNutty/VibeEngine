@@ -594,6 +594,11 @@ int UPawn::CalcMoveFlags()
 // engine's own walk, fly or swim move, and puts it back.
 bool UPawn::AIDirectionReachable(const vec3& focus, int yaw, int pitch, float minDist, float maxDist, vec3& bestDest)
 {
+	// Deus Ex's steps with the original's own walk, fly and swim moves
+	// (UPawn_ReachDeusEx.cpp).
+	if (engine->LaunchInfo.IsDeusEx())
+		return DeusExAIDirectionReachable(focus, yaw, pitch, minDist, maxDist, bestDest);
+
 	// A copy: the caller may hand the pawn's own Location(), a reference
 	// into its property data, and the pawn moves below.
 	vec3 focusPoint = focus;

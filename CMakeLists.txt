@@ -605,6 +605,7 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_AI.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_Path.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_Reach.cpp
+	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachDeusEx.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachFlying.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachSpider.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachSwimming.cpp

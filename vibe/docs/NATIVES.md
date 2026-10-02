@@ -500,15 +500,13 @@ and a seeking NPC got no overshoot destination:
   the fork's own search 50; UNATCOTroop1, frozen against geometry from 8 s
   on under the fork's own, walks its whole patrol and reaches every point
   the original's reaches; Terrorist35, which the first port stalled at
-  34 s, walks as the original's. **One pawn stalls where the original's
-  does not**: Terrorist34, held at the same spot as the original's from
-  8 s, re-routes at 18 s to PathNode21, beyond what holds it, where the
-  original's turns back to PathNode541 and then gets past. The search
-  stops at PathNode541 in both; what takes PathNode21 instead is the step
-  after it, which asks the fork's own `pointReachable` whether the pawn can
-  walk to PathNode21 from there -- the fork's says yes, the original's
-  evidently no. The reachability tests are still the fork's own
-  ([implemented, not as the original](#implemented-not-as-the-original)), and are the work left.
+  34 s, walks as the original's. Terrorist34 stalled under the fork's own
+  reachability tests -- held where the original's is held from 8 s, it
+  re-routed at 18 s to PathNode21, beyond what holds it, which the fork's
+  own `pointReachable` (a look and a fit, no walk) called reachable --
+  and walks as the original's since the tests are the original's too
+  ([implemented, not as the original](#implemented-not-as-the-original)): with both, 51 of the 52 pawns' distance
+  within tolerance and none stalling where the original's does not.
   Compared on the way (DeathConsole): the death path matches the
   original's throughout -- the same animation, lurch, hide timing and
   carcass mesh -- and the robots' freeze in Dying forever is the
@@ -1411,25 +1409,32 @@ says what changed, what stays the fork's own, and its by-hand check:
   fitted in by `FindSpot`, left as it is where it fits already, and
   destroyed after `PostBeginPlay` when something there stops it; and a
   mover moving into actors now asks each of them, where a typo had it ask
-  only the first in each of its collision cells. Still the fork's own:
-  its own reachability tests, `pointReachable` and `actorReachable`, keep
-  the whole-size tries, and the shape of `AIDirectionReachable`'s walk.
-  **A note corrected 2026-10-02**: this said the fork's
-  `AIDirectionReachable` "walks its steps as real moves, zone events and
-  touches included, and puts the pawn back as one; the original's are
-  tests". That was wrong -- all three `Reachable*` move with `TryMove`
-  and `dryRun` set, which returns before `FinishMove`, so no touch, no
-  `Bump` and no `UpdateActorZone` runs: the probes raise nothing, which
-  is what the original's `walkMove`/`flyMove`/`swimMove` do too. What is
-  left is the walk's *shape*: the original steps along the direction by
-  its collision radius held between 5 and 25 units, at most 100 steps,
-  each step the engine's own walk/fly/swim move (walls, ledges and steps
-  count), retrying a walk stopped by a ledge once with a step of
-  `MaxStepHeight`, and stopping in the void, in a pain zone whose damage
-  the pawn does not resist, and on entering water; the fork steps up,
-  across and settles onto the floor itself, over at most 32 iterations,
-  with its own fall. Changing that moves every wandering NPC's and every
-  animal's destination, so it wants its own console as a proof.
+  only the first in each of its collision cells.
+
+  **The reachability tests are the original's** (2026-10-02;
+  [reaching](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#reaching)): `pointReachable` and `actorReachable` -- the
+  zone checks, the look from the eye (or the line only the actor may
+  stop), the destination fitted for the pawn's size, an actor's own
+  threshold (a pawn's within a blow, an item's or a trigger's where the
+  two touch) -- and the `Reachable` they ask, walking, flying or swimming
+  there: up to 100 of the original's own moves, each a test move that pawns
+  do not stop, stepping up what blocks it and down to a floor within
+  `MaxStepHeight` + 2, its result -- moved, no progress, no floor, the
+  goal bumped -- deciding the walk; a fall taken as a jump by a jumper or
+  retried in smaller steps, water swum and a shore climbed. The fork's own
+  looked and fitted and walked nothing (`pointReachable`), or walked its own
+  step-up-and-settle simulation (`actorReachable`); `AIDirectionReachable`
+  steps with the original's moves too, its classification of the range the
+  original's. `ReachConsole` asks them from script in both engines -- 12
+  of Liberty Island's pawns, four directions, a spot along each, the player
+  and their three nearest nodes: 142 of 144 answers alike, 124 to the unit.
+  What differs is where a walk's steps end: 2 units lower than the
+  original's, as the drop to the floor that ends each step, a box check,
+  meets the floor where the original's stops at once on a hull face over
+  it -- the same difference as where a falling decoration rests (above), and
+  enough to take a 500-unit walk a step short of its range's end. With the
+  path search, Liberty Island's pawns move as the original's
+  ([moving](#moving-wandering-and-tactical-movement), 51 of 52).
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the fork
   looks the rest up as one name and finds nothing. The game's scripts name
   no group.

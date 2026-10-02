@@ -2,6 +2,8 @@
 
 #include "Packages/Engine/Actors/UActor.h"
 
+class CollisionHit;
+
 class USound;
 class UNavigationPoint;
 class UWeapon;
@@ -50,7 +52,23 @@ public:
 	bool DeusExLineOfSightTo(UActor* other, bool useLOSFlag, bool ignoreDistance);
 	bool CanHearNoise(UActor* source, float loudness);
 	bool ActorReachable(UActor* anActor, bool checkNavpoint = false);
-	bool PointReachable(vec3 aPoint);
+	bool PointReachable(vec3 aPoint, bool knowVisible = false);
+
+	// Deus Ex's reachability tests, the original's (UPawn_ReachDeusEx.cpp)
+	bool DeusExPointReachable(vec3 aPoint, bool knowVisible);
+	bool DeusExActorReachable(UActor* other, bool knowVisible);
+	int DeusExReachable(vec3 dest, float threshold, UActor* goalActor);
+	int DeusExWalkReachable(vec3 dest, float threshold, int reachFlags, UActor* goalActor);
+	int DeusExFlyReachable(vec3 dest, float threshold, int reachFlags, UActor* goalActor);
+	int DeusExSwimReachable(vec3 dest, float threshold, int reachFlags, UActor* goalActor);
+	int DeusExWalkMove(vec3 delta, CollisionHit& hit, UActor* goalActor, float threshold, bool adjust);
+	int DeusExFlyMove(vec3 delta, UActor* goalActor, float threshold, bool adjust);
+	int DeusExSwimMove(vec3 delta, UActor* goalActor, float threshold, bool adjust);
+	CollisionHit ReachTestMove(const vec3& delta);
+	void FindWaterLine(vec3 start, vec3& end);
+	void SuggestJumpVelocity(vec3 dest, vec3& vel);
+	bool FindBestJump(vec3 dest, vec3 testVel, vec3& landing, bool movePawn);
+	bool DeusExAIDirectionReachable(const vec3& focus, int yaw, int pitch, float minDist, float maxDist, vec3& bestDest);
 
 	bool ReachableFlying(UActor* anActor);
 	bool ReachableSpider(UActor* anActor);
