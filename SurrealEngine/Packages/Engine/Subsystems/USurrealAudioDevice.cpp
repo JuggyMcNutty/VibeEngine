@@ -654,8 +654,12 @@ void USurrealAudioDevice::UpdateReverb()
 
 bool USurrealAudioDevice::PlaySound(UActor* Actor, int Id, USound* Sound, vec3 Location, float Volume, float Radius, float Pitch, bool isTalk)
 {
-	if (Radius <= 0.0) // Seems we have zero radius values. Lovely.
-		Radius = 1500.0f;
+	// A radius of 0 or less is 800 in the original (APawn::PlaySound,
+	// Engine.dll 0x103e1f60): a script that plays a sound with no radius of its
+	// own is heard 800 units out, not the 1,500 the fork let through -- and its
+	// priority, (1 - distance / radius) * volume, is worked out on that.
+	if (Radius <= 0.0)
+		Radius = 800.0f;
 
 	if (!engine->LaunchInfo.IsDeusEx())
 	{

@@ -1114,6 +1114,15 @@ void NObject::Max(int A, int B, int& ReturnValue)
 
 void NObject::Mid(const std::string& S, int i, std::optional<int> j, std::string& ReturnValue)
 {
+	// A negative start gives an empty string, as the original's does: it clamps
+	// the start as an unsigned, so a start before the string wraps past its end
+	// (core-dll.md, Conversions).
+	if (i < 0)
+	{
+		ReturnValue = "";
+		return;
+	}
+
 	int size = (int)S.size();
 	int start = i;
 	int end = start + (j ? *j : size);

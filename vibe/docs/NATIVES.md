@@ -460,11 +460,40 @@ and a seeking NPC got no overshoot destination:
   fork always searched, so a bot whose next patrol point was in plain
   sight walked off through path nodes to reach it. Proven by
   `MoveConsole` (vibe/tools/dxcap): SecurityBot1's route now matches the
-  original's exactly. What remains the fork's own: the search itself --
-  the original's `breadthPathFrom` (`0x103dcd60`) is a best-first walk
-  over the reach-spec table with per-node penalties, where the fork's is
-  a Dijkstra by distance, so their routes differ where the two disagree
-  (MoveConsole: UNATCOTroop1 stuck pressing on one such route).
+  original's exactly.
+- **The search itself** (2026-10-02): the original's `breadthPathFrom`
+  (`0x103dcd60`, [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)),
+  where the fork's was a Dijkstra by reach-spec distance. What a node
+  costs to reach is the spec's distance plus the node's own penalty
+  (`cost`: the `SpecialCost` event or `ExtraCost`) plus what was spent to
+  reach the node expanded so far, and an end point's `bestPathWeight`
+  besides; the nodes not yet expanded are kept in an open list sorted by
+  that cost, out of the nodes' own `nextOrdered`/`prevOrdered`, with the
+  route in `previousPath` and the cost in `visitedWeight` -- which
+  `ClearPaths` now resets to 10,000,000, clearing the list with it, as
+  `APawn::clearPaths` (`0x103da050`) does. The caps are the original's: the
+  script's node cap, which none of Deus Ex's eleven `FindPathToward` calls
+  passes, so the search gives up after 1000 nodes and says so in the log,
+  and the open list's own walk gives up after 500.
+  **Proven by `MoveConsole`**: UNATCOTroop1, frozen against geometry from
+  8 s on in the fork (`moved 0` for the rest of the run), now walks its
+  whole patrol as the original's does, reaching the patrol points it never
+  reached -- the original's route through PathNode405, where the fork's
+  kept re-picking PathNode406. 50 of Liberty Island's 52 pawns' distance
+  moved is the original's, as before, SecurityBot1's route among them.
+  **One pawn stalls where it did not**: Terrorist35 stops against geometry
+  at 34 s, where the fork's walked on (its route through PathNode964 and
+  PathNode644, where the original's and the fork's both go by
+  PatrolPoint86). With the search, what decides which node it settles on
+  is the set of end points it stops at, and that is still the fork's
+  (`MarkReachableNavEndPoints`: what is within 1,000 units and
+  `actorReachable`, up to eight) where the original's is
+  `APawn::definePathsFor` -- a flood of the goal-side node's reach specs,
+  each traced, setting `bestPathWeight` as it goes, and two pawn and mover
+  flag bits the release's headers do not name. The reach spec's own
+  `reachFlags` are still not checked either (`APawn::calcMoveFlags`,
+  `0x10326d10`: a compression of seven pawn flags into seven bits). All
+  three are written up in [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search).
   Compared on the way (DeathConsole): the death path matches the
   original's throughout -- the same animation, lurch, hide timing and
   carcass mesh -- and the robots' freeze in Dying forever is the
@@ -636,6 +665,20 @@ frames only look brighter there, more so the fainter the texel, for their
 gamma ([brightness](#brightness)): given the same gamma, the fork's shot
 has the glow of the lamp against the sky fall off as the original's does,
 to within 4 of 255 out to 60 pixels (2026-09-27).
+
+### What a pawn holds
+
+- **Attachments** (2026-10-02; [a pawn's attachments](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-pawns-attachments)):
+  after a pawn's mesh, the original draws the pawn's `Weapon` in its
+  third-person mesh and scale at the triangle its own mesh holds a weapon
+  at, in the pawn's style and lit as the pawn -- the fork does that -- and,
+  **where the mesh has no such triangle, the pawn's `SelectedItem` in its
+  third-person mesh, drawn where the item is**. The fork drew nothing there,
+  so an NPC holding something that is not a weapon had nothing in its
+  hands. `VisibleMesh::DrawMesh` now draws the item through the renderer,
+  in the pawn's light.
+  To check by hand: an NPC carrying an item its own mesh cannot hold a
+  weapon at (a datacube, say).
 
 ### Mesh detail
 
@@ -1304,11 +1347,19 @@ says what changed, what stays the fork's own, and its by-hand check:
   looks the rest up as one name and finds nothing. The game's scripts name
   no group.
 - **`Object.Mid` 127** with a negative start: the original returns an empty
-  string, the fork counts from 0.
+  string, the fork counted from 0 -- now the original's (2026-10-02; the
+  start is clamped as an unsigned, so one before the string wraps past its
+  end, [conversions](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
 - **`Actor.LastRendered` 723 and `Actor.InStasis` 721:**
   [out of sight](#out-of-sight).
 - **`Actor.PlaySound` 264** with no radius, from an actor with no
-  `TransientSoundRadius`: 800 units in the original, 1,500 in the fork.
+  `TransientSoundRadius`: 800 units in the original, 1,500 in the fork --
+  now the original's 800 (`USurrealAudioDevice::PlaySound`, 2026-10-02;
+  a radius of 0 or less is 800, [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),
+  which also works out the sound's priority `(1 - distance / radius) *
+  volume` on it. A script sound with no radius of its own is heard
+  800 units out where the fork heard it 1,500, and takes a free channel
+  where the fork's lost one to a channel playing nearer.
 
 ## Housekeeping, not seen directly
 

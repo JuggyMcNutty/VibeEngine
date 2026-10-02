@@ -10,6 +10,7 @@
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Engine/UViewport.h"
 #include "Packages/Engine/Actors/Inventory/UWeapon.h"
+#include "Packages/Engine/Actors/Inventory/UInventory.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
 #include "Packages/Engine/Resources/Mesh/USkeletalMesh.h"
@@ -36,7 +37,10 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, bool wireframe, b
 
 	bool needsTranslucentPass = DrawMeshAtLocation(frame, actor, actor, mesh, meshToWorld, meshNormalToWorld, translucentPass);
 
-	// Weapon attachment drawing:
+	// A pawn's own attachments: the weapon in its third-person mesh, at the
+	// triangle its mesh holds a weapon at, and with no such triangle the pawn's
+	// selected item, drawn where the item is (render-dll.md, A pawn's
+	// attachments).
 	if (UPawn* pawn = UObject::TryCast<UPawn>(actor))
 	{
 		ULodMesh* pawnLodMesh = UObject::TryCast<ULodMesh>(mesh);
@@ -60,6 +64,17 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, bool wireframe, b
 			mat4 weaponMeshToWorld = attachment.ToMatrix() * mat4::scale(weapon->ThirdPersonScale()) * weaponMesh->meshToObject;
 			mat3 weaponNormalToWorld = mat3::transpose(mat3(weaponMeshToWorld));
 			needsTranslucentPass = DrawMeshAtLocation(frame, weapon, actor, weaponMesh, weaponMeshToWorld, weaponNormalToWorld, translucentPass) || needsTranslucentPass;
+		}
+		else if (UInventory* item = pawn->SelectedItem())
+		{
+			// The mesh holds no weapon triangle: the item in hand is drawn where
+			// the item is, in the pawn's own light.
+			if (UMesh* itemMesh = item->ThirdPersonMesh())
+			{
+				mat4 itemToWorld = mat4::translate(item->Location() + item->PrePivot()) * Coords::Rotation(item->Rotation()).ToMatrix() * mat4::scale(item->DrawScale());
+				mat3 itemNormalToWorld = mat3::transpose(mat3(itemToWorld));
+				needsTranslucentPass = DrawMeshAtLocation(frame, item, actor, itemMesh, itemToWorld, itemNormalToWorld, translucentPass) || needsTranslucentPass;
+			}
 		}
 	}
 
