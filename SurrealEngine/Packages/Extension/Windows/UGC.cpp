@@ -747,6 +747,16 @@ Sizef UGC::DrawText(UFont* font, float orgX, float orgY, float destWidth, const 
 	Color color = colormoo;
 	color.A = 255; // grr
 
+	// The alignment box is the width as passed, whatever the wrap: the
+	// original's XGC::DrawText hands GetLine the wrap width (0 with no
+	// word wrap, which ParseLine takes as no limit) but centers and
+	// right-aligns each line within the width it was given
+	// (Extension.dll 0x10028180). The fork widened the box with the wrap
+	// width, so centered or right-aligned text with word wrap off drew
+	// tens of thousands of pixels to the right -- the object belt's
+	// descriptions, counts and slot numbers among it.
+	float alignWidth = destWidth;
+
 	if (!bWordWrap())
 		destWidth = 100000.0f;
 
@@ -787,9 +797,9 @@ Sizef UGC::DrawText(UFont* font, float orgX, float orgY, float destWidth, const 
 			{
 				float centerX = 0;
 				if (halign == EHAlign::Center || halign == EHAlign::Full)
-					centerX = std::round((destWidth - lineWidth) * 0.5f);
+					centerX = std::round((alignWidth - lineWidth) * 0.5f);
 				else if (halign == EHAlign::Right)
-					centerX = destWidth - lineWidth;
+					centerX = alignWidth - lineWidth;
 
 				if (!noDraw)
 					DrawTextBlockRange(orgX + curX + centerX, orgY + curY, textBlocks, lineBegin, pos, font, polyflags);
@@ -817,9 +827,9 @@ Sizef UGC::DrawText(UFont* font, float orgX, float orgY, float destWidth, const 
 			{
 				float centerX = 0;
 				if (halign == EHAlign::Center || halign == EHAlign::Full)
-					centerX = std::round((destWidth - lineWidth) * 0.5f);
+					centerX = std::round((alignWidth - lineWidth) * 0.5f);
 				else if (halign == EHAlign::Right)
-					centerX = destWidth - lineWidth;
+					centerX = alignWidth - lineWidth;
 
 				if (!noDraw)
 					DrawTextBlockRange(orgX + curX + centerX, orgY + curY, textBlocks, lineBegin, pos, font, polyflags);
@@ -855,9 +865,9 @@ Sizef UGC::DrawText(UFont* font, float orgX, float orgY, float destWidth, const 
 	{
 		float centerX = 0;
 		if (halign == EHAlign::Center || halign == EHAlign::Full)
-			centerX = std::round((destWidth - lineWidth) * 0.5f);
+			centerX = std::round((alignWidth - lineWidth) * 0.5f);
 		else if (halign == EHAlign::Right)
-			centerX = destWidth - lineWidth;
+			centerX = alignWidth - lineWidth;
 
 		if (!noDraw)
 			DrawTextBlockRange(orgX + curX + centerX, orgY + curY, textBlocks, lineBegin, textBlocks.size(), font, polyflags);
