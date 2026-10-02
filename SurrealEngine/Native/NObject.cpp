@@ -1114,20 +1114,20 @@ void NObject::Max(int A, int B, int& ReturnValue)
 
 void NObject::Mid(const std::string& S, int i, std::optional<int> j, std::string& ReturnValue)
 {
-	// A negative start gives an empty string, as the original's does: it clamps
-	// the start as an unsigned, so a start before the string wraps past its end
-	// (core-dll.md, Conversions).
-	if (i < 0)
-	{
-		ReturnValue = "";
-		return;
-	}
-
-	int size = (int)S.size();
-	int start = i;
-	int end = start + (j ? *j : size);
-	start = clamp(start, 0, size);
-	end = clamp(end, start, size);
+	// As the original's FString::Mid (Core.dll 0x101086e0; core-dll.md,
+	// Conversions): up to 65,535 characters by default, and both ends clamped
+	// as unsigned -- so a negative start wraps past the end and gives an empty
+	// string, and a negative count that takes the end below 0 wraps the same
+	// way and gives the rest of the string.
+	uint32_t size = (uint32_t)S.size();
+	uint32_t start = (uint32_t)i;
+	uint32_t end = start + (uint32_t)(j ? *j : 65535);
+	if (start > size)
+		start = size;
+	if (end < start)
+		end = start;
+	else if (end > size)
+		end = size;
 	ReturnValue = S.substr(start, end - start);
 }
 

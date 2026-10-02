@@ -652,12 +652,13 @@ void USurrealAudioDevice::UpdateReverb()
 
 bool USurrealAudioDevice::PlaySound(UActor* Actor, int Id, USound* Sound, vec3 Location, float Volume, float Radius, float Pitch, bool isTalk)
 {
-	// A radius of 0 or less is 800 in the original (APawn::PlaySound,
-	// Engine.dll 0x103e1f60): a script that plays a sound with no radius of its
-	// own is heard 800 units out, not the 1,500 the fork let through -- and its
-	// priority, (1 - distance / radius) * volume, is worked out on that.
+	// A radius of 0 or less is 800 in Deus Ex's Actor.PlaySound (Engine.dll
+	// 0x103e1f60, engine-dll.md#small): a script that plays a sound with no
+	// radius of its own is heard 800 units out, not the 1,500 the fork let
+	// through -- and its priority, (1 - distance / radius) * volume, is worked
+	// out on that. Other games keep the fork's 1,500.
 	if (Radius <= 0.0)
-		Radius = 800.0f;
+		Radius = engine->LaunchInfo.IsDeusEx() ? 800.0f : 1500.0f;
 
 	if (!engine->LaunchInfo.IsDeusEx())
 	{

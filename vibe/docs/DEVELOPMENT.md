@@ -176,6 +176,9 @@ The console classes:
   Liberty Island holding a multitool (no weapon, so the selected item is
   drawn at the weapon triangle) and then the assault gun, a marked shot of
   each, the player's `Weapon`, `SelectedItem` and `inHand` logged.
+- **`MidConsole`**: `Object.Mid` at its edges -- negative starts and
+  counts, a count past the end, the default count -- logged with `DXMID:`
+  from the menu map, then an exit; the two engines' lines should be alike.
 - **`MoveConsole`**: how the level moves -- every in-world ScriptedPawn's
   state, orders, move target, destination, velocity and distance moved,
   every 2 s for 120 s on Liberty Island, for a trajectory diff between

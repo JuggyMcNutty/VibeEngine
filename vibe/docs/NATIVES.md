@@ -1421,15 +1421,20 @@ says what changed, what stays the fork's own, and its by-hand check:
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the fork
   looks the rest up as one name and finds nothing. The game's scripts name
   no group.
-- **`Object.Mid` 127** with a negative start: the original returns an empty
-  string, the fork counted from 0 -- now the original's (2026-10-02; the
-  start is clamped as an unsigned, so one before the string wraps past its
-  end, [conversions](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
+- **`Object.Mid` 127** at its edges: the original clamps both the start
+  and the end as unsigned, and takes 65,535 characters by default
+  ([conversions](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)) -- so a negative start gives an empty
+  string, and a negative count that takes the end below 0 gives the rest of
+  the string (`Mid("hello", 2, -5)` is "llo"). The fork counted a negative
+  start from 0 and gave an empty string for the negative count; both are the
+  original's now (2026-10-02), `MidConsole`'s ten probes alike in both
+  engines.
 - **`Actor.LastRendered` 723 and `Actor.InStasis` 721:**
   [out of sight](#out-of-sight).
 - **`Actor.PlaySound` 264** with no radius, from an actor with no
   `TransientSoundRadius`: 800 units in the original, 1,500 in the fork --
-  now the original's 800 (`USurrealAudioDevice::PlaySound`, 2026-10-02;
+  now the original's 800 in Deus Ex, other games keeping 1,500
+  (`USurrealAudioDevice::PlaySound`, 2026-10-02;
   a radius of 0 or less is 800, [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),
   which also works out the sound's priority `(1 - distance / radius) *
   volume` on it. A script sound with no radius of its own is heard
@@ -1442,9 +1447,12 @@ says what changed, what stays the fork's own, and its by-hand check:
   object at once, whatever still refers to it
   ([`CriticalDelete`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#criticaldelete)), and the game's callers
   delete objects of their own and drop their reference. The fork's stub
-  leaves them to its garbage collector, which frees them later: no other
+  leaves them be, and nothing frees them later: its collector is never run
+  (`GC::Collect`, its one call left commented out in `Engine::UnloadMap`),
+  so a deleted object lives on unreferenced -- memory, and no other
   difference, now that `CreateGameDirectoryObject` makes a new object each
-  call as the original does (2026-09-25).
+  call as the original does (2026-09-25). Freeing it at once is not
+  landable while nothing in the fork frees an object at all.
 
 ## Small
 
