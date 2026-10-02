@@ -16,6 +16,15 @@
 #include "Packages/Engine/Resources/Mesh/USkeletalMesh.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 
+// Whether a mesh face faces the eye, as the original's DrawMesh and
+// DrawLodMesh ask it (Render.dll 0x10b0d1a0, 0x10b0ea80): (A − B) × (C − A)
+// against A from the eye, in its view space -- which mirrors the world's
+// (x right, y down, z ahead), so the other way round here.
+static bool FacesEye(const GouraudVertex* v, const vec3& eye)
+{
+	return dot(cross(v[0].Point - v[1].Point, v[2].Point - v[0].Point), v[0].Point - eye) > 0.0f;
+}
+
 bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, bool wireframe, bool translucentPass)
 {
 	UMesh* mesh = actor->Mesh();
@@ -635,6 +644,7 @@ bool VisibleMesh::DrawMeshDX(VisibleFrame* frame, UActor* actor, UActor* lightLo
 
 	VertexLight vertexLight;
 	lightsys->InitVertexLight(vertexLight, lightLocationActor, zoneActor);
+	vec3 eye = frame->ViewLocation.xyz();
 
 	GouraudVertex vertices[3];
 	for (const MeshTri& tri : mesh->Tris)
@@ -723,6 +733,11 @@ bool VisibleMesh::DrawMeshDX(VisibleFrame* frame, UActor* actor, UActor* lightLo
 			vertices[i].UV = { tri.UV[i].x * uscale, tri.UV[i].y * vscale };
 			normals[i] = normalize(ObjectNormalToWorld * normal);
 		}
+
+		// The original's DrawMesh culls a face that faces away only when its
+		// own flags are PF_Flat without PF_TwoSided or PF_Invisible
+		if ((tri.PolyFlags & (PF_Flat | PF_TwoSided | PF_Invisible)) == PF_Flat && !FacesEye(vertices, eye))
+			continue;
 
 		if (renderflags & PF_Environment)
 		{
@@ -872,6 +887,7 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 
 	VertexLight vertexLight;
 	lightsys->InitVertexLight(vertexLight, lightLocationActor, zoneActor);
+	vec3 eye = frame->ViewLocation.xyz();
 
 	bool needTranslucentPass = false;
 
@@ -1120,6 +1136,11 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 				vertices[i].UV.y = mix(wedge.V * vscale, targetWedge.V * vscale, morphT);
 			}
 		}
+
+		// The original's DrawLodMesh draws a face that faces away only when
+		// the actor's or its material's flags make it two-sided
+		if (!twosided && !FacesEye(vertices, eye))
+			continue;
 
 		if (renderflags & PF_Environment)
 		{

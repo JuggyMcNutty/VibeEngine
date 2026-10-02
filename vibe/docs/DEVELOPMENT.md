@@ -58,7 +58,11 @@ The console classes:
   hue, saturation and skin, two marked shots.
 - **`LaserConsole`**: Liberty Island's first laser tripwire looked into from
   where `CaptureConsole` shoots it, the HUD hidden: the trigger's, its
-  emitter's and its proxy's state logged each second, two marked shots.
+  emitter's and its proxy's state logged each second (the proxy's mesh,
+  lighting and skin too), two marked shots of the beams, a third with the
+  proxy's skin drawn large on the canvas over black, plain and translucent
+  -- the fire texture apart from the beam --, and a fourth with the proxy
+  unlit.
 - **`MeshConsole`**: meshes lit -- at Liberty Island's start, the HUD
   hidden, Paul Denton (who stands still) moved 220 units ahead and a large
   crate, a barrel and a large box placed around him on the pier; each one's

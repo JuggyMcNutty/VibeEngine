@@ -333,6 +333,9 @@ void LightSystem::InitVertexLight(VertexLight& out, UActor* actor, UZoneInfo* zo
 	{
 		out.OriginalFormula = true;
 		out.ScaleGlow = actor->ScaleGlow();
+		// DrawLodMesh's unlit level (Render.dll 0x10b0f6e0): the glow raw,
+		// not pulsing, held to 0-1
+		out.UnlitLevel = std::clamp(actor->AmbientGlow() / 256.0f + actor->ScaleGlow() * 0.5f, 0.0f, 1.0f);
 		SetupForActorDX(out, actor);
 	}
 	else

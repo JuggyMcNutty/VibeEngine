@@ -637,14 +637,27 @@ the fork drew none. The beam's texture, `LaserBeam1`, is a fire texture
 (64 × 8, spark kind 27), which the fork left black until it drew them as
 `Fire.dll` does ([fire, water and ice textures](#fire-water-and-ice-textures)):
 since, it draws the beams (2026-09-27, `LaserConsole`), both engines' logs
-agreeing on the emitter, its iterator and its proxy -- a translucent sprite
-of that texture, moved along the beam --, the dashes where the original's
-are and as far apart. They looked fainter over a floor the fork drew 3.7
-to 4 times too bright; with the light maps the original's
-([lighting](#lighting)) the floor matches, and the dashes are a little
-stronger than the original's: in the two beams' bands 60 to 70% more
-pixels red over green by 40 or more, their red about 7% higher
-(2026-09-28, against `D3DDrv`).
+agreeing on the emitter, its iterator and its proxy -- a translucent mesh,
+`DeusExItems.LaserBeam`, an open square tube 16 units long whose one
+material is unlit, skinned with that texture and moved along the beam --,
+the dashes where the original's are and as far apart. They looked fainter
+over a floor the fork drew 3.7 to 4 times too bright; with the light maps
+the original's ([lighting](#lighting)) the floor matches, and the dashes
+came out 65 to 70% too red (2026-09-28, against `D3DDrv`): the fork drew
+the tube's back faces through its front ones, where the original draws a
+mesh's faces turned to the eye alone ([which faces](#lighting), below). The
+iterator places its segments as the original's (2026-10-02,
+[particles and lasers](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#particles-and-lasers)): the k-th of a
+beam's N at k/N of its length, where the fork's were 16 units apart; an
+arc's spot jittered by this segment's random unit vector and the last's,
+aimed back at where the last one ends; and the one extra item drawing again
+a segment kept on the way -- kept while none is with the items so far over
+all for its chance -- where the fork's drew one at random. `LaserConsole`
+(a third shot draws the proxy's skin large on the canvas, a fourth the
+proxy unlit), three runs each: the beams' red over the floor within 0.5% of
+`D3DDrv`'s, the pixels red over green by 40 or more within 5% and their
+red within 0.2% (the texture alone within 5%; the original's runs repeat
+themselves, the fork's fire varies from run to run).
 Walked into, a tripwire sounds its alarm in both.
 
 ### Coronas
@@ -799,6 +812,20 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   level's time, where the original's runs on the viewport's. To check by
   hand: an NPC walking from light into shadow (the fade), and a fire's
   glow on a face.
+- **Which faces of a mesh are drawn** (2026-10-02;
+  [meshes](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#meshes)): a LOD mesh's faces turned to the eye, and the
+  others only where the actor's or the face's material's flags make them
+  two-sided; a plain mesh's all but those its own flags mark `PF_Flat`
+  without `PF_TwoSided`. The fork drew every face: a closed mesh looked the
+  same, its back hidden, but what shows through itself drew both sides --
+  Liberty Island's trees, their foliage's back faces lit too, came out
+  about 1.9 times the original's in linear terms and match it now
+  (`CoronaConsole`, to a tenth of a level), and the laser tripwires'
+  beams (above) were 65 to 70% too red. An unlit draw is lit with the
+  actor's `AmbientGlow` / 256 + `ScaleGlow` / 2, held to 1, where the
+  fork's was a flat mid-grey -- the same for most, brighter for a glowing
+  or a dimmed one. The Dragon's Tooth's blade glows as before, within a
+  level of the original's.
 
 ### Brightness
 

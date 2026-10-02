@@ -5,84 +5,79 @@
 #include "Math/coords.h"
 #include "Utils/Random.h"
 
-// The original's behaviour: dx-reverse-info/deusex-dll.md, particles and lasers.
-// The script's AddBeam spaces segments every 16 units, every 15 for a
-// random beam, and Init counts MaxItems as the active beams' segments
-// plus one: the last item, left at a segment chosen at random.
-
-static vec3 RandomUnitVector()
-{
-	while (true)
-	{
-		vec3 v(FRandRange(-1.0f, 1.0f), FRandRange(-1.0f, 1.0f), FRandRange(-1.0f, 1.0f));
-		float len2 = dot(v, v);
-		if (len2 > 0.001f && len2 <= 1.0f)
-			return v / std::sqrt(len2);
-	}
-}
-
+// The original's CurrentItem (DeusEx.dll 0x1001a1a0; dx-reverse-info/
+// deusex-dll.md, particles and lasers). The script's AddBeam gives a beam
+// its length / 16 + 1 segments (/ 15 + 1 for a random beam), and Init counts
+// MaxItems as the active beams' segments plus one, and starts PrevLoc and
+// SavedLoc at the emitter.
 UActor* ULaserIterator::CurrentItem()
 {
-	if (!Proxy())
-		return nullptr;
-
-	// Find the beam and segment of the current item
-	auto beams = Beams();
-	int item = Index();
-	for (int b = 0; b < 8; b++)
-	{
-		const DXBeam& beam = beams[b];
-		if (!beam.bActive)
-			continue;
-		if (item < beam.NumSegments)
-			return PlaceProxy(beam, item);
-		item -= beam.NumSegments;
-	}
-
-	// Past every beam's segments: the one extra item. Leave the proxy at a
-	// segment chosen at random.
-	int active[8];
-	int count = 0;
-	for (int b = 0; b < 8; b++)
-	{
-		if (beams[b].bActive && beams[b].NumSegments > 0)
-			active[count++] = b;
-	}
-	if (count == 0)
-		return nullptr;
-	const DXBeam& beam = beams[active[std::min((int)(FRand() * count), count - 1)]];
-	int segment = std::min((int)(FRand() * beam.NumSegments), beam.NumSegments - 1);
-	return PlaceProxy(beam, segment);
-}
-
-UActor* ULaserIterator::PlaceProxy(const DXBeam& beam, int segment)
-{
 	UActor* proxy = Proxy();
-	float step = bRandomBeam() ? 15.0f : 16.0f;
-	vec3 dir = Coords::Rotation(beam.Rotation).XAxis;
-	vec3 location = beam.Location + dir * (step * segment);
+	if (!proxy)
+		return URenderIterator::CurrentItem();
+
+	// The current item's beam: the first whose segments, counted on over the
+	// active beams, pass the index -- past them all (the one extra item),
+	// the first, at its end
+	auto beams = Beams();
+	int b = 0;
+	int counted = 0;
+	for (int i = 0; i < 8; i++)
+	{
+		if (beams[i].bActive)
+		{
+			counted += beams[i].NumSegments;
+			if (Index() < counted)
+			{
+				b = i;
+				break;
+			}
+		}
+	}
+	const DXBeam& beam = beams[b];
+
+	// The k-th of a beam's N segments at k/N of its length
+	float t = beam.NumSegments > 0 ? 1.0f - (float)(counted - Index()) / (float)beam.NumSegments : 1.0f;
+	t = clamp(t, 0.0f, 1.0f);
+	vec3 location = beam.Location + Coords::Rotation(beam.Rotation).XAxis * (beam.Length * t);
 	Rotator rotation = beam.Rotation;
 
 	if (bRandomBeam())
 	{
-		// Each segment's end is jittered by a random unit vector, and the
-		// segment aims along the result; the ends chain
-		if (segment == 0)
+		// The spot jittered by a random unit vector and the one before, the
+		// segment aimed back at where the last one's would end, and that end
+		// moved on as far again
+		vec3 jitter;
+		float len2;
+		do
 		{
-			PrevLoc() = beam.Location;
-			PrevRand() = vec3(0.0f);
-		}
-		vec3 start = PrevLoc();
-		vec3 jitter = RandomUnitVector();
-		vec3 end = beam.Location + dir * (step * (segment + 1)) + jitter;
-		location = start;
-		rotation = Rotator::FromVector(end - start);
-		PrevLoc() = end;
+			jitter = vec3(FRand() * 2.0f - 1.0f, FRand() * 2.0f - 1.0f, FRand() * 2.0f - 1.0f);
+			len2 = dot(jitter, jitter);
+		} while (len2 > 1.0f || len2 == 0.0f);
+		jitter = jitter / std::sqrt(len2);
+		location += jitter + PrevRand();
+		vec3 next = location * 2.0f - PrevLoc();
+		rotation = Rotator::FromVector(PrevLoc() - next);
+		PrevLoc() = next;
 		PrevRand() = jitter;
 	}
 
-	if (!proxy->SetLocation(location))
-		return nullptr;
+	proxy->SetLocation(location);
 	proxy->Rotation() = rotation;
+
+	// One segment is drawn again at the end: while none is kept, this one
+	// is, with the items so far over all of them for its chance
+	UActor* emitter = UObject::TryCast<UActor>(Outer());
+	if (emitter && SavedLoc().x == emitter->Location().x && SavedLoc().y == emitter->Location().y && SavedLoc().z == emitter->Location().z &&
+		(float)NextItem() / (float)std::max(MaxItems(), 1) > FRand())
+	{
+		SavedLoc() = location;
+		SavedRot() = rotation;
+	}
+	if (++NextItem() == MaxItems())
+	{
+		proxy->SetLocation(SavedLoc());
+		proxy->Rotation() = SavedRot();
+	}
 	return proxy;
 }

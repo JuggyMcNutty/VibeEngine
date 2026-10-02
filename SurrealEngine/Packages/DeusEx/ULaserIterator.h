@@ -28,7 +28,7 @@ public:
 	using URenderIterator::URenderIterator;
 
 	// Moves and turns the proxy onto the current item's stretch of its
-	// beam; after the last item, leaves it at a segment chosen at random.
+	// beam; the last item draws again a segment kept on the way.
 	UActor* CurrentItem() override;
 
 	FixedArrayView<DXBeam, 8> Beams() { return FixedArray<DXBeam, 8>(PropOffsets_LaserIterator.Beams); }
@@ -40,6 +40,4 @@ public:
 	UActor*& Proxy() { return Value<UActor*>(PropOffsets_LaserIterator.proxy); }
 	BitfieldBool bRandomBeam() { return BoolValue(PropOffsets_LaserIterator.bRandomBeam); }
 
-private:
-	UActor* PlaceProxy(const DXBeam& beam, int segment);
 };

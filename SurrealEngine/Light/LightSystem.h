@@ -78,11 +78,12 @@ public:
 	// highlight, 6 cos^2 of the angle between the eye and the light's
 	// reflection when it heads toward the eye, both times 1 - d/r and the
 	// light's colour; the sum scaled by 1.4 ScaleGlow, the ambient added,
-	// each channel at most 1. An unlit draw is mid-grey.
+	// each channel at most 1. An unlit draw is AmbientGlow / 256 + ScaleGlow
+	// / 2, mid-grey for most.
 	vec3 GetVertexLightDX(const vec3& location, const vec3& normal, bool unlit, bool twosided)
 	{
 		if (unlit)
-			return vec3(0.5f);
+			return vec3(UnlitLevel);
 
 		vec3 sum(0.0f);
 		vec3 eye = CameraLocation - location;
@@ -202,6 +203,8 @@ public:
 
 	vec3 AmbientColor;
 	float ScaleGlow;
+	// What an unlit draw is lit with in the original's formula
+	float UnlitLevel = 0.5f;
 	bool OriginalFormula = false;
 	enum { MaxLights = 16, MaxFogBalls = 4 };
 	struct Light
