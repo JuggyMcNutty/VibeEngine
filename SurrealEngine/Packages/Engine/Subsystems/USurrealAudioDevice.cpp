@@ -736,9 +736,16 @@ void USurrealAudioDevice::ActorDestroyed(UActor* Actor)
 
 void USurrealAudioDevice::StopSound(UActor* Actor, int Id)
 {
+	// The original stops by ID alone: Actor.StopSound hands the ID to the
+	// audio subsystem, which stops the channel with that ID (Galaxy's
+	// StopSoundId, engine-dll.md#small). The ID encodes the actor that played
+	// it, but the caller need not be that actor -- ConPlay's StopSpeech calls
+	// the *player's* StopSound with the *speaker's* ID to cut a line short,
+	// which the old actor match never found, so skipped speech played on.
+	// Actor is kept for the interface and ignored.
 	for (size_t i = 0; i < PlayingSounds.size(); i++)
 	{
-		if (PlayingSounds[i].Actor == Actor && PlayingSounds[i].Id == Id)
+		if (PlayingSounds[i].Id == Id)
 		{
 			StopSound(i);
 			break;
