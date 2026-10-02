@@ -5,6 +5,7 @@
 #include "Audio/AudioDevice.h"
 
 #include <chrono>
+#include <unordered_map>
 
 class UActor;
 class UMusic;
@@ -70,6 +71,7 @@ public:
 
 	bool PlaySound(UActor* Actor, int Id, USound* Sound, vec3 Location, float Volume, float Radius, float Pitch, bool isTalk);
 	void StopSound(UActor* Actor, int Id);
+	int SoundId(UObject* Object, int Slot);
 	void ActorDestroyed(UActor* Actor);
 	void StopSounds();
 
@@ -99,6 +101,11 @@ private:
 	UMusic* CurrentSong = nullptr;
 	int CurrentSection = 255;
 	int FreeSlot = 0x07ffffff;
+
+	// Each object's own number in the IDs of the sounds it plays, given the
+	// first time it plays one (SoundId).
+	std::unordered_map<UObject*, int> SoundSerials;
+	int NextSoundSerial = 1;
 	std::chrono::steady_clock::time_point m_LastUpdateTime;
 
 	// Deus Ex's music transition: the playing song fades out first, then the

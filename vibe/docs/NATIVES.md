@@ -272,6 +272,17 @@ the game's script does the rest. The fork's differences here were closed on
   `skip.py` reading the recorded runs -- all 7 NPC tails +1.1..+2.9 dB
   louder in the unfixed fork, the player's 4 level, and nothing above the
   speech level in the fixed fork or the original.
+  **The ID itself** (2026-10-02): the original packs the playing actor's
+  object index with the slot (index × 16 + slot × 2, + 1 with
+  `bNoOverride`), unique per actor; the fork packed the low 24 bits of the
+  actor's address, which two actors 16 MB apart share -- harmless while the
+  device matched the actor too, not once it stopped by the ID alone, and
+  never harmless for a new sound, which replaces whatever plays with its
+  ID. Each object that plays a sound gets a number of its own now, kept
+  until it is destroyed or the level's sounds stop and never given out
+  twice; the ambient sounds' IDs take it too, where they took the actor's
+  place in the level's list. `SkipConsole` again: every skipped line still
+  stops, the tails within a dB of the original's.
 
 ## What the player reads
 

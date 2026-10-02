@@ -242,7 +242,7 @@ void NActor::DemoPlaySound(UObject* Self, UObject* Sound, std::optional<uint8_t>
 	if (s)
 	{
 		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = ((((int)(ptrdiff_t)SelfActor) & 0xffffff) << 4) + (slot << 1);
+		int id = engine->audiodev->SoundId(SelfActor, slot);
 		if (bNoOverride && *bNoOverride) id |= 1;
 
 		if (engine->LaunchInfo.IsKlingonHonorGuard())
@@ -560,7 +560,7 @@ void NActor::PlayOwnedSound(UObject* Self, UObject* Sound, std::optional<uint8_t
 	if (s)
 	{
 		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = ((((int)(ptrdiff_t)SelfActor) & 0xffffff) << 4) + (slot << 1);
+		int id = engine->audiodev->SoundId(SelfActor, slot);
 		if (bNoOverride && *bNoOverride) id |= 1;
 		if (engine->LaunchInfo.IsKlingonHonorGuard())
 		{
@@ -580,7 +580,7 @@ void NActor::PlaySound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slo
 	if (s)
 	{
 		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = ((((int)(ptrdiff_t)SelfActor) & 0xffffff) << 4) + (slot << 1);
+		int id = engine->audiodev->SoundId(SelfActor, slot);
 		if (bNoOverride && *bNoOverride) id |= 1;
 		if (engine->LaunchInfo.IsKlingonHonorGuard())
 		{
@@ -600,7 +600,7 @@ void NActor::PlaySound_Deus(UObject* Self, UObject* Sound, std::optional<uint8_t
 	if (s)
 	{
 		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = ((((int)(ptrdiff_t)SelfActor) & 0xffffff) << 4) + (slot << 1);
+		int id = engine->audiodev->SoundId(SelfActor, slot);
 		if (bNoOverride && *bNoOverride) id |= 1;
 		engine->audiodev->PlaySound(SelfActor, id, s, SelfActor->Location(), Volume ? *Volume : SelfActor->TransientSoundVolume(), Radius ? (*Radius) : SelfActor->TransientSoundRadius(), Pitch ? *Pitch : 1.0f, slot == SLOT_Talk);
 		ReturnValue = id;

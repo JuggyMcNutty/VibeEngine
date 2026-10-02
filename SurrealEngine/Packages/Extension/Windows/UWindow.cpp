@@ -997,7 +997,7 @@ void UWindow::PlaySound(UObject* newsound, std::optional<float> Volume, std::opt
 	if (s && player)
 	{
 		int slot = SLOT_Misc;
-		int id = ((((int)(ptrdiff_t)this) & 0xffffff) << 4) + (slot << 1);
+		int id = engine->audiodev->SoundId(this, slot);
 
 		float across = 0.0f;
 		URootWindow* root = GetRootWindow();

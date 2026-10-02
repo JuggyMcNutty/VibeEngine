@@ -242,12 +242,11 @@ void USurrealAudioDevice::StartAmbience()
 	if (Realtime)
 	{
 		UActor* ViewActor = m_Viewport->Actor()->ViewTarget() ? m_Viewport->Actor()->ViewTarget() : m_Viewport->Actor();
-		int actorIndex = 0;
 		for (UActor* Actor : m_Viewport->Actor()->XLevel()->Actors)
 		{
 			if (Actor && Actor->AmbientSound() && dist_squared(ViewActor->Location(), Actor->Location()) <= square(Actor->WorldSoundRadius()))
 			{
-				int Id = actorIndex * 16 + SLOT_Ambient * 2;
+				int Id = SoundId(Actor, SLOT_Ambient);
 				bool foundSound = false;
 				for (size_t j = 0; j < PlayingSounds.size(); j++)
 				{
@@ -260,7 +259,6 @@ void USurrealAudioDevice::StartAmbience()
 				if (!foundSound)
 					PlaySound(Actor, Id, Actor->AmbientSound(), Actor->Location(), AmbientFactor * Actor->SoundVolume() / 255.0f, Actor->WorldSoundRadius(), Actor->SoundPitch() / 64.0f, false);
 			}
-			actorIndex++;
 		}
 	}
 }
@@ -720,6 +718,7 @@ bool USurrealAudioDevice::PlaySound(UActor* Actor, int Id, USound* Sound, vec3 L
 
 void USurrealAudioDevice::ActorDestroyed(UActor* Actor)
 {
+	SoundSerials.erase(Actor);
 	for (size_t i = 0; i < PlayingSounds.size(); i++)
 	{
 		if (PlayingSounds[i].Actor == Actor)
@@ -736,6 +735,24 @@ void USurrealAudioDevice::ActorDestroyed(UActor* Actor)
 			}
 		}
 	}
+}
+
+// A sound's ID packs the object that plays it with its slot -- the object's
+// number times 16, plus the slot times 2, plus 1 with bNoOverride -- as the
+// original packs the actor's object index (engine-dll.md#small). The ID is
+// load-bearing: a sound replaces the one playing with the same ID, and
+// StopSound stops by the ID alone. The fork's objects have no index, so each
+// gets a number of its own the first time it plays a sound, dropped when the
+// actor is destroyed or the level's sounds are all stopped, never given out
+// twice. The low 24 bits of the object's address stood in for it before, and
+// two objects 16 MB apart shared them: one's sound could replace or stop the
+// other's.
+int USurrealAudioDevice::SoundId(UObject* Object, int Slot)
+{
+	auto it = SoundSerials.find(Object);
+	if (it == SoundSerials.end())
+		it = SoundSerials.emplace(Object, NextSoundSerial++).first;
+	return it->second * 16 + Slot * 2;
 }
 
 void USurrealAudioDevice::StopSound(UActor* Actor, int Id)
@@ -776,6 +793,7 @@ void USurrealAudioDevice::StopSounds()
 {
 	for (size_t i = 0; i < PlayingSounds.size(); i++)
 		StopSound(i);
+	SoundSerials.clear();
 
 	m_Device->PlayMusic(nullptr);
 	m_Viewport = nullptr;
