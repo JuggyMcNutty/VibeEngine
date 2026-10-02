@@ -287,8 +287,17 @@ bool UPawn::MarkReachableNavEndPoints()
 
 UObject* UPawn::FindPathToward(UObject* anActor, bool singlePath)
 {
+	// The original first asks whether the target itself can be walked to
+	// straight (APawn::findPathToward, Engine.dll 0x103db3f0: CanMoveTo for
+	// a navigation point, pointReachable for a plain spot, and a pass over
+	// the candidate nodes for one already reachable) and returns the target
+	// as the route when so -- no search, no node detours. The fork always
+	// searched, so a bot whose next patrol point was in plain sight walked
+	// off through path nodes to reach it.
 	if (auto aNavPoint = UObject::TryCast<UNavigationPoint>(anActor))
 	{
+		if (ActorReachable(aNavPoint, true))
+			return SetRouteCache({ aNavPoint });
 		if (!MarkReachableNavEndPoints())
 			return SetRouteCache({});
 		if (!IsInPathSpecialHandling)
