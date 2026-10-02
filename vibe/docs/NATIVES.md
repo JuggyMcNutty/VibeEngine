@@ -983,7 +983,7 @@ checks:
   reads the framebuffer before the present pass's gamma, so its shots
   are darker than the screen shows.
 - **Focus moves between windows.** Landed (2026-10-01): the fork's
-  `MoveFocusDown/Up/Left/Right` were stubs and its buttons were not
+  `MoveFocusDown`, `MoveFocusUp`, `MoveFocusLeft` and `MoveFocusRight` were stubs and its buttons were not
   selectable, so no keyboard focus ever moved -- a conversation's choices
   had no selector (the blue) and never answered Up/Down, and a menu's
   buttons could not be focused by key. The original's
