@@ -488,12 +488,28 @@ and a seeking NPC got no overshoot destination:
   is the set of end points it stops at, and that is still the fork's
   (`MarkReachableNavEndPoints`: what is within 1,000 units and
   `actorReachable`, up to eight) where the original's is
-  `APawn::definePathsFor` -- a flood of the goal-side node's reach specs,
-  each traced, setting `bestPathWeight` as it goes, and two pawn and mover
-  flag bits the release's headers do not name. The reach spec's own
-  `reachFlags` are still not checked either (`APawn::calcMoveFlags`,
-  `0x10326d10`: a compression of seven pawn flags into seven bits). All
-  three are written up in [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search).
+  `APawn::definePathsFor` -- a flood of a node's reach specs, each traced,
+  marking each spec's end actor and giving it the spec's distance as its
+  `bestPathWeight`, with what stops a link blocking only a pawn that
+  cannot open its way through (`bCanOpenDoors`, and `bIsPlayer` or the
+  mover's `bPlayerOnly`). **Tried 2026-10-02 and not landed**: ported in
+  full, with the reach spec's own `reachFlags` checked against
+  `APawn::calcMoveFlags`' seven bits (`bCanWalk`, `bCanFly`, `bCanSwim`,
+  `bCanJump`, `bCanOpenDoors`, `bCanDoSpecial`, `bIsPlayer`), and marked
+  from each of the two nodes the original could be given -- the goal-side
+  node `GetPathnodeList` returns and the pawn's own -- **both measure
+  worse**: 47 of Liberty Island's 52 pawns' distance moved is the
+  original's, where the fork's own marking gives 50 (UNATCOTroop1, fixed
+  by the search above, stops finding an end point at all). The missing
+  piece is therefore in `GetPathnodeList`'s node list or in the goal-side
+  `findPathToward` flow between the two calls, not in the marking: with
+  the goal's node the end points are the goal's own forward neighbours,
+  and the search walks the level's list backwards from the goal, so it
+  would never meet one. What `findPathToward` does between getting the
+  node list and searching -- the candidates it walks, `CanMoveTo` and
+  `pointReachable` over each, `bHunting` (the pawn word's bit 21) forcing
+  one to count -- is the next thing to read. All of it is written up in
+  [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search).
   Compared on the way (DeathConsole): the death path matches the
   original's throughout -- the same animation, lurch, hide timing and
   carcass mesh -- and the robots' freeze in Dying forever is the
