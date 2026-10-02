@@ -1356,9 +1356,23 @@ says what changed, what stays the fork's own, and its by-hand check:
   mover moving into actors now asks each of them, where a typo had it ask
   only the first in each of its collision cells. Still the fork's own:
   its own reachability tests, `pointReachable` and `actorReachable`, keep
-  the whole-size tries. The fork's `AIDirectionReachable` walks its steps
-  as real moves, zone events and touches included, and puts the pawn back
-  as one; the original's are tests.
+  the whole-size tries, and the shape of `AIDirectionReachable`'s walk.
+  **A note corrected 2026-10-02**: this said the fork's
+  `AIDirectionReachable` "walks its steps as real moves, zone events and
+  touches included, and puts the pawn back as one; the original's are
+  tests". That was wrong -- all three `Reachable*` move with `TryMove`
+  and `dryRun` set, which returns before `FinishMove`, so no touch, no
+  `Bump` and no `UpdateActorZone` runs: the probes raise nothing, which
+  is what the original's `walkMove`/`flyMove`/`swimMove` do too. What is
+  left is the walk's *shape*: the original steps along the direction by
+  its collision radius held between 5 and 25 units, at most 100 steps,
+  each step the engine's own walk/fly/swim move (walls, ledges and steps
+  count), retrying a walk stopped by a ledge once with a step of
+  `MaxStepHeight`, and stopping in the void, in a pain zone whose damage
+  the pawn does not resist, and on entering water; the fork steps up,
+  across and settles onto the floor itself, over at most 32 iterations,
+  with its own fall. Changing that moves every wandering NPC's and every
+  animal's destination, so it wants its own console as a proof.
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the fork
   looks the rest up as one name and finds nothing. The game's scripts name
   no group.
