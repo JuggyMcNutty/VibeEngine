@@ -65,38 +65,73 @@ UActor* UPawn::PathSpecialHandling(const Array<UNavigationPoint*>& bestPath)
 
 std::pair<Array<UNavigationPoint*>, int32_t> UPawn::FindPathToEndPoint(UNavigationPoint* start, int maxNodes)
 {
+	// The original's search (APawn::breadthPathFrom, Engine.dll 0x103dcd60):
+	// a best-first walk over the level's reach specs. What a node costs to
+	// reach is the spec's distance plus the node's own penalty (cost, from the
+	// SpecialCost event or ExtraCost, which ClearPaths sets) plus what was
+	// spent to reach the node expanded so far, and the nodes not yet expanded
+	// are kept in an open list sorted by that cost. The fork's was a Dijkstra
+	// by spec distance alone, which chose different routes where the two
+	// disagreed (UNATCOTroop1 pressing against geometry on a route the original
+	// never took, MoveConsole).
+	//
+	// The open list and the route live in the nodes' own fields, as they do in
+	// the original: visitedWeight what the node cost to reach, nextOrdered and
+	// prevOrdered the open list, previousPath the way back.
+	//
+	// maxNodes is the script's node cap, which none of Deus Ex's eleven
+	// FindPathToward calls passes: given, the original gives the search up after
+	// four nodes; left at 0, after 1000, and it says so in the log.
 	if ((start->bPlayerOnly() && !bIsPlayer()))
 		return { {}, 0 };
 
-	// If we can already reach the end point, just go there directly
-	if (start->bEndPoint())
-		return { { start }, 0 };
-
-	struct Step
-	{
-		UNavigationPoint* navpoint;
-		int prev;
-		int32_t distance;
-	};
-
-	std::unordered_map<UNavigationPoint*, int32_t> shortestDistance;
-	std::set<int> visited;
-	Array<Step> steps;
-	Array<size_t> stepEnds;
 	const Array<LevelReachSpec>& reachSpecs = XLevel()->ReachSpecs;
 
 	int radius = (int)CollisionRadius();
 	int height = (int)CollisionHeight();
 
-	// Search through the nav node links until we find an end point
+	int iterations = 0;
+	int pathCount = 0;
+	int listIndex = 1;
+	UNavigationPoint* frontNode = start;
+	UNavigationPoint* node = start;
 
-	int prevStep = -1;
-	UNavigationPoint* current = start;
-	while (steps.size() < (size_t)maxNodes)
+	while (node)
 	{
-		if (!current->bEndPoint())
+		// An end point is where the pawn can walk to from where it stands, so
+		// the search is over: the route reads back from it, each node's
+		// previousPath the one before it.
+		if (node->bEndPoint())
 		{
-			for (int specIndex : current->upstreamPaths())
+			start->previousPath() = nullptr;
+
+			Array<UNavigationPoint*> path;
+			for (UNavigationPoint* at = node; at; at = at->previousPath())
+			{
+				// Skip path parts we already are touching: within the pawn's
+				// cylinder, its radius across and its height up or down. The height
+				// was once counted in the distance across too, so a pawn standing on
+				// a node a step below its middle kept being sent to it.
+				vec3 d = at->Location() - Location();
+				if (d.x * d.x + d.y * d.y < (float)radius * (float)radius && std::abs(d.z) < (float)height)
+				{
+					path.clear();
+				}
+				else
+				{
+					path.push_back(at);
+				}
+			}
+			path.push_back(start);
+
+			return { path, node->visitedWeight() };
+		}
+
+		// A node only the player may use is not expanded for a pawn that is not
+		// the player; the start node is expanded whatever it is.
+		if (!(node->bPlayerOnly() && !bIsPlayer() && node != start))
+		{
+			for (int specIndex : node->upstreamPaths())
 			{
 				if (specIndex < 0 || (size_t)specIndex >= reachSpecs.size())
 					break;
@@ -104,73 +139,106 @@ std::pair<Array<UNavigationPoint*>, int32_t> UPawn::FindPathToEndPoint(UNavigati
 
 				// Note: startActor instead of endActor because upstreamPaths is the reverse travel direction
 				UNavigationPoint* endActor = reachSpec.startActor;
+				if (!endActor)
+					continue;
 
-				if (reachSpec.collisionRadius < radius || reachSpec.collisionHeight < height || reachSpec.bPruned)
+				if (reachSpec.collisionRadius < radius || reachSpec.collisionHeight < height)
 					continue; // Skip nav node links that we can't pass through
 
-				if (endActor->bPlayerOnly() && !bIsPlayer())
-					continue; // Skip nav nodes only for the player if we aren't one
+				// To do: the original also skips a link whose reachFlags the pawn's
+				// own move flags do not cover (calcMoveFlags, 0x10326d10)
 
-				// To do: check reachFlags
+				// What has the node cost to reach by way of this link? An end
+				// point counts its bestPathWeight too, which is the reach spec
+				// distance that reached it.
+				int32_t newCost = reachSpec.distance + endActor->cost() + node->visitedWeight()
+				                + endActor->bestPathWeight() * (endActor->bEndPoint() ? 1 : 0);
 
-				// How far have we travelled so far?
-				int32_t distance = reachSpec.distance;
-				if (prevStep >= 0)
-					distance += steps[prevStep].distance;
+				// Only a cheaper way to the node is worth taking.
+				if (endActor->visitedWeight() <= newCost)
+					continue;
 
-				// Is this distance shorter than last time we reached this point?
-				int32_t& pointDistance = shortestDistance[endActor];
-				if (pointDistance == 0 || distance < pointDistance)
+				// Take the node out of the open list if it is in it, then put it
+				// back where its cost belongs, keeping the list sorted.
+				UNavigationPoint* prev = endActor->prevOrdered();
+				if (prev != nullptr)
 				{
-					// Yes. Track this path and reject any future paths going through here that are longer.
-					pointDistance = distance;
-					if (endActor->bEndPoint())
-						stepEnds.push_back(steps.size());
-					steps.push_back({ .navpoint = endActor, .prev = prevStep, .distance = distance });
+					prev->nextOrdered() = endActor->nextOrdered();
+					if (endActor->nextOrdered())
+						endActor->nextOrdered()->prevOrdered() = prev;
+
+					if (frontNode == endActor)
+					{
+						if (prev->visitedWeight() > newCost)
+							frontNode = prev;
+					}
+					else if (endActor->visitedWeight() > frontNode->visitedWeight() && newCost < frontNode->visitedWeight())
+					{
+						listIndex--;
+					}
+				}
+				else
+				{
+					// Not in the list: it sorts before the front node or after it,
+					// and the front of the list will not have to walk as far.
+					if (newCost <= frontNode->visitedWeight())
+						listIndex--;
+					else
+						listIndex++;
+				}
+
+				endActor->previousPath() = node;
+				endActor->visitedWeight() = newCost;
+
+				// Walk the list from the cheaper of the front node and the node
+				// just expanded for the place the cost belongs at, giving up if
+				// the list has broken into a loop.
+				UNavigationPoint* at = frontNode->visitedWeight() < newCost ? node : frontNode;
+				for (int walked = 0; at->nextOrdered() && at->nextOrdered()->visitedWeight() < newCost;)
+				{
+					if (++walked > 500)
+					{
+						LogMessage("Breadth path list overflow from " + start->GetPathName());
+						return { {}, 0 };
+					}
+					at = at->nextOrdered();
+				}
+
+				if (at->nextOrdered() != endActor)
+				{
+					UNavigationPoint* after = at->nextOrdered();
+					if (after)
+						after->prevOrdered() = endActor;
+					endActor->nextOrdered() = after;
+					at->nextOrdered() = endActor;
+					endActor->prevOrdered() = at;
 				}
 			}
 		}
 
-		prevStep++;
-		if (prevStep == steps.size())
-			break;
-
-		current = steps[prevStep].navpoint;
-	}
-
-	if (stepEnds.empty())
-		return { {}, 0 };
-
-	std::sort(stepEnds.begin(), stepEnds.end(), [&](size_t a, size_t b) { return steps[a].distance < steps[b].distance; });
-
-	// Extract the final path:
-	Array<UNavigationPoint*> path;
-	int currentStep = (int)stepEnds.front();
-	while (currentStep >= 0)
-	{
-		const Step& step = steps[currentStep];
-
-		// Skip path parts we already are touching: within the pawn's
-		// cylinder, its radius across and its height up or down. The height
-		// was once counted in the distance across too, so a pawn standing on
-		// a node a step below its middle kept being sent to it.
-		float minDist = (float)radius;
-		vec3 d = step.navpoint->Location() - Location();
-		float heightDiff = step.navpoint->Location().z - Location().z;
-		if (d.x * d.x + d.y * d.y < minDist * minDist && std::abs(heightDiff) < (float)height)
+		// The front of the open list moves on as far as the list has grown: half
+		// as far again as the index it has reached.
+		while (pathCount < (int)(listIndex * 0.5f))
 		{
-			path.clear();
-		}
-		else
-		{
-			path.push_back(step.navpoint);
+			if (!frontNode->nextOrdered())
+				break;
+			frontNode = frontNode->nextOrdered();
+			pathCount++;
 		}
 
-		currentStep = step.prev;
-	}
-	path.push_back(start);
+		iterations++;
+		if (maxNodes != 0 && iterations > 4)
+			return { {}, 0 };
+		if (iterations > 1000)
+		{
+			LogMessage("1000 Navigation nodes searched from " + start->GetPathName());
+			return { {}, 0 };
+		}
 
-	return { path, steps[stepEnds.front()].distance };
+		node = node->nextNavigationPoint();
+	}
+
+	return { {}, 0 };
 }
 
 void UPawn::ClearPaths()
@@ -178,6 +246,15 @@ void UPawn::ClearPaths()
 	for (UNavigationPoint* cur = Level()->NavigationPointList(); cur; cur = cur->nextNavigationPoint())
 	{
 		cur->bEndPoint() = false;
+		// The search keeps its open list and the route in the nodes' own
+		// fields (visitedWeight, nextOrdered, prevOrdered, previousPath), and
+		// reads visitedWeight as what a node cost to reach, so they are reset
+		// here: every node unreachable and a million more than any route, which
+		// is what the original's clearPaths does (APawn::clearPaths,
+		// Engine.dll 0x103da060).
+		cur->visitedWeight() = 10000000;
+		cur->nextOrdered() = nullptr;
+		cur->prevOrdered() = nullptr;
 		if (!engine->LaunchInfo.IsKlingonHonorGuard())
 		{
 			if (cur->bSpecialCost())
@@ -300,8 +377,13 @@ UObject* UPawn::FindPathToward(UObject* anActor, bool singlePath)
 			return SetRouteCache({ aNavPoint });
 		if (!MarkReachableNavEndPoints())
 			return SetRouteCache({});
+		// The search spends the start node's visitedWeight as what the route has
+		// cost so far, which the original seeds with the node's own weight from
+		// the goal -- zero for the node the pawn stands on (findPathToward,
+		// Engine.dll 0x103db875).
+		aNavPoint->visitedWeight() = 0;
 		if (!IsInPathSpecialHandling)
-			return PathSpecialHandling(FindPathToEndPoint(aNavPoint, 1000).first);
+			return PathSpecialHandling(FindPathToEndPoint(aNavPoint, 0).first);
 		return SetRouteCache({});
 	}
 	else if (auto actor = UObject::TryCast<UActor>(anActor))
@@ -375,7 +457,7 @@ UObject* UPawn::FindBestInventoryPath(bool predictRespawns, float& outBestWeight
 		float desire = CallEvent(inv, "BotDesireability", { ExpressionValue::ObjectValue(this) }).ToFloat();
 		if (desire > 0.0f)
 		{
-			auto [path, pathDist] = FindPathToEndPoint(invSpot, 1000);
+			auto [path, pathDist] = FindPathToEndPoint(invSpot, 0);
 
 			// To do: how to take path costs into account?
 			//int cost = 0;
