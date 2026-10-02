@@ -7,12 +7,48 @@
 
 void UButtonWindow::DrawWindow(UGC* gc)
 {
-	if (ButtonTextures.Normal)
+	// The appearance by state, as the original chooses it
+	// (XButtonWindow::ChangeButtonAppearance 0x10008380): focused while the
+	// whole parent chain is sensitive, else normal; pressed adds one; an
+	// insensitive link picks the insensitive pair. The state's texture falls
+	// back to the pressed one, then the normal one. This is the blue a
+	// conversation's focused choice draws in, and a menu's focused button.
+	int state = 0;
+	bool chainSensitive = true;
+	for (UWindow* i = this; i; i = i->parentOwner())
 	{
+		if (!i->bIsSensitive())
+		{
+			chainSensitive = false;
+			break;
+		}
+	}
+	if (!chainSensitive)
+		state = 4;
+	else if (IsFocusWindow())
+		state = 2;
+	if (bButtonPressed())
+		state++;
+
+	UTexture* tex = nullptr;
+	Color tileColor = { 255, 255, 255, 255 };
+	Color textColor = { 255, 255, 255, 255 };
+	UTexture* textures[6] = { ButtonTextures.Normal, ButtonTextures.Pressed, ButtonTextures.NormalFocus, ButtonTextures.PressedFocus, ButtonTextures.NormalInsensitive, ButtonTextures.PressedInsensitive };
+	Color tileColors[6] = { ButtonColors.Normal, ButtonColors.Pressed, ButtonColors.NormalFocus, ButtonColors.PressedFocus, ButtonColors.NormalInsensitive, ButtonColors.PressedInsensitive };
+	Color textColors[6] = { TextColors.Normal, TextColors.Pressed, TextColors.NormalFocus, TextColors.PressedFocus, TextColors.NormalInsensitive, TextColors.PressedInsensitive };
+	tex = textures[state];
+	if (!tex && !(bButtonPressed() && (tex = ButtonTextures.Pressed)))
+		tex = ButtonTextures.Normal;
+	tileColor = tileColors[state];
+	textColor = textColors[state];
+
+	if (tex)
+	{
+		gc->SetTileColor(tileColor);
 		gc->DrawStretchedTexture(
 			0.0f, 0.0f, Width(), Height(),
-			0.0f, 0.0f, (float)ButtonTextures.Normal->USize(), (float)ButtonTextures.Normal->VSize(),
-			ButtonTextures.Normal);
+			0.0f, 0.0f, (float)tex->USize(), (float)tex->VSize(),
+			tex);
 	}
 
 	if (normalFont())
@@ -23,7 +59,7 @@ void UButtonWindow::DrawWindow(UGC* gc)
 		float h = Height() - 2.0f * yMargin;
 		if (w > 0.0f && h > 0.0f)
 		{
-			gc->SetTextColor(TextColors.Normal);
+			gc->SetTextColor(textColor);
 			gc->SetAlignments(HAlign(), VAlign());
 			gc->DrawText(xMargin, yMargin, w, h, Text());
 		}

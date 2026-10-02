@@ -18,6 +18,9 @@ void UPlayerPawnExt::InitRootWindow()
 		engine->dxRootWindow->parentPawn() = this;
 		engine->dxRootWindow->bIsVisible() = true;
 		engine->dxRootWindow->bIsSensitive() = true;
+		// The root's own window type, as XRootWindow::Init sets it: 3, the
+		// root -- the anchor GetTabGroupWindow walks up to.
+		engine->dxRootWindow->windowType() = 3;
 		// A root starts with the world drawn, as the original's init sets it;
 		// only the snapshot and black backgrounds and the credits turn it off.
 		engine->dxRootWindow->bRender() = true;

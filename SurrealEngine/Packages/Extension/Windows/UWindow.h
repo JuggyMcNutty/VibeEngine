@@ -187,6 +187,8 @@ public:
 	URootWindow* GetRootWindow();
 	UObject* GetTabGroupWindow();
 	UObject* MoveTabGroup(bool next);
+	bool IsTraversable(bool checkTopmost);
+	UObject* MoveFocus(int dir);
 	float GetTickOffset();
 	UObject* GetTopChild(std::optional<bool> bVisibleOnly);
 	void GrabMouse();

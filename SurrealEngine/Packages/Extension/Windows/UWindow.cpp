@@ -3,7 +3,11 @@
 #include "UWindow.h"
 #include "UGC.h"
 #include "TabGroup/URootWindow.h"
+#include "TabGroup/UModalWindow.h"
 #include "TabGroup/UTabGroupWindow.h"
+#include "Text/UButtonWindow.h"
+#include <algorithm>
+#include <vector>
 #include "Audio/AudioDevice.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
@@ -535,9 +539,14 @@ URootWindow* UWindow::GetRootWindow()
 // The nearest tab group at or above the window (extension-dll.md, Small).
 UObject* UWindow::GetTabGroupWindow()
 {
+	// The original walks up to the nearest window that is not a generic
+	// child: a tab group, a modal or the root, any of which holds the
+	// focus-order tables (Extension.dll XWindow::GetTabGroupWindow
+	// 0x1004c560 -- ModalWindow extends TabGroupWindow, so a conversation
+	// window is its choices' group).
 	for (UWindow* cur = this; cur; cur = cur->parentOwner())
 	{
-		if (UObject::TryCast<UTabGroupWindow>(cur))
+		if (cur->windowType() != 0)
 			return cur;
 	}
 	return nullptr;
@@ -695,26 +704,182 @@ UObject* UWindow::MoveFocus(EMove direction)
 
 UObject* UWindow::MoveFocusDown()
 {
-	//MoveFocus(EMove::Down);
-	return nullptr;
+	return MoveFocus(3);
 }
 
 UObject* UWindow::MoveFocusLeft()
 {
-	//MoveFocus(EMove::Left);
-	return nullptr;
+	return MoveFocus(0);
 }
 
 UObject* UWindow::MoveFocusRight()
 {
-	//MoveFocus(EMove::Right);
-	return nullptr;
+	return MoveFocus(1);
 }
 
 UObject* UWindow::MoveFocusUp()
 {
-	//MoveFocus(EMove::Up);
-	return nullptr;
+	return MoveFocus(2);
+}
+
+// Whether focus may sit on this window (Extension.dll XWindow::IsTraversable
+// 0x1004c460): the window itself must be selectable, and it and every
+// ancestor visible and sensitive. With the topmost check, the nearest
+// ancestor that is a modal (or the root) must also be the topmost such
+// child of the root: a window under a buried modal cannot take focus.
+bool UWindow::IsTraversable(bool checkTopmost)
+{
+	if (!bIsSelectable())
+		return false;
+	UWindow* firstModalAncestor = nullptr;
+	for (UWindow* i = this; i; i = i->parentOwner())
+	{
+		if (!i->bIsVisible() || !i->bIsSensitive())
+			return false;
+		if (checkTopmost)
+		{
+			if (!firstModalAncestor && i->windowType() >= 2)
+				firstModalAncestor = i;
+			if (i->windowType() == 3)
+			{
+				UWindow* top = nullptr;
+				for (UWindow* c = i->lastChild(); c; c = c->prevSibling())
+				{
+					if (c->windowType() >= 2)
+					{
+						top = c;
+						break;
+					}
+				}
+				if ((top ? top : i) != firstModalAncestor)
+					return false;
+			}
+		}
+	}
+	return true;
+}
+
+// The group's focus order, built on demand: the original keeps row- and
+// column-major sorted lists of the group's selectable windows, resorted as
+// children are configured (XTabGroupWindow::ResortWindowTables 0x10045140,
+// sorted by position, ties broken by pointer); the fork walks the group's
+// descendants and sorts the same way each time focus moves -- the same
+// windows in the same order (XTabGroupWindow::AddWindowToTables only adds
+// what SetSelectability made selectable, and IsTraversable is asked live at
+// the walk anyway).
+static void CollectGroupWindows(UWindow* w, std::vector<UWindow*>& out)
+{
+	for (UWindow* c = w->firstChild(); c; c = c->nextSibling())
+	{
+		if (c->bIsSelectable())
+			out.push_back(c);
+		if (c->windowType() == 0)
+			CollectGroupWindows(c, out);
+	}
+}
+
+static std::vector<UWindow*> GroupWindowsByRow(UWindow* group)
+{
+	std::vector<UWindow*> out;
+	CollectGroupWindows(group, out);
+	std::stable_sort(out.begin(), out.end(), [](UWindow* a, UWindow* b)
+	{
+		if (a->Y() != b->Y()) return a->Y() < b->Y();
+		if (a->X() != b->X()) return a->X() < b->X();
+		return a < b;
+	});
+	return out;
+}
+
+static std::vector<UWindow*> GroupWindowsByColumn(UWindow* group)
+{
+	std::vector<UWindow*> out;
+	CollectGroupWindows(group, out);
+	std::stable_sort(out.begin(), out.end(), [](UWindow* a, UWindow* b)
+	{
+		if (a->X() != b->X()) return a->X() < b->X();
+		if (a->Y() != b->Y()) return a->Y() < b->Y();
+		return a < b;
+	});
+	return out;
+}
+
+// Focus moves within the focus window's group, along its row- or
+// column-major order (Extension.dll XWindow::MoveFocus 0x1004ef30): left
+// and up decrement, right and down increment, the walk wraps, windows that
+// are not traversable are passed over, and a group with nothing traversable
+// hands the move to the tab groups. With no focus window at all the move
+// seeds it: the topmost modal child of the root is the group (a modal adds
+// itself to its own table, XModalWindow::Init), and its first traversable
+// window takes the focus -- which is how a conversation's choices light up
+// the moment they appear.
+UObject* UWindow::MoveFocus(int dir)
+{
+	URootWindow* root = GetRootWindow();
+	if (!root)
+		return nullptr;
+
+	UWindow* focus = root->FocusWindow();
+	if (!focus)
+	{
+		UWindow* holder = nullptr;
+		for (UWindow* c = root->lastChild(); c; c = c->prevSibling())
+		{
+			if (c->windowType() >= 2)
+			{
+				holder = c;
+				break;
+			}
+		}
+		if (!holder)
+			return nullptr;    // no modal up: the original's root table is empty
+		std::vector<UWindow*> row = GroupWindowsByRow(holder);
+		for (UWindow* w : row)
+		{
+			if (w->IsTraversable(false))
+			{
+				root->SetRootFocusWindow(w);
+				return w;
+			}
+		}
+		return nullptr;
+	}
+
+	UWindow* group = UObject::TryCast<UTabGroupWindow>(focus->GetTabGroupWindow());
+	if (!group)
+		return nullptr;
+
+	std::vector<UWindow*> list = (dir < 2) ? GroupWindowsByRow(group) : GroupWindowsByColumn(group);
+	size_t index = 0;
+	bool found = false;
+	for (size_t i = 0; i < list.size(); i++)
+	{
+		if (list[i] == focus)
+		{
+			index = i;
+			found = true;
+			break;
+		}
+	}
+	if (!found)
+		return nullptr;
+
+	bool decrement = (dir == 0 || dir == 2);
+	for (size_t n = 0; n < list.size(); n++)
+	{
+		if (decrement)
+			index = (index == 0) ? list.size() - 1 : index - 1;
+		else
+			index = (index + 1) % list.size();
+		if (list[index]->IsTraversable(true))
+		{
+			root->SetRootFocusWindow(list[index]);
+			return list[index];
+		}
+	}
+
+	// Nothing traversable in this group: the next group takes it.
+	return MoveTabGroup(dir == 0 || dir == 2 ? false : true);
 }
 
 /*UObject* UWindow::MoveTabGroup(EMove dir)
@@ -795,6 +960,19 @@ UObject* UWindow::NewChild(UObject* NewClass, std::optional<bool> bShow)
 	child->lastChild() = nullptr;
 	child->bIsVisible() = show;
 	child->bIsSensitive() = true;
+	// The window's type as the original's Init sets it (XTabGroupWindow::Init
+	// 0x10044d90 and XModalWindow::Init 0x10036c00): a tab group, a modal (a
+	// root child), or a generic child. Buttons are selectable from creation,
+	// as the original's class defaults have them -- the fork's choice buttons
+	// measured False beside the original's True.
+	if (UObject::TryCast<URootWindow>(child))
+		child->windowType() = 3;
+	else if (UObject::TryCast<UModalWindow>(child))
+		child->windowType() = 2;
+	else if (UObject::TryCast<UTabGroupWindow>(child))
+		child->windowType() = 1;
+	if (UObject::TryCast<UButtonWindow>(child))
+		child->bIsSelectable() = true;
 	if (lastChild())
 		lastChild()->nextSibling() = child;
 	lastChild() = child;
@@ -1655,6 +1833,36 @@ void UWindow::DescendantRemoved(UWindow* descendant)
 
 void UWindow::Tick(float timeElapsed)
 {
+	// The root's own tick (Extension.dll XRootWindow::Tick 0x1003a540):
+	// while nothing has the focus and a modal is up, the focus is seeded --
+	// the modal's preferred window if it has one (SetFocusWindow keeps the
+	// last focus there), else the first traversable window of the topmost
+	// modal's group. This is how a conversation's choices light up as they
+	// appear, and a menu's first button too. The original then ticks its
+	// modal half (an accelerator-table rebuild the fork has no table for).
+	if (engine->dxRootWindow == this && !GetRootWindow()->FocusWindow())
+	{
+		UWindow* holder = nullptr;
+		for (UWindow* c = lastChild(); c; c = c->prevSibling())
+		{
+			if (c->windowType() >= 2)
+			{
+				holder = c;
+				break;
+			}
+		}
+		if (holder && holder->windowType() < 3)
+		{
+			if (UModalWindow* modal = UObject::TryCast<UModalWindow>(holder))
+			{
+				if (modal->preferredFocus() && modal->preferredFocus()->IsTraversable(true))
+					GetRootWindow()->SetRootFocusWindow(modal->preferredFocus());
+			}
+			if (!GetRootWindow()->FocusWindow())
+				MoveFocus(3);
+		}
+	}
+
 	if (bTickEnabled())
 		CallEvent(this, "Tick", { ExpressionValue::FloatValue(timeElapsed) });
 
