@@ -172,6 +172,9 @@ The console classes:
   opened and shot, then the lockpick and the assault gun selected there and
   shot each time: a selected item's button draws its frame with
   `DrawBorders`.
+- **`ColorsConsole`**: the Colors settings screen (`MenuScreenRGB`), whose
+  example panes draw 11- and 12-pixel frames with `GC.DrawBorders` -- from
+  the menu map, the main menu shown, the screen pushed, a marked shot.
 - **`HeldConsole`**: what a pawn holds -- the player seen from behind on
   Liberty Island holding a multitool (no weapon, so the selected item is
   drawn at the weapon triangle) and then the assault gun, a marked shot of

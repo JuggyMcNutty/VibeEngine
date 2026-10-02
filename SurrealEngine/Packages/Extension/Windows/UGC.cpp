@@ -119,20 +119,19 @@ void UGC::DrawText(float DestX, float DestY, float destWidth, float destHeight, 
 
 void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeight, float leftMargin, float rightMargin, float TopMargin, float BottomMargin, UObject** borders, std::optional<bool> bStretchHorizontally, std::optional<bool> bStretchVertically)
 {
-	if (!bDrawEnabled())
+	// The original's XGC::DrawBorders (Extension.dll 0x10028df0;
+	// extension-dll.md, Borders): nine pieces laid out by four margins.
+	if (!bDrawEnabled() || destWidth <= 0.0f || destHeight <= 0.0f)
 		return;
 
-	// The edges and the centre tile at one texel a pixel, as the original's
-	// DrawIconPattern with a source size of 0, unless stretching is asked for
-	// across or down; the game never asks (extension-dll.md, Borders).
 	bool stretchAcross = bStretchHorizontally && *bStretchHorizontally;
 	bool stretchDown = bStretchVertically && *bStretchVertically;
 
 	UTexture* tl = UObject::Cast<UTexture>(borders[0]);
 	UTexture* tr = UObject::Cast<UTexture>(borders[1]);
 	UTexture* bl = UObject::Cast<UTexture>(borders[2]);
-	UTexture* left = UObject::Cast<UTexture>(borders[4]);
 	UTexture* br = UObject::Cast<UTexture>(borders[3]);
+	UTexture* left = UObject::Cast<UTexture>(borders[4]);
 	UTexture* right = UObject::Cast<UTexture>(borders[5]);
 	UTexture* top = UObject::Cast<UTexture>(borders[6]);
 	UTexture* bottom = UObject::Cast<UTexture>(borders[7]);
@@ -141,33 +140,16 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 	DestX += offsetX;
 	DestY += offsetY;
 
-	// Where each edge starts and ends: at the inner side of the corner beside
-	// it, or at the box's own corner where that corner has no texture.
-	float tlX = DestX, trX = DestX + destWidth;
-	float tlY = DestY, trY = DestY;
-	float blX = DestX, brX = DestX + destWidth;
-	float blY = DestY + destHeight, brY = DestY + destHeight;
-
-	// Margins (extension-dll.md, Borders): each side's is the largest of its
-	// own textures -- left from the two left corners and the left edge, and so
-	// on -- and a margin given above 0 replaces it. When the box is narrower
-	// or shorter than two of them, both shrink in proportion. The corners are
-	// drawn at their own size whatever the margins say, one texel a pixel; the
-	// margins are where the centre sits, and the edges run between the corners.
-	auto sizeOf = [](UTexture* tex, bool horizontal) { return horizontal ? (float)tex->USize() : (float)tex->VSize(); };
-	auto largestOf = [](std::initializer_list<float> sizes)
-	{
-		float out = 0.0f;
-		for (float s : sizes)
-			out = std::max(out, s);
-		return out;
-	};
-
-	float marginLeft = largestOf({ tl ? sizeOf(tl, true) : 0.0f, bl ? sizeOf(bl, true) : 0.0f, left ? sizeOf(left, true) : 0.0f });
-	float marginRight = largestOf({ tr ? sizeOf(tr, true) : 0.0f, br ? sizeOf(br, true) : 0.0f, right ? sizeOf(right, true) : 0.0f });
-	float marginTop = largestOf({ tl ? sizeOf(tl, false) : 0.0f, tr ? sizeOf(tr, false) : 0.0f, top ? sizeOf(top, false) : 0.0f });
-	float marginBottom = largestOf({ bl ? sizeOf(bl, false) : 0.0f, br ? sizeOf(br, false) : 0.0f, bottom ? sizeOf(bottom, false) : 0.0f });
-
+	// Each side's margin is the largest of its own textures -- left from the
+	// two left corners and the left edge, and so on -- and a margin given
+	// above 0 replaces it. A box narrower or shorter than two of them has both
+	// shrink in proportion.
+	auto U = [](UTexture* tex) { return tex ? (float)tex->USize() : 0.0f; };
+	auto V = [](UTexture* tex) { return tex ? (float)tex->VSize() : 0.0f; };
+	float marginLeft = std::max({ U(tl), U(bl), U(left) });
+	float marginRight = std::max({ U(tr), U(br), U(right) });
+	float marginTop = std::max({ V(tl), V(tr), V(top) });
+	float marginBottom = std::max({ V(bl), V(br), V(bottom) });
 	if (leftMargin > 0.0f)
 		marginLeft = leftMargin;
 	if (rightMargin > 0.0f)
@@ -177,95 +159,50 @@ void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeigh
 	if (BottomMargin > 0.0f)
 		marginBottom = BottomMargin;
 
-	if (marginLeft + marginRight > destWidth)
+	float innerWidth = destWidth - (marginLeft + marginRight);
+	float innerHeight = destHeight - (marginTop + marginBottom);
+	if (innerWidth < 0.0f)
 	{
-		marginLeft = destWidth * marginLeft / (marginLeft + marginRight);
-		marginRight = destWidth - marginLeft;
+		float scale = destWidth / (marginLeft + marginRight);
+		innerWidth = 0.0f;
+		marginLeft *= scale;
+		marginRight *= scale;
 	}
-	if (marginTop + marginBottom > destHeight)
+	if (innerHeight < 0.0f)
 	{
-		marginTop = destHeight * marginTop / (marginTop + marginBottom);
-		marginBottom = destHeight - marginTop;
+		float scale = destHeight / (marginTop + marginBottom);
+		innerHeight = 0.0f;
+		marginTop *= scale;
+		marginBottom *= scale;
 	}
 
-	if (auto tex = center)
-	{
-		float dwidth = std::max(destWidth - marginLeft - marginRight, 0.0f);
-		float dheight = std::max(destHeight - marginTop - marginBottom, 0.0f);
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(DestX + marginLeft, DestY + marginTop, dwidth, dheight);
-		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : dwidth, stretchDown ? sheight : dheight);
-		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
-	}
-	if (auto tex = tl) // top left corner
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(DestX, DestY, swidth, sheight);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		tlX = dest.right;
-		tlY = dest.bottom;
-	}
-	if (auto tex = tr) // top right corner
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, DestY, swidth, sheight);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		trX = dest.left;
-		trY = dest.bottom;
-	}
-	if (auto tex = bl) // bottom left corner
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(DestX, DestY + destHeight - sheight, swidth, sheight);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		blX = dest.right;
-		blY = dest.top;
-	}
-	if (auto tex = br) // bottom right corner
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, DestY + destHeight - sheight, swidth, sheight);
-		DrawTile(tex, ScaleRect(dest), Rectf::xywh(0.0f, 0.0f, swidth, sheight), tileColor(), EffectivePolyFlags());
-		brX = dest.left;
-		brY = dest.top;
-	}
-	if (auto tex = left) // left side
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(DestX, tlY, swidth, blY - tlY);
-		Rectf src = Rectf::xywh(0.0f, 0.0f, swidth, stretchDown ? sheight : blY - tlY);
-		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
-	}
-	if (auto tex = right) // right side
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(DestX + destWidth - swidth, trY, swidth, brY - trY);
-		Rectf src = Rectf::xywh(0.0f, 0.0f, swidth, stretchDown ? sheight : brY - trY);
-		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
-	}
-	if (auto tex = top) // top side
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(tlX, DestY, trX - tlX, sheight);
-		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : trX - tlX, sheight);
-		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
-	}
-	if (auto tex = bottom) // bottom side
-	{
-		float swidth = (float)tex->USize();
-		float sheight = (float)tex->VSize();
-		Rectf dest = Rectf::xywh(blX, DestY + destHeight - sheight, brX - blX, sheight);
-		Rectf src = Rectf::xywh(0.0f, 0.0f, stretchAcross ? swidth : brX - blX, sheight);
-		DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
-	}
+	float x1 = DestX + marginLeft;
+	float x2 = x1 + innerWidth;
+	float y1 = DestY + marginTop;
+	float y2 = y1 + innerHeight;
+
+	// Each piece fills its band of the box, read from the texture so that its
+	// inner side lies on the margin line (a corner's inner corner, an edge's
+	// inner side), as the original's DrawIconPattern draws it: a source size
+	// of 0 tiles one texel a pixel, any other stretches -- the edges and the
+	// centre tile unless stretching is asked for, which the game never asks.
+	auto piece = [&](UTexture* tex, float x, float y, float w, float h, float sx, float sy, float sw, float sh)
+		{
+			if (!tex)
+				return;
+			Rectf dest = Rectf::xywh(x, y, w, h);
+			Rectf src = Rectf::xywh(sx, sy, sw != 0.0f ? sw : w, sh != 0.0f ? sh : h);
+			DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
+		};
+	piece(tl, DestX, DestY, marginLeft, marginTop, U(tl) - marginLeft, V(tl) - marginTop, marginLeft, marginTop);
+	piece(tr, x2, DestY, marginRight, marginTop, 0.0f, V(tr) - marginTop, marginRight, marginTop);
+	piece(bl, DestX, y2, marginLeft, marginBottom, U(bl) - marginLeft, 0.0f, marginLeft, marginBottom);
+	piece(br, x2, y2, marginRight, marginBottom, 0.0f, 0.0f, marginRight, marginBottom);
+	piece(left, DestX, y1, marginLeft, innerHeight, U(left) - marginLeft, 0.0f, marginLeft, stretchDown ? V(left) : 0.0f);
+	piece(right, x2, y1, marginRight, innerHeight, 0.0f, 0.0f, marginRight, stretchDown ? V(right) : 0.0f);
+	piece(top, x1, DestY, innerWidth, marginTop, 0.0f, V(top) - marginTop, stretchAcross ? U(top) : 0.0f, marginTop);
+	piece(bottom, x1, y2, innerWidth, marginBottom, 0.0f, 0.0f, stretchAcross ? U(bottom) : 0.0f, marginBottom);
+	piece(center, x1, y1, innerWidth, innerHeight, 0.0f, 0.0f, stretchAcross ? U(center) : 0.0f, stretchDown ? V(center) : 0.0f);
 }
 
 void UGC::DrawBox(float DestX, float DestY, float destWidth, float destHeight, float OrgX, float OrgY, float boxThickness, UObject* tX)

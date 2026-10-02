@@ -1026,11 +1026,16 @@ checks:
   showed it). Each corner ends its own edges again, an edge without a
   corner runs to the box's own corner, and a selected item's frame is
   whole, as the original's is.
-  **Left open:** where the *edges* sit. The RE's rule reads as the edges
-  tiling along the margin lines, where the fork draws them flush with the
-  corners; `BorderConsole`'s shots of the original are the capture to
-  settle it with, and until they are read for it the edges stay where
-  Surreal puts them. To check by hand: a selection
+  **The layout is the original's** (2026-10-02, read from
+  `XGC::DrawBorders`): each of the nine pieces fills its band of the box
+  between the margin lines -- an edge from one margin line to the other, a
+  corner in its two margins -- read so that its inner side lies on the
+  margin line, the centre drawn last; Surreal drew the corners at their own
+  size from the box's corners and the edges between them. The two agree
+  where a side's textures are all one size, which is every frame the game
+  draws in `BorderConsole`'s shots (byte-identical before and after) and in
+  `ColorsConsole`'s Colors screen, whose 11- and 12-pixel list frames sit
+  where the original's do. To check by hand: a selection
   border in the inventory and a themed HUD frame crisp, their patterns
   repeating instead of smearing over the run.
 - **Save pictures.** Landed (2026-09-26): `GenerateSnapshot` makes the
