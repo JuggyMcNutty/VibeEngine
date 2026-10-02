@@ -172,6 +172,10 @@ The console classes:
   opened and shot, then the lockpick and the assault gun selected there and
   shot each time: a selected item's button draws its frame with
   `DrawBorders`.
+- **`HeldConsole`**: what a pawn holds -- the player seen from behind on
+  Liberty Island holding a multitool (no weapon, so the selected item is
+  drawn at the weapon triangle) and then the assault gun, a marked shot of
+  each, the player's `Weapon`, `SelectedItem` and `inHand` logged.
 - **`MoveConsole`**: how the level moves -- every in-world ScriptedPawn's
   state, orders, move target, destination, velocity and distance moved,
   every 2 s for 120 s on Liberty Island, for a trajectory diff between

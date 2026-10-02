@@ -685,16 +685,22 @@ to within 4 of 255 out to 60 pixels (2026-09-27).
 ### What a pawn holds
 
 - **Attachments** (2026-10-02; [a pawn's attachments](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-pawns-attachments)):
-  after a pawn's mesh, the original draws the pawn's `Weapon` in its
-  third-person mesh and scale at the triangle its own mesh holds a weapon
-  at, in the pawn's style and lit as the pawn -- the fork does that -- and,
-  **where the mesh has no such triangle, the pawn's `SelectedItem` in its
-  third-person mesh, drawn where the item is**. The fork drew nothing there,
-  so an NPC holding something that is not a weapon had nothing in its
-  hands. `VisibleMesh::DrawMesh` now draws the item through the renderer,
-  in the pawn's light.
-  To check by hand: an NPC carrying an item its own mesh cannot hold a
-  weapon at (a datacube, say).
+  after a pawn's mesh, where the mesh has a triangle to hold a weapon at,
+  the original draws the pawn's `Weapon` in its third-person mesh and scale
+  at that triangle -- or, holding no weapon, its `SelectedItem` the same
+  way: the player's multitool or lockpick in his hand, seen in third
+  person -- each in the pawn's style for the draw and lit as the pawn. A
+  mesh with no such triangle draws neither. The fork drew only the weapon,
+  in the weapon's own style; it draws the held item too now, and both in
+  the pawn's style, so a cloaked pawn's weapon goes translucent with it. A
+  first port the day before took the RE's note that the item is drawn
+  "where the item is" -- a misreading, corrected there: it is placed at the
+  triangle as the weapon is -- and drew the item at its own place in the
+  world without its mesh's scale, a multitool the size of a building over
+  Liberty Island. `HeldConsole` shoots the player from behind holding the
+  multitool and then the assault gun, in both engines: the multitool is in
+  his hand in both now.
+  To check by hand: a cloaked commando's weapon cloaking with it.
 
 ### Mesh detail
 

@@ -37,16 +37,20 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, bool wireframe, b
 
 	bool needsTranslucentPass = DrawMeshAtLocation(frame, actor, actor, mesh, meshToWorld, meshNormalToWorld, translucentPass);
 
-	// A pawn's own attachments: the weapon in its third-person mesh, at the
-	// triangle its mesh holds a weapon at, and with no such triangle the pawn's
-	// selected item, drawn where the item is (render-dll.md, A pawn's
-	// attachments).
+	// A pawn's own attachments (render-dll.md, A pawn's attachments): where its
+	// mesh has a triangle to hold a weapon at, the weapon in its third-person
+	// mesh and scale at that triangle -- or, holding no weapon, its selected
+	// item the same way (a multitool or a lockpick in the player's hand) --
+	// in the pawn's style and lit as the pawn. A mesh with no such triangle
+	// draws neither.
 	if (UPawn* pawn = UObject::TryCast<UPawn>(actor))
 	{
 		ULodMesh* pawnLodMesh = UObject::TryCast<ULodMesh>(mesh);
-		UWeapon* weapon = pawn ? pawn->Weapon() : nullptr;
-		UMesh* weaponMesh = weapon ? weapon->ThirdPersonMesh() : nullptr;
-		if (weaponMesh && pawnLodMesh && attachmentTris.size() >= 3)
+		UInventory* held = pawn->Weapon();
+		if (!held)
+			held = pawn->SelectedItem();
+		UMesh* heldMesh = held ? held->ThirdPersonMesh() : nullptr;
+		if (heldMesh && pawnLodMesh && attachmentTris.size() >= 3)
 		{
 			// Find attachment triangle location in the world:
 			const vec3& v0 = attachmentTris[0];
@@ -60,21 +64,16 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, bool wireframe, b
 			attachment.ZAxis = normalize(cross(attachment.XAxis, attachment.YAxis));
 			attachment.Origin = -(v0 + v2) * 0.5f;
 
-			// Place the weapon in this coordinate space:
-			mat4 weaponMeshToWorld = attachment.ToMatrix() * mat4::scale(weapon->ThirdPersonScale()) * weaponMesh->meshToObject;
-			mat3 weaponNormalToWorld = mat3::transpose(mat3(weaponMeshToWorld));
-			needsTranslucentPass = DrawMeshAtLocation(frame, weapon, actor, weaponMesh, weaponMeshToWorld, weaponNormalToWorld, translucentPass) || needsTranslucentPass;
-		}
-		else if (UInventory* item = pawn->SelectedItem())
-		{
-			// The mesh holds no weapon triangle: the item in hand is drawn where
-			// the item is, in the pawn's own light.
-			if (UMesh* itemMesh = item->ThirdPersonMesh())
-			{
-				mat4 itemToWorld = mat4::translate(item->Location() + item->PrePivot()) * Coords::Rotation(item->Rotation()).ToMatrix() * mat4::scale(item->DrawScale());
-				mat3 itemNormalToWorld = mat3::transpose(mat3(itemToWorld));
-				needsTranslucentPass = DrawMeshAtLocation(frame, item, actor, itemMesh, itemToWorld, itemNormalToWorld, translucentPass) || needsTranslucentPass;
-			}
+			// Place what is held in this coordinate space, drawn in the pawn's
+			// style for the draw as the original swaps it in (a cloaked pawn's
+			// weapon goes translucent with it):
+			mat4 heldMeshToWorld = attachment.ToMatrix() * mat4::scale(held->ThirdPersonScale()) * heldMesh->meshToObject;
+			mat3 heldNormalToWorld = mat3::transpose(mat3(heldMeshToWorld));
+			uint8_t& heldStyle = held->Value<uint8_t>(PropOffsets_Actor.Style);
+			uint8_t ownStyle = heldStyle;
+			heldStyle = (uint8_t)pawn->Style();
+			needsTranslucentPass = DrawMeshAtLocation(frame, held, actor, heldMesh, heldMeshToWorld, heldNormalToWorld, translucentPass) || needsTranslucentPass;
+			heldStyle = ownStyle;
 		}
 	}
 
