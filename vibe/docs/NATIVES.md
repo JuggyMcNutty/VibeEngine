@@ -1318,6 +1318,25 @@ says what changed, what stays the fork's own, and its by-hand check:
     cylinder, which both stand in), the barrel later at −301.62. Lines
     and a box traced down there find the floor at −304 in both engines;
     what stops the original's is unread (logged per tick, 2026-09-28).
+    **Narrowed 2026-10-02** (`RestConsole`, which places the three as
+    `MeshConsole` does, lists what collides near them, traces down from
+    each spot and logs every tick of the fall, in both engines): the
+    trigger plays no part -- it blocks nothing, and its cylinder's bottom
+    is at the floor. The original's crate falls five ticks from its spawn,
+    its cylinder's bottom from −299.95 to −301.39, and on the sixth lands
+    on the level (physics none, based on `LevelInfo0`) at −301.64, its move
+    of 1.3 units stopped about 0.29 of the way down: a hull face at about
+    −301.77 for the crate's box, entered ahead of it. The fork's falls
+    through to the floor. Every script trace down from the same spots --
+    a line, a 5-unit box, each decoration's own box -- gives the same hit in
+    both engines, the box ones on the hulls' pushed-out faces well above
+    the floor (a 5-unit box stops 19.5 over it, the crate's own box at
+    once, the crate spawning sunk 0.45 into one), so the box check's rules
+    as recorded (the start-inside rule, the backoffs, the window twice the
+    trace long, the tree walk's boxes grown by a tenth) agree; what differs
+    is which hull face the original's box check finds ahead of a box
+    falling from inside another, in its clipping of the hull's planes, box
+    planes and bevels (`0x103f42f0`) -- the work left.
   - **The visible-actor iterators `VisibleActors` 311 and
     `VisibleCollidingActors` 312** (2026-09-28;
     [traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)): `VisibleCollidingActors` lists each

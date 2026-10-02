@@ -122,6 +122,11 @@ The console classes:
   without `bIgnoreHidden`, and each `VisibleActors` lists (`DXVIS:`). The
   player and its shadow are numbered one higher in the original's log,
   whose menu map made the first.
+- **`RestConsole`**: where a falling decoration comes to rest -- on
+  Liberty Island the large crate, the barrel and the large box placed as
+  `MeshConsole` places them, the colliding actors near each listed, a line
+  and two boxes traced down from each spot, and every tick of the fall for
+  1.5 s logged (place, the cylinder's bottom, physics, velocity, base).
 - **`SightConsole`**: what `LineOfSightTo`, `CanSee` and `PlayerCanSeeMe`
   give -- Liberty Island from the menu map, 2 s into the level, for each
   NPC in the world and each light within 4000 units of the player: the
