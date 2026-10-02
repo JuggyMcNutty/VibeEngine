@@ -368,8 +368,13 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 void GLRenderDevice::CreateScenePass()
 {
 	ScenePass.VertexShader = CreateVertexShader("ScenePass.VertexShader", "shaders/Scene.vert");
-	ScenePass.FragmentShader = CreateFragmentShader("ScenePass.PixelShader", "shaders/Scene.frag");
-	ScenePass.FragmentShaderAlphaTest = CreateFragmentShader("ScenePass.PixelShaderAlphaTest", "shaders/Scene.frag", { "ALPHATEST" });
+	std::vector<std::string> sceneDefines;
+	if (!DarkClamp)
+		sceneDefines.push_back("NO_DARKCLAMP");
+	std::vector<std::string> alphaTestDefines = sceneDefines;
+	alphaTestDefines.push_back("ALPHATEST");
+	ScenePass.FragmentShader = CreateFragmentShader("ScenePass.PixelShader", "shaders/Scene.frag", sceneDefines);
+	ScenePass.FragmentShaderAlphaTest = CreateFragmentShader("ScenePass.PixelShaderAlphaTest", "shaders/Scene.frag", alphaTestDefines);
 	ScenePass.ShaderProgram = CreateProgram("ScenePass.ShaderProgram", ScenePass.VertexShader, ScenePass.FragmentShader);
 	ScenePass.ShaderProgramAlphaTest = CreateProgram("ScenePass.ShaderProgramAlphaTest", ScenePass.VertexShader, ScenePass.FragmentShaderAlphaTest);
 

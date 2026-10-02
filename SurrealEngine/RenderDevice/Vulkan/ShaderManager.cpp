@@ -14,6 +14,8 @@ ShaderManager::ShaderManager(VulkanRenderDevice* renderer) : renderer(renderer)
 	std::string sceneDefines = renderer->SupportsBindless ?
 		"#extension GL_EXT_nonuniform_qualifier : enable\r\n#define BINDLESS_TEXTURES\r\n" :
 		std::string();
+	if (!RenderDevice::DarkClamp)
+		sceneDefines += "#define NO_DARKCLAMP\r\n";
 
 	Scene.VertexShader = GLSLCompiler()
 		.Type(ShaderType::Vertex)

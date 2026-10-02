@@ -79,9 +79,14 @@ std::string FileResource::readAllText(const std::string& filename)
 
 			vec4 darkClamp(vec4 c)
 			{
+			#if defined(NO_DARKCLAMP)
+				// Deus Ex's D3DDrv draws a texture's colours as they are: 32-bit textures on any display of 24 bits or more
+				return c;
+			#else
 				// Make all textures a little darker as some of the textures (i.e coronas) never become completely black as they should have
 				float cutoff = 3.1/255.0;
 				return vec4(clamp((c.rgb - cutoff) / (1.0 - cutoff), 0.0, 1.0), c.a);
+			#endif
 			}
 
 			#if defined(BINDLESS_TEXTURES)

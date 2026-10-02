@@ -822,13 +822,23 @@ frames there, ramp and all, region for region at Liberty Island's start
 draw a light map alike, a byte of it worth 1/128 of the texture's
 brightness in `D3DDrv`'s default, one-pass path
 ([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)).
-The fork's shaders take 3.1/255 off every texture's colour (upstream's
-`darkClamp`, so that a glow's black stays black), where `D3DDrv`'s
-16-bit textures lose half a 5-bit step of each texture's own brightest
-colour on average -- more on a bright texture, less on a dark one:
-without it Liberty Island's pier, a dark wood, comes out one level of 256
-brighter in the frames' terms and a laser's corridor none, the pier still
-a level short of `D3DDrv`'s (2026-09-28, the clamp kept).
+A texture's colours are drawn as they are in Deus Ex (2026-10-02): the
+fork's shaders took 3.1/255 off every one (upstream's `darkClamp`, so
+that a glow's black stays black), a 16-bit `D3DDrv`'s loss taken for the
+game's. But `D3DDrv` draws 16-bit textures only on a display of under 24
+bits -- `Use32BitTextures`, in the game's ini, is no option of its --;
+on any other, every display today and the harness's, its textures are
+32-bit, a palette's colours as they are and a light map's bytes doubled
+([textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#textures)), and the original's `OpenGLDrv` frames match
+its `D3DDrv` ones to a tenth of a level on Liberty Island's pier
+(`MeshConsole`). So Deus Ex's shaders take nothing off (the shaders'
+`NO_DARKCLAMP`); other games keep the clamp. Against `D3DDrv`'s frames:
+`MeshConsole`'s pier, from where nothing is in hand (the Dragon's Tooth
+lights the pier blue), 1.7 to 3.0% under them, half a level to a level
+(4.5 to 5.9% before), the crate, box and barrel within 0.8% (to 3.6%
+under), Paul a level over where he was a level under; `LaserConsole`'s
+corridor within 0.9% (1.5%). The coronas fade to black as the
+original's do. What is left on the pier is unread.
 
 ### The screen flash
 

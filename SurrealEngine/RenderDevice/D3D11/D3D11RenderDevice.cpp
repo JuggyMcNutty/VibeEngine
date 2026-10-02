@@ -783,8 +783,13 @@ void D3D11RenderDevice::CreateScenePass()
 	};
 
 	CreateVertexShader(ScenePass.VertexShader, "ScenePass.VertexShader", ScenePass.InputLayout, "ScenePass.InputLayout", elements, "shaders/Scene.vert");
-	CreatePixelShader(ScenePass.PixelShader, "ScenePass.PixelShader", "shaders/Scene.frag");
-	CreatePixelShader(ScenePass.PixelShaderAlphaTest, "ScenePass.PixelShaderAlphaTest", "shaders/Scene.frag", { "ALPHATEST" });
+	std::vector<std::string> sceneDefines;
+	if (!DarkClamp)
+		sceneDefines.push_back("NO_DARKCLAMP");
+	std::vector<std::string> alphaTestDefines = sceneDefines;
+	alphaTestDefines.push_back("ALPHATEST");
+	CreatePixelShader(ScenePass.PixelShader, "ScenePass.PixelShader", "shaders/Scene.frag", sceneDefines);
+	CreatePixelShader(ScenePass.PixelShaderAlphaTest, "ScenePass.PixelShaderAlphaTest", "shaders/Scene.frag", alphaTestDefines);
 
 	CreateSceneSamplers();
 
