@@ -783,14 +783,21 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
 - **`NoDynamicLights`**: works now (2026-09-25) -- animated lights count
   as still and bake into the static map, and moving ones are left out;
   by hand with the ini setting on.
-- **`LE_CloudCast`**: the fork builds it once, and its effect's shape is
-  a placeholder (upstream's to-do); in the original the cloud shape
-  changes over time and is run every frame, its formula unread. The torch
-  and fire wavers and the watery shimmer are the original's now
-  (2026-09-28): the plain shape, each texel dimmed at random by up to 5%,
-  20% and 40% as the light is added -- the shimmer's randomness plain,
-  where the original's has a table of its own; and the omni bump map is a
-  plain light, as in the original's table of effects.
+- **`LE_CloudCast`** is the plain shape, as the original's: its function
+  in Render.dll only calls `SpatialPlain` (read 2026-10-02), though the
+  table counts its shape as changing, so it is run every frame where the
+  fork's is built once -- the same light either way. The torch and fire
+  wavers and the watery shimmer are the original's (2026-09-28, the tables
+  2026-10-02): the plain shape, each texel dimmed by up to 5%, 20% and 40%
+  as the light is added, i × (1 − amount + amount × a draw) − 0.5 cut down,
+  the draws from the frame's table of 256 -- the shimmer's its own, each
+  entry gliding to a new draw every 16 ticks of 35 a second -- taken in
+  turn over the light's rectangle on the map, row by row
+  ([light maps](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps)). The fork drew every texel afresh, the
+  shimmer as harsh as a fire, and rounded half a step higher. Liberty
+  Island has three fire wavers (its burning barrels) and no shimmer; the
+  shimmer's table is seen gliding in a log, frame by frame. And the omni
+  bump map is a plain light, as in the original's table of effects.
 - **Meshes.** The fork keeps the original's now (2026-09-25): the
   candidates from the actor's leaf of the BSP plus the moving lights near
   it and last frame's, the strongest picked first -- statics until 8, none

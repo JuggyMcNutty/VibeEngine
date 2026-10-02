@@ -23,7 +23,7 @@ LightEffect::EffectFunc LightEffect::Effects[LE_Unused + 1] =
 	&LightEffect::SearchlightEffect, // LE_Searchlight
 	&LightEffect::SlowWaveEffect, // LE_SlowWave
 	&LightEffect::FastWaveEffect, // LE_FastWave
-	&LightEffect::NoneEffect, // LE_CloudCast
+	&LightEffect::NoneEffect, // LE_CloudCast - Deus Ex's is the plain shape too (Render.dll 0x10b04380 calls SpatialPlain)
 	&LightEffect::SpotlightEffect, // LE_StaticSpot
 	&LightEffect::SlowWaveEffect, // LE_Shock - to do: needs implementation
 	&LightEffect::SlowWaveEffect, // LE_Disco - to do: needs implementation

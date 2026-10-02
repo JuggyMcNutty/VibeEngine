@@ -5,6 +5,7 @@
 #include "Packages/Engine/USurrealClient.h"
 #include "Packages/Engine/Resources/UPalette.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
+#include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/Actors/Info/UZoneInfo.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Core/UClass.h"
@@ -288,29 +289,42 @@ void LightmapBuilder::AddLightContributionDX(UActor* light)
 	// and is added to the map, each channel held to 127. The colour is
 	// GlobalLighting's times its brightness and the level's Brightness. A
 	// torch or fire waver or a watery shimmer dims each texel by up to 5%,
-	// 20% or 40% at random.
+	// 20% or 40% (MergeLight, 0x10b03040): i x (1 − amount + amount x a
+	// draw) − 0.5, cut down, the draws from the frame's random tables
+	// (LightSystem::TickRandoms), the shimmer's its own, taken in turn over
+	// the texels of the light's rectangle on the map, row by row from 0.
 	vec3 scale = GetLightColorDX(light) * 65536.0f;
 	int scaleR = std::max((int)std::floor(scale.r), 0);
 	int scaleG = std::max((int)std::floor(scale.g), 0);
 	int scaleB = std::max((int)std::floor(scale.b), 0);
 
 	float waver = 0.0f;
+	const float* randoms = engine->Level->Light.Randoms;
 	switch (light->LightEffect())
 	{
 	case LE_TorchWaver: waver = 0.05f; break;
 	case LE_FireWaver: waver = 0.2f; break;
-	case LE_WateryShimmer: waver = 0.4f; break;
+	case LE_WateryShimmer: waver = 0.4f; randoms = engine->Level->Light.ShimmerRandoms; break;
 	}
+
+	int rectX0 = width, rectX1 = 0, rectY0 = spans.empty() ? 0 : spans.front().y;
+	for (const LightmapSpan& span : spans)
+	{
+		rectX0 = std::min(rectX0, span.x0);
+		rectX1 = std::max(rectX1, span.x1);
+	}
+	int rectWidth = std::max(rectX1 - rectX0, 0);
 
 	for (const LightmapSpan& span : spans)
 	{
 		const float* src = illuminationmap.data() + span.y * width + span.x0;
 		vec3* dest = lightcolors.data() + span.y * width + span.x0;
-		for (int x = span.x0; x < span.x1; x++, src++, dest++)
+		int index = (span.y - rectY0) * rectWidth + (span.x0 - rectX0);
+		for (int x = span.x0; x < span.x1; x++, src++, dest++, index++)
 		{
 			int i = std::clamp((int)(*src + 0.5f), 0, 255);
 			if (waver != 0.0f)
-				i = (int)(i * (1.0f - waver + waver * (RandInt(32767) * (1.0f / 32768.0f))));
+				i = std::max((int)(i * (1.0f - waver + waver * randoms[index & 255]) - 0.5f), 0);
 			dest->r = std::min(dest->r + (float)std::min((i * scaleR) >> 16, 127), 127.0f);
 			dest->g = std::min(dest->g + (float)std::min((i * scaleG) >> 16, 127), 127.0f);
 			dest->b = std::min(dest->b + (float)std::min((i * scaleB) >> 16, 127), 127.0f);

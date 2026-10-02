@@ -259,6 +259,17 @@ public:
 	// type and a brightness. The list lasts until the next call.
 	const Array<UActor*>& LightsNear(const vec3& location) { LightTree.CollectLights(location, 0.0f); return LightTree.CollectedLights; }
 
+	// Deus Ex's random tables (Render.dll's TickRandoms, 0x10b13080), from
+	// the level's time each frame: 256 fresh draws -- the torch and fire
+	// wavers' --, and the watery shimmer's own, each entry easing toward a
+	// draw from those, 16 entries taking a new one at each of 35 ticks a
+	// second, a sixteenth of the way a tick.
+	void TickRandoms(float levelTime);
+	float Randoms[256] = {};
+	float ShimmerRandoms[256] = {};
+	float ShimmerSteps[256] = {};
+	int RandomTicks = 0;
+
 private:
 	TextureInfo GetLightmap(UModel* model, int lightmapIndex, const Coords& coords, UZoneInfo* zoneActor, const vec3& worldLocation, float radius, UMover* mover, bool specialLit);
 	TextureInfo GetFogmap(UModel* model, int lightmapIndex, const Coords& coords, UZoneInfo* zoneActor);

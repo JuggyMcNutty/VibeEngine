@@ -56,9 +56,46 @@ void LightSystem::OnMapLoaded()
 	}
 }
 
+void LightSystem::TickRandoms(float levelTime)
+{
+	int ticks = (int)(int64_t)(levelTime * 35.0f);
+	for (int i = 0; i < 256; i++)
+		Randoms[i] = FRand();
+
+	// Under 16 ticks on: the entries the ticks went past take new draws to
+	// ease toward, and the others move on a step a tick; else all start over
+	if ((uint32_t)(16 * (ticks - RandomTicks)) < 0x100 && RandomTicks != 0)
+	{
+		int from = (uint8_t)(16 * RandomTicks);
+		int to = (uint8_t)(16 * ticks);
+		for (int i = from; i != to; i = (i + 1) & 255)
+			ShimmerSteps[i] = (Randoms[i] - ShimmerRandoms[i]) * 0.0625f;
+		float steps = (float)(uint8_t)(ticks - RandomTicks);
+		int i = to;
+		do
+		{
+			ShimmerRandoms[i] += steps * ShimmerSteps[i];
+			i = (i + 1) & 255;
+		} while (i != from);
+	}
+	else
+	{
+		for (int i = 0; i < 256; i++)
+		{
+			ShimmerRandoms[i] = FRand();
+			ShimmerSteps[i] = (Randoms[i] - ShimmerRandoms[i]) * 0.0625f;
+		}
+	}
+	for (int i = 0; i < 256; i++)
+		ShimmerRandoms[i] = std::clamp(ShimmerRandoms[i], 0.0f, 1.0f);
+	RandomTicks = ticks;
+}
+
 void LightSystem::BeginFrame()
 {
 	FrameCounter++;
+	if (engine->LaunchInfo.IsDeusEx())
+		TickRandoms(engine->LevelInfo->TimeSeconds());
 
 	LightTree.Lights.clear();
 	for (UActor* actor : engine->Level->Actors)
