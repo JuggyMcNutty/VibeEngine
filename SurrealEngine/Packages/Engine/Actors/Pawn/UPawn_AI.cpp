@@ -583,6 +583,7 @@ int UPawn::CalcMoveFlags()
 	if (bCanJump()) flags |= 8;      // R_JUMP
 	if (bCanOpenDoors()) flags |= 16;   // R_DOOR
 	if (bCanDoSpecial()) flags |= 32;   // R_SPECIAL
+	if (bIsPlayer()) flags |= 64;       // R_PLAYERONLY (calcMoveFlags, Engine.dll 0x10326d10)
 	return flags;
 }
 

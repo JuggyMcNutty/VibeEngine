@@ -463,64 +463,52 @@ and a seeking NPC got no overshoot destination:
   a patroller back to the node it stood on until `CheckDestLoc` backed it
   off (`BackingOff`, 4 s in, Terrorist15 on Liberty Island); it patrols
   now, within 4 units of the original's at 20 s (`AIConsole`, 374 before).
-- **A directly reachable target is walked to straight** (2026-10-01): the
-  original's `findPathToward` (Engine.dll `0x103db3f0`) first asks
-  whether the target itself can be walked to -- `CanMoveTo` for a
-  navigation point, `pointReachable` for a spot, then a pass over the
-  candidate nodes -- and returns the target as the route when so. The
-  fork always searched, so a bot whose next patrol point was in plain
-  sight walked off through path nodes to reach it. Proven by
-  `MoveConsole` (vibe/tools/dxcap): SecurityBot1's route now matches the
-  original's exactly.
-- **The search itself** (2026-10-02): the original's `breadthPathFrom`
-  (`0x103dcd60`, [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)),
-  where the fork's was a Dijkstra by reach-spec distance. What a node
-  costs to reach is the spec's distance plus the node's own penalty
-  (`cost`: the `SpecialCost` event or `ExtraCost`) plus what was spent to
-  reach the node expanded so far, and an end point's `bestPathWeight`
-  besides; the nodes not yet expanded are kept in an open list sorted by
-  that cost, out of the nodes' own `nextOrdered`/`prevOrdered`, with the
-  route in `previousPath` and the cost in `visitedWeight` -- which
-  `ClearPaths` now resets to 10,000,000, clearing the list with it, as
-  `APawn::clearPaths` (`0x103da050`) does. The caps are the original's: the
-  script's node cap, which none of Deus Ex's eleven `FindPathToward` calls
-  passes, so the search gives up after 1000 nodes and says so in the log,
-  and the open list's own walk gives up after 500.
-  **Proven by `MoveConsole`**: UNATCOTroop1, frozen against geometry from
-  8 s on in the fork (`moved 0` for the rest of the run), now walks its
-  whole patrol as the original's does, reaching the patrol points it never
-  reached -- the original's route through PathNode405, where the fork's
-  kept re-picking PathNode406. 50 of Liberty Island's 52 pawns' distance
-  moved is the original's, as before, SecurityBot1's route among them.
-  **One pawn stalls where it did not**: Terrorist35 stops against geometry
-  at 34 s, where the fork's walked on (its route through PathNode964 and
-  PathNode644, where the original's and the fork's both go by
-  PatrolPoint86). With the search, what decides which node it settles on
-  is the set of end points it stops at, and that is still the fork's
-  (`MarkReachableNavEndPoints`: what is within 1,000 units and
-  `actorReachable`, up to eight) where the original's is
-  `APawn::definePathsFor` -- a flood of a node's reach specs, each traced,
-  marking each spec's end actor and giving it the spec's distance as its
-  `bestPathWeight`, with what stops a link blocking only a pawn that
-  cannot open its way through (`bCanOpenDoors`, and `bIsPlayer` or the
-  mover's `bPlayerOnly`). **Tried 2026-10-02 and not landed**: ported in
-  full, with the reach spec's own `reachFlags` checked against
-  `APawn::calcMoveFlags`' seven bits (`bCanWalk`, `bCanFly`, `bCanSwim`,
-  `bCanJump`, `bCanOpenDoors`, `bCanDoSpecial`, `bIsPlayer`), and marked
-  from each of the two nodes the original could be given -- the goal-side
-  node `GetPathnodeList` returns and the pawn's own -- **both measure
-  worse**: 47 of Liberty Island's 52 pawns' distance moved is the
-  original's, where the fork's own marking gives 50 (UNATCOTroop1, fixed
-  by the search above, stops finding an end point at all). The missing
-  piece is therefore in `GetPathnodeList`'s node list or in the goal-side
-  `findPathToward` flow between the two calls, not in the marking: with
-  the goal's node the end points are the goal's own forward neighbours,
-  and the search walks the level's list backwards from the goal, so it
-  would never meet one. What `findPathToward` does between getting the
-  node list and searching -- the candidates it walks, `CanMoveTo` and
-  `pointReachable` over each, `bHunting` (the pawn word's bit 21) forcing
-  one to count -- is the next thing to read. All of it is written up in
-  [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search).
+- **The path search is the original's** (2026-10-02; [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)):
+  Deus Ex's `FindPathToward` 517 and `FindPathTo` 518 as its Engine.dll
+  has them, where the fork's were its own -- a Dijkstra by reach-spec
+  distance to up to eight end points within 1,000 units, and a point taken
+  as the way to the node nearest it. Now: the nodes within 800 units of the
+  pawn and of the goal gathered nearest first, every node cleared for the
+  search on the way (`bClearPaths`, on in all of Deus Ex's calls); the pawn
+  anchored at the node it stands on, or else its nearest node it sees and
+  can reach the one end point; anchored, a goal one of the anchor's own
+  open reach specs away is the route itself (`CanMoveTo`), another goal
+  reachable from the anchor makes the anchor the route, and otherwise the
+  anchor's open forward neighbours are the end points (`definePathsFor`:
+  each spec traced, only a mover the pawn cannot open counting against it).
+  The search starts at the goal's node -- a node goal itself, else the
+  nearest one the goal is reachable from, the pawn moved onto each to ask --
+  and runs best first over the reach specs reversed, each node it expands
+  the next in its own open list kept sorted by cost (`breadthPathFrom`: the
+  spec's distance, the node's `cost`, what reaching the node expanded
+  cost, an end point's `bestPathWeight`; a spec whose `reachFlags` the
+  pawn's move flags do not cover skipped). After it a nearby node clearly
+  cheaper takes the route's first node's place; a `bHunting` pawn whose goal
+  no node reaches searches from the goal's nearest node anyway, any other
+  from its own side; and the node found has its `SpecialHandling` asked as
+  the original's `HandleSpecial` asks it, `bShootSpecial` and `SpecialPause`
+  cleared. A falling pawn is searched toward where it will land
+  (`jumpLanding`, with `TwoWallAdjust`). `RouteCache` stays empty: the
+  original never fills it.
+  **The first port** (`5e728c6`, from an RE writeup corrected since) walked
+  the level's navigation list instead of the open list and kept the fork's
+  own end points, and its "tried and not landed" verdict on
+  `definePathsFor` was measured with that walk.
+  **Proven by `MoveConsole` and `move.py`** (vibe/tools/dxcap), against the
+  original's run: 48 of Liberty Island's 52 pawns' distance moved within
+  15% (or 200 units) of the original's, where the first port gave 43 and
+  the fork's own search 50; UNATCOTroop1, frozen against geometry from 8 s
+  on under the fork's own, walks its whole patrol and reaches every point
+  the original's reaches; Terrorist35, which the first port stalled at
+  34 s, walks as the original's. **One pawn stalls where the original's
+  does not**: Terrorist34, held at the same spot as the original's from
+  8 s, re-routes at 18 s to PathNode21, beyond what holds it, where the
+  original's turns back to PathNode541 and then gets past. The search
+  stops at PathNode541 in both; what takes PathNode21 instead is the step
+  after it, which asks the fork's own `pointReachable` whether the pawn can
+  walk to PathNode21 from there -- the fork's says yes, the original's
+  evidently no. The reachability tests are still the fork's own
+  ([implemented, not as the original](#implemented-not-as-the-original)), and are the work left.
   Compared on the way (DeathConsole): the death path matches the
   original's throughout -- the same animation, lurch, hide timing and
   carcass mesh -- and the robots' freeze in Dying forever is the

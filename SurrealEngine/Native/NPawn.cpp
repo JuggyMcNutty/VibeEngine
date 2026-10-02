@@ -121,6 +121,13 @@ void NPawn::FindBestInventoryPath(UObject* Self, float& MinWeight, bool bPredict
 void NPawn::FindPathTo(UObject* Self, const vec3& aPoint, std::optional<bool> bSinglePath, std::optional<bool> bClearPaths, UObject*& ReturnValue)
 {
 	UPawn* selfPawn = UObject::Cast<UPawn>(Self);
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		// The original's findPathTo, which clears the nodes itself as it
+		// gathers them (engine-dll.md, the search).
+		ReturnValue = selfPawn->DeusExFindPathFromScript(nullptr, aPoint, bSinglePath.value_or(false), bClearPaths.value_or(true));
+		return;
+	}
 	if (!bClearPaths || *bClearPaths)
 		selfPawn->ClearPaths();
 	ReturnValue = selfPawn->FindPathTo(aPoint, bSinglePath ? *bSinglePath : false);
@@ -129,6 +136,13 @@ void NPawn::FindPathTo(UObject* Self, const vec3& aPoint, std::optional<bool> bS
 void NPawn::FindPathToward(UObject* Self, UObject* anActor, std::optional<bool> bSinglePath, std::optional<bool> bClearPaths, UObject*& ReturnValue)
 {
 	UPawn* selfPawn = UObject::Cast<UPawn>(Self);
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		// The original's findPathToward; no goal, no path and nothing else.
+		UActor* goal = UObject::Cast<UActor>(anActor);
+		ReturnValue = goal ? selfPawn->DeusExFindPathFromScript(goal, vec3(0.0f), bSinglePath.value_or(false), bClearPaths.value_or(true)) : nullptr;
+		return;
+	}
 	if (!bClearPaths || *bClearPaths)
 		selfPawn->ClearPaths();
 	ReturnValue = selfPawn->FindPathToward(anActor, bSinglePath ? *bSinglePath : false);

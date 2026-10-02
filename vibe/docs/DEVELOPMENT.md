@@ -182,7 +182,9 @@ The console classes:
 - **`MoveConsole`**: how the level moves -- every in-world ScriptedPawn's
   state, orders, move target, destination, velocity and distance moved,
   every 2 s for 120 s on Liberty Island, for a trajectory diff between
-  the engines.
+  the engines: `move.py <original run> <fork run>` (beside `skip.py`)
+  lays each pawn's distance moved, longest stall and move targets beside
+  the reference's.
 - **`MissionConsole`**: a mission map's script -- the DeusExLevelInfo, its
   MissionScript, and the state machine's initialization polled from the
   player's flag base, `DXMISSION:` lines saying OK or what is missing.

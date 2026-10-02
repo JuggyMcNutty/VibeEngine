@@ -72,6 +72,15 @@ public:
 	UActor* PathSpecialHandling(const Array<UNavigationPoint*>& points);
 	UNavigationPoint* SetRouteCache(const Array<UNavigationPoint*>& points);
 	std::pair<Array<UNavigationPoint*>, int32_t> FindPathToEndPoint(UNavigationPoint* start, int maxNodes);
+	bool BreadthPathFrom(UNavigationPoint* start, UNavigationPoint*& endNode, bool singlePath, int moveFlags);
+
+	// Deus Ex's path search, the original's (engine-dll.md, the search):
+	// FindPathToward for an actor goal, FindPathTo for a point (goalActor none).
+	UActor* DeusExFindPathFromScript(UActor* goalActor, const vec3& goalPoint, bool singlePath, bool clearPaths);
+	UActor* DeusExFindPath(UActor* goalActor, vec3 goalPoint, bool singlePath, bool clearPaths);
+	void HandleSpecial(UActor*& bestPath);
+	vec3 JumpLanding(vec3 velocity, bool movePawn);
+	bool TestMoveTo(const vec3& spot, bool noCheck);
 
 	void ClearPaths();
 	UObject* FindRandomDest();
@@ -87,7 +96,8 @@ public:
 	bool AIDirectionReachable(const vec3& focus, int yaw, int pitch, float minDist, float maxDist, vec3& bestDest);
 	bool AIPickRandomDestination(float minDist, float maxDist, int centralYaw, float yawDistribution, int centralPitch, float pitchDistribution, int tries, float multiplier, vec3& dest);
 	// The pawn's movement capabilities as UE1's reach-spec flags
-	// (R_WALK 1, R_FLY 2, R_SWIM 4, R_JUMP 8, R_DOOR 16, R_SPECIAL 32).
+	// (R_WALK 1, R_FLY 2, R_SWIM 4, R_JUMP 8, R_DOOR 16, R_SPECIAL 32,
+	// R_PLAYERONLY 64), as the original's calcMoveFlags packs them.
 	int CalcMoveFlags();
 	// The original's GetPathnodeList: up to 32 navigation points and their
 	// distances, nearest first, from a start node's paths, or the nearest
