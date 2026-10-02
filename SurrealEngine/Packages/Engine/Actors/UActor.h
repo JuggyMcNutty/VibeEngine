@@ -434,6 +434,11 @@ public:
 	virtual void TickRotating(float elapsed);
 
 	void SetPhysics(uint8_t newPhysics);
+	// Deus Ex's: the original's setPhysics with a floor, for its SetPhysics
+	// native and its landing; the floor's SupportActor event bases the actor.
+	void SetPhysics(uint8_t newPhysics, UActor* newFloor);
+	void SetSupportBase(UActor* floor);
+	void FindBase();
 	void SetCollision(bool newColActors, bool newBlockActors, bool newBlockPlayers);
 
 	std::pair<bool, vec3> CheckLocation(vec3 location, float radius, float height, bool check);
@@ -463,6 +468,15 @@ public:
 	// hit returned), and the move itself given those.
 	CollisionHit TraceMove(const vec3& delta, bool isOwnBaseBlocking, CollisionHitList& hits);
 	CollisionHit FinishMove(const vec3& delta, const CollisionHitList& hits, CollisionHit blockingHit);
+	// TryMove held off what blocks it, as the original's ULevel::MoveActor
+	// makes every move: traced 2 units past its end, and stopped 2 units
+	// short of the hit -- not moved at all for a hit nearer than that -- the
+	// hit's Fraction then of the delta asked for.
+	CollisionHit TryMoveHeldOff(const vec3& delta);
+	// Its two measures, for moves made otherwise: the delta to trace, and the
+	// traced hit's Fraction as the fraction of the delta to move.
+	static vec3 HeldOffDelta(const vec3& delta);
+	static float HeldOffFraction(const vec3& delta, float tracedFraction);
 	CollisionHit TryMoveSmooth(const vec3& delta);
 	bool Move(const vec3& delta);
 	bool MoveSmooth(const vec3& delta);

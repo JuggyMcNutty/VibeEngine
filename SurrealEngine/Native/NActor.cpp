@@ -661,32 +661,10 @@ void NActor::SetPhysics(UObject* Self, uint8_t newPhysics)
 
 void NActor::SetPhysics_Deus(UObject* Self, uint8_t newPhysics, std::optional<UObject*> newFloor)
 {
-	// The original's (engine-dll.md, moving): changing to none, walking,
-	// rolling, rotating or spider, the actor takes the floor it was given
-	// as its base -- through the floor's SupportActor event, which bases
-	// it -- or, with none given, finds its base below; to any other it
-	// leaves its base. None and rotating also stop its velocity and
-	// acceleration. The scripts pass the wall hit as grenades, pool balls,
-	// basketballs and fragments come to rest.
-	UActor* actor = UObject::Cast<UActor>(Self);
-	actor->SetPhysics(newPhysics);
-	if (newPhysics == PHYS_None || newPhysics == PHYS_Rotating)
-	{
-		actor->Velocity() = vec3(0.0f);
-		actor->Acceleration() = vec3(0.0f);
-	}
-	if (newPhysics == PHYS_None || newPhysics == PHYS_Walking || newPhysics == PHYS_Rolling || newPhysics == PHYS_Rotating || newPhysics == PHYS_Spider)
-	{
-		UActor* floor = newFloor ? UObject::TryCast<UActor>(*newFloor) : nullptr;
-		if (floor)
-			CallEvent(floor, "SupportActor", { ExpressionValue::ObjectValue(actor) });
-		else
-			actor->InitBase();
-	}
-	else
-	{
-		actor->SetBase(nullptr, true);
-	}
+	// The original's setPhysics (UActor::SetPhysics with a floor). The
+	// scripts pass the wall hit as grenades, pool balls, basketballs and
+	// fragments come to rest.
+	UObject::Cast<UActor>(Self)->SetPhysics(newPhysics, newFloor ? UObject::TryCast<UActor>(*newFloor) : nullptr);
 }
 
 void NActor::SetRotation(UObject* Self, const Rotator& NewRotation, BitfieldBool& ReturnValue)

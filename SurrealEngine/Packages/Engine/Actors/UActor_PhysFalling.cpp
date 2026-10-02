@@ -66,6 +66,12 @@ void UActor::TickFalling(float elapsed)
 	}
 	velocity = newVelocity;
 
+	// Deus Ex's falls move as the original's physFalling does, by
+	// ULevel::MoveActor, so an actor comes to rest held off its floor: 2
+	// units, and the box trace's backoff, a tenth of the last move + 2.
+	bool heldOff = engine->LaunchInfo.IsDeusEx();
+	auto move = [&](const vec3& delta) { return heldOff ? TryMoveHeldOff(delta) : TryMove(delta); };
+
 	float timeLeft = elapsed;
 	for (int iteration = 0; timeLeft > 0.0f && iteration < 5; iteration++)
 	{
@@ -82,7 +88,7 @@ void UActor::TickFalling(float elapsed)
 		vec3 moveDelta = (newVelocity + zone->ZoneVelocity() * elapsed * 25.0f) * timeLeft;
 		vec3 dirNormal = normalize(newVelocity);
 
-		CollisionHit hit = TryMove(moveDelta);
+		CollisionHit hit = move(moveDelta);
 		timeLeft -= timeLeft * hit.Fraction;
 
 		if (hit.Fraction < 1.0f)
@@ -100,7 +106,7 @@ void UActor::TickFalling(float elapsed)
 			if (bBounce())
 			{
 				vec3 reflectedDelta = reflect(moveDelta, hit.Normal);
-				hit = TryMove(reflectedDelta);
+				hit = move(reflectedDelta);
 			}
 			else
 			{
@@ -110,7 +116,7 @@ void UActor::TickFalling(float elapsed)
 					vec3 alignedDelta = (moveDelta - hit.Normal * dot(moveDelta, hit.Normal)) * (1.0f - hit.Fraction);
 					if (dot(moveDelta, alignedDelta) >= 0.0f) // Don't end up going backwards
 					{
-						hit = TryMove(alignedDelta);
+						hit = move(alignedDelta);
 						if (hit.Fraction < 1.0f && hit.Normal.z > 0.7071f)
 						{
 							PhysLanded(hit.Actor, hit.Normal);

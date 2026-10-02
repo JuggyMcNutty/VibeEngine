@@ -1307,34 +1307,35 @@ says what changed, what stays the fork's own, and its by-hand check:
     (below). Walking's float takes the original's own measure
     ([small](#small)), and the fork's own reach test falls a step at a
     time, so that the tenth off one long fall does not leave it in the
-    air. Other games keep the unit. What falls comes to rest where its
-    last step's trace stops: `MeshConsole`'s crate, box and barrel 0.1
-    over Liberty Island's pier (1.0 before), where the original's stop
-    over it -- the crate and box together, in the air, 0.06 s after they
-    are placed, falling half a unit a tick, their bottoms level at
-    −301.75 (2.25 over the floor, the height of `DataLinkTrigger0`'s
-    cylinder, which both stand in), the barrel later at −301.62. Lines
-    and a box traced down there find the floor at −304 in both engines;
-    what stops the original's is unread (logged per tick, 2026-09-28).
-    **Narrowed 2026-10-02** (`RestConsole`, which places the three as
-    `MeshConsole` does, lists what collides near them, traces down from
-    each spot and logs every tick of the fall, in both engines): the
-    trigger plays no part -- it blocks nothing, and its cylinder's bottom
-    is at the floor. The original's crate falls five ticks from its spawn,
-    its cylinder's bottom from −299.95 to −301.39, and on the sixth lands
-    on the level (physics none, based on `LevelInfo0`) at −301.64, its move
-    of 1.3 units stopped about 0.29 of the way down: a hull face at about
-    −301.77 for the crate's box, entered ahead of it. The fork's falls
-    through to the floor. Every script trace down from the same spots --
-    a line, a 5-unit box, each decoration's own box -- gives the same hit in
-    both engines, the box ones on the hulls' pushed-out faces well above
-    the floor (a 5-unit box stops 19.5 over it, the crate's own box at
-    once, the crate spawning sunk 0.45 into one), so the box check's rules
-    as recorded (the start-inside rule, the backoffs, the window twice the
-    trace long, the tree walk's boxes grown by a tenth) agree; what differs
-    is which hull face the original's box check finds ahead of a box
-    falling from inside another, in its clipping of the hull's planes, box
-    planes and bevels (`0x103f42f0`) -- the work left.
+    air. Other games keep the unit.
+  - **Where a falling actor comes to rest** (2026-10-02;
+    [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)): held off its floor, as the original's. Every move
+    the original makes is `ULevel::MoveActor`'s, which traces it 2 units
+    past its end and stops it 2 units short of what it hits -- not at all
+    for a hit nearer than that --, so what falls rests 2 units and the box
+    trace's backoff, a tenth of its last move + 2, over the floor. The
+    fork's falls went up to the hit: `MeshConsole`'s crate, box and barrel
+    rested 0.1 over Liberty Island's pier where the original's rest 2.25
+    over it. Deus Ex's falls move as the original's now (`TryMoveHeldOff`),
+    and land as its `processLanded` does: the actor hit -- the
+    `LevelInfo` for the world -- is the floor `setPhysics` takes for the
+    base, through its `SupportActor` event (below), where the fork's took
+    no base off the level. `RestConsole` (the three placed as `MeshConsole`
+    places them, every tick of the fall logged, and traces down from each
+    spot and from the player's, in both engines): the crate and box rest at
+    −301.76 and −301.77 where the original's rest at −301.73 (−304
+    before), based on the level as the original's are; the barrel, its
+    last tick in the original's run a long one (a 4.7-unit move to the
+    fork's 1.5), rests 0.34 under the original's by the same rule. A
+    carcass rests where the original's does (`DeathConsole`: 40.5 under
+    the dead pawn and on the level, at 471.30 as the original's; 470.35
+    and unbased before). Every script trace down gave the same hit in both
+    engines (lines, a 5-unit box, each decoration's own box, the player's
+    own drop of `MaxStepHeight` + 2): what differed was the move, not the
+    box check. Walking keeps its float ([small](#small)), and other games
+    their moves. Not ported: `processLanded`'s nudge of a decoration off a
+    ledge it overhangs (four traces down at its corners, up to five
+    times) and a carcass's bounce off a slope.
   - **The visible-actor iterators `VisibleActors` 311 and
     `VisibleCollidingActors` 312** (2026-09-28;
     [traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)): `VisibleCollidingActors` lists each
@@ -1376,7 +1377,16 @@ says what changed, what stays the fork's own, and its by-hand check:
     `DeusExMover`'s area sit right. To check by hand: a door's highlight.
   - **`Actor.SetPhysics` 3970** takes the floor it is given as the base
     (its `SupportActor` event): a grenade or pool ball coming to rest
-    moves with what it landed on.
+    moves with what it landed on. As the original's `setPhysics`
+    (2026-10-02): only a change of physics does anything, a floor that is
+    the base already is not asked again, and with no floor the actor's
+    base is what a box of its size meets 8 units down (`FindBase`), where
+    the fork's asked every call and looked for no base but an overlap.
+    Landing asks the same: a pawn landing on an NPC or the player is
+    bounced off it and stomps it, and one landing on a decoration that
+    cannot be a base is pushed off -- the scripts' `SupportActor` --
+    where the fork's only took what it landed on for its base. To check
+    by hand: jumping onto an NPC's head.
   - **`Pawn.StrafeTo` 504 and `StrafeFacing` 506** take Deus Ex's speed:
     an NPC strafing in a fight runs at its full `MaxDesiredSpeed`.
 - **`Actor.SetLocation` 267 is the original's `FarMoveActor` now**
@@ -1418,7 +1428,8 @@ says what changed, what stays the fork's own, and its by-hand check:
   threshold (a pawn's within a blow, an item's or a trigger's where the
   two touch) -- and the `Reachable` they ask, walking, flying or swimming
   there: up to 100 of the original's own moves, each a test move that pawns
-  do not stop, stepping up what blocks it and down to a floor within
+  and decorations do not stop (unless static), held off what does as every
+  move is (above), stepping up what blocks it and down to a floor within
   `MaxStepHeight` + 2, its result -- moved, no progress, no floor, the
   goal bumped -- deciding the walk; a fall taken as a jump by a jumper or
   retried in smaller steps, water swum and a shore climbed. The fork's own
@@ -1427,13 +1438,14 @@ says what changed, what stays the fork's own, and its by-hand check:
   steps with the original's moves too, its classification of the range the
   original's. `ReachConsole` asks them from script in both engines -- 12
   of Liberty Island's pawns, four directions, a spot along each, the player
-  and their three nearest nodes: 142 of 144 answers alike, 124 to the unit.
-  What differs is where a walk's steps end: 2 units lower than the
-  original's, as the drop to the floor that ends each step, a box check,
-  meets the floor where the original's stops at once on a hull face over
-  it -- the same difference as where a falling decoration rests (above), and
-  enough to take a 500-unit walk a step short of its range's end. With the
-  path search, Liberty Island's pawns move as the original's
+  and their three nearest nodes: 143 of 144 verdicts alike and 134
+  answers to the unit; the other ten are the island's two patrolling
+  security bots, asked from where their patrols had taken them, 26 to 67
+  units from the original's. Until 2026-10-02 only 124 were to the unit:
+  a walk's steps ended 2 units lower than the original's, its moves going
+  up to what stopped them, and Gunther's walk west stopped at a burning
+  barrel the original's passes through. With the path search, Liberty Island's pawns
+  move as the original's
   ([moving](#moving-wandering-and-tactical-movement), 51 of 52).
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the fork
   looks the rest up as one name and finds nothing. The game's scripts name

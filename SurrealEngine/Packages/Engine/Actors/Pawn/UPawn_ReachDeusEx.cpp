@@ -49,8 +49,10 @@ namespace
 }
 
 // ULevel::MoveActor as the reach tests move a pawn (bTest and bIgnorePawns):
-// along the delta until the level, or an actor that blocks it and is not a
-// pawn, stops it -- no events -- with its zones found again silently.
+// along the delta until the level, or an actor that blocks it, stops it --
+// held off it as every move is (TryMoveHeldOff), no events -- with its zones
+// found again silently. Deus Ex's bIgnorePawns passes through pawns and
+// decorations alike, unless bStatic (Engine.dll 0x103995f1).
 CollisionHit UPawn::ReachTestMove(const vec3& delta)
 {
 	CollisionHit blockingHit;
@@ -60,12 +62,12 @@ CollisionHit UPawn::ReachTestMove(const vec3& delta)
 	if (bCollideWorld() || bBlockActors() || bBlockPlayers())
 	{
 		bool useBlockPlayers = IsPlayerOrProjectile();
-		CollisionHitList hits = XLevel()->Collision.Trace(Location(), Location() + delta, CollisionHeight(), CollisionRadius(), bCollideActors(), bCollideWorld(), false);
+		CollisionHitList hits = XLevel()->Collision.Trace(Location(), Location() + HeldOffDelta(delta), CollisionHeight(), CollisionRadius(), bCollideActors(), bCollideWorld(), false);
 		for (const CollisionHit& hit : hits)
 		{
 			if (hit.Actor)
 			{
-				if (hit.Actor == this || hit.Actor->IsA("Pawn"))
+				if (hit.Actor == this || (!hit.Actor->bStatic() && (hit.Actor->IsA("Pawn") || hit.Actor->IsA("Decoration"))))
 					continue;
 				bool isBlocking = (useBlockPlayers || hit.Actor->IsPlayerOrProjectile())
 					? (hit.Actor->bBlockPlayers() && bBlockPlayers())
@@ -82,6 +84,7 @@ CollisionHit UPawn::ReachTestMove(const vec3& delta)
 				break;
 			}
 		}
+		blockingHit.Fraction = HeldOffFraction(delta, blockingHit.Fraction);
 	}
 
 	XLevel()->Collision.RemoveFromCollision(this);

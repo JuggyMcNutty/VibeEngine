@@ -2,9 +2,10 @@
 // RestConsole: where a falling decoration comes to rest (vibe/docs/
 // DEVELOPMENT.md, scripted runs). At Liberty Island's start, the large crate,
 // the barrel and the large box placed on the pier as MeshConsole places them;
-// each one's collision and the colliding actors near it logged, then every
-// tick for 1.5 s its place, the bottom of its cylinder, physics, velocity and
-// base; then exit. Each line starts "DXREST:".
+// first walkMove's drop traced down from where the player stands (its box and
+// three others), then each one's collision and the colliding actors near it
+// logged, then every tick for 1.5 s its place, the bottom of its cylinder,
+// physics, velocity and base; then exit. Each line starts "DXREST:".
 //=============================================================================
 class RestConsole extends Console;
 
@@ -40,6 +41,23 @@ function TraceDown(PlayerPawn P, string Label, vector From, float Radius, float 
 	Extent.Z = Height;
 	Hit = P.Trace(HitLocation, HitNormal, From - vect(0,0,200), From, false, Extent);
 	Log("DXREST: trace " $ Label $ " box own hits " $ Hit $ " at z " $ HitLocation.Z $ " bottom " $ (HitLocation.Z - Height) $ " normal " $ HitNormal);
+}
+
+// walkMove's drop to the floor as a script trace: straight down
+// MaxStepHeight + 2 from where a pawn stands, with a box its size.
+function DropProbe(PlayerPawn P, string Label, vector From, float Radius, float Height)
+{
+	local vector HitLocation, HitNormal, Extent;
+	local Actor Hit;
+
+	Extent.X = Radius;
+	Extent.Y = Radius;
+	Extent.Z = Height;
+	Hit = P.Trace(HitLocation, HitNormal, From - vect(0,0,26), From, false, Extent);
+	if (Hit == None)
+		Log("DXREST: drop " $ Label $ " from z " $ From.Z $ " hits nothing");
+	else
+		Log("DXREST: drop " $ Label $ " from z " $ From.Z $ " hits " $ Hit $ " at z " $ HitLocation.Z $ " moved " $ (From.Z - HitLocation.Z) $ " normal " $ HitNormal);
 }
 
 function LogNear(PlayerPawn P, Actor D)
@@ -98,6 +116,10 @@ event Tick(float Delta)
 			P.SetRotation(R);
 			GetAxes(R, X, Y, Z);
 			Log("DXREST: player at " $ P.Location $ " height " $ P.CollisionHeight);
+			DropProbe(P, "player", P.Location, P.CollisionRadius, P.CollisionHeight);
+			DropProbe(P, "player-5", P.Location, 5, 5);
+			DropProbe(P, "player-r10", P.Location, 10, P.CollisionHeight);
+			DropProbe(P, "player-r40", P.Location, 40, P.CollisionHeight);
 			TraceDown(P, "crate", P.Location + X * 200 + Y * 130 + vect(0,0,12), 56.5, 55.25);
 			TraceDown(P, "barrel", P.Location + X * 170 - Y * 110 + vect(0,0,12), 20, 28.25);
 			TraceDown(P, "box", P.Location + X * 300 - Y * 40 + vect(0,0,12), 42, 49.25);

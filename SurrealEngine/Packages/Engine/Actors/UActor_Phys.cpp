@@ -44,6 +44,67 @@ void UActor::SetPhysics(uint8_t newPhysics)
 	Physics() = newPhysics;
 }
 
+// AActor::setPhysics (Engine.dll 0x103c95f0, dx-reverse-info/engine-dll.md,
+// moving): only a change of physics does anything. A change to none,
+// walking, rolling, rotating or spider takes the floor for the actor's base
+// unless it is already, or with no floor finds its base below; a change to
+// any other leaves the base. None and rotating stop the velocity and
+// acceleration -- unless the floor's event changed the physics again.
+void UActor::SetPhysics(uint8_t newPhysics, UActor* newFloor)
+{
+	if (Physics() == newPhysics)
+		return;
+
+	SetPhysics(newPhysics);
+	if (newPhysics == PHYS_None || newPhysics == PHYS_Walking || newPhysics == PHYS_Rolling || newPhysics == PHYS_Rotating || newPhysics == PHYS_Spider)
+	{
+		if (!newFloor)
+			FindBase();
+		else if (ActorBase() != newFloor)
+			SetSupportBase(newFloor);
+	}
+	else if (ActorBase())
+	{
+		SetBase(nullptr, true);
+	}
+
+	if (Physics() == PHYS_None || Physics() == PHYS_Rotating)
+	{
+		Velocity() = vec3(0.0f);
+		Acceleration() = vec3(0.0f);
+	}
+}
+
+// AActor::SetSupportBase (0x103c9390): the floor's SupportActor event, which
+// bases the actor by default (Deus Ex's pawns and decorations bounce it off,
+// or take stomp damage, instead); no floor leaves the base.
+void UActor::SetSupportBase(UActor* floor)
+{
+	if (floor)
+		CallEvent(floor, "SupportActor", { ExpressionValue::ObjectValue(this) });
+	else
+		SetBase(nullptr, true);
+}
+
+// AActor::FindBase (0x103c9470): whatever a box of the actor's size meets
+// within 8 units down -- anything colliding, or the level's LevelInfo -- is
+// its support base, unless that is based on it.
+void UActor::FindBase()
+{
+	TraceFlags flags;
+	flags.pawns = true;
+	flags.movers = true;
+	flags.world = true;
+	flags.others = true;
+	CollisionHit hit = XLevel()->Collision.TraceFirstHit(Location(), Location() - vec3(0.0f, 0.0f, 8.0f), this, vec3(CollisionRadius(), CollisionRadius(), CollisionHeight()), flags);
+	if (ActorBase() != hit.Actor)
+	{
+		if (hit.Actor && hit.Actor->IsBasedOn(this))
+			return;
+		SetSupportBase(hit.Actor);
+	}
+}
+
 void UActor::SetCollision(bool newColActors, bool newBlockActors, bool newBlockPlayers)
 {
 	XLevel()->Collision.RemoveFromCollision(this);
@@ -177,7 +238,14 @@ void UActor::PhysLanded(UActor* hitActor, const vec3& hitNormal)
 
 	if (Physics() == PHYS_Falling) // Landed event might have changed the physics mode
 	{
-		if (UObject::TryCast<UPawn>(this))
+		if (engine->LaunchInfo.IsDeusEx())
+		{
+			// The original's processLanded (Engine.dll 0x103cef60): the hit
+			// actor, the level's LevelInfo for the world, is the floor given
+			// to setPhysics.
+			SetPhysics(UObject::TryCast<UPawn>(this) ? PHYS_Walking : PHYS_None, hitActor ? hitActor : Level());
+		}
+		else if (UObject::TryCast<UPawn>(this))
 		{
 			SetPhysics(PHYS_Walking);
 			SetBase(hitActor, true);
@@ -540,6 +608,36 @@ CollisionHit UActor::TryMove(const vec3& delta, bool dryRun, bool isOwnBaseBlock
 	if (dryRun)
 		return blockingHit;
 
+	return FinishMove(delta, hits, blockingHit);
+}
+
+// ULevel::MoveActor (Engine.dll 0x103990e0, dx-reverse-info/engine-dll.md,
+// moving): the move is traced 2 units past its end; one that something
+// blocks moves (its length + 2) x the hit's time − 2 along it, so it stops 2
+// short of the hit, or does not move at all when that is 2 or less.
+vec3 UActor::HeldOffDelta(const vec3& delta)
+{
+	float size = length(delta);
+	return size > 0.0f ? delta * ((size + 2.0f) / size) : delta;
+}
+
+float UActor::HeldOffFraction(const vec3& delta, float tracedFraction)
+{
+	if (tracedFraction >= 1.0f)
+		return 1.0f;
+	float size = length(delta);
+	float dist = (size + 2.0f) * tracedFraction;
+	return (size > 0.0f && dist > 2.0f) ? (dist - 2.0f) / size : 0.0f;
+}
+
+CollisionHit UActor::TryMoveHeldOff(const vec3& delta)
+{
+	if (bStatic() || !bMovable() || dot(delta, delta) < 0.00000001f)
+		return TryMove(delta);
+
+	CollisionHitList hits;
+	CollisionHit blockingHit = TraceMove(HeldOffDelta(delta), true, hits);
+	blockingHit.Fraction = HeldOffFraction(delta, blockingHit.Fraction);
 	return FinishMove(delta, hits, blockingHit);
 }
 

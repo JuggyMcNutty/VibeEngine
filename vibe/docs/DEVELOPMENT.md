@@ -131,7 +131,9 @@ The console classes:
   Liberty Island the large crate, the barrel and the large box placed as
   `MeshConsole` places them, the colliding actors near each listed, a line
   and two boxes traced down from each spot, and every tick of the fall for
-  1.5 s logged (place, the cylinder's bottom, physics, velocity, base).
+  1.5 s logged (place, the cylinder's bottom, physics, velocity, base);
+  first, a walk's drop to the floor (`MaxStepHeight` + 2 down) traced from
+  where the player stands, with its box and three others.
 - **`SightConsole`**: what `LineOfSightTo`, `CanSee` and `PlayerCanSeeMe`
   give -- Liberty Island from the menu map, 2 s into the level, for each
   NPC in the world and each light within 4000 units of the player: the
