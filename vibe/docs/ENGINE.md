@@ -214,6 +214,11 @@ By area, as the code stands, with what a merge of upstream meets. A number such 
 
 ### Running on our devices
 
+- **The version**: every build stamps the fork's commit and its date into `vibe_version.h`
+  (`vibe/cmake/version.cmake`, a step of every build that rewrites the header only when the
+  text changes, so only what reads it recompiles); `GetDeusExVersion` shows it under the main
+  menu. A tree with uncommitted changes to tracked files reads `-dirty`; one without git,
+  `unknown`.
 - **Headless and embedded** (0001): no launcher window; the log and errors on stderr; a non-zero
   exit after a caught exception, which the launcher's crash sentinel reads. The cross build for
   an embedded aarch64 device is SDL2 only (no X11, Wayland or desktop GL), takes SDL from

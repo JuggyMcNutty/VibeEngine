@@ -1181,6 +1181,7 @@ set_target_properties(SurrealVideo PROPERTIES C_STANDARD 17)
 add_library(SurrealCommon STATIC ${SURREALCOMMON_SOURCES} ${THIRDPARTY_SOURCES})
 set_target_properties(SurrealCommon PROPERTIES CXX_STANDARD 20)
 target_precompile_headers(SurrealCommon PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Precomp.h>)
+include(vibe/cmake/version.cmake)
 
 add_executable(SurrealEngine WIN32 MACOSX_BUNDLE ${SURREALENGINE_SOURCES})
 target_link_libraries(SurrealEngine SurrealCommon ${SURREALCOMMON_LIBS})

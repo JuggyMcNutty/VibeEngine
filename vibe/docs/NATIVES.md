@@ -303,8 +303,11 @@ reach tests (`ReachConsole`), falls coming to rest (`RestConsole`),
 ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
 Differs:
 
-- **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice; the
-  original's is "Mon Mar 19 12:06:14 2001 v1.112fm".
+- **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so a player can tell
+  which engine they run: `1.112fm VibeEngine <commit> (<date>)`, the engine's commit and its
+  date as built (`-dirty` after the commit with uncommitted changes), shown under the main
+  menu ([the version](ENGINE.md#running-on-our-devices)). The original's is
+  "Mon Mar 19 12:06:14 2001 v1.112fm".
 - **Landing** (`processLanded`,
   [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)):
   its other branches are not ported. Those are a decoration nudged off a

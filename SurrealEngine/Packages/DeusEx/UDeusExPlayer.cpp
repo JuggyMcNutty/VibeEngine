@@ -6,6 +6,7 @@
 #include "Packages/DeusEx/UGameDirectory.h"
 #include "Packages/ConSys/History/UConHistory.h"
 #include "Utils/Logger.h"
+#include "vibe_version.h"
 
 void UDeusExPlayer::ConBindEvents()
 {
@@ -59,7 +60,9 @@ void UDeusExPlayer::DeleteSaveGameFiles(std::optional<std::string> saveDirectory
 
 std::string UDeusExPlayer::GetDeusExVersion()
 {
-	return "1.112fm. Surreal Engine Edition!";
+	// The game's version and the engine's commit, which every build stamps
+	// (vibe/cmake/version.cmake): the main menu shows it at its bottom right.
+	return "1.112fm VibeEngine " VIBE_VERSION;
 }
 
 void UDeusExPlayer::SaveGame(int saveIndex, std::optional<std::string> saveDesc)
