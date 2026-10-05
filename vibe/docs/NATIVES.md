@@ -5,7 +5,8 @@ wrong, what the player sees of it, and the work that would fill it. What each
 original function does is in its DLL's doc ([the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#the-binaries));
 what each patch changed is in [what the fork changes](ENGINE.md#what-the-fork-changes).
 Which item is taken up, and when, is the owner's call; the decided order is
-[`ROADMAP.md`](ROADMAP.md). With M0-M6's code landed (2026-09-25) and M7's,
+[`ROADMAP.md`](ROADMAP.md). With M0-M6's code landed (most of it 2026-09-25,
+the last 2026-09-28) and M7's,
 [multiplayer](#multiplayer) (2026-09-27), most sections record what changed
 and its by-hand check; what stays the fork's own is noted in place.
 
@@ -28,8 +29,9 @@ and its by-hand check; what stays the fork's own is noted in place.
   hook that typed console commands, tried saving and loading
   ([below](#saving-loading-and-travel)). One more, of Liberty Island, logged
   the conversations the fork gives each NPC ([conversations](#conversations)).
-  One more put eight of the game's texts through the fork's text parser
-  ([what the player reads](#what-the-player-reads)).
+  One more put eight of the game's texts through the fork's text parser as
+  it was then (2026-09-24); its replacement, the original's, took five more
+  (2026-09-25, [what the player reads](#what-the-player-reads)).
 - **The DLLs.** C++ that is not a native -- a class's own `Tick`, what the
   renderer does with an actor, the audio -- leaves no stub behind: only
   reading the original shows it is missing.
@@ -41,21 +43,24 @@ and its by-hand check; what stays the fork's own is noted in place.
   were read for what it reaches (a throwaway reader of the package format).
   Code compiled out with `#if 0` also leaves no stub; the audit reports it as
   partial.
-- **The captures.** Scripted runs of both engines (2026-09-26,
-  [scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)): Liberty
-  Island's tripwires and lamps shot from the same places in both, a tripwire
-  walked into, Jughead's deal played through, and recordings of a sound behind
-  a wall, gunshots in and out of Battery Park's reverb zone and beeps from
-  either side. Each result is under its feature.
+- **The captures.** Scripted runs of both engines
+  ([scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines), which lists
+  every console). The first (2026-09-26): Liberty Island's tripwires and lamps
+  shot from the same places in both, a tripwire walked into, Jughead's deal
+  played through, and recordings of a sound behind a wall, gunshots in and out
+  of Battery Park's reverb zone and beeps from either side. Many since, each
+  feature's own -- its NPCs' movement, a skipped conversation, a fall, a
+  reach test. Each result is under its feature.
 
 ## Stops the game
 
 Nothing known does. The fork still ends the game on an error it does not
 catch -- a script error, an unknown native, a failed save: the engine exits
 with 1, and the launcher shows its crash banner -- but each trigger found is
-fixed: `Pawn.ReachablePathnodes` makes an iterator, which yields nothing
+fixed: `Pawn.ReachablePathnodes` makes an iterator, the original's since M3
 ([moving](#moving-wandering-and-tactical-movement)); the save's
-`DeusExSaveInfo` lives in package DeusEx, which its save once refused
+`DeusExSaveInfo` lives in a package of its own, as the original's (the save
+once refused it from the transient package)
 ([saving, loading and travel](#saving-loading-and-travel)); `GetConfig` is
 registered, as the original's ([`GetConfig`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#getconfig));
 `GetPawnAllianceType(None)` answers Neutral; integer division by zero gives
@@ -83,10 +88,12 @@ its level whatever the way in
 Deus Ex keeps a mission's maps as the player left them, and a save is those
 maps plus the one being played. `DDeusExGameEngine`, its C++ game engine,
 does both ([travel and saving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-game-engine-travel-and-saving)).
-The fork's `Engine` has a save of its own for Deus Ex and none of the rest,
-and the game's own screens and keys cannot save or load with it. Two runs
-with a temporary hook (2026-09-24, UNATCO HQ) typed the game's console
-commands and showed three of these. The rest is read from the code:
+The fork's `Engine` does both as the original's now (the fix, below); it had
+a save of its own for Deus Ex and none of the rest, which the game's own
+screens and keys could not save or load with -- shown by two runs with a
+temporary hook typing the game's console commands (2026-09-24, UNATCO HQ),
+the rest read from the code. What each part is, and what remains to check by
+hand:
 
 - **Saving** follows the original (seen with a console hook, 2026-09-24):
   slot 0 takes the highest `SaveNNNN` plus one, the quick save writes
@@ -151,8 +158,8 @@ commands and showed three of these. The rest is read from the code:
 - **Maps remember** (seen: a travel out and back, the revisit loaded from
   `Current` with the saved pawn found and reused by the game's own login,
   2026-09-25). Within a mission the departing level is pruned and saved
-  into `Current`; a new mission, a player starting a new game, or
-  `?restart` empties it. The pruning destroys the augmentations and skills
+  into `Current`; a new mission, a map outside any mission, a player
+  starting a new game, or `?restart` empties it. The pruning destroys the augmentations and skills
   with their managers, as the original's does; the fork keeps no offset
   for a carried decoration, the original's other prune, and saves the
   destroyed actors the original drops. To check by hand: a hub map's
@@ -200,7 +207,8 @@ and the mission scripts set their events' flags
 
 What the original binds and plays is ConSys's ([`ConSys.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/consys-dll.md));
 the game's script does the rest. The fork's differences here were closed on
-2026-09-25; what each was, and what remains to check by hand:
+2026-09-25, a skipped line's speech on 2026-10-01 and its sound ID on
+2026-10-02; what each was, and what remains to check by hand:
 
 - **Comment events are kept.** The fork deleted them from a mission's
   conversations at level load; the script passes over one, but a comment can
@@ -291,7 +299,8 @@ game's 492 tagged texts, which `DeusExTextParser` breaks into tokens for the
 script ([the original](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusextext-dll.md)). The fork's parser now reads as
 the original's -- its tokens, its tag table, its reading to an end tag
 (2026-09-25; a run with a temporary hook put five texts through it against
-their SDK sources). Its own tokenizer changed most texts:
+their SDK sources, where the run that found what follows put eight through
+the fork's own, 2026-09-24). Its own tokenizer changed most texts:
 
 - **No computer listed an email** (an `EMAIL` tag read as a file: all 66
   accounts, 136 emails, and the passwords and codes they hold) and **no
@@ -380,8 +389,9 @@ original on Liberty Island: the seven UNATCO troops out of the world stay
 in `Idle`, listening for nothing, where the fork's patrolled, listening;
 and the three NPCs ordered to sit -- UNATCOTroop6, BumFemale0 and
 Terrorist18 -- sit, where they wandered. Still different: a few pawns far
-off count as drawn ([out of sight](#out-of-sight)), and one NSF terrorist
-backs off for a few seconds early on where the original's patrols.
+off count as drawn ([out of sight](#out-of-sight)). (One NSF terrorist that
+backed off early on where the original's patrols has patrolled since
+2026-09-28: [moving](#moving-wandering-and-tactical-movement).)
 
 ### Hearing: the AI event system
 
@@ -425,18 +435,20 @@ from inside the call -- the order shows only where one does.
 
 ### Moving: wandering and tactical movement
 
-All the original's now (2026-09-25; the originals:
-[moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)); they were stubs, so a wandering NPC never
-picked where to go, one in a fight or a search never tested a direction,
-and a seeking NPC got no overshoot destination:
+All the original's now (the originals:
+[moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)). The first three landed 2026-09-25 and
+were stubs before, so a wandering NPC never picked where to go, one in a
+fight or a search never tested a direction, and a seeking NPC got no
+overshoot destination; the moves and the path search were the fork's own
+until 2026-09-28 and 2026-10-02:
 
 - **`AIPickRandomDestination` 709** (`Wandering.PickDestination`, reached
   in every map but the menu): up to its tries of biased random directions,
   each tested through `AIDirectionReachable`, the multiplier stopping the
   pawn short of what it can reach.
 - **`AIDirectionReachable` 708** (17 call sites: `PickDestination`,
-  `TryLocation`, `GetNextLocation`, `FindBackupPoint`, `CleanerBot`,
-  animals): the pawn itself walks, swims or flies the direction in steps of
+  `TryLocation`, `GetNextLocation`, `GetNextVector`, `FindBackupPoint`,
+  `CleanerBot`, animals): the pawn itself walks, swims or flies the direction in steps of
   its collision radius and is put back; walls, ledges, steps, the void,
   pain zones and water stop it. Seen: a probe from a dock pawn found a spot
   280 units along its facing inside the asked range.
@@ -448,7 +460,8 @@ and a seeking NPC got no overshoot destination:
   and the flood reaching 876 of Liberty Island's 1,198 navpoints.
 - **`MoveTo` 500 and `MoveToward` 502** (2026-09-28): each tick as the
   original's `moveToward` and its polls: a spot reached within 16 units
-  across (and the pawn's height, at least 48, up or down), a pawn target
+  across (walking, the height ignored; else within the pawn's height, at
+  least 48, up or down), a pawn target
   within reach, or the time out; the acceleration straight at the spot at
   the full rate, a fast pawn's velocity steered onto the line, and near
   the spot the speed halved once and held to 200 units a second over the
@@ -473,7 +486,9 @@ and a seeking NPC got no overshoot destination:
   anchored at the node it stands on, or else its nearest node it sees and
   can reach the one end point; anchored, a goal one of the anchor's own
   open reach specs away is the route itself (`CanMoveTo`), another goal
-  reachable from the anchor makes the anchor the route, and otherwise the
+  reachable from the anchor makes the anchor the route (a defect, found
+  2026-10-04: the fork's `UPawn_Path.cpp` returns a navigation-point goal
+  itself there, where the RE has the anchor), and otherwise the
   anchor's open forward neighbours are the end points (`definePathsFor`:
   each spec traced, only a mover the pawn cannot open counting against it).
   The search starts at the goal's node -- a node goal itself, else the
@@ -485,7 +500,8 @@ and a seeking NPC got no overshoot destination:
   pawn's move flags do not cover skipped). After it a nearby node clearly
   cheaper takes the route's first node's place; a `bHunting` pawn whose goal
   no node reaches searches from the goal's nearest node anyway, any other
-  from its own side; and the node found has its `SpecialHandling` asked as
+  from its own side, and a point goal no node reaches has no route; and the
+  node found has its `SpecialHandling` asked as
   the original's `HandleSpecial` asks it, `bShootSpecial` and `SpecialPause`
   cleared. A falling pawn is searched toward where it will land
   (`jumpLanding`, with `TwoWallAdjust`). `RouteCache` stays empty: the
@@ -507,6 +523,12 @@ and a seeking NPC got no overshoot destination:
   and walks as the original's since the tests are the original's too
   ([implemented, not as the original](#implemented-not-as-the-original)): with both, 51 of the 52 pawns' distance
   within tolerance and none stalling where the original's does not.
+  **Left open:** the 52nd, Terrorist10, moves 1,010 units to the
+  original's 652. Both walk to PatrolPoint102 and stop there with no move
+  target (the original's at 14 s, the fork's at 12), but at 20 s the fork's
+  finds a route on, toward PathNode580, and walks some 8 s more, where the
+  original's finds none and stays (`fork-MoveConsole-161924` and
+  `-164537` against `original-MoveConsole-191311`).
   Compared on the way (DeathConsole): the death path matches the
   original's throughout -- the same animation, lurch, hide timing and
   carcass mesh -- and the robots' freeze in Dying forever is the
@@ -525,8 +547,8 @@ skip work for what the player has not seen lately
 keeps both now (2026-09-25), beside Distant AI's own `LastVisibleFrame`
 ([its patches](ENGINE.md#settings-the-launcher-exposes)):
 
-- **Render time.** `LastRenderTime` is stamped where the renderer's own
-  visibility test passes, a spawned actor starts 10 s undrawn -- and since
+- **Render time.** `LastRenderTime` is stamped when an actor counts as
+  drawn (below), a spawned actor starts 10 s undrawn -- and since
   2026-09-27 every actor at a level's start, whatever its map kept, as the
   original's ([starting up](#starting-up)) --, and a zone's
   is the frame's own zone and both zones a visible portal borders (this
@@ -570,8 +592,15 @@ keeps both now (2026-09-25), beside Distant AI's own `LastVisibleFrame`
   the seawall and the pier's roof in the fork -- nothing in front of them
   there, the pixels covered later by what stands behind them --, where the
   original's closes them, a pixel's difference between the two engines'
-  edges. **[perf]** The pieces' filtering is render CPU: to re-measure on
-  the Smart Pro, against what it spares the tick.
+  edges. Not yet the original's: only the scene stamps an actor. The
+  original also stamps one drawn on its own through `DrawActor`, which
+  `GC.DrawActor` calls ([render time](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-time)) -- the vision
+  augmentation's heat sources --, where the fork's canvas draw stamps
+  nothing, so an NPC seen only through the augmentation does not count as
+  drawn for stasis, `bTickVisibleOnly` or the event manager.
+  **[perf]** The pieces' filtering is render CPU: re-measured on the device
+  2026-09-29, the render ~3 ms longer at native for the proxies' walk
+  ([the Smart Pro's](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance)).
 - **Stasis.** `InStasis()` is the original's -- `bStasis`; `bForceStasis`,
   or physics none or rotating; not drawn for 5 s; its zone not drawn for
   5 s, or more than 1,200 units from the player -- where the fork's old one
@@ -579,8 +608,10 @@ keeps both now (2026-09-25), beside Distant AI's own `LastVisibleFrame`
   does nothing -- no script tick, physics, animation or timers -- and
   destroys a `bTransient` one. Seen on Liberty Island: of ~2,600 actors,
   ~220 allow stasis, and the count in it grew from 6 to 30 over 40 s as
-  unseen trees and lamps aged past 5 s. **[perf]** To re-measure on the
-  Smart Pro when M3's AI work lands with it.
+  unseen trees and lamps aged past 5 s. **[perf]** Re-measured on the
+  device with the rest of M3–M7 (2026-09-29): the tick from ~39 to ~30 ms
+  at native, the stasis tick skip among what took it
+  ([the Smart Pro's](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance)).
 - **The event manager** reads both: a listener drawn in the last 5 s or
   within 1,200 units, and not in stasis, weighs every sender; any other
   only those within 400 ([hearing](#hearing-the-ai-event-system)).
@@ -594,7 +625,7 @@ iterator lists: the renderer makes the iterator (`Actor.RenderInterface`) and
 draws each item it lists ([render iterators](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-iterators)).
 Deus Ex uses this for two classes:
 
-- **`ParticleGenerator`**: smoke, steam, water, sparks. It is in 32 maps, and
+- **`ParticleGenerator`**: smoke, steam, water, sparks. It is in 31 maps, and
   fires, rockets, faucets, damaged robots and fragments spawn one.
 - **`LaserEmitter`**: the beams of `LaserTrigger` (18 maps) and `BeamTrigger`
   (11), a weapon's laser sight, and `ElectricityEmitter` (21 maps).
@@ -604,12 +635,14 @@ dropped as the original's renderer does; Init, First, IsDone, CurrentItem
 and Next each scene frame; each item drawn as the proxy stood when listed --
 place, turn, scale and glow -- a sprite at its captured place, a mesh with
 the proxy put back for the draw and restored after; and the proxy's
-`LastRenderTime` stamped per listed item, which the generators' freeze logic
-reads. `UpdateParticles` 3017 ages, drifts, rises or sinks, grows, fades and
-moves the 64 particles; `LaserIterator` lists an item every 16 units of each
-beam, every 15 with `bRandomBeam`, whose segment ends jitter by a random
-unit vector and chain -- the electricity -- and one extra item at a segment
-chosen at random, where the proxy is left. Differences, read from both
+`LastRenderTime` stamped through its items, which the generators' freeze
+logic reads (as drawn only where an item shows: occlusion, below).
+`UpdateParticles` 3017 ages, drifts, rises or sinks, grows, fades and moves
+the 64 particles; `LaserIterator` lists a beam's segments -- its
+length / 16 + 1 of them, / 15 + 1 with `bRandomBeam`, the k-th of N at k/N
+of the length --, a random beam's jittered and chained (the electricity), and one
+extra item drawing again a segment kept on the way, where the proxy is left
+(as the original's since 2026-10-02: below). Differences, read from both
 codes:
 
 - **Occlusion.** The original occludes each item's sprite through its span
@@ -631,8 +664,8 @@ Island (its trace fix is
 [implemented, not as the original](#implemented-not-as-the-original)'s);
 electricity arcing on a damaged panel; a weapon's laser sight in play.
 
-Captured (2026-09-26), from the original's own places 70 units off Liberty
-Island's four tripwires: the original draws each beam as a red dashed line,
+Captured (2026-09-26), from the original's own places 70 units off four of
+Liberty Island's five tripwires: the original draws each beam as a red dashed line,
 the fork drew none. The beam's texture, `LaserBeam1`, is a fire texture
 (64 × 8, spark kind 27), which the fork left black until it drew them as
 `Fire.dll` does ([fire, water and ice textures](#fire-water-and-ice-textures)):
@@ -643,7 +676,10 @@ material is unlit, skinned with that texture and moved along the beam --,
 the dashes where the original's are and as far apart. They looked fainter
 over a floor the fork drew 3.7 to 4 times too bright; with the light maps
 the original's ([lighting](#lighting)) the floor matches, and the dashes
-came out 65 to 70% too red (2026-09-28, against `D3DDrv`): the fork drew
+came out a little stronger than the original's (2026-09-28, against
+`D3DDrv`: in the beams' bands 60 to 70% more pixels red over green by 40 or
+more, their red about 7% higher), the beams' red over the floor 65 to 70%
+too much when measured again (2026-10-02): the fork drew
 the tube's back faces through its front ones, where the original draws a
 mesh's faces turned to the eye alone ([which faces](#lighting), below). The
 iterator places its segments as the original's (2026-10-02,
@@ -666,15 +702,18 @@ A light with `bCorona` and a `Skin` texture shows a glow over it on screen
 ([the original](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#coronas)). The fork keeps the original's now
 (2026-09-25): the lights shining into the player's own leaf of the BSP at
 any distance -- the leaf's permeating list, and the dynamic corona lights
-standing in it -- hidden by the world, movers, pawns and other actors but
+-- hidden by the world, movers, pawns and other actors but
 the player's own pawn; each fading in and out over about a third of a
 second on real time, up to 32 kept from frame to frame; drawn in the
 colour of the light's hue and saturation times the fade, at the same
-screen size as before. Other games keep the fork's old take.
+screen size as before. Other games keep the fork's old take. Still the
+fork's own: it takes every dynamic corona light in the level, where the
+original takes those standing in the player's leaf -- none of the game's
+maps places one, so only a spawned one would show from farther.
 
-To check by hand: coronas near and far and behind an NPC (already in the
-list below), and a lamp's glow coming up and going over about a third of
-a second as a corner hides and shows it.
+To check by hand: coronas near and far and behind an NPC, and a lamp's
+glow coming up and going over about a third of a second as a corner hides
+and shows it ([open decision 1](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
 
 Captured (2026-09-26), from the same places near and far from four of
 Liberty Island's lamps: the fork's glows were smaller and dimmer than the
@@ -723,13 +762,14 @@ fades rather than pops. A temporary log matched the doc's own numbers on
 Liberty Island (a trooper's 244 vertices at 7,865 deep at 1,920 pixels wide
 is the doc's ~200 at 5,000 at 853, scaled by the resolution term). The
 per-vertex work falls with the faces, since the fork animates and lights a
-vertex once a draw, the first time a kept face uses it. **[perf]** To
-re-measure on the Smart Pro: the per-vertex work of ~40 meshes was ~8 ms of
-the render
+vertex once a draw, the first time a kept face uses it -- since 2026-10-02
+only a face turned to the eye, as the original's ([which faces](#lighting)).
+**[perf]** Re-measured on the device 2026-09-29: the actor meshes ~7.5 ms of
+the render for ~40 in view (~11 before), the per-vertex work ~3.7 of it and
+their lighting ~1.1
 ([where a frame goes](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#where-a-frame-goes)).
 Still different: the original's exact morph curve is unread (the fork
-slides linearly over the zone), and the original lights only the vertices
-of faces turned to the eye, which is [lighting](#lighting)'s to take up.
+slides linearly over the zone).
 
 To check by hand: an NPC walking away on Liberty Island -- detail fades
 with no pop or seam as it recedes, and reads whole again as it comes back.
@@ -823,7 +863,7 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   [meshes](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#meshes)): a LOD mesh's faces turned to the eye, and the
   others only where the actor's or the face's material's flags make them
   two-sided; a plain mesh's all but those its own flags mark `PF_Flat`
-  without `PF_TwoSided`. The fork drew every face: a closed mesh looked the
+  without `PF_TwoSided` or `PF_Invisible`. The fork drew every face: a closed mesh looked the
   same, its back hidden, but what shows through itself drew both sides --
   Liberty Island's trees, their foliage's back faces lit too, came out
   about 1.9 times the original's in linear terms and match it now
@@ -831,8 +871,8 @@ Read from both codes ([the original's](https://github.com/JuggyMcNutty/dx-revers
   beams (above) were 65 to 70% too red. An unlit draw is lit with the
   actor's `AmbientGlow` / 256 + `ScaleGlow` / 2, held to 1, where the
   fork's was a flat mid-grey -- the same for most, brighter for a glowing
-  or a dimmed one. The Dragon's Tooth's blade glows as before, within a
-  level of the original's.
+  one and darker for a dimmed one. The Dragon's Tooth's blade glows as
+  before, within a level of the original's.
 
 ### Brightness
 
@@ -857,8 +897,9 @@ draw a light map alike, a byte of it worth 1/128 of the texture's
 brightness in `D3DDrv`'s default, one-pass path
 ([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)).
 A texture's colours are drawn as they are in Deus Ex (2026-10-02): the
-fork's shaders took 3.1/255 off every one (upstream's `darkClamp`, so
-that a glow's black stays black), a 16-bit `D3DDrv`'s loss taken for the
+fork's shaders stretched every one down from 3.1/255 -- (c − 3.1/255) /
+(1 − 3.1/255), all of 3.1/255 off black and nothing off white (upstream's
+`darkClamp`, so that a glow's black stays black) --, a 16-bit `D3DDrv`'s loss taken for the
 game's. But `D3DDrv` draws 16-bit textures only on a display of under 24
 bits -- `Use32BitTextures`, in the game's ini, is no option of its --;
 on any other, every display today and the harness's, its textures are
@@ -866,7 +907,9 @@ on any other, every display today and the harness's, its textures are
 ([textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#textures)), and the original's `OpenGLDrv` frames match
 its `D3DDrv` ones to a tenth of a level on Liberty Island's pier
 (`MeshConsole`). So Deus Ex's shaders take nothing off (the shaders'
-`NO_DARKCLAMP`); other games keep the clamp. Against `D3DDrv`'s frames:
+`NO_DARKCLAMP`); other games keep the clamp. Every device compiles it so,
+but only the GL device's has run it: the harness runs GL, and the Vulkan
+device's scene shader is built and not yet seen. Against `D3DDrv`'s frames:
 `MeshConsole`'s pier, from where nothing is in hand (the Dragon's Tooth
 lights the pier blue), 1.7 to 3.0% under them, half a level to a level
 (4.5 to 5.9% before), the crate, box and barrel within 0.8% (to 3.6%
@@ -967,7 +1010,7 @@ turning to follow the player and easing back, and blinking.
 The list window is behind the load and save screens, emails, the logs,
 images, the conversation history, the key bindings, the colour themes and a
 new game's skills ([the original](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#lists)). Its differences
-were closed on 2026-09-25 (an in-engine self-test drove the sorting, the
+were closed on 2026-09-25, its size on 2026-09-26 (an in-engine self-test drove the sorting, the
 number reading, the moves and the focus); what each was, and the by-hand
 checks:
 
@@ -1041,7 +1084,8 @@ checks:
   the actor through the renderer into the scene being drawn -- the GC's
   style, the glow and unlit given, the draw scale multiplied, a given
   skin replacing every skin, as if not hidden, all put back afterwards
-  -- so heat sources draw in their grid skin at twice their glow
+  -- so heat sources draw in the grid skin the script gives them, at the
+  glow of 2 it passes
   ([actors in a window](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#actors-in-a-window)).
   `bConstrain` is not honoured, the fork's own: the augmentation's
   calls cover the whole view. To check by hand: the vision
@@ -1054,9 +1098,9 @@ checks:
   each side's is the largest of its own textures -- left from the two left
   corners and the left edge, and so on -- a margin given above 0 replaces
   it, and a box narrower or shorter than two of them has both shrink in
-  proportion, which is what the centre is inset by. The last `Unimplemented`
-  in a native the game calls goes; the audit has `GC.DrawBorders`
-  implemented rather than partial. The game's own 13 calls pass no margins,
+  proportion, which is what the centre is inset by. `DrawBorders`' last
+  `Unimplemented` goes; the audit has `GC.DrawBorders` implemented rather
+  than partial. The game's own 13 calls pass no margins,
   so what the margins are for it is the inset the centre already had.
   **That commit dropped the edges** (fixed the same day): it moved the other
   three corners' edge ends into the top-left corner's, so every edge of a
@@ -1065,9 +1109,9 @@ checks:
   (`BorderConsole`, which selects items on the inventory screen and shoots
   them in both engines; the HUD's panels and the belt, which `BeltConsole`
   shoots and the commit was checked with, draw their own frames and never
-  showed it). Each corner ends its own edges again, an edge without a
-  corner runs to the box's own corner, and a selected item's frame is
-  whole, as the original's is.
+  showed it). The fix had each corner end its own edges again and an edge
+  without a corner run to the box's own corner, and a selected item's
+  frame was whole, as the original's is -- laid out since as follows.
   **The layout is the original's** (2026-10-02, read from
   `XGC::DrawBorders`): each of the nine pieces fills its band of the box
   between the margin lines -- an edge from one margin line to the other, a
@@ -1159,8 +1203,9 @@ OpenAL's own source still, and other games' sounds OpenAL's, placed in 3D.
 Every difference read from both codes landed 2026-09-25 or 28; each bullet
 says what changed, what stays the fork's own, and its by-hand check:
 
-- **Sounds behind walls.** Landed (2026-09-25): a sound fades over half a
-  second to a third of its volume while the level's BSP stands between the
+- **Sounds behind walls.** Landed (2026-09-25): a sound fades to a third of
+  its volume within about a third of a second (1 − 2 × its time behind the
+  wall, held at 0.33, the time counting to half a second) while the level's BSP stands between the
   player's eyes and its actor, and back as the line clears, speech and
   actorless sounds excepted; movers and actors do not block, as the
   original's `FastLineCheck`
@@ -1175,7 +1220,7 @@ says what changed, what stays the fork's own, and its by-hand check:
   −17.4 dB of full scale (2026-09-28; −20.1 in the fork before its
   mixer was Galaxy's).
 - **Reverb.** Landed (2026-09-25): a zone with `bReverbZone` gives every
-  sound its reverb -- 21 zones in 16 maps, Battery Park to the endgame
+  sound its reverb -- 21 zones in 16 maps, the intro to the endgame
   (the data) -- set again only when it changes, starting from silence;
   music stays dry, as the original's. Galaxy's own since 2026-09-28
   ([reverb](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#reverb)): three stages of stereo allpass
@@ -1205,9 +1250,9 @@ says what changed, what stays the fork's own, and its by-hand check:
   jumping; the playing order is written back each frame while no
   transition waits, so the ambient track resumes where it was; and
   section 255 is silence ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#music)). To
-  check by hand: the music after a fight (already in the list below) --
-  combat music in fast, the ambient back in slow and where it left off,
-  not from the top.
+  check by hand: the music after a fight -- combat music in fast, the
+  ambient back in slow and where it left off, not from the top
+  ([open decision 1](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
 - **The Speech slider.** Landed (2026-09-25): `SpeechVolume` is a setting
   of the fork's audio device (default 255, the game's), speech -- the talk
   slot -- gains by it and the rest by the Sound slider, and the three
@@ -1281,14 +1326,19 @@ says what changed, what stays the fork's own, and its by-hand check:
   original's is "Mon Mar 19 12:06:14 2001 v1.112fm".
 - **`LevelInfo`'s clock** (2026-10-02): the full year and the month 1 to 12,
   where the fork's main loop filled the year counted from 1900 and the month
-  from 0. What pins the original's convention is its own scripts, not the DLL:
-  the properties are `transient` ints (`Engine.u`, `LevelInfo`), and the one
+  from 0. The original's own scripts show its convention, and the DLL bears
+  it out (below): the properties are `transient` ints (`Engine.u`, `LevelInfo`), and the one
   reader of them, `StatLog`, zero-pads a month below 10 and writes the year as
   it stands -- a month counted from 0 or a year from 1900 would come out wrong
   there; `MenuScreenSaveGame` builds its stamp the same way from the save
-  info's, which the fork already stores the original's way. (Where the original
-  fills them is not found: no C++ in `Engine.dll` writes those offsets outside
-  the property system's copies.) In Deus Ex only `StatLog` reads them.
+  info's, which the fork already stores the original's way. The original
+  fills them in `ULevel::UpdateTime` (`0x103a08f0`, a virtual `Engine.dll`
+  exports), which hands the eight fields to Core's `appSystemTime`
+  (`0x1016c6a0`) by reference: it reads Windows' `GetLocalTime` and copies
+  its eight words, the full year and the month 1 to 12 among them -- stores
+  through references, which is why no store to those offsets shows in
+  `Engine.dll` (read 2026-10-04,
+  [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)). In Deus Ex only `StatLog` reads them.
 - **The roadmap's M3 traces-and-moves item is the original's now**
   (2026-09-25; the originals: [traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces),
   [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving),
@@ -1299,8 +1349,9 @@ says what changed, what stays the fork's own, and its by-hand check:
     original's `FStateFrame` keeps it. The fork kept per-state sets of
     disabled names that no state change cleared and that every scripted
     call looked its name up in -- `Wandering.Bump`'s disabled `AnimEnd`
-    stayed off, where the state's `Wander` label re-enables it now. To
-    check by hand with the rest of M3's AI.
+    stayed off, where the `GotoState('Wandering', 'Wander')` that follows
+    it sets the mask afresh now and enables it again. To check by hand
+    with the rest of M3's AI.
   - **Conversions**: a bool prints `True`/`False` and reads back as one; a
     vector or rotator reads what is there, a missing part 0; a rotator
     prints its parts unwrapped; an object prints its path name, its
@@ -1349,9 +1400,10 @@ says what changed, what stays the fork's own, and its by-hand check:
     (`StandConsole`, `LaserConsole`, `CaptureConsole`), and so is where
     `SetLocation` fits the player under the first tripwire's ceiling
     (below). Walking's float takes the original's own measure
-    ([small](#small)), and the fork's own reach test falls a step at a
-    time, so that the tenth off one long fall does not leave it in the
-    air. Other games keep the unit.
+    ([small](#small)); the fork's own reach test fell a step at a time, so
+    that the tenth off one long fall did not leave it in the air, and Deus
+    Ex's reach tests are the original's since 2026-10-02 (below), other
+    games keeping the fork's. Other games keep the unit.
   - **Where a falling actor comes to rest** (2026-10-02;
     [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)): held off its floor, as the original's. Every move
     the original makes is `ULevel::MoveActor`'s, which traces it 2 units
@@ -1377,9 +1429,11 @@ says what changed, what stays the fork's own, and its by-hand check:
     engines (lines, a 5-unit box, each decoration's own box, the player's
     own drop of `MaxStepHeight` + 2): what differed was the move, not the
     box check. Walking keeps its float ([small](#small)), and other games
-    their moves. Not ported: `processLanded`'s nudge of a decoration off a
-    ledge it overhangs (four traces down at its corners, up to five
-    times) and a carcass's bounce off a slope.
+    their moves. Not ported, of `processLanded`'s other branches: what is
+    not a pawn thrown again in a `bBounceVelocity` zone, a pawn with
+    nothing under it fitted (`FindSpot`) and pushed on at random, the nudge
+    of a decoration off a ledge it overhangs (four traces down at its
+    corners, up to five times), and a carcass's bounce off a slope.
   - **The visible-actor iterators `VisibleActors` 311 and
     `VisibleCollidingActors` 312** (2026-09-28;
     [traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)): `VisibleCollidingActors` lists each
@@ -1495,8 +1549,9 @@ says what changed, what stays the fork's own, and its by-hand check:
   looks the rest up as one name and finds nothing. The game's scripts name
   no group.
 - **`Object.Mid` 127** at its edges: the original clamps both the start
-  and the end as unsigned, and takes 65,535 characters by default
-  ([conversions](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)) -- so a negative start gives an empty
+  and the end as unsigned, and takes 65,535 characters by default (the
+  start's clamp and the default in [strings](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives),
+  the end's as `MidConsole` finds it) -- so a negative start gives an empty
   string, and a negative count that takes the end below 0 gives the rest of
   the string (`Mid("hello", 2, -5)` is "llo"). The fork counted a negative
   start from 0 and gave an empty string for the negative count; both are the
@@ -1511,8 +1566,10 @@ says what changed, what stays the fork's own, and its by-hand check:
   a radius of 0 or less is 800, [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),
   which also works out the sound's priority `(1 - distance / radius) *
   volume` on it. A script sound with no radius of its own is heard
-  800 units out where the fork heard it 1,500, and takes a free channel
-  where the fork's lost one to a channel playing nearer.
+  800 units out where the fork heard it 1,500, its priority the lower for
+  it at any distance: beyond 800 it is dropped even with a channel free,
+  as the original's is, and nearer it gives up a channel to a louder
+  sound sooner than the fork's did.
 
 ## Housekeeping, not seen directly
 
@@ -1529,7 +1586,7 @@ says what changed, what stays the fork's own, and its by-hand check:
 
 ## Small
 
-All landed 2026-09-25:
+All landed 2026-09-25 but where a bullet gives its own date:
 
 - **`Pawn.FindStairRotation` 524:** with Look Up Stairs on, the view
   eases toward looking down (−5,000) or up (5,400) a flight of stairs,
@@ -1579,7 +1636,8 @@ All landed 2026-09-25:
   tick does for a pawn with a player (`AActor::Tick`,
   [a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)), so its physics take the move it
   makes the same tick; the fork read it after them, a tick late -- a
-  frame of lag, 33 ms at the handheld's 30 frames a second. Checked with
+  frame of lag, some 100 ms on the handheld at Liberty Island's start
+  (about 10 frames a second there). Checked with
   `StandConsole`: from the walk's second tick the player's acceleration
   is the original's to the thousandth ((780.74, −624.86), its full
   `AccelRate` of 1,000), where the fork's was still the script's 2,400
@@ -1624,8 +1682,10 @@ All landed 2026-09-25:
 
 The original's command line reaches the fork as one string, `--cmdline=`,
 which the recreated launcher's `run-game.sh` passes on as the player gave it
-(2026-09-27; [running it](ENGINE.md#running-it)); its flags are found as the
-original's code finds them
+(2026-09-27; [running it](ENGINE.md#running-it)) -- but for its quotes, which
+the launcher drops today, a defect of its own
+([its known defects](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#known-defects));
+its flags are found as the original's code finds them
 ([cli-flags.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md)).
 What the fork does with each:
 
@@ -1653,7 +1713,7 @@ What the fork does with each:
   - `-nojoy`: no pad at all -- neither the fork's own pad handling nor its
     buttons as keys.
   - **Nothing to do:** `-no3dsound` (the original's turns off A3D or EAX
-    hardware; OpenAL Soft mixes in software), `-nommx`, `-nokni` and `-nok6`
+    hardware; the fork's Galaxy mixer mixes in software, [sound](#sound)), `-nommx`, `-nokni` and `-nok6`
     (the original's mixer picks its routines by them; the fork has no such
     routines), and `-safe`'s no DirectInput (the fork's input is SDL's).
 
@@ -1798,12 +1858,14 @@ each package is found on the paths by its name or in the cache by its GUID
 -- then loaded from there under its name --, and the rest are downloaded
 one after another over file channels, when the client allows downloads
 (`[IpDrv.TcpNetDriver] AllowDownloads`) and the server flags the package
-downloadable, each into the cache as its GUID with `CacheExt` (`.uxx`, as
-the original writes). A package of the same name but another GUID ends the
+downloadable, each into the cache as its GUID with `CacheExt` -- `.uxx` in
+the game's ini, the extension the original writes whatever `CacheExt`
+says. A package of the same name but another GUID ends the
 join as a version mismatch before the map loads, and the level plays on;
 each join finds its packages afresh. A package a join loaded from the
-cache goes at the next map load that does not use it, as the original's
-map load collects it (2026-09-27): another server's package of that name
+cache is let go by name at the next map load that does not use it, where
+the original's map load collects it (2026-09-27; the fork frees nothing,
+[housekeeping](#housekeeping-not-seen-directly)): another server's package of that name
 then loads in its place, where the fork kept the first until it restarted.
 Checked with `RejoinConsole` and two fork servers one after the other
 offering a package of one name with two GUIDs (`DXCAP_SERVERPKGS`): the
@@ -1902,6 +1964,10 @@ The game's own `MasterServerAddress` (`[DeusEx.MenuScreenJoinGame]` in
 `DeusEx.ini`) names GameSpy's, which closed in 2014: the screen lists
 servers once it names a live one, as the scripted runs' ini does.
 
+To check by hand: a game hosted from the Host screen and joined from the
+original on another machine, its Join LAN screen listing the server
+([open decision 1](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
+
 ## Not needed for single player
 
 `DumpLocation` (21 stubs: Ion Storm's bug-location tool, though
@@ -1910,8 +1976,12 @@ servers once it names a live one, as the scripted runs' ini does.
 original too: [`DebugInfo`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#debuginfo)), `SaveTimeDemo`,
 `Commandlet.Main`, and `Object`'s `clock`, `unclock` and `CyclesToSeconds`
 ([timing by hand](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#clock-unclock-and-cyclestoseconds)). The
-network's -- `InternetLink`, network numbers and addresses -- are
-[multiplayer](#multiplayer)'s. `ComputerWindow` has 22 stubs, but no script calls them; the InfoLink's text
+network's are [multiplayer](#multiplayer)'s, `InternetLink` whole since
+2026-09-26; two stay stubs, both only a server's: `GameInfo.GetNetworkNumber`
+answers "0" to `StatLog`'s server line, and `PlayerPawn.GetPlayerNetworkAddress`
+answers "", so `KickBan` on a fork server bans no address -- and
+`StatLog`'s and `StatLogFile`'s natives do nothing, so a fork server
+logging world stats writes no log of them. `ComputerWindow` has 22 stubs, but no script calls them; the InfoLink's text
 window, its only user, calls only implemented ones. No script calls
 `ClipWindow`'s unit sizes, `GC`'s `PushGC`, `PopGC`, `CopyGC` and
-`Intersect`, or 16 more of the windows' stubs.
+`Intersect`, or 6 more of the windows' stubs.

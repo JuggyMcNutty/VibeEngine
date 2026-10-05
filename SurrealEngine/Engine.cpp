@@ -1628,9 +1628,9 @@ void Engine::DeusExPreTravel(const UnrealURL& url)
 }
 
 // Destroys what travels with the player, so it is not saved twice: the
-// augmentations and skills with their managers. The original also destroys
-// the flag base and a carried decoration; the fork's flag base is transient
-// and never saved, and the fork keeps no offset for CarriedDecoration.
+// augmentations and skills with their managers, and the flag base (below).
+// The original also destroys a carried decoration; the fork keeps no offset
+// for CarriedDecoration.
 void Engine::PruneTravelActors() const
 {
 	for (UActor* actor : Level->Actors)

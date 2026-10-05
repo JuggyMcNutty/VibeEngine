@@ -31,16 +31,21 @@ case "${1:-}" in
         # nothing over uncommitted changes to a file the hooks touch.
         rc=0
         eng apply --3way "$PATCH" || rc=$?
+        # The unmerged paths are read before the reset clears them, and every
+        # file the hooks touch (CMakeLists.txt too) is searched for markers.
+        mapfile -t touched < <(sed -n 's|^+++ b/||p' "$PATCH")
+        conflicts="$(eng diff --name-only --diff-filter=U)"
         eng reset -q
-        conflicts="$(eng diff --name-only --diff-filter=U; eng grep -l '^<<<<<<< ' -- SurrealEngine 2>/dev/null || true)"
-        [ -z "$conflicts" ] || die "the hooks conflict with the fork in: $(echo $conflicts) -- resolve, then vibe/tools/perf/perf.sh save"
+        conflicts="$conflicts $(cd "$REPO" && grep -l '^<<<<<<< ' -- "${touched[@]}" 2>/dev/null || true)"
+        conflicts="$(echo $conflicts)"
+        [ -z "$conflicts" ] || die "the hooks conflict with the fork in: $conflicts -- resolve, then vibe/tools/perf/perf.sh save"
         eng grep -q 'TEMPORARY DEBUG TOOL' -- SurrealEngine 2>/dev/null ||
             die "the hooks did not apply (git apply --3way: $rc) -- commit the engine's changes first, then perf.sh on"
         say "profiling hooks applied by a three-way merge -- vibe/tools/perf/perf.sh save to re-base the patch"
         ;;
     off) eng apply -R "$PATCH" && say "profiling hooks removed" ;;
     save)
-        ! eng grep -q '^<<<<<<< \|^>>>>>>> ' -- SurrealEngine 2>/dev/null ||
+        ! eng grep -q '^<<<<<<< \|^>>>>>>> ' -- . ':(exclude)vibe' 2>/dev/null ||
             die "conflict markers in the engine tree -- resolve them before perf.sh save"
         # New files (PerfLog.h) are untracked: record them for the diff only.
         mapfile -t new < <(eng ls-files --others --exclude-standard -- SurrealEngine)

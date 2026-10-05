@@ -41,6 +41,8 @@
 # checksum (the server logs the login's URL). DXCAP_SERVERPKGS=<dir> has a
 # run's server find packages in <dir> too, each named in its ServerPackages,
 # so that a client, whose paths lack <dir>, downloads them.
+# DXCAP_MISSION_MAP=<map> names, through the run's ini, the map an original
+# run's console travels to (MissionConsole's TargetMap): it starts at its menu map.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../.." && pwd)}"
@@ -52,7 +54,7 @@ CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
-usage() { sed -n '2,43p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.

@@ -27,8 +27,9 @@ UObject* UDeusExPlayer::CreateDumpLocationObject()
 UObject* UDeusExPlayer::CreateGameDirectoryObject()
 {
 	// A new one each call, in the transient package, both as the original's;
-	// the scripts CriticalDelete it after use, which the fork's garbage
-	// collector honours later.
+	// the scripts CriticalDelete it after use, which the fork does not do:
+	// its collector is never run, so each one stays (NATIVES.md,
+	// "Housekeeping").
 	auto cls = engine->packages->FindClass("DeusEx.GameDirectory");
 	return Cast<UDXGameDirectory>(engine->packages->GetTransientPackage()->NewObject("GameDirectory", cls, ObjectFlags::Transient));
 }

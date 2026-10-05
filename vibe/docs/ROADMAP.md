@@ -9,21 +9,26 @@ message and [what the fork changes](ENGINE.md#what-the-fork-changes).
 
 The order: crashes, then a playthrough survives, then the story stays intact,
 then the world behaves, then the look, the sound, polish; multiplayer last
-([decided 5](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#decided)). **[perf]** marks work shared with the
+([decided 6](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#decided)). **[perf]** marks work shared with the
 Smart Pro's list ([decided 2](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#decided)): re-measure on the device
 when it lands.
 
 A milestone is done when `vibe/tools/natives_audit.py --runs` reaches no stub of
 its area in the maps that did, the matching by-hand checks pass
 ([open decision 1](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)), and
-[`NATIVES.md`](NATIVES.md) is updated to stay true.
+[`NATIVES.md`](NATIVES.md) is updated to stay true. The audit reads a native
+"partial" when another game's branch on its call chain logs `Unimplemented`
+-- `ParabolicTrace`, `actorReachable`, `FindPathToward` and
+`ReachablePathnodes` so, their Deus Ex path the original's: the runs say
+whether a stub fired.
 
 ## M0 -- nothing stops the game
 
-- [x] `ReachablePathnodes` yields as an iterator -- empty for now, the real
-      walk is M3's ([stops the game](NATIVES.md#stops-the-game)).
+- [x] `ReachablePathnodes` yields as an iterator -- empty at first, the
+      real walk M3's (2026-09-25; [stops the game](NATIVES.md#stops-the-game)).
 - [x] The save's `DeusExSaveInfo` made in package DeusEx, not transient --
-      the crash only; the save itself is M1's.
+      the crash only; the save itself is M1's, which put it in a package of
+      its own, as the original's.
 - [x] `GetConfig` registered ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#getconfig)).
 - [x] The crash-shaped strays: `GetPawnAllianceType(None)` answers Neutral,
       integer division by zero gives 0, string `>` registered as 116
@@ -62,8 +67,9 @@ All read; the inventory is
       maps keep their state
       ([the original](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-game-engine-travel-and-saving)).
 - [x] `GameDirectory`: the listing, the save info, the slot numbering and
-      the per-call object; `CriticalDelete` stays the garbage collector's,
-      with no difference left
+      the per-call object; `CriticalDelete` stays a stub -- nothing in the
+      fork frees an object (its collector is never run), so a deleted one
+      only lives on as memory
       ([housekeeping](NATIVES.md#housekeeping-not-seen-directly)).
 - [x] `UpdateTimeStamp`, and the player's history, log and notes made in the
       level, so a save keeps them.
@@ -84,7 +90,8 @@ All read; the inventory is
 
 - [x] Conversations: comment events kept, the original's bark-name binding,
       lines that cycle once, an actor destroyed mid-conversation, one sound
-      loaded per line (2026-09-25;
+      loaded per line (2026-09-25); a skipped line's speech stopped by its
+      sound ID alone (2026-10-01), each actor's IDs its own (2026-10-02;
       [conversations](NATIVES.md#conversations) has what each was and the
       by-hand checks left, in
       [open decision 1](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
@@ -99,14 +106,20 @@ All read; the inventory is
 ## M3 -- the world behaves
 
 - [x] First, render time and stasis: the native tick and the event manager
-      both read them (2026-09-25;
-      [out of sight](NATIVES.md#out-of-sight)). **[perf]** re-measured on
-      the device 2026-09-29.
+      both read them (2026-09-25; what counts as drawn the original's since
+      2026-09-27/28; [out of sight](NATIVES.md#out-of-sight)). **[perf]**
+      re-measured on the device 2026-09-29.
 - [x] The AI event system, `UEventManager` and `AICanHear`: NPCs hear
       gunfire, footsteps, alarms, distress and bodies (2026-09-25;
       [hearing](NATIVES.md#hearing-the-ai-event-system) has what was
-      seen and the by-hand checks; the original game's saves load past
-      their saved manager now).
+      seen and the by-hand checks); saved in the original's layout, so
+      each engine loads the other's saves' manager whole, listeners and
+      all (2026-09-27), and its listeners called after the pass
+      (2026-09-28).
+- [x] A level's start and tick as the original's: every actor 10 s
+      undrawn and all of them ticked in its first tick
+      ([starting up](NATIVES.md#starting-up)), an actor's step 0.4 s at
+      most ([small](NATIVES.md#small); 2026-09-27).
 - [x] `ScriptedPawn`'s native tick: agitation and fear, the sixteen timers,
       cloaking, bleeding, burning out, disappearing (2026-09-25;
       [its section](NATIVES.md#the-native-tick-ascriptedpawntick)).
@@ -114,28 +127,48 @@ All read; the inventory is
       `ReachablePathnodes` in full, `ComputePathnodeDistances` (2026-09-25,
       with `RandomBiasedRotation` from the traces item;
       [moving](NATIVES.md#moving-wandering-and-tactical-movement)).
+- [x] Walking a route as the original: `MoveTo` and `MoveToward`
+      (2026-09-28), `findPathToward`'s walk straight to a target in reach
+      (2026-10-01), the path search end to end (2026-10-02;
+      [moving](NATIVES.md#moving-wandering-and-tactical-movement)) and the
+      reachability tests it asks (2026-10-02;
+      [implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
 - [x] Traces and moves as the original: `ParabolicTrace`, `TraceTexture` and
       `TraceVisibleActors`, `StrafeTo` and `StrafeFacing`,
       `RandomBiasedRotation`, `SetPhysics`, `GetBoundingBox`, `Enable` and
-      `Disable`, `VRand`, the conversions (2026-09-25;
+      `Disable`, `VRand`, the conversions (2026-09-25); where a trace
+      stops, the visible-actor iterators, `LineOfSightTo`, `CanSee` and
+      `PlayerCanSeeMe`, `SetLocation`'s fitting in (2026-09-28); a move
+      held off what it meets and landing through `setPhysics`, so what
+      falls rests where the original's does (2026-10-02;
       [implemented, not as the original](NATIVES.md#implemented-not-as-the-original)
       has what each was and the by-hand checks).
 
 ## M4 -- the look
 
-- [x] Render iterators: particles and beams (2026-09-25;
+- [x] Render iterators: particles and beams (2026-09-25; the tripwires'
+      beams drawn since 2026-09-27, their segments placed as the original's
+      since 2026-10-02;
       [its section](NATIVES.md#particles-and-lasers-render-iterators)
       has what changed and the by-hand checks left).
 - [x] Mesh detail (2026-09-25; [its section](NATIVES.md#mesh-detail)
       has what changed and the by-hand check). **[perf]** re-measured on
       the device 2026-09-29.
 - [x] Lighting (2026-09-25, the light maps' and meshes' brightness the
-      original's since 2026-09-28; [its section](NATIVES.md#lighting) has
+      original's since 2026-09-28; a mesh's faces turned away culled, the
+      unlit level, the wavers' random tables and the cloud cast the
+      original's since 2026-10-02; [its section](NATIVES.md#lighting) has
       what changed, what stays the fork's own -- float maps, the lookup,
       the unread effect shapes -- and the by-hand checks). **[perf]**
       re-measured on the device 2026-09-29.
-- [x] Coronas (2026-09-25; [coronas](NATIVES.md#coronas) has what
-      changed and the by-hand checks).
+- [x] Brightness as `D3DDrv` shows it: a gamma of 2.5 × Brightness
+      (2026-09-27), a texture's colours drawn as they are, no `darkClamp`
+      (2026-10-02; [brightness](NATIVES.md#brightness)).
+- [x] Coronas (2026-09-25, in the original's colour since 2026-09-27;
+      [coronas](NATIVES.md#coronas) has what changed and the by-hand
+      checks).
+- [x] What a pawn holds: its weapon, else its selected item, at the weapon
+      triangle (2026-10-02; [its section](NATIVES.md#what-a-pawn-holds)).
 - [x] Blend animations: head turns and lip sync (2026-09-25;
       [its section](NATIVES.md#head-turns-and-lip-sync-blend-animations)
       has what changed and the by-hand checks).
@@ -171,7 +204,9 @@ check live there.
       2026-09-28).
 - [x] The smaller notes: a sound beyond its radius dropped, the mouth
       shapes' `M` band gone, `bIsSpeaking` the script's alone
-      (2026-09-25).
+      (2026-09-25); a sound played with no radius heard 800 units out, as
+      Deus Ex's (2026-10-02;
+      [implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
 - [x] Galaxy's mixer: its pan, the sliders' law, resampling and loops,
       and its reverb, measured against the original's (2026-09-28).
 
@@ -187,12 +222,21 @@ item's inventory and by-hand check live there.
 - [x] The vision augmentation's heat sources (`GC.DrawActor`)
       (2026-09-25).
 - [x] Borders tiled at one texel a pixel (`GC.DrawBorders`)
-      (2026-09-25).
+      (2026-09-25); their margins and the original's layout of the nine
+      pieces (2026-10-02).
 - [x] The key stubs: `MoveTabGroupNext`/`Prev`, `EditWindow` undo and
       redo, `RootWindow.LockMouse` (2026-09-25).
+- [x] Text and focus: `DrawText` aligning within the width as passed, wrap
+      on or off -- the object belt's text drawn again -- and focus moving
+      between windows, which stubs had kept still: `MoveFocus`, its
+      seeding, the buttons' focused look (2026-10-01).
 - [x] What remains of [small](NATIVES.md#small): the stairs tilt,
       bindings re-read, the AI light level, `SET InputExt`, positional
-      window sounds (2026-09-25).
+      window sounds (2026-09-25); a walking pawn's float over its floor
+      (2026-09-27); the player's input read before its physics, the field
+      of view Deus Ex's 75 (2026-09-28); `Object.Mid`
+      at its edges and `LevelInfo`'s clock as the original's (2026-10-02;
+      [implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
 
 ## M7 -- multiplayer
 
@@ -227,8 +271,9 @@ be.
       the same heartbeat and answers, against a master on this machine
       (2026-09-27). On a real master's list it needs what the original's
       needs: `DoUplink=True`, which the game's ini lacks, and the query
-      port reachable from the internet ([open decision
-      5](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)).
+      port reachable from the internet (the owner's
+      [open decision](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/agent.md#open-decisions)
+      on a fork server on the masters' lists).
 - [x] Travel: a server's next map, its clients following it (2026-09-27,
       both ways between the fork and the original).
 - [x] A dedicated server: the game with no client, as the original's

@@ -30,7 +30,12 @@ UnrealScript in `vibe/tools/dxcap`, compiled by the SDK's `UCC.exe`
 (`reference/ReleaseSDK1112f`) into `build/dxcap`. Each run gets a private ini
 made from the game's own, naming the console class, with a 1280x720 window;
 both engines take the game's settings from it, and the game's inis are never
-written. A run's shots, log and recording land in `build/dxcap/runs/`.
+written. The fork's renderer and its display settings are not the ini's: they
+come from `$HOME/.config/SurrealEngine/Settings.json` -- the renderer, MSAA,
+VSync, the gamma mode, `GammaCorrectScreenshots`, HDR and bloom, the AI's
+level of detail, the render scale --, an input of every fork run that a
+run's ini cannot change; with no such file the fork runs on Vulkan with
+4x MSAA. A run's shots, log and recording land in `build/dxcap/runs/`.
 
 ```sh
 vibe/tools/dxcap.sh setup && vibe/tools/dxcap.sh compile   # once, and after changing vibe/tools/dxcap
@@ -40,6 +45,10 @@ vibe/tools/dxcap.sh original <console>                      # the original, from
 DXCAP_RECORD=1 vibe/tools/dxcap.sh ...                      # either, its audio recorded into the run's audio.wav
 DXCAP_HIDDEN=1 vibe/tools/dxcap.sh fork|prove|live ...      # the fork on a hidden display, not the desktop
 ```
+
+`setup` again after the parent folder moves: `build/dxcap` links the game's
+files by absolute path, and `compile`, finding its own copy of `UCC.exe`,
+does not notice they are gone.
 
 The console classes:
 
@@ -175,7 +184,8 @@ The console classes:
   state through a use, a swap and a new pickup, and marked shots of the
   belt.
 - **`DeathConsole`**: an NPC's death -- two isolated humans killed from
-  behind and from the front (and robots on the way), the Dying state's
+  behind and from the front (robots and animals passed over: a robot
+  explodes rather than leaving a carcass), the Dying state's
   animation, acceleration and place logged through the fall, then the
   carcass's class, mesh, place and base until it settles, with marked
   shots.
@@ -205,15 +215,19 @@ The console classes:
   lays each pawn's distance moved, longest stall and move targets beside
   the reference's.
 - **`MissionConsole`**: a mission map's script -- the DeusExLevelInfo, its
-  MissionScript, and the state machine's initialization polled from the
-  player's flag base, `DXMISSION:` lines saying OK or what is missing.
-  The fork's runs land on the map by their URL; an original's run starts
-  at the menu map, so `DXCAP_MISSION_MAP=<map> original MissionConsole`
-  names the target through the run's ini.
+  MissionScript, and the state machine's initialization (the script
+  holding the player and its flag base), `DXMISSION:` lines saying OK or
+  what is missing; the two flags the script's first frame sets are logged,
+  not required, since only a real travel sets them. The fork's runs land
+  on the map by their URL; an original's run starts at the menu map, so
+  `DXCAP_MISSION_MAP=<map> original MissionConsole` names the target
+  through the run's ini. A sweep runs it map by map; no driver for that is
+  committed.
 
 **Net tests** pair the two consoles, one engine each side, on this machine:
 start the server (`original ServeConsole 300` in the background, or `fork
-ServeConsole DX.dx`), wait until its game port is bound (`ss -uln | grep
+ServeConsole DX.dx 300` -- a run's default 120 s would end it before its
+own 290), wait until its game port is bound (`ss -uln | grep
 :7790`), then run the client (`fork JoinConsole DX.dx`, or `original
 JoinConsole`). Never start a second server before the first has exited: it
 cannot bind the port ("Net: cannot listen" in its log) and the client joins
@@ -292,8 +306,9 @@ takes that gamma (`magick <shot> -gamma 1.5 <out>`) before its brightness
 is compared ([brightness](NATIVES.md#brightness)). `DXCAP_RENDERER=D3D`
 draws the original through `D3DDrv`, the game's own renderer, instead:
 the same frames there, ramp and all. A run whose renderer fails to start
-stops with an error: the game falls back to `SoftDrv` without a word on
-the screen, and its frames would pass for the renderer's.
+plays out on `SoftDrv` -- the game falls back without a word on the
+screen, and its frames would pass for the renderer's --, and the script
+then fails, naming the log's `Bound to SoftDrv`.
 
 **Recording.** `DXCAP_RECORD=1` sends the engine's sound to a private null
 sink on the desktop's sound server (`PULSE_SINK`) and records the sink with
@@ -304,25 +319,31 @@ What it takes to run the original there, each found the hard way:
 - **It boots its menu map** whatever map its command line or ini names; a
   console class travels with `open <map>` itself.
 - **UCC needs a short base directory** (a long one crashes it while it reads
-  its ini) and both `UCC.ini` and `DeusEx.ini`; hence `build/dxcap`.
+  its ini) and both `UCC.ini` and `DeusEx.ini`; hence `build/dxcap`. The
+  longest that has worked is 92 characters as Wine names it
+  (`Z:\...\build\dxcap\System\`, 2026-10-05, after the move); where the
+  limit lies is not measured, so after a move to a longer path, `compile`
+  shows whether it still holds.
 - **It runs in a view of the game**, `build/dxcap/game`, made afresh for
   each run: the game's folders linked, and its `System` folder's files but
-  for what the game writes there -- its log, `Running.ini`, shots -- and any
-  file with no extension. The original takes a package's bare name in its
-  working directory before any of its paths
+  for what the game writes there -- its log, `Running.ini`, shots --, the
+  IDA databases (`*.i64`) and any file with no extension. The original
+  takes a package's bare name in its working directory before any of its
+  paths
   ([a package's file](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#packages-and-linkers)), so the recreated
   launcher's `DeusEx`, installed beside `DeusEx.exe`, stood in for the
   `DeusEx` package and stopped it at its start. Its log, its `Running.ini`
   (a stale one opens the recovery wizard, which waits for a click) and its
   own shots stay in the view, never in the game's folder.
 - **It runs in this container, never on the host**: the Proton build's own
-  `wine`, as IDA's headless server runs
-  ([`tools/ida/idalib-mcp.sh`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/tools/ida/idalib-mcp.sh)), but in a Wine
-  prefix of its own, `build/dxcap/prefix`, which the script makes on first
-  use (`wineboot`, on the hidden display): a prefix's Wine desktop is on the
-  display of whatever started its wineserver, and IDA's headless server,
-  started with a session, starts one on the desktop's, where the game's
-  first window fails with `BadWindow`. The 32-bit game needs the
+  `wine`, in a Wine prefix of its own, `build/dxcap/prefix`, which the script
+  makes on first use (`wineboot`, on the hidden display): a prefix's Wine
+  desktop is on the display of whatever started its wineserver, and a
+  Windows program sharing the prefix from the desktop -- the previous
+  machine's IDA, under the same Proton
+  ([`tools/ida/idalib-mcp.sh`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/tools/ida/idalib-mcp.sh)) --
+  would put it on the desktop's, where the game's first window fails with
+  `BadWindow`. The 32-bit game needs the
   container's 32-bit libraries ([this machine](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#this-machine)).
 - **`D3DDrv` needs vkd3d's libraries in the prefix**: Wine's `wined3d`,
   under the `ddraw.dll` `D3DDrv` loads, imports `libvkd3d-1.dll` and its
@@ -356,9 +377,13 @@ live check runs it so
 The engine's own; the workspace's are in its
 [gotchas](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#gotchas-that-cost-time).
 
-- **The engine takes `--url=<map>` only** and **ignores SIGTERM**
-  ([running it](ENGINE.md#running-it)). `-u <map>` silently loads the intro,
-  which is how a whole round of "Liberty Island" profiling measured the intro.
+- **The engine takes a map only after `=`** -- `--url=<map>` or
+  `-u=<map>` -- and **ignores SIGTERM** on an SDL display backend
+  (`run-game.sh`'s, and the handheld's only one), where SDL turns the
+  signal into a quit event the engine never reads; the X11 and Wayland
+  backends leave it to end the engine ([running it](ENGINE.md#running-it)).
+  `-u <map>` silently loads the intro, which is how a whole round of
+  "Liberty Island" profiling measured the intro.
 - **Profile the handheld on the handheld.** Its Cortex-A53 pays far more for a
   cache miss than the desktop, so the costs come in a different order
   (`CycleActors` was ~6% of the desktop's game tick and ~18% of the device's).
@@ -366,7 +391,10 @@ The engine's own; the workspace's are in its
   ([the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance)).
 - **The profiling hooks go off before changing the engine**: a commit made with
   them on carries them ([the profiling hooks](ENGINE.md#the-profiling-hooks)).
-- **An unattended run tests no AI.** Liberty Island starts the player 7,000 to
-  20,000 units from every NSF, and no NPC reacts to a player it cannot see: to
-  check AI on the desktop, move the player in front of one with a temporary
-  hook.
+- **An unattended run sees no NPC react to the player.** Liberty Island
+  starts the player 7,000 to 20,000 units from every NSF, and no NPC reacts
+  to a player it cannot see. The AI's own work -- states, routes, the
+  reachability tests -- `AIConsole`, `MoveConsole` and `ReachConsole` watch
+  without a player; to see NPCs react, a console class stands the player in
+  front of one, as the classes above stand it, rather than a hook in the
+  engine.

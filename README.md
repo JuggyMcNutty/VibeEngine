@@ -18,8 +18,8 @@ are included.
   the one game it is for; the other UE1 games Surreal Engine runs are not
   tested here.
 - **Handhelds and consoles.** Desktop Linux is the base. The TrimUI Smart Pro
-  runs the game, with work on its speed under way; aarch64 Linux, Android and
-  the Xbox 360 are planned.
+  runs the game, the work on its speed on hold while the engine comes first;
+  aarch64 Linux, Android and the Xbox 360 are planned.
 
 Where it stands: [the roadmap](vibe/docs/ROADMAP.md). What it changes from
 Surreal Engine, commit by commit:

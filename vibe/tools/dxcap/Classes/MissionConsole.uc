@@ -2,12 +2,14 @@
 // MissionConsole: a mission map's script -- does the mission state machine
 // come up, and do its first flags land? The map is whatever the run's URL
 // names (vibe/docs/DEVELOPMENT.md, scripted runs); the console waits for
-// the level's DeusExLevelInfo and its MissionScript actor, then polls the
-// player's flag base for the two flags a healthy start sets
-// (MissionScript.FirstFrame: M<map>_StartupText and M<n>MissionStart),
-// logging what it finds with "DXMISSION:" -- success, or what is missing
-// after a timeout -- and exits. A driver runs it over every mission map,
-// both engines for the failures and a sample.
+// the level's DeusExLevelInfo and its MissionScript actor, then for the
+// script to hold the player and its flag base (InitStateMachine), the two
+// flags a travelled-in start sets (MissionScript.FirstFrame:
+// M<map>_StartupText and M<n>MissionStart) logged but not required -- only
+// a real travel sets them --, logging what it finds with "DXMISSION:" --
+// success, or what is missing after a timeout -- and exits. A sweep runs it
+// map by map over every mission map, both engines for the failures and a
+// sample; no driver for that is committed.
 //=============================================================================
 class MissionConsole extends Console;
 

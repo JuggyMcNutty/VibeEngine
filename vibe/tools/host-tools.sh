@@ -7,7 +7,8 @@
 #
 #   deps/perf           Linux perf and the four libraries it needs
 #   deps/vulkan-layers  the Khronos validation layer, with a manifest in
-#                       layers/ that points at it by absolute path
+#                       layers/ that points at it by absolute path -- run
+#                       this again after the parent folder moves
 set -euo pipefail
 DX_ROOT="${DX_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 [ -f "$DX_ROOT/port-ex-machina/scripts/lib/common.sh" ] ||

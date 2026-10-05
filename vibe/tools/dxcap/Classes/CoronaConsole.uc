@@ -2,7 +2,7 @@
 // CoronaConsole: Liberty Island's lamps' coronas, looked at -- the island
 // opened from wherever the run starts, then 6 s in the player stood where
 // CaptureConsole's shot 7 stands (Light169 from afar, where the original
-// shows three glows), the HUD hidden; each corona light in sight logged with
+// shows three glows), the HUD hidden; each corona light within 3000 units logged with
 // what its glow is made of (draw scale, hue, saturation, skin); shots 3 s and
 // 5 s after standing, marked for the original's grabber; exits 2 s later.
 //=============================================================================

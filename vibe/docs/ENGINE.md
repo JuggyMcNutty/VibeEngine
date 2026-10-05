@@ -140,10 +140,16 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 - **`--server`** runs a dedicated server of the `--url` map, as the
   original's `-SERVER`: no window, sound or player; `--lanplay` gives it the
   LAN tick rate ([multiplayer](NATIVES.md#multiplayer)).
-- **Maps are `--url=<map>` only.** `-u <map>` sets an empty `-u` and the map name
+- **A map is `--url=<map>` (or `-u=<map>`): an option's value follows its
+  `=`.** `-u <map>` or `--url <map>` sets an empty URL and the map name
   becomes a stray argument, so the intro loads with no warning.
-- **The engine ignores SIGTERM**: stop it with SIGKILL (`timeout -s KILL`). That
-  leaves `Running.ini` behind like any crash.
+- **Under SDL the engine ignores SIGTERM** -- SDL turns it into a quit event
+  nothing reads --: on the handheld, whose only display backend is SDL's,
+  stop it with SIGKILL (`timeout -s KILL`). A desktop run on Wayland or X11
+  takes SIGTERM's default, and a dedicated server ends on it (143).
+  `Running.ini` is the launcher's crash sentinel, not the engine's: a run
+  under a launcher stopped either way leaves it behind like any crash; a run
+  by hand has none.
 - `--ini=<file>` and `--userini=<file>` name the inis to read and write back,
   as the original's `INI=` and `USERINI=`; the `shot` console command writes
   the next `ShotNNNN.bmp` into the game's System folder.
@@ -247,7 +253,8 @@ to work, where the message does not already say.
   not yet judged by hand.
 - [**0009**](https://github.com/JuggyMcNutty/VibeEngine/commit/a1a2926f93fbd6be6288f4dd87191ca36ae9f0f9) `render-scale` --
   `Performance.RenderScale` (the Video tab's Resolution): the scene drawn
-  smaller than the window and scaled up; Vulkan only. **Checked:** Liberty
+  smaller than the window and scaled up; Vulkan only then, the GL device
+  (desktop GL and GLES) too since 0038 (the GLES renderer, below). **Checked:** Liberty
   Island at 960×540 and 853×480 fills the panel, the HUD larger (framebuffer
   captures); synchronization validation clean on the desktop at scale 0.667.
 - [**0022**](https://github.com/JuggyMcNutty/VibeEngine/commit/a41d14b1180e2e04957d1b19d7a5406b88800b6c) `ai-lod-far-tier` --
@@ -305,7 +312,8 @@ to work, where the message does not already say.
 - [**0024**](https://github.com/JuggyMcNutty/VibeEngine/commit/03e4d0cb9696bbad5b26cdc0489dcc028152c29b)
   `lightmap-neon-conversion` -- the lightmaps' float-to-byte conversion for the
   GPU in NEON on ARM. **Smart Pro:** texture uploads ~3.9 → ~2.1 ms.
-- **the GLES renderer (0035–0042)** -- the GL device runs on desktop GL 4.2+ and
+- **the GLES renderer (0035–0042: numbered on from the stack's 0034, for
+  reference)** -- the GL device runs on desktop GL 4.2+ and
   OpenGL ES 3.2 from the same code: `RenderAPI::GLES` / `RenderDeviceType::GLES`
   (`"Type": "GLES"` in Settings.json; the Smart Pro launcher's `[GLES]` Video-tab
   row), an ES 3.2 context from every window backend (SDL2 and SDL3 through
@@ -318,9 +326,10 @@ to work, where the message does not already say.
     and `std140` on the push-constant blocks (0037,
     [db0961e](https://github.com/JuggyMcNutty/VibeEngine/commit/db0961e));
   - desktop-only GL calls replaced: `glClearDepthf`/`glDepthRangef` (4.2+ desktop
-    core), `glDrawBuffers` for every `glDrawBuffer`, `GL_DEPTH_CLAMP`,
-    `GL_MULTISAMPLE` and the indexed-blend calls skipped on ES, the null texture
-    uploaded as `UNSIGNED_BYTE` (0037);
+    core), `glDrawBuffers` for every `glDrawBuffer`, `GL_DEPTH_CLAMP` and
+    `GL_MULTISAMPLE` skipped on ES and the indexed-blend calls replaced by the
+    plain ones (the colour attachment's blend; the integer hit attachment
+    ignores blending), the null texture uploaded as `UNSIGNED_BYTE` (0037);
   - `ReadPixels` implemented (the upstream stub was `#if 0` D3D11: every
     screenshot black) against the Vulkan device's contract, reading what the
     buffer is (0035, [e77ac55](https://github.com/JuggyMcNutty/VibeEngine/commit/e77ac55);
@@ -352,9 +361,12 @@ to work, where the message does not already say.
     whole unused tails was 2/3 of the frame on the GE8300 (0041,
     [0c8e99b](https://github.com/JuggyMcNutty/VibeEngine/commit/0c8e99b)).
   **Smart Pro (PowerVR Rogue GE8300, `Type=GLES`):** the Liberty Island level
-  start runs at 8.5–8.8 fps native 1280×720 and 10.0 at 853×480 -- the Vulkan
-  device's same-build numbers are 11.4 and ~11.5 -- and its captures match the
-  Vulkan device's to 1.4 % (display) and 0.15 % (ReadPixels) at the same moment.
+  start runs at 8.5–8.8 fps native 1280×720 and 10.0 at 853×480. The Vulkan
+  device runs the same build at 11.4 at 853×480 -- the gap the GL driver's
+  per-draw-call cost --, and the level start at native at 8.2 (M3–M7,
+  2026-09-28), so at native GLES is level with it or a little ahead (the
+  same-build run once given as Vulkan's native was at 853×480). Its captures
+  match the Vulkan device's to 1.4 % at the same moment (the display).
   **Checked:** the level-start proving runs clean on desktop GL and GLES (means
   0.0400 through every change); the GLES captures match the desktop GL device's
   to 0.036 % and the Vulkan device's verified look to 0.15 %; D3DDrv's to the
@@ -459,8 +471,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
 - [**what stopped the game**](https://github.com/JuggyMcNutty/VibeEngine/commit/db0df9a1205ef9f55c9abf83d61c7da26efdbac0) --
   the roadmap's M0 ([`ROADMAP.md`](ROADMAP.md)): `ReachablePathnodes` makes
   an (empty) iterator instead of stopping the VM in Battery Park's opening
-  fight; the save's `DeusExSaveInfo` lives in package DeusEx, so a save no
-  longer dies writing it; `GetConfig` answers from the system ini;
+  fight (the original's nodes since: moving, below); the save's
+  `DeusExSaveInfo` lives in package DeusEx, so a save no longer dies writing
+  it (in a package of its own since: loading, below); `GetConfig` answers from the system ini;
   `GetPawnAllianceType(None)` is Neutral; integer division by zero gives 0;
   string `>` is native 116, not the typo 1186. **Checked:** an 80 s Battery
   Park run and quick saves in two maps run out their clocks; the commit's
@@ -542,8 +555,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   and decal was last drawn, `LastRendered()` answers the time since, and
   the tick of an actor in stasis -- the original's full test, not "stasis
   allowed" -- does nothing and destroys a transient one
-  ([out of sight](NATIVES.md#out-of-sight)). **[perf]** to re-measure on
-  the Smart Pro with M3's AI work. **Checked:** a temporary snapshot hook
+  ([out of sight](NATIVES.md#out-of-sight)). **[perf]** re-measured on
+  the Smart Pro with M3's AI work (2026-09-29,
+  [where a frame goes](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#where-a-frame-goes)).
+  **Checked:** a temporary snapshot hook
   counted Liberty Island each 8 s -- unseen trees and lamps entered stasis
   as they aged past 5 s while the drawn-recently count fell; a 70 s run
   after its removal is clean.
@@ -590,8 +605,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   the roadmap's last M3 item: one probe mask per object set at every
   `GotoState` and saved as the original's `FStateFrame` keeps it (a save
   from before this commit restores its pawns' probes wrongly -- dev saves
-  only); the bool, vector, rotator and object conversions; `VRand` inside
-  the unit sphere; the trace iterators over the original's
+  only); the bool, vector, rotator and object conversions; `VRand` drawn
+  inside the unit sphere and normalised; the trace iterators over the original's
   `MultiLineCheck`; `ParabolicTrace` whole; `GetBoundingBox` at a test
   place; `SetPhysics` taking its floor; the strafes at Deus Ex's speed
   ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
@@ -606,13 +621,16 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   Init, First, IsDone, CurrentItem, Next protocol each scene frame, each
   item keeping the proxy's place, turn, scale and glow as it was listed,
   and the proxy's `LastRenderTime` stamped per item, which the generators'
-  freeze logic reads; `ParticleIterator.UpdateParticles` 3017 and both
+  freeze logic reads (since 2026-09-27 each item adds an occlusion proxy
+  instead, the proxy drawn only when one shows past the world: what counts
+  as drawn, below); `ParticleIterator.UpdateParticles` 3017 and both
   iterators' native `CurrentItem`
   ([particles and lasers](NATIVES.md#particles-and-lasers-render-iterators)).
   **Checked:** temporary hooks hopped the player past every generator and
   emitter -- Hell's Kitchen's street steam rises, grows and fades from its
-  grates; Liberty Island's tripwire lasers draw their segment runs across
-  the statue room, and crossing one raised the alarm infolink; its
+  grates; Liberty Island's tripwire lasers list their segment runs across
+  the statue room (no beam showed until the fractal textures, below: its
+  texture is a fire texture), and crossing one raised the alarm infolink; its
   electricity emitters list every segment when in view; frozen generators
   list nothing until their proxy is seen; 75 s runs on both maps after the
   hooks' removal are clean.
@@ -624,8 +642,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   collapse list, and the top `LODMorph` fraction slides toward what it
   collapses to, so detail fades rather than pops
   ([mesh detail](NATIVES.md#mesh-detail)). The per-vertex work falls
-  with the faces. **[perf]** to re-measure on the Smart Pro, where ~40
-  meshes' per-vertex work was ~8 ms of the render. **Checked:** a
+  with the faces. **[perf]** re-measured on the Smart Pro (2026-09-29): the
+  actor meshes ~7.5 ms of the render for ~40 in view (~11 before), their
+  per-vertex work ~3.7 of it and the vertex lighting ~1.1, where the
+  per-vertex work was ~8. **Checked:** a
   temporary budget log matched the RE doc's own trooper numbers scaled to
   the window; a forced-coarse run drew pawns at the floor without
   breaking the scene; 75 s runs on both maps after the hooks' exact-text
@@ -636,9 +656,12 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   other actors but the viewer's own pawn, fading in and out over about a
   third of a second on real time with up to 32 kept from frame to frame,
   and drawn in the light's colour times the fade
-  ([coronas](NATIVES.md#coronas)); the fork's old take -- drawn parts
-  of the level within 2,000 units, world-only hiding, popping at 2.5
-  times the colour -- stays for other games. **Checked:** a temporary log
+  ([coronas](NATIVES.md#coronas)); the fork's old Deus Ex take -- drawn
+  parts of the level within 2,000 units, popping at 2.5 times the colour --
+  is gone, and other games keep upstream's (every drawn `bCorona` actor,
+  hidden by the world only, no fade). Since 2026-09-27 the leaf is the one
+  the player's pawn stands in, the eye's only without one (coronas' colour
+  and lights, below). **Checked:** a temporary log
   on Liberty Island listed the spawn leaf's two dock-lamp coronas fading
   0 to 1 in the first third of a second, and a frame dump shows the
   lamp's glow drawn at its head; a 75 s run after the hooks' exact-text
@@ -665,7 +688,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   light fading over about a third of a second, and the original's
   per-vertex formula in place of the fork's own
   ([lighting](NATIVES.md#lighting)); the coronas' leaf walk moved to
-  `UModel::FindLeafAt`, shared. Other games keep the old path whole.
+  `UModel::FindLeafAt`, shared (the coronas' fallback since 2026-09-27,
+  their leaf the pawn's). Other games keep the old path whole.
   **Checked:** a temporary log through the intro shows 4-7 leaf lights
   taken with fades ramping and a wall marking one shadowed; the
   Page-Simons scene's frame dump shows faces in the chamber's ambient
@@ -681,7 +705,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   map, moving left out); a mover's maps rebuild only when it moved,
   turned or a light changed ([lighting](NATIVES.md#lighting), with
   what stays the fork's own). **[perf]** the Smart Pro's lightmap-upload
-  item shares this shape; measure there. **Checked:** temporary counters
+  item shares this shape; re-measured there 2026-09-29: the lightmaps ~3.7
+  ms, their uploads ~2. **Checked:** temporary counters
   -- both test maps bake their static maps once and rebuild nothing from
   their spawn views (the island's movers rebuilt every frame before);
   at the 'Ton's flickering sconces ~90 surfaces a frame go through the
@@ -707,7 +732,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   M5's first item: Deus Ex plays the script's volume -- no rescale
   toward 1, no halving -- with fall-off linear from the sound to its
   radius and silent there, and the product capped at full, the Sound
-  slider its ceiling ([sound](NATIVES.md#sound)); a slider move
+  slider its ceiling ([sound](NATIVES.md#sound); since Galaxy's mixer,
+  below, each sound plays at its own slider times the louder of the two);
+  a slider move
   reaches playing sounds now, where a stored value used to wait for the
   sound's own volume to change. Other games keep the fork's old
   loudness. **Checked:** a 90 s Liberty Island run with real audio (the
@@ -716,7 +743,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
 - [**the Speech slider**](https://github.com/JuggyMcNutty/VibeEngine/commit/7fb656a02a0fbc958c6931b8e9dad2a9caf7e594) --
   `SpeechVolume` is a setting of the fork's audio device, served over
   the property interface the game's menu binds; speech (the talk slot)
-  gains by it, the rest by the Sound slider; the three instant-volume
+  gains by it, the rest by the Sound slider (since Galaxy's mixer, below,
+  each by its own slider times the louder one); the three instant-volume
   natives set the subsystem's sliders, so a menu drag holds instead of
   lasting one frame, and `SetInstantSpeechVolume` 269 is no stub
   ([sound](NATIVES.md#sound)). **Checked:** a 90 s intro run -- its
@@ -755,7 +783,9 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   pulse, subtle pulse, blink, strobe, and flicker from the renderer's
   `FlickerRandom`), capped at 1, where the original reads its
   renderer's `GlobalLighting`; the palette light types stay steady
-  ([sound](NATIVES.md#sound)). **Checked:** a temporary log on
+  ([sound](NATIVES.md#sound)). Since 2026-09-28 it is the renderer's
+  `GlobalLighting` itself, the original's pulse and the palette lights
+  cycling (light maps as the original's bytes, below). **Checked:** a temporary log on
   Battery Park named the lit carriers and showed the security cameras'
   hum at exactly 2 × 0.7 × (192/255) × (120/255) = 0.496 of full; a
   75 s run after the hooks' exact-text removal is clean.
@@ -811,8 +841,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   `GC.DrawBorders` tiles each edge and the centre at one texel a pixel
   (a source rect the size of the run, the same idiom `DrawPattern`
   uses) instead of stretching them over their length, and honours the
-  stretch flags; margins, which the game never passes, stay
-  unimplemented ([the UI](NATIVES.md#the-ui)). **Checked:** the
+  stretch flags; margins, which the game never passes, stayed
+  unimplemented ([the UI](NATIVES.md#the-ui)) -- the original's since
+  2026-10-02, the nine pieces laid out as its own (the borders' margins and
+  layout, below). **Checked:** the
   call sites need a player on the themed screens, so the look is the
   by-hand check's; a synthetic F1 probe confirmed the Persona screen
   opens modal and renders, and a 75 s run is clean.
@@ -1007,7 +1039,7 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   under 1% of a core; a Liberty Island proving run is clean.
 - [**brightness as D3DDrv's**](https://github.com/JuggyMcNutty/VibeEngine/commit/fdb0e8e29428ff412522e02f2bde4241ceacc6d7) --
   the Brightness slider a gamma of 2.5 × Brightness, as Deus Ex's display
-  driver sets its ramp, where the fork took 2 × -- mid grey about 11%
+  driver sets its ramp, where the fork's 2 × left mid grey about 11%
   darker at the GOG build's 0.6 ([brightness](NATIVES.md#brightness)).
   **Checked:** against `D3DDrv.dll`'s ramp as read; the harness's shots,
   which carry no gamma here, unchanged.
@@ -1017,7 +1049,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   the laser's texture and iterator as the original's.
 - [**coronas' colour and lights**](https://github.com/JuggyMcNutty/VibeEngine/commit/58a23a6a48f960c687d8106db6c72da4b6c9b0f1) --
   a corona's colour as `DrawFrame` works it out (the hue whitened by the
-  saturation, 2.4 times the light maps' colour the fork used), its lights
+  saturation -- for Liberty Island's lamps 2.4 times the light maps' colour
+  the fork used), its lights
   from the leaf the player stands in, not the eye's
   ([coronas](NATIVES.md#coronas)). **Checked:** three lamps' glows in
   both engines at `CaptureConsole`'s shot 7, cores alike; a proving run
@@ -1037,8 +1070,10 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   server's beacon and GameSpy answers the original's word for word, the
   empty `ServerName=` included.
 - [**a repeated config key**](https://github.com/JuggyMcNutty/VibeEngine/commit/e51ba7b02d8fc6a84b007276fb1eef1bdc6c4487) --
-  of a key given twice in a section the last value counts, as the
-  original's ([mods](NATIVES.md#mods)). **Checked:** a user ini with
+  of a key given twice in a section the last value counts for a config
+  property, as the original's ([mods](NATIVES.md#mods)); what the fork
+  reads by hand (`GetValue`'s callers, the player's own settings among
+  them) keeps the first. **Checked:** a user ini with
   `ngWorldSecret` twice gives `PlayerPawn`'s default the last, as the
   original's player has it.
 - [**a login's checksum and options**](https://github.com/JuggyMcNutty/VibeEngine/commit/572d9543ba70989cafe5d88c2a6ae04a393d72dc) --
@@ -1132,7 +1167,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   leaf, as the original keeps a sprite; pieces in solid space, hidden
   subtrees or unseen zones drop, and a zone portal seen from behind leads
   into its zone ([out of sight](NATIVES.md#out-of-sight)). **[perf]** the
-  filtering is render CPU, to re-measure on the Smart Pro. **Checked:**
+  filtering is render CPU: re-measured on the Smart Pro 2026-09-29, the
+  render ~3 ms more at native with the proxies' walk. **Checked:**
   `AIConsole` -- Liberty Island's Terrorist7 patrols on, where it fought
   the security bot, and NPCs inside the island no longer count as drawn;
   proving runs on three maps clean, their shots as before.
@@ -1179,10 +1215,11 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   1 − 3v² + 2v³ times the cosine, through its table -- `GlobalLighting`'s
   colour and brightness and the level's `Brightness`, in 65536ths, at most
   127 --, the channels held to 127; the torch and fire wavers and the
-  watery shimmer the plain shape dimmed at random; the ambient sound on a
+  watery shimmer the plain shape dimmed at random (from the original's
+  random tables since 2026-10-02, below); the ambient sound on a
   light following `GlobalLighting` ([lighting](NATIVES.md#lighting)).
-  **[perf]** the build's arithmetic changed; re-measure the lightmaps on
-  the Smart Pro. **Checked:** against `D3DDrv`'s frames, their gamma given
+  **[perf]** the build's arithmetic changed; the lightmaps re-measured on
+  the Smart Pro with the rest 2026-09-29 (~3.7 ms). **Checked:** against `D3DDrv`'s frames, their gamma given
   to the fork's shots: `ViewConsole`'s Liberty Island and `LaserConsole`'s
   corridor within a level or two of 256, region for region (the means 49
   against 24 and 117 against 46 before); proving runs on three maps clean,
@@ -1215,7 +1252,8 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   at the depth of its location, none for an actor behind the viewer
   ([out of sight](NATIVES.md#out-of-sight)). **Checked:** `AIConsole` --
   9 NPCs drawn at Liberty Island's start against the original's 3 (10
-  before), the rest a pixel's difference at the edges; `LaserConsole`'s
+  before), the rest showing 1 to 9 pixels of their rectangles at the
+  edges; `LaserConsole`'s
   emitter as before; proving runs on three maps clean.
 - [**fitting in and encroaching as the original**](https://github.com/JuggyMcNutty/VibeEngine/commit/8702cc99396afe3e1588819c7657a439e52e9168) --
   `SetLocation` and spawns fit the actor in with the original's
@@ -1235,12 +1273,14 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   level's hulls by their boxes as the original's does, and the clear-line
   tests asking along the line alone, where the fork stopped every hit a
   unit short and looked a unit past the end; walking's float the
-  original's measure, the reach test's fall a step at a time; other games
+  original's measure, the reach test's fall a step at a time (Deus Ex's
+  reach tests walk the original's own moves since 2026-10-02, below); other games
   keep the unit ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:**
   `StandConsole`'s floor and the laser beams' ends the original's (−303.5,
   1999.5), and the first laser view fitted as the original's; `TraceConsole`
   and `AIConsole` as before; `MeshConsole`'s decorations resting 0.1 over
-  the floor (1.0 before); proving runs on three maps clean.
+  the floor (1.0 before) -- the original's rest 2.3 to 2.5 over it, which
+  the fork's do since 2026-10-02 (moves held off, below); proving runs on three maps clean.
 - [**the visible-actor iterators as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/819b54210f05559061da01a7f5494a89d2c4cdd4) --
   `VisibleCollidingActors` lists the colliding actors, movers too, whose
   locations lie within the radius (1000 for none), passes over the hidden
@@ -1274,7 +1314,186 @@ What Surreal Engine lacked for Deus Ex to play as it should.
   polls (a spot reached within 16 units across, the slowdown near it, the
   steering, `AlterDestination` for a pawn walking around what it bumped,
   the first step at once), and a path's node the pawn stands on counts as
-  touched by its cylinder, for every game
+  touched by its cylinder, for every game -- since 2026-10-02 other games'
+  alone, Deus Ex's route the original search's own (below)
   ([moving](NATIVES.md#moving-wandering-and-tactical-movement)). **Checked:** `AIConsole` --
   Terrorist15 patrols, within 4 units of the original's at 20 s (374
   before), where it backed off; proving runs on three maps clean.
+- [**a skipped line stops**](https://github.com/JuggyMcNutty/VibeEngine/commit/5b6cfb74cd82572b77c66384a46c5fb8d747ca36) and
+  [**each object's own sound ID**](https://github.com/JuggyMcNutty/VibeEngine/commit/6e966563f9f29457a666ae97512ec889e14e0832) --
+  `StopSound` stops a channel by its ID alone, as the original's audio
+  subsystem: `ConPlay` stops a line with the player's `StopSound` and the
+  speaker's ID, which the fork's device, matching the caller too, never
+  stopped -- a skipped NPC line played on under the next. A sound's ID packs
+  the object's own number, given the first time it plays a sound and never
+  given out twice, with the slot, where the fork packed the low 24 bits of
+  its address, which two objects 16 MB apart share
+  ([conversations](NATIVES.md#conversations)). **Checked:** `SkipConsole`
+  and `skip.py` -- unfixed, the 7 NPC lines' tails 1.1 to 2.9 dB louder;
+  fixed, nothing over the speech, as in the original's; with the IDs every
+  skipped line still stops, the tails within a dB of the original's.
+- [**text aligned within the width as passed**](https://github.com/JuggyMcNutty/VibeEngine/commit/1371d71b566ec3feaf84bc155e1e8bbfc701a14d) --
+  `DrawText` centres and right-aligns each line within the width it is
+  given, wrap off or on, as the original's `XGC::DrawText`, where the fork
+  aligned within the wrap width, which the no-wrap path had widened to
+  100,000: the object belt's descriptions, counts and slot numbers drew far
+  off the screen ([the UI](NATIVES.md#the-ui)). **Checked:** `BeltConsole`
+  -- the belt's text drawn, laid out as the original's; `GetConsole`'s menu
+  99.9% as before.
+- [**focus between windows**](https://github.com/JuggyMcNutty/VibeEngine/commit/aef5a7d1f89e4ddf1f7c8eebff2864d5ae76f2e2) --
+  the four `MoveFocus` natives are the original's `XWindow::MoveFocus` over
+  the focus's group, the root seeds the focus through the topmost modal's
+  group while nothing has it, buttons are selectable and drawn by their
+  state, and a window's type is set at its creation, where the fork's moves
+  were stubs: a conversation's choices had no selector and never answered
+  Up and Down ([the UI](NATIVES.md#the-ui)). **Checked:** `ChoiceConsole`
+  -- the focus cycles the choices as the original's, the blue moving with
+  it.
+- [**the direct walk**](https://github.com/JuggyMcNutty/VibeEngine/commit/f257562058d9820c626f1e4f4b87ad522d424413),
+  [**the search's first port**](https://github.com/JuggyMcNutty/VibeEngine/commit/5e728c6c9dae6e72c2f4936be8e7431fe0e96b00) and
+  [**the path search end to end**](https://github.com/JuggyMcNutty/VibeEngine/commit/9f45b2b07b806e13aeb3a4e3d22a145629939f36) --
+  `FindPathToward` and `FindPathTo` as Deus Ex's `Engine.dll` has them: a
+  target that can be walked to straight is the route, where the fork always
+  searched and a bot walked off through path nodes; the search best first
+  over its own sorted open list, with the original's penalties and caps
+  (the first port took the level's navigation list for that list and kept
+  the fork's end points); and the whole of it -- the nodes around the pawn
+  and the goal, the anchor and the end points, the reach flags, the step
+  after it, the second way, `HandleSpecial` and a falling goal's landing --,
+  `RouteCache` left empty, as the original never fills it; other games keep
+  their own flow over the corrected search
+  ([moving](NATIVES.md#moving-wandering-and-tactical-movement)).
+  **Checked:** `MoveConsole` with `move.py` against the original's run --
+  SecurityBot1's route the original's from the direct walk on; end to end,
+  48 of Liberty Island's 52 pawns' distance within tolerance (43 with the
+  first port, 50 with the fork's own search), UNATCOTroop1 walking its whole
+  patrol and Terrorist35 no longer stalling; Terrorist34's stall went with
+  the reachability tests (below).
+- [**the harness's mission sweep**](https://github.com/JuggyMcNutty/VibeEngine/commit/8e78caa91954c6fa55ed122aa87529d4c2b46be2) --
+  `MissionConsole` checks a map's `DeusExLevelInfo`, its `MissionScript`
+  and whether the script's state machine came up, holding the player and
+  the flag base; `DXCAP_MISSION_MAP` takes the original's run to a named
+  map ([scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)).
+  **Checked:** 78 of the 83 maps OK in the fork; of the other five, three
+  are not mission maps (`DX`, `DXOnly`, `Entry`) and two have nothing to
+  run in the original either (`12_Vandenberg_Tunnels` no script actor,
+  `99_Endgame4` no level info).
+- [**a pawn's held item**](https://github.com/JuggyMcNutty/VibeEngine/commit/cfda48dc3abd89974f96486fd677f410fc390e16) and
+  [**in its hand**](https://github.com/JuggyMcNutty/VibeEngine/commit/58d85a907812f440cdc8bf574f3c2055b6d9c031) --
+  what a pawn holds is drawn as `Render.dll` draws it, only where its mesh
+  has a weapon triangle: the weapon in its third-person mesh and scale at
+  the triangle, or, holding no weapon, its `SelectedItem` the same way,
+  each in the pawn's style and lit as the pawn, so a cloaked pawn's weapon
+  goes translucent with it -- where the fork drew only a weapon, and the
+  first commit, reading the RE note's "where the item is", drew the item at
+  its own place in the world: a multitool the size of a building
+  ([what a pawn holds](NATIVES.md#what-a-pawn-holds)). **Checked:**
+  `HeldConsole` -- the player from behind with a multitool, then the
+  assault gun, the multitool in his hand in both engines.
+- [**`Mid` and a sound with no radius**](https://github.com/JuggyMcNutty/VibeEngine/commit/cfda48dc3abd89974f96486fd677f410fc390e16) and
+  [**their edges**](https://github.com/JuggyMcNutty/VibeEngine/commit/ac0c28e5c002a640bc81d4e91e46192c01cf2372) --
+  `Object.Mid` clamps its start and its end as unsigned and takes 65,535
+  characters by default, as Core's `FString::Mid`: a negative start gives an
+  empty string, and a negative count taking the end below 0 the rest of the
+  string, where the fork counted a negative start from 0 and gave nothing
+  for that count; a sound played with no radius of its own is heard 800
+  units out in Deus Ex, its priority worked out on that, where the fork
+  passed 1,500 on -- other games keep 1,500
+  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
+  **Checked:** `MidConsole`'s ten probes alike in both engines.
+- [**`LevelInfo`'s clock**](https://github.com/JuggyMcNutty/VibeEngine/commit/dfdc49937c2ac8af1cd2ef70b7fb675fd3863f43) --
+  the full year and the month 1 to 12, as the scripts read it -- `StatLog`
+  pads a month below 10 and writes the year as it stands --, where the fork
+  filled them from `tm` as they come, the year from 1900 and the month
+  from 0 ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
+- [**the borders' margins**](https://github.com/JuggyMcNutty/VibeEngine/commit/dfdc49937c2ac8af1cd2ef70b7fb675fd3863f43),
+  [**edges**](https://github.com/JuggyMcNutty/VibeEngine/commit/81f8e7643a93dbc1cf8d127be32364347dbc7fee) and
+  [**layout**](https://github.com/JuggyMcNutty/VibeEngine/commit/f804c77dc18932fa333eb780956f127810c98ab4) --
+  `GC.DrawBorders` as the original's `XGC::DrawBorders`: each side's margin
+  the largest of its textures, a margin given above 0 in its place, both
+  shrunk in proportion in a box too small for two; each of the nine pieces
+  filling its band between the margin lines, the centre drawn last, a
+  source size of 0 tiling -- where Surreal drew the corners at their own
+  size from the box's corners and the edges between them, alike only where
+  a side's textures are one size. The margins' commit had given the edges
+  of a frame with a top-left corner a negative length -- an inventory item's
+  selection frame four dots --, which the edges' restored
+  ([the UI](NATIVES.md#the-ui)). **Checked:**
+  `BorderConsole` -- the selection frame whole, as the original's, and byte
+  for byte alike before and after the layout; `ColorsConsole` -- the Colors
+  screen's 11- and 12-pixel list frames where the original draws them;
+  `BeltConsole`'s belt band as before.
+- [**the reachability tests**](https://github.com/JuggyMcNutty/VibeEngine/commit/6829f0e2d62f0b3f44c3e1a366d159ce3cd474bf) --
+  `pointReachable`, `actorReachable` and the `Reachable` they ask as Deus
+  Ex's `Engine.dll` has them: the zone checks, the look, the destination
+  fitted, an actor's own threshold, then up to 100 of the original's own
+  walking, flying or swimming moves, each result deciding the walk;
+  `AIDirectionReachable` steps with the same moves, and the path search asks
+  the tests with each call site's own knowledge -- where the fork's
+  `pointReachable` looked and fitted and walked nothing
+  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
+  **Checked:** `MoveConsole` -- Terrorist34, which the redone search still
+  stalled, walks as the original's: 51 of Liberty Island's 52 pawns within
+  tolerance and none stalling where the original's does not; `ReachConsole`
+  -- 142 of 144 answers alike, 124 to the unit (134 since moves are held
+  off, below).
+- [**`RestConsole`**](https://github.com/JuggyMcNutty/VibeEngine/commit/7e52f74bb2f7e58fed61e3863ee44c0dc67ee120) and
+  [**moves held off what they meet**](https://github.com/JuggyMcNutty/VibeEngine/commit/eb7a50e0edbe4f7f3affbf1b7cff0d6ecd980a38) --
+  Deus Ex's falls and the reach tests' moves held off what they meet as the
+  original's `ULevel::MoveActor` holds every move, traced 2 units past its
+  end and stopped 2 units short of what it hits, where the fork's went up to
+  the hit; landing as the original's `processLanded`, the actor hit -- the
+  `LevelInfo` for the world -- the floor `setPhysics` takes through its
+  `SupportActor` event, so the scripts' stomps and bounces come with it and
+  what lands is based on the level; `SetPhysics` the original's
+  `setPhysics`; the reach tests' moves passing decorations as they pass
+  pawns, unless static
+  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
+  **Checked:** `RestConsole` (the pier's crate, barrel and box, every tick
+  of their fall and traces down from each, in both engines) -- the crate and
+  box at −301.76 and −301.77 where the original's rest at −301.73 (−304
+  before); `DeathConsole`'s carcass on the level at 471.30, as the
+  original's; `ReachConsole` 134 of 144 to the unit (124 before);
+  `MoveConsole` still 51 of 52.
+- [**a texture's colours as they are**](https://github.com/JuggyMcNutty/VibeEngine/commit/bf12e65db023fc688e58295b37fc85c3adbe8143) --
+  no `darkClamp` for Deus Ex: upstream's shaders darken every texture's
+  colours a little (3.1/255 off black), kept as a stand-in for a 16-bit
+  `D3DDrv`'s loss, but `D3DDrv` uploads 32-bit textures on any display of
+  24 bits or more (`Use32BitTextures` is none of its options); the engine
+  sets the device's `DarkClamp` before the window opens and each device
+  compiles its scene shader without it; other games keep the clamp
+  ([brightness](NATIVES.md#brightness)). **Checked:** against `D3DDrv`'s
+  frames, gamma taken in -- `MeshConsole`'s pier 1.7 to 3.0% under (4.5 to
+  5.9% before), its crate, box and barrel within 0.8%, `LaserConsole`'s
+  corridor within 0.9% (1.5%); the coronas still fade to black as the
+  original's.
+- [**mesh faces turned away culled; the laser iterator**](https://github.com/JuggyMcNutty/VibeEngine/commit/8f94d46d7d557c077937e6bd850160680e91a850) --
+  a LOD mesh's face drawn only when it faces the eye, unless the actor's or
+  its material's flags make it two-sided, and a plain mesh's `PF_Flat` faces
+  culled unless two-sided, as `Render.dll`'s `DrawLodMesh` and `DrawMesh`
+  do, where the fork drew every face -- a mesh that shows through itself
+  drew both its sides; the unlit level `AmbientGlow` / 256 + `ScaleGlow` / 2,
+  held to 1, where it was a flat 0.5 ([lighting](NATIVES.md#lighting)); and
+  `ULaserIterator::CurrentItem` as `DeusEx.dll`'s: a beam's k-th of N
+  segments at k/N of its length, an arc's spot jittered and aimed back, the
+  extra item drawing again a segment kept on the way, where the fork's were
+  16 units apart and its extra one random
+  ([particles and lasers](NATIVES.md#particles-and-lasers-render-iterators)).
+  **Checked:** `LaserConsole` against `D3DDrv`, three runs each -- the
+  beams' red over the floor within 0.5% (65 to 70% too red before, the
+  tube's back faces showing through its front ones); `CoronaConsole` --
+  Liberty Island's trees, 1.9 times the original's before, within a tenth
+  of a level; the Dragon's Tooth's blue and the meshes' brightness
+  unchanged.
+- [**the wavers' random tables; the cloud cast**](https://github.com/JuggyMcNutty/VibeEngine/commit/9861c611175316e7bbb01d16e72c8d2eaf94c10e) --
+  the torch and fire wavers and the watery shimmer draw from `Render.dll`'s
+  two tables of 256 a frame (`TickRandoms`) -- fresh draws for the wavers,
+  the shimmer's own entries gliding a sixteenth of the way a tick toward
+  fresh ones, 35 ticks a second --, taken in turn over the light's
+  rectangle on the map, a texel dimmed to i × (1 − amount + amount × a
+  draw) − 0.5, cut down, where the fork drew every texel afresh (the
+  shimmer as harsh as a fire) and rounded half a step high; `LE_CloudCast`
+  is the plain shape, as the original's ([lighting](NATIVES.md#lighting)).
+  **Checked:** a log shows the shimmer's table gliding frame by frame and
+  the fresh one jumping, on Liberty Island's three fire wavers; the
+  proving run clean.
