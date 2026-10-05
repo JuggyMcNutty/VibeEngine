@@ -128,7 +128,7 @@ function ScriptedPawn FindVictim(PlayerPawn P)
 	foreach P.AllActors(class'ScriptedPawn', A)
 	{
 		// The level keeps scripted pawns out of the world, hidden, in
-		// stasis (agent.md's out-of-sight work): they are no victims, and
+		// stasis (NATIVES.md, out of sight): they are no victims, and
 		// a robot explodes rather than leaving a carcass -- a human is the
 		// case to capture.
 		if (A.bImportant || A.Health <= 0 || A.bHidden || A.IsA('Robot') || A.IsA('Animal'))

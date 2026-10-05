@@ -1,31 +1,33 @@
 # The engine
 
-VibeEngine is [Surreal Engine](https://github.com/dpjudas/SurrealEngine), an
-open-source reimplementation of Unreal Engine 1 that recognises this build of
-Deus Ex directly (`DeusEx.exe` SHA1 `2a933e26aa9cfb33b37f78afe21434caa031f14a`
-is its `DEUS_EX_1112fm` database entry), forked for Deus Ex: it carries what
-[Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina)'s ports
-need -- their launcher, embedded GPUs, pads, the speed a handheld needs -- and
-what Deus Ex needs from it to play as it should. Its branch is `deusex`. Where
-the work stands is [`ROADMAP.md`](ROADMAP.md); what the engine still lacks of
-the original, [`NATIVES.md`](NATIVES.md); how to work on it,
-[`DEVELOPMENT.md`](DEVELOPMENT.md).
+VibeEngine is [Surreal Engine](https://github.com/dpjudas/SurrealEngine), an open-source
+reimplementation of Unreal Engine 1 that recognises this build of Deus Ex directly (`DeusEx.exe`
+SHA1 `2a933e26aa9cfb33b37f78afe21434caa031f14a` is its `DEUS_EX_1112fm` database entry), forked
+for Deus Ex. It carries what [Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina)'s
+ports need (their launcher, embedded GPUs, pads, a handheld's speed) and what Deus Ex needs to play
+as the original does. Its branch is `deusex`. What it still lacks of the original is
+[`NATIVES.md`](NATIVES.md); how to work on it, [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
 ## How it is kept
 
-**Pinned in the workspace.** Port Ex Machina's `ENGINE-PIN.txt` names this
-repository, its branch and the one commit its ports build. Its
-`scripts/engine.sh fetch` clones the fork beside the workspace, as
-`VibeEngine/` in the parent folder of its repositories, and checks that commit
-out, on any machine; `check` proves the clone is at it. After a fork commit is
-pushed, `pin` moves the file, and the move is committed there. Builds go to
-`build/<port>/engine` in that parent folder, never into the clone.
-
-**Not upstream's.** The fork sends nothing upstream (owner, 2026-09-26), and
-does not follow upstream: its new commits reach the fork only when someone
-chooses to [upgrade](#upgrading-surreal-engine) (owner, 2026-09-23). Using and
-building the engine is permitted by its own licence, which grants use "for any
-purpose".
+- **Pinned in the workspace.** Port Ex Machina's `ENGINE-PIN.txt` names this repository, its
+  branch and the one commit the ports build. Its `scripts/engine.sh fetch` clones the fork as
+  `VibeEngine/` in the parent folder of the repositories and checks that commit out; `check`
+  proves the clone is at it; after a fork commit is pushed, `pin` moves the file, and the move is
+  committed there. Builds go to `build/<port>/engine` in that parent folder, never into the clone.
+- **Nothing goes upstream.** The fork's changes are written with AI assistance, and upstream's
+  NO-AI Code Rule asks that such changes stay in a fork and are never submitted upstream.
+- **The fork does not follow upstream.** It takes upstream's commits only by a chosen
+  [upgrade](#upgrading-surreal-engine).
+- **Deus Ex gets the fork's behaviour; other games keep upstream's.** Code that makes the engine
+  behave as Deus Ex's original binaries do is gated on `IsDeusEx()`, upstream's test that the
+  game's executable is `DeusEx`, asked as `engine->LaunchInfo.IsDeusEx()` or
+  `engine->packages->IsDeusEx()`. A render device does not ask: the engine sets its flags from the
+  test (`RenderDevice::DarkClamp` before the device is made, `GammaScale`). Natives of Deus Ex's
+  own classes need no gate: only Deus Ex has them. The speed-ups and device support apply to
+  every game.
+- **Licence.** Using and building the engine is permitted by its own licence, which grants use
+  "for any purpose".
 
 ## Commands
 
@@ -52,132 +54,118 @@ vibe/tools/dxcap.sh                         # scripted runs of both engines (DEV
 
 ## Changing the engine
 
-Commit the change here, with the docs it affects -- this one,
-[`NATIVES.md`](NATIVES.md), [`ROADMAP.md`](ROADMAP.md) -- push it, then pin it
-in the workspace (`scripts/engine.sh pin`) and commit the moved
-`ENGINE-PIN.txt` there. Each fork commit's message says what it changes, why,
-and how it was checked; [what the fork changes](#what-the-fork-changes) below
-adds what it did on the Smart Pro. The fork's history is published and never
-rewritten. Its first 34 commits began as Port Ex Machina's patch stack,
-engine-patches (retired 2026-09-24); "patch NNNN" here and in the game's docs
-is such a commit's place in that series.
+Commit the change here with the docs it affects (this one and [`NATIVES.md`](NATIVES.md)), push
+it, then pin it in the workspace (`scripts/engine.sh pin`) and commit the moved `ENGINE-PIN.txt`
+there. Pushing and pinning wait for the owner's go-ahead
+([the workspace's rules](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/AGENTS.md#rules)).
 
-Temporary debugging hooks never go into a commit: they carry a
-`TEMPORARY DEBUG TOOL` comment and are reverted before committing
-([temporary debug hooks](DEVELOPMENT.md#temporary-debug-hooks)).
+- Each commit's message says what it changes, why, and how it was checked.
+- The fork's history is published and never rewritten.
+- Temporary debug hooks never reach a commit
+  ([the rule](DEVELOPMENT.md#temporary-debug-hooks)).
+- "Patch NNNN" is a numbered commit: 0001–0034 were Port Ex Machina's retired patch stack, and
+  0035–0042 continue the numbering ([the numbered patches](#the-numbered-patches)).
 
 ### The profiling hooks
 
-The frame-time profiling hooks live in
-`vibe/tools/perf/perf-instrumentation.patch` so they can be re-applied:
-`vibe/tools/perf/perf.sh on`, and `off` afterwards. Take them off before
-changing the engine -- a commit made with them on carries them -- and commit
-before putting them back: `on` cannot merge over uncommitted changes to a
-file the hooks touch, and says so. The patch is against the fork's head, so a
-fork commit that touches the same lines moves them: `on` then falls back to a
-three-way merge (and stops if that leaves conflicts), and `save` rewrites the
-patch from the tree -- all of it but `vibe/` -- so the next `on` and `off`
-apply cleanly.
+The frame-time profiling hooks are `vibe/tools/perf/perf-instrumentation.patch`, applied for a
+profile and never committed: `vibe/tools/perf/perf.sh on`, and `off` afterwards.
 
-The hooks build the engine with frame pointers (~1% slower on the handheld) and
-carry a sampling profiler for devices without `perf`:
-`SURREAL_PERF_SAMPLE=<file>` samples the main thread's CPU time, recording each
-sample's program counter and the return addresses a frame-pointer walk finds,
-one block per 60-frame report, with `/proc/self/maps` beside it.
-[`vibe/tools/perf/sample-report.py`](../tools/perf/sample-report.py) (Python 3,
-and the port toolchain's `nm` for a cross build) turns that into self and
-inclusive time per function, optionally under one caller (`--root
-ULevel::Tick`: the game tick) or with the callers of one (`--callers`). A leaf
-function keeps no frame record, so its samples show its caller's caller as the
-next frame. Profiling the handheld:
+- **Take them off before changing the engine**: a commit made with them on carries them. Commit
+  before putting them back: `on` cannot merge over uncommitted changes to a file the hooks touch,
+  and says so.
+- **The patch is against the fork's head**, so a fork commit that touches the same lines moves
+  them. `on` then falls back to a three-way merge (and stops if that leaves conflicts), and `save`
+  rewrites the patch from the tree (all of it but `vibe/`), so the next `on` and `off` apply
+  cleanly.
+
+With the hooks on, the engine builds with frame pointers (~1% slower on the handheld) and reads
+[the hooks' variables](#settings-and-environment). `SURREAL_PERF_SAMPLE=<file>` is a sampling
+profiler for devices without `perf`: it samples the main thread's CPU time, recording each
+sample's program counter and the return addresses a frame-pointer walk finds, one block per
+60-frame report, with `/proc/self/maps` beside it.
+[`vibe/tools/perf/sample-report.py`](../tools/perf/sample-report.py) (Python 3, and the port
+toolchain's `nm` for a cross build) turns that into self and inclusive time per function,
+optionally under one caller (`--root ULevel::Tick`: the game tick) or with the callers of one
+(`--callers`). A leaf function keeps no frame record, so its samples show its caller's caller as
+the next frame. Profiling the handheld:
 [its README](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance).
 
 ### Natives from the original
 
-Where upstream has a Deus Ex native wrong or as a stub -- a stub logs
-`Unimplemented: <class>.<name>` the first time it runs in a session, and only
-then -- the original is in the game's DLLs, and
-[dx-reverse-info](https://github.com/JuggyMcNutty/dx-reverse-info) is what has
-been read of them: how to read them is
-[working on the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#working-on-the-binaries),
-and what the fork still lacks is [`NATIVES.md`](NATIVES.md)
-(`vibe/tools/natives_audit.py` lists it). Patch 0034 was read this way.
+Where upstream has a Deus Ex native wrong or as a stub (a stub logs `Unimplemented: <class>.<name>`
+the first time it runs in a session, and only then), the original is in the game's DLLs.
+[dx-reverse-info](https://github.com/JuggyMcNutty/dx-reverse-info) is what has been read of them,
+and [working on the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#working-on-the-binaries)
+says how to read more. What the fork still lacks is [`NATIVES.md`](NATIVES.md);
+`vibe/tools/natives_audit.py` lists it.
 
 ## Upgrading Surreal Engine
 
-Only when someone decides to. `vibe/tools/upgrade.sh status` (or the
-workspace's `scripts/engine.sh status`) fetches upstream and says how many
-commits it is past the fork. To take them in:
+Only when the owner chooses to. `vibe/tools/upgrade.sh status` (or the workspace's
+`scripts/engine.sh status`) fetches upstream and says how many commits it is past the fork. To
+take them in:
 
 ```sh
 vibe/tools/perf/perf.sh off                 # if the profiling hooks are on
 vibe/tools/upgrade.sh                       # upstream's latest; or upgrade.sh <sha|tag|branch>
 ```
 
-`upgrade.sh` needs the clone on `deusex` with a clean tree. It merges the
-chosen upstream commit into the fork's branch, keeping both histories. If
-files conflict it stops: resolve them, `git add` them, then
-`vibe/tools/upgrade.sh --continue` -- or `--abort`, which leaves the fork as it
-was.
+`upgrade.sh` needs the clone on `deusex` with a clean tree. It merges the chosen upstream commit
+into the fork's branch, keeping both histories. If files conflict it stops: resolve them,
+`git add` them, then `vibe/tools/upgrade.sh --continue`, or `--abort` to leave the fork as it was.
+[What the fork changes](#what-the-fork-changes) says what a merge meets.
 
-Then, before pinning: build and run linux-x86_64, check the Vulkan validation
-layer ([below](#profiling-and-validating-on-the-desktop)), `perf.sh on` (and
-`save` if the hooks moved), profile on the devices, bring
-[what the fork changes](#what-the-fork-changes) up to date, push the branch,
-and pin it in the workspace.
+Then, before pinning: build and run linux-x86_64, check the Vulkan validation layer
+([below](#profiling-and-validating-on-the-desktop)), `perf.sh on` (and `save` if the hooks
+moved), profile on the devices, bring [what the fork changes](#what-the-fork-changes) up to date,
+push the branch, and pin it in the workspace.
 
 ## Running it
 
-Each port's `run-game.sh` starts it for every real launch. By hand, from the
-game's directory:
+Each port's `run-game.sh` starts it for every real launch. By hand, from the game's directory:
 
 ```sh
 SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 ```
 
-- `--no-launcher` (or a game folder on the command line) skips upstream's
-  desktop launcher window (patch 0001).
-- **`--server`** runs a dedicated server of the `--url` map, as the
-  original's `-SERVER`: no window, sound or player; `--lanplay` gives it the
-  LAN tick rate ([multiplayer](NATIVES.md#multiplayer)).
-- **A map is `--url=<map>` (or `-u=<map>`): an option's value follows its
-  `=`.** `-u <map>` or `--url <map>` sets an empty URL and the map name
-  becomes a stray argument, so the intro loads with no warning.
-- **Under SDL the engine ignores SIGTERM** -- SDL turns it into a quit event
-  nothing reads --: on the handheld, whose only display backend is SDL's,
-  stop it with SIGKILL (`timeout -s KILL`). A desktop run on Wayland or X11
-  takes SIGTERM's default, and a dedicated server ends on it (143).
-  `Running.ini` is the launcher's crash sentinel, not the engine's: a run
-  under a launcher stopped either way leaves it behind like any crash; a run
-  by hand has none.
-- `--ini=<file>` and `--userini=<file>` name the inis to read and write back,
-  as the original's `INI=` and `USERINI=`; the `shot` console command writes
-  the next `ShotNNNN.bmp` into the game's System folder.
-  [Scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines) use both.
-- **`--cmdline=<line>`** is the original's command line, which the
-  recreated launcher (deusex-launcher's `main`) passes on: its start URL,
-  `-server`, `INI=`, `USERINI=`, `EXEC=` and safe mode's flags, over the
-  options above ([the command line](NATIVES.md#the-command-line)).
-- **`DXL_LAUNCHER_FD`** in the environment is the recreated launcher's line
-  to the engine, which stays for the game's run as the original's process
-  does ([the game and the launcher](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#the-game-and-the-launcher)):
-  the engine says `hello` as it starts and `ready` once its first map is
-  in, and takes `TakeFocus` (the window to the front) and `Open <url>`
-  (the console's `open`), what a second launch forwarded. The ports'
-  launchers set nothing, and nothing changes.
-- Where there is no audio device (a container), give OpenAL Soft the null
-  driver ([linux-x86_64's README](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/ports/linux-x86_64/README.md#audio)).
+- `--no-launcher`, or a game folder on the command line, skips upstream's desktop launcher
+  window. `--no-launcher` (or `-v`) also puts the log on stderr.
+- **A map is `--url=<map>` (or `-u=<map>`): an option's value follows its `=`.** `-u <map>` or
+  `--url <map>` sets an empty URL and the map name becomes a stray argument, so the intro loads
+  with no warning.
+- **`--server`** runs a dedicated server of the `--url` map, as the original's `-SERVER`: no
+  window, sound or player; `--lanplay` gives it the LAN tick rate
+  ([multiplayer](NATIVES.md#multiplayer)).
+- **Under SDL the engine ignores SIGTERM**: SDL turns it into a quit event nothing reads. On the
+  handheld, whose only display backend is SDL's, stop it with SIGKILL (`kill -9`). A desktop run
+  on Wayland or X11 takes SIGTERM's default, and a dedicated server ends on it (143).
+- `Running.ini` is the launcher's crash sentinel, not the engine's: a run under a launcher
+  stopped either way leaves it behind like any crash; a run by hand has none.
+- `--ini=<file>` and `--userini=<file>` name the inis to read and write back, as the original's
+  `INI=` and `USERINI=`; the `shot` console command writes the next `ShotNNNN.bmp` into the
+  game's System folder; `--timeline=<file>` gives keys and console commands at set times.
+  [Scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines) use all three.
+- **`--cmdline=<line>`** is the original's command line, which the recreated launcher
+  (deusex-launcher's `main`) passes on: its start URL, `-server`, `INI=`, `USERINI=`, `EXEC=` and
+  safe mode's flags, over the options above ([the command line](NATIVES.md#the-command-line)).
+- **`DXL_LAUNCHER_FD`** in the environment is the recreated launcher's line to the engine, which
+  stays for the game's run as the original's process does
+  ([the game and the launcher](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#the-game-and-the-launcher)):
+  the engine says `hello` as it starts and `ready` once its first map is in, and takes
+  `TakeFocus` (the window to the front) and `Open <url>` (the console's `open`), what a second
+  launch forwarded. The ports' launchers set nothing, and nothing changes.
+- Where there is no audio device (a container), give OpenAL Soft the null driver
+  ([linux-x86_64's README](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/ports/linux-x86_64/README.md#audio)).
 
 ### Profiling and validating on the desktop
 
-The handheld has no `perf` and no Vulkan validation layer, so validation runs
-against the base port's build (`scripts/dx.sh build linux-x86_64 engine`), and
-so can a quick CPU profile -- but the desktop's proportions are not the
-handheld's (its Cortex-A53 pays far more for a cache miss), so what to work on
-next is decided by the handheld's own samples. `vibe/tools/host-tools.sh`
-unpacks pinned copies of Linux `perf` and the Khronos validation layer into the
-`deps/` beside the repositories without installing anything. From their
-parent folder:
+The handheld has no `perf` and no Vulkan validation layer, so validation runs against the base
+port's build (`scripts/dx.sh build linux-x86_64 engine`), and so can a quick CPU profile. The
+desktop's proportions are not the handheld's (its Cortex-A53 pays far more for a cache miss), so
+what to work on next is decided by the handheld's own samples. `vibe/tools/host-tools.sh` unpacks
+pinned copies of Linux `perf` and the Khronos validation layer into the `deps/` beside the
+repositories without installing anything. From their parent folder:
 
 ```sh
 VibeEngine/vibe/tools/host-tools.sh
@@ -192,1308 +180,210 @@ VK_KHRONOS_VALIDATION_VALIDATE_SYNC=true \
     timeout -s KILL 60 ../build/linux-x86_64/engine/SurrealEngine --no-launcher "$PWD" --url=01_NYC_UNATCOIsland.dx
 ```
 
-`--call-graph dwarf` on `perf record` gives callers (the desktop build has no
-frame pointers unless the hooks are on).
+`--call-graph dwarf` on `perf record` gives callers (the desktop build has no frame pointers
+unless the hooks are on).
+
+## Settings and environment
+
+The engine reads `~/.config/SurrealEngine/Settings.json`, which the ports' launcher writes
+([where the settings live](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/docs/LAUNCHER.md#where-the-settings-actually-live)).
+The fork's keys:
+
+| Key | What it does |
+|---|---|
+| `Performance.AiLevelOfDetail` | Distant AI, off by default. A pawn out of sight and beyond 1500 units runs its script thinking (its `Tick` event and state code) every 3rd frame, given the time it skipped; beyond 4000 units, every 6th. Its movement, physics, animation and timers run every frame. |
+| `Performance.RenderScale` | The scene drawn at this fraction of the window's size (0.25 to 1; default 1) and scaled up to it, by the Vulkan device and the GL device. |
+| `"Type": "GLES"` in `RenderDevice` | The GL device on an OpenGL ES 3.2 context (on the Smart Pro, the `[GLES]` renderer of its `renderers.ini`). |
+| `Gamepad` | The pad: `Enabled`, `DeadZone`, `LookSensitivityX` and `LookSensitivityY`, `InvertY`, `CursorSpeed`; `Layout` names the binding preset a launcher last applied, which the engine only carries ([controller support](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/docs/LAUNCHER.md#controller-support)). |
+
+The environment:
+
+| Variable | What it does |
+|---|---|
+| `SURREAL_VK_NO_BINDLESS=1` | Forces the Vulkan device's per-batch descriptor-set path, the one a GPU without descriptor indexing (the handheld's) takes. |
+| `SURREALWIDGETS_DISPLAY_BACKEND` | The window backend: `SDL2`, `SDL3` or `X11`. Unset, or naming one the build lacks: the first that starts of Wayland, X11, SDL3 and SDL2. `run-game.sh` defaults it to `SDL2`, the backend with the pad. |
+| `SURREALWIDGETS_FONT`, `SURREALWIDGETS_MONOSPACE_FONT` | The UI's font files, on a build without GSettings and fontconfig (the embedded cross build). |
+| `DXL_LAUNCHER_FD` | The recreated launcher's line ([running it](#running-it)). |
+| `SURREAL_PERF_LOG=1`, `SURREAL_PERF_DETAIL=1`, `SURREAL_PERF_TURN=<aBaseX>`, `SURREAL_PERF_SAMPLE=<file>` | Only with [the profiling hooks](#the-profiling-hooks) on: where the frame goes, every 60 frames on stderr; tick by actor class and script functions by self time (which inflates what it measures); the player turning on the spot; the sampling profiler. |
 
 ## What the fork changes
 
-By area; the number is the commit's place in the series (the retired patch
-stack's numbering), its link the commit in the fork repository, whose message
-says how it works. **Smart Pro** is what it did there, measured with the
-hooks in Liberty Island's level start (the whole frame's numbers after each
-patch are in [the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance));
-**checked** is how it was shown not to change the game, or for a gameplay fix
-to work, where the message does not already say.
+By area, as the code stands, with what a merge of upstream meets. A number such as (0005) is a
+[patch number](#the-numbered-patches). The handheld's numbers are
+[the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance).
 
 ### Running on our devices
 
-- [**0001**](https://github.com/JuggyMcNutty/VibeEngine/commit/22a5e87cc51aa83be550abe1c17e0b4203f18c79)
-  `headless-and-embedded-support` -- the engine started by our launcher with no
-  desktop: no launcher window, errors and the log on stderr, a non-zero exit
-  after a caught exception (the launcher's crash sentinel reads it); and a
-  cross build for an embedded aarch64 device: SDL2 only, no X11/Wayland/desktop
-  GL, SDL from pkg-config, a host-built `zipdir`, fonts without GSettings or
-  fontconfig (`SURREALWIDGETS_FONT`).
-- [**0002**](https://github.com/JuggyMcNutty/VibeEngine/commit/a40bec64d33574529da21d63c1b57b3b3ebfe85e)
-  `nonbindless-fallback-and-format-support` -- Vulkan on GPUs without desktop
-  texture support: a per-batch descriptor set path when
-  `VK_EXT_descriptor_indexing` is missing (`SURREAL_VK_NO_BINDLESS=1` forces
-  it), and CPU decoders for texture formats the GPU cannot sample or filter
-  (BC1–5, RGB8, RGBA32F). **Smart Pro:** the GE8300 has neither; the intro went
-  from speckle to clean. A desktop GPU keeps the bindless path. The format
-  table came from Port Ex Machina's
-  [`tools/probes/probe-texture-formats.c`](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/tools/probes/probe-texture-formats.c).
-- [**0003**](https://github.com/JuggyMcNutty/VibeEngine/commit/af99616f537480cc63f9f781865e2e76634abe44)
-  `gamepad-and-deusex-fixes` -- the pad as polled state, turned into UE1
-  joystick keys and axes so `User.ini` bindings decide what it does, with
-  menu-mode controls and a `Gamepad` block in `Settings.json` ([the launcher's
-  controller support](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/docs/LAUNCHER.md#controller-support)); and two Deus Ex fixes:
-  `CycleActors` resumes where it stopped, as the game's script expects, and the
-  first pause-menu press after skipping the intro is no longer swallowed.
-
-- [**the original's command line and the recreated launcher's line**](https://github.com/JuggyMcNutty/VibeEngine/commit/453b3af3f935278ed2b7247eb5daea667524daec) --
-  `--cmdline=`, the original's command line read as its code reads it --
-  the start URL, `-server`, `INI=`, `USERINI=`, `EXEC=` and safe mode's
-  flags ([the command line](NATIVES.md#the-command-line)) --, and
-  `DXL_LAUNCHER_FD`, the line to deusex-launcher's `main`, which stays for
-  the game's run ([running it](#running-it)); the console's `exec`, and
-  `open` with a map's file name. **Checked:** driven over a socketpair as
-  the launcher drives it, with an ini asking for fullscreen -- a 640×480
-  window, no sound, `EXEC=`'s lines run, a forwarded `Open` travelled, the
-  ini unchanged after a clean exit; a proving run clean.
+- **Headless and embedded** (0001): no launcher window; the log and errors on stderr; a non-zero
+  exit after a caught exception, which the launcher's crash sentinel reads. The cross build for
+  an embedded aarch64 device is SDL2 only (no X11, Wayland or desktop GL), takes SDL from
+  pkg-config and a host-built `zipdir`, and finds fonts without GSettings or fontconfig.
+- **The gamepad** (0003): the SDL2 display backend gives the pad as polled state
+  (`GetGamepadState`), and `GamepadInput` turns it into UE1 joystick keys and axes that
+  `User.ini` binds; menus get their own controls. Only the SDL2 backend has it
+  ([no pad in game](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/ports/linux-x86_64/README.md#no-pad-in-game)).
+- **The launchers' lines**: `--cmdline=` (`OriginalCommandLine`) and `DXL_LAUNCHER_FD`
+  (`LauncherLine`) ([running it](#running-it)), with the console's `exec` and an `open` that
+  takes a map's file name.
+- **Fullscreen under SDL2** is a borderless window covering the display, set up while the window
+  is hidden: `SDL_SetWindowFullscreen` deadlocks on a GL window with the Smart Pro's vendor SDL2
+  (0039).
 
 ### Settings the launcher exposes
 
-- [**0008**](https://github.com/JuggyMcNutty/VibeEngine/commit/ce78355fb3cc47b2ac27dd18b3751c2c564dd5ce)
-  `ai-level-of-detail` -- with `Settings.json` `Performance.AiLevelOfDetail`
-  (the Video tab's Distant AI), a pawn out of sight and not within 1500 units
-  runs its script thinking every third frame. **Smart Pro:** game tick ~124 →
-  ~104 ms; ~38 pawns a frame skip their thinking. **Checked:** the scene
-  renders normally (framebuffer capture); whether distant NPCs still behave is
-  not yet judged by hand.
-- [**0009**](https://github.com/JuggyMcNutty/VibeEngine/commit/a1a2926f93fbd6be6288f4dd87191ca36ae9f0f9) `render-scale` --
-  `Performance.RenderScale` (the Video tab's Resolution): the scene drawn
-  smaller than the window and scaled up; Vulkan only then, the GL device
-  (desktop GL and GLES) too since 0038 (the GLES renderer, below). **Checked:** Liberty
-  Island at 960×540 and 853×480 fills the panel, the HUD larger (framebuffer
-  captures); synchronization validation clean on the desktop at scale 0.667.
-- [**0022**](https://github.com/JuggyMcNutty/VibeEngine/commit/a41d14b1180e2e04957d1b19d7a5406b88800b6c) `ai-lod-far-tier` --
-  with Distant AI, a pawn also beyond 4000 units thinks every sixth frame.
-  **Smart Pro:** game tick ~65 → ~63 ms; ~48 pawns a frame fall in the tier, ~8
-  of them thinking, ~9 fewer thinking each frame.
+`LauncherSettings` reads the `Gamepad` and `Performance` blocks
+([the keys](#settings-and-environment)). Distant AI (0008, 0022) is `UActor::ThinkThisFrame`,
+asked each tick; a pawn counts as seen when the renderer drew it this frame (`LastVisibleFrame`).
+Render scale (0009, 0038) is `RenderDevice::GetRenderScale`: a device whose
+`SupportsRenderScale()` says so (Vulkan, GL) makes its scene buffers at `GetRenderWidth()` by
+`GetRenderHeight()` and scales them to the window as it presents; the viewport, the canvas and
+the UI see the render size.
 
 ### Rendering
 
-- [**0004**](https://github.com/JuggyMcNutty/VibeEngine/commit/e56866259cfd555d44669701e65643e2d0c69b2a)
-  `vulkan-frame-overlap` -- the game tick runs while the GPU draws the previous
-  frame; swapchain rebuilds wait for the device. **Smart Pro:** GPU wait ~76 →
-  ~0.2 ms, the tick ~20 ms longer (CPU and GPU share the SoC's memory).
-  **Checked:** Liberty Island's level start renders correctly (framebuffer
-  capture).
-- [**0005**](https://github.com/JuggyMcNutty/VibeEngine/commit/03afa604679b0e8e89ea5100bb58c1484d677f41)
-  `lightmap-lit-spans` -- lightmaps lit only where a light reaches. **Smart
-  Pro:** lightmaps ~98 → ~11 ms. **Checked:** the dock pixel-identical before
-  and after (framebuffer captures).
-- [**0010**](https://github.com/JuggyMcNutty/VibeEngine/commit/d635be4bda5c027b5e0b34ee3c13aa64ebc28217)
-  `clipper-sized-to-image` -- the visibility clipper's occlusion grid has one
-  row per image row (it was a fixed 2048×1080). **Smart Pro:** frame ~222 →
-  ~213 ms native, ~208 → ~191 ms at 853×480. **Checked:** the dock
-  pixel-identical at both; ~830 surfaces pass visibility where ~740 did, all
-  hidden by the depth test.
-- [**0011**](https://github.com/JuggyMcNutty/VibeEngine/commit/7599d2b600015df7f2eec1e683cd94b6f55c2e5b)
-  `cull-one-sided-back-faces` -- one-sided surfaces seen from behind skipped
-  before the visibility test. **Smart Pro:** surface tests ~4,800 → ~2,400 a
-  frame and ~22 → ~12 ms; lightmaps ~10 → ~4 ms and their uploads ~11 → ~4 ms
-  (most of the burning barrel's lightmaps were back faces). **Checked:**
-  captures of Liberty Island and UNATCO HQ's interior differ only in the stats
-  overlay's surface count.
-- [**0018**](https://github.com/JuggyMcNutty/VibeEngine/commit/efc2a80026cbc0768503c0c365e15db0d9df2c4b)
-  `mesh-vertices-once` -- each mesh vertex animated, lit and fogged once a
-  draw, not once per face using it. **Smart Pro:** actor meshes ~28 → ~14 ms,
-  render CPU ~92 → ~80 ms.
-- [**0019**](https://github.com/JuggyMcNutty/VibeEngine/commit/abe6d2735c4e4a2a61479e7fc7964b36b61f8e82)
-  `mesh-face-batches` -- a run of mesh faces with one texture drawn in one
-  device call. **Smart Pro:** actor meshes ~14 → ~12 ms. **Checked:** a capture
-  of the dock matches one from before patch 0012 except where time moves things
-  (the sky, the NPCs, the stats); the statue and props identical to the pixel.
-- [**0020**](https://github.com/JuggyMcNutty/VibeEngine/commit/96f1b6b4b1d7b59cdfca4c878a93a243116cf98c)
-  `clipper-arm-clip-test` -- the clipper's non-SSE (ARM) build skips clipping
-  for triangles inside the view, as the SSE build did (an upstream bug).
-  **Smart Pro:** visibility ~25 → ~20 ms (with the per-part timers), surface
-  tests ~11.8 → ~7.4 ms. **Checked:** a capture of the dock differs only in the
-  sky's clouds and the NPCs.
-- [**0021**](https://github.com/JuggyMcNutty/VibeEngine/commit/377cf462b1452f880723cce4305087172bfe7463)
-  `surface-points-on-demand` -- a surface's points gathered only when a test
-  needs them. **Smart Pro:** visibility ~20.5 → ~19.6 ms.
-- [**0023**](https://github.com/JuggyMcNutty/VibeEngine/commit/56e86e57548c00aa5ccb597a52aed093ceaa9172) `light-tree-kept` --
-  the light tree, and each surface's lights from it, kept while no light
-  changes. **Smart Pro:** the BSP surfaces' section ~11 → ~8 ms. **Checked:** a
-  capture at 853×480 shows the dock's lightmaps as before.
-- [**0024**](https://github.com/JuggyMcNutty/VibeEngine/commit/03e4d0cb9696bbad5b26cdc0489dcc028152c29b)
-  `lightmap-neon-conversion` -- the lightmaps' float-to-byte conversion for the
-  GPU in NEON on ARM. **Smart Pro:** texture uploads ~3.9 → ~2.1 ms.
-- **the GLES renderer (0035–0042: numbered on from the stack's 0034, for
-  reference)** -- the GL device runs on desktop GL 4.2+ and
-  OpenGL ES 3.2 from the same code: `RenderAPI::GLES` / `RenderDeviceType::GLES`
-  (`"Type": "GLES"` in Settings.json; the Smart Pro launcher's `[GLES]` Video-tab
-  row), an ES 3.2 context from every window backend (SDL2 and SDL3 through
-  `SDL_GL_CONTEXT_PROFILE_ES`, X11 and Wayland through EGL with the ES3 bit),
-  detected at init from `glGetString(GL_VERSION)`. The ES specifics, found against
-  the device (each below says where):
-  - the same shader sources compile as GLSL ES 3.20 (`CompileGlsl` prepends the
-    version and the fragment stages' highp precision); the sources needed only
-    `u`-suffixed flag masks and float literals (ES converts no int literals),
-    and `std140` on the push-constant blocks (0037,
-    [db0961e](https://github.com/JuggyMcNutty/VibeEngine/commit/db0961e));
-  - desktop-only GL calls replaced: `glClearDepthf`/`glDepthRangef` (4.2+ desktop
-    core), `glDrawBuffers` for every `glDrawBuffer`, `GL_DEPTH_CLAMP` and
-    `GL_MULTISAMPLE` skipped on ES and the indexed-blend calls replaced by the
-    plain ones (the colour attachment's blend; the integer hit attachment
-    ignores blending), the null texture uploaded as `UNSIGNED_BYTE` (0037);
-  - `ReadPixels` implemented (the upstream stub was `#if 0` D3D11: every
-    screenshot black) against the Vulkan device's contract, reading what the
-    buffer is (0035, [e77ac55](https://github.com/JuggyMcNutty/VibeEngine/commit/e77ac55);
-    the 8-bit read and its orientation 0040/0042,
-    [765f180](https://github.com/JuggyMcNutty/VibeEngine/commit/765f180),
-    [469bd9c](https://github.com/JuggyMcNutty/VibeEngine/commit/469bd9c));
-  - `Exit()` tolerates a failed unmap and runs once (the intro ends the game
-    mid-frame and the window's context dies first; a throw out of the
-    destructor aborted) (0036,
-    [494e22e](https://github.com/JuggyMcNutty/VibeEngine/commit/494e22e));
-  - render scale: `SupportsRenderScale()` -- the scene buffers at the render
-    size (`GetRenderWidth()` and `GetRenderHeight()`), the present pass scales
-    to the window (0038,
-    [aa94a7a](https://github.com/JuggyMcNutty/VibeEngine/commit/aa94a7a));
-  - CPU decoders for what an ES driver cannot sample or filter -- BC1 without
-    S3TC, RGBA32F without linear filtering (the lightmaps) -- the Vulkan device's
-    0002 algorithms in the GL uploader, gated on the context's extension list
-    (0038);
-  - the GE8300's sampler set: no `GL_TEXTURE_LOD_BIAS` (no ES sampler has it),
-    anisotropy only under its extension, `GL_MIRROR_CLAMP_TO_EDGE` probed once
-    and `CLAMP_TO_EDGE` where the driver rejects it (0039,
-    [b9bc870](https://github.com/JuggyMcNutty/VibeEngine/commit/b9bc870)); and
-    the SDL2 backend's fullscreen is borderless cover done on the hidden window
-    -- `SDL_SetWindowFullscreen` deadlocks on a GL window there (0039);
-  - the scene buffers 8-bit unless HDR is asked for, and `ReadPixels` reads what
-    the buffer is (0040, [765f180](https://github.com/JuggyMcNutty/VibeEngine/commit/765f180));
-  - the vertices stream through CPU staging arrays, each flush uploading the
-    range written since the last one: the per-flush map/unmap of the buffers'
-    whole unused tails was 2/3 of the frame on the GE8300 (0041,
-    [0c8e99b](https://github.com/JuggyMcNutty/VibeEngine/commit/0c8e99b)).
-  **Smart Pro (PowerVR Rogue GE8300, `Type=GLES`):** the Liberty Island level
-  start runs at 8.5–8.8 fps native 1280×720 and 10.0 at 853×480. The Vulkan
-  device runs the same build at 11.4 at 853×480 -- the gap the GL driver's
-  per-draw-call cost --, and the level start at native at 8.2 (M3–M7,
-  2026-09-28), so at native GLES is level with it or a little ahead (the
-  same-build run once given as Vulkan's native was at 853×480). Its captures
-  match the Vulkan device's to 1.4 % at the same moment (the display).
-  **Checked:** the level-start proving runs clean on desktop GL and GLES (means
-  0.0400 through every change); the GLES captures match the desktop GL device's
-  to 0.036 % and the Vulkan device's verified look to 0.15 %; D3DDrv's to the
-  look work's documented deltas (5.9 %); the intro exits cleanly; the unit tests
-  12/12.
+For every game, the renderer's CPU work is lighter: lightmaps lit only where a light reaches
+(0005); the light tree and each surface's lights kept while no light changes (0023); the
+clipper's occlusion grid one row per image row (0010), its non-SSE (ARM) build skipping the clip
+for triangles inside the view (0020, an upstream bug); one-sided surfaces seen from behind
+skipped before the visibility test (0011); a surface's points gathered only when a test needs
+them (0021); each mesh vertex animated, lit and fogged once a draw (0018), and a run of faces
+with one texture drawn in one device call (0019). Deus Ex's look, as `Render.dll` and
+`D3DDrv.dll` make it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); a merge
+meets it in `SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`),
+`SurrealEngine/Light/` and `SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`,
+the fractal textures).
+
+**The Vulkan device**: the game tick runs while the GPU draws the previous frame
+(`CommandBufferManager` keeps one frame in flight, and `WaitForFrame()` collects it before
+anything it uses is touched; a swapchain rebuild waits for the device; 0004). Without
+`VK_EXT_descriptor_indexing` it binds a descriptor set per batch instead of bindless textures
+(0002). It decodes on the CPU what the GPU cannot sample or filter: BC1–5, RGB8, RGBA32F (0002),
+and converts the lightmaps for upload in NEON on ARM (0024).
+
+**The GL device** runs desktop GL 4.2+ and OpenGL ES 3.2 from one code path (0035–0042):
+`RenderAPI::GLES` and `RenderDeviceType::GLES`, an ES 3.2 context from every window backend
+(SDL2 and SDL3 through `SDL_GL_CONTEXT_PROFILE_ES`, X11 and Wayland through EGL with the ES3
+bit), and `IsGLES` read at init from `glGetString(GL_VERSION)`. It draws at the render scale, as
+the Vulkan device does (0038; [the setting](#settings-the-launcher-exposes)). The same shader
+sources compile as GLSL ES 3.20 (`CompileGlsl` prepends the version and highp precision; the
+sources keep to `u`-suffixed masks, float literals and `std140` push-constant blocks). No
+desktop-only calls: `glClearDepthf` and `glDepthRangef`, `glDrawBuffers` for every
+`glDrawBuffer`, no `GL_DEPTH_CLAMP` or `GL_MULTISAMPLE` on ES, the plain blend calls, the null
+texture as `UNSIGNED_BYTE`.
+
+- **ES 3.2, not 3.0**: RGBA16F (the scene buffers with `Hdr`) is colour-renderable only from ES
+  3.2 core, and the shaders bind their samplers with `layout(binding)`, which GLSL ES 3.00 lacks.
+  `gl_FragCoord.w` is 1/w on ES as on desktop, so the detail-texture distance fade is unchanged.
+- **The desktop context**: every window backend asks for a desktop 3.2 core context, while
+  `CompileGlsl` prepends `#version 420`. Mesa grants a 4.6 context, so it works there; a strict
+  driver could refuse the shaders.
+- The vertices stream through CPU staging arrays, each flush uploading the range written since
+  the last one (`glBufferSubData`): the GE8300 has no `glBufferStorage` (persistent mapping), and
+  mapping the buffers' unused tails on every flush costs 2/3 of its frame.
+- The scene buffers are RGBA8 unless `Hdr` is on.
+- BC1 without `EXT_texture_compression_s3tc` and RGBA32F (the lightmaps) without
+  `OES_texture_float_linear` are decoded to RGBA8 on the CPU.
+- The samplers set no `GL_TEXTURE_LOD_BIAS` on ES (no ES sampler has it), anisotropy only with
+  `EXT_texture_filter_anisotropic`, and `GL_MIRROR_CLAMP_TO_EDGE` only where a probe at init
+  finds the driver takes it (else `CLAMP_TO_EDGE`).
+- `ReadPixels` reads the buffer as it is, the right way up (upstream's is an `#if 0` stub of
+  D3D11 code, its shots black); `Exit()` runs once and tolerates a failed unmap, as the intro
+  can end the game after the window's context is gone.
 
 ### Script VM
 
-With 0013, these took the Smart Pro's script time from ~125 ms a frame to
-~30 by 0017; with the collision patches (0025–0027) it was ~25 before 0028.
-
-- [**0006**](https://github.com/JuggyMcNutty/VibeEngine/commit/af2ed868bfe107485ad905a2c183405f01139391)
-  `vm-call-path-without-casts` -- parameters from `Properties`, and a per-class
-  virtual-function cache: no `dynamic_cast` on the call path. **Smart Pro:**
-  script ~125 → ~84 ms.
-- [**0007**](https://github.com/JuggyMcNutty/VibeEngine/commit/9cc49e284b2e5f3d9f9a12fbd0449117afbc9d79)
-  `vm-call-overheads` -- native frames without locals, event names looked up
-  once, plain-data locals zero-filled. **Smart Pro:** script ~84 → ~77 ms.
-- [**0012**](https://github.com/JuggyMcNutty/VibeEngine/commit/f4ea318b0b71718e83c19b0e0efd208379bfc91c)
-  `vm-evaluator-per-statement` -- one expression evaluator per statement,
-  nested values returned directly. **Smart Pro:** script ~60 → ~55 ms.
-- [**0014**](https://github.com/JuggyMcNutty/VibeEngine/commit/829adcbd7e1d6e109ae2cd81f67f4e46a84f5c95)
-  `vm-calls-without-allocation` -- script calls without heap allocations or
-  walks over every local. **Smart Pro:** script ~39 → ~35 ms.
-- [**0015**](https://github.com/JuggyMcNutty/VibeEngine/commit/6ba1983af99b9fd70a1e6133a70332578a13431c)
-  `vm-fast-operators` -- the 25 commonest operators evaluated in place. **Smart
-  Pro:** script ~35 → ~31 ms.
-- [**0016**](https://github.com/JuggyMcNutty/VibeEngine/commit/e28aa410d11e3a07848d602d814171d0b99c470f)
-  `vm-event-lookup-cache` -- events found through the virtual-call cache.
-  **Smart Pro:** within the noise (tick ~71.2 → ~70.7 ms).
-- [**0017**](https://github.com/JuggyMcNutty/VibeEngine/commit/51d45aa37c96a9bc5656d4ce5d89992e94fa8d13)
-  `vm-leaf-expressions` -- the commonest leaf expressions made without the
-  visitor. **Smart Pro:** tick ~70.7 → ~69.3 ms.
-- [**0028**](https://github.com/JuggyMcNutty/VibeEngine/commit/40e219ac8bc05a349950766408daea74c77c57bb)
-  `vm-typed-evaluation` -- conditions, `&&` and `||`, the fast operators and
-  assignments to plain variables evaluated as plain values, each node
-  classified once, instead of through an 88-byte `ExpressionValue`; a typed
-  node carries the offset or operands it reads. **Smart Pro:** script ~25.4
-  → ~22.7 ms, tick ~54 → ~51 ms; at 853×480 the frame ~108.5 → ~106 ms.
-  **Checked:** also a hash of every actor's state, frame by frame, with the
-  frame time and random seeds fixed (the message has both checks).
-- [**0029**](https://github.com/JuggyMcNutty/VibeEngine/commit/7e93fe7b86f0e449454db03d9d8eb02b55d6dcfd)
-  `vm-statements-in-place` -- conditions, jumps, assignments to plain
-  variables, calls, `return;` and a foreach's next pass run by `Frame::Run`
-  in place, without an `ExpressionEvalResult` each; a jump keeps its target's
-  statement index. **Smart Pro:** script ~22.7 → ~21.4 ms, tick ~51 → ~50
-  ms; at 853×480 the frame ~106 → ~105 ms. **Checked:** the actor-state hash,
-  on Liberty Island and UNATCO HQ.
+The fork reworks upstream's `ExpressionEvaluator` and `Frame::Run` for speed (0006, 0007, 0012,
+0014–0017, 0028, 0029): no `dynamic_cast` or heap allocation on the call path (parameters from
+`Properties`, functions and events found through `UClass::VirtualFunctionCache`); each
+expression node classified once (`ExpressionEvaluator::Classify`, `Expression::TypedKind`), so
+conditions, `&&` and `||`, the commonest operators (`UFunction::FastOperator`) and assignments
+to plain variables evaluate as plain values, not through an `ExpressionValue`; conditions,
+jumps, plain assignments, calls, `return;` and a foreach's next pass run by `Frame::Run` in
+place, without an `ExpressionEvalResult` each (`Frame::ClassifyStatement`). A call leaving out
+an optional struct or array argument does not copy it, where upstream crashes (0033). Upstream's
+`Frame::Run` calls its own interpreter, `Frame::RunExpr`, in place of `ExpressionEvaluator`,
+which holds this work.
 
 ### Game tick
 
-- [**0013**](https://github.com/JuggyMcNutty/VibeEngine/commit/9720823c814691ca1455cbef65d13c629fac2a60)
-  `actor-iterators-by-class` -- the actor iterators find a class's actors from
-  an index, not a scan of the level (`CycleActors` alone had been ~16 ms of the
-  tick). **Smart Pro:** script ~56 → ~39 ms.
-- [**0025**](https://github.com/JuggyMcNutty/VibeEngine/commit/f984a7800675f85cc5e7eb134de36b03ffa8aef8)
-  `ray-trace-segment-split` -- a ray trace hands each BSP child only its own
-  part of the segment. **Smart Pro:** tick ~61.5 → ~58 ms.
-- [**0026**](https://github.com/JuggyMcNutty/VibeEngine/commit/0f9ce6cccd7dbc52bf0c71a57ae9490573e08d18) `sight-line-cells`
-  -- sight lines test the actors of only the collision cells they cross; hull
-  planes on the stack. **Smart Pro:** tick ~58 → ~56 ms.
-- [**0027**](https://github.com/JuggyMcNutty/VibeEngine/commit/469d9c8a26d8e910b14576bfca4fb650862681d3)
-  `step-down-one-trace` -- a walking pawn's step to the ground made with the
-  trace its dry run made. **Smart Pro:** tick ~56 → ~53 ms.
-- [**0030**](https://github.com/JuggyMcNutty/VibeEngine/commit/2d315e3602663f73f802a25a58c282ae545dafec)
-  `ray-plane-tests-first` -- a ray tests a polygon's plane before reading its
-  vertex count and surface, which lie on other cache lines. **Smart Pro:** the
-  sight rays' polygon tests (`NodeRayIntersect`) ~3.3 → ~1.9 ms.
-- [**0031**](https://github.com/JuggyMcNutty/VibeEngine/commit/0098ca8c5f69c1d2c8ff397a75d1915afc20872b)
-  `collision-cell-table` -- each collision cell's actors found in an
-  open-addressed table and kept in an array, not a `std::unordered_map` of
-  `std::list`s. **Smart Pro:** the traces' walk of the cells
-  (`TraceTester::Trace`) ~1.4 → ~0.5 ms, and ~0.3 in the new `FindCell`.
-- [**0032**](https://github.com/JuggyMcNutty/VibeEngine/commit/e9a806d56f88f63efded8ec14f8487afbc863b0a)
-  `collision-move-overheads` -- a move asks once per actor whether it is a
-  player or a projectile, and traces sort and sift their hits without heap
-  allocations. **Smart Pro:** `dynamic_cast` in the tick ~2.9 → ~1.5 ms;
-  `TraceTexture`, which collects every hit along a laser beam, ~1.9 → ~0.8
-  (0030's share included).
-
-0030–0032 were measured on the Smart Pro together: tick ~50 → ~39 ms, the
-collision traces ~12 → ~8 ms a frame, and the render CPU ~2.5 ms less. Each
-was checked with the actor-state hash on Liberty Island and UNATCO HQ (their
-messages say how).
+The actor iterators find a class's actors from an index, not a scan of the level (0013).
+Collision, for every game: a ray trace hands each BSP child only its part of the segment (0025)
+and tests a polygon's plane before its vertex count and surface (0030); sight lines test the
+actors of only the cells they cross (0026); each cell's actors sit in an open-addressed table,
+found by `CollisionSystem::FindCell`, where upstream keeps a `std::unordered_map` of
+`std::list`s (0031); moves and traces go without casts and heap allocations (0032); a walking
+pawn steps to the ground with its dry run's trace (0027). Deus Ex's traces and moves are
+`Engine.dll`'s (its backoffs, `FindSpot` and encroachment, moves held off what they meet as
+`ULevel::MoveActor` holds them, landing as `processLanded`; [implemented, not as the
+original](NATIVES.md#implemented-not-as-the-original)), in
+`SurrealEngine/Collision/TopLevel/TraceTest.cpp` and `UActor_Phys.cpp`.
 
 ### Gameplay
 
-What Surreal Engine lacked for Deus Ex to play as it should.
+What else Deus Ex needs is gated as [above](#how-it-is-kept) and described by feature in
+[`NATIVES.md`](NATIVES.md). Where a merge meets the most of it:
 
-- [**0033**](https://github.com/JuggyMcNutty/VibeEngine/commit/bec6e261edcd00d9225cb95ef7e4a8e0b7298261)
-  `vm-omitted-optional-arguments` -- a script call that leaves out an optional
-  struct or array argument no longer crashes copying it (upstream's bug): the
-  first NPC to attack hit it, in `ScriptedPawn.ComputeBestFiringPosition`.
-- [**0034**](https://github.com/JuggyMcNutty/VibeEngine/commit/b5d08853dbf4e24894d56942c07a5a743438e824) `deusex-ai-sight`
-  -- NPCs see: `IsValidEnemy`, `AICanSee` and `AIVisibility` as the original
-  DLLs have them; upstream had the first wrong and the others as stubs, so no
-  NPC ever noticed the player, or anyone. **Smart Pro:** the sight checks take
-  ~0.3 ms of the tick. **Checked:** on Liberty Island an NSF terrorist, with
-  the player moved in front of it, made the player its enemy ~3.5 s later
-  (the build-up the script gives a faint sighting at night), and it and two
-  more shot at the player; NPCs of hostile alliances check each other.
-- [**what stopped the game**](https://github.com/JuggyMcNutty/VibeEngine/commit/db0df9a1205ef9f55c9abf83d61c7da26efdbac0) --
-  the roadmap's M0 ([`ROADMAP.md`](ROADMAP.md)): `ReachablePathnodes` makes
-  an (empty) iterator instead of stopping the VM in Battery Park's opening
-  fight (the original's nodes since: moving, below); the save's
-  `DeusExSaveInfo` lives in package DeusEx, so a save no longer dies writing
-  it (in a package of its own since: loading, below); `GetConfig` answers from the system ini;
-  `GetPawnAllianceType(None)` is Neutral; integer division by zero gives 0;
-  string `>` is native 116, not the typo 1186. **Checked:** an 80 s Battery
-  Park run and quick saves in two maps run out their clocks; the commit's
-  message has the rest.
-- [**saves, the original's way**](https://github.com/JuggyMcNutty/VibeEngine/commit/4dfc7a6dd5b1571d7fbab03fac6fd4e5a899d78b) --
-  the first slice of the roadmap's M1: slots numbered highest-plus-one, the
-  quick save in QuickSave, Current copied into the slot with the level saved
-  on top, the SaveInfo filled and named as the original's
-  (`MyDeusExSaveInfo`), the save listing and kept infos, and DELETEGAME.
-  **Checked:** against the original's reference saves; the commit's message
-  has the runs.
-- [**loading**](https://github.com/JuggyMcNutty/VibeEngine/commit/0058015cccdadd262b56eb819bbd00f7213426a3) --
-  `?loadgame=N` as the original's `Browse`: the slot's SaveInfo names the
-  map, Current takes the slot's copy, the map loads from Current, the saved
-  pawn is possessed; -1 the quick save. Behind it, the save info in a
-  package of its own, and packages born empty carrying version 68 -- with
-  either wrong, a written SaveInfo.dxs cannot be read back. **Checked:** a
-  slot and the quick save round-trip in play; the original's saves stop at
-  their saved event manager (ported with the AI event system, later).
-- [**travel keeps the mission**](https://github.com/JuggyMcNutty/VibeEngine/commit/1a654c7e481bcf5ab223d702df14d85c4f76a11f) --
-  within a mission the departing level is pruned and saved into Current,
-  and a map saved there is revisited as the player left it, its pawn found
-  again by the game's own login; a new mission, a new game or ?restart
-  empties Current. **Checked:** a travel out and back revisits from
-  Current, and the slot save after it has the reference hub save's shape.
-- [**history in the level**](https://github.com/JuggyMcNutty/VibeEngine/commit/33c1e3f896010ca4138d912becc71be732063f82) --
-  the player's history, log and notes are made in the level, as the
-  original's, so a save keeps them.
-- [**flags as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/cd973b15a6dbf9042173c2a1039dd55b6dbc3d98) --
-  chains past 64 by a CRC of the name, stamped expirations, expiry to a
-  criteria, -1 for a missing flag, and typed flags found again. Its cleanup
-  of a test hook cut real main-loop code, restored by
-  [the commit after](https://github.com/JuggyMcNutty/VibeEngine/commit/4f6ed66a469ac232245e3fa1493d44c24b4dc0c0).
-  **Checked:** an in-engine self-test for the flags; a 60 s run for the loop.
-- [**list fields read back**](https://github.com/JuggyMcNutty/VibeEngine/commit/fb7b29d64cbca6e48a81032b99197200e430b7e9) --
-  GetField's column test was inverted, so every screen keeping what a row
-  stands for in a hidden column read nothing.
-- [**flags kept and carried**](https://github.com/JuggyMcNutty/VibeEngine/commit/c8bf4374ac27a97ea80d04487ad9406ee930d52f) --
-  the flag base and its flags live in the level package, so a save keeps
-  them, and they cross a travel in the pawn's travel graph: the travel
-  serialization walks every element of a fixed-array object property (the
-  base's 64 buckets), travelled non-actors land in the new level's
-  package, the travel info is captured before the pre-travel prune, and
-  the prune deletes the departing level's flags as the original's does.
-  GameDirectory objects are made per call again. **Checked:** 21 flags
-  set across the buckets survive a travel and a save's load-back.
-- [**conversations as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/39e9df99bee7938823ec3ee9ddf5a21468d1d0e6) --
-  the roadmap's M2 conversations item: comment events kept, an actor's
-  conversations bound by the original's bark rule from the list the level's
-  `ConversationPackage` names, the bound-actor slots filled so a destroyed
-  actor ends its conversation, cycle-once chatter holding its last line,
-  and each line's sound loaded alone, by name
-  ([conversations](NATIVES.md#conversations)). **Checked:** the intro's
-  scene plays its lines at their own lengths; a temporary hook printed
-  Liberty Island's bound lists, the named troopers owning their own
-  conversations plus the `_Bark`s; 90 s and 75 s runs clean.
-- [**the text parser as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/752ff87d222426b2aa305eac563b74344bc88ca5) --
-  the roadmap's M2 parser item: the original's tokens (CR and LF as spaces,
-  nothing trimmed, the first `<P>` swallowed), its 30-name tag table matched
-  by start, its fields split at commas, its hiding to an end tag, the
-  player's first name, and the colours read
-  ([what the player reads](NATIVES.md#what-the-player-reads)). **Checked:**
-  a temporary hook put five texts through it against their SDK sources --
-  emails list with their fields, bulletins open, comments hide, header
-  spaces and blank lines keep, `PLAYERFIRSTNAME` gives the first name; a
-  70 s run after the hook's removal is clean.
-- [**the list window as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/48c0987a562d64820081012a2602ff3e61425d85) --
-  the roadmap's M2 lists item: rows activate on a double click or Enter
-  (`ListRowActivated`, which key rebinding hangs on), `MoveRow` takes the
-  keys and a pad's d-pad through a list, the original's sorting and column
-  keys, auto-expanding columns and the original's new-column defaults,
-  hidden columns unseen, float fields keeping their number and shown
-  through the column's format ([lists](NATIVES.md#lists)). **Checked:**
-  a temporary in-engine self-test drove sorting (name, number, reverse),
-  the number reader (hex, octal, hours and minutes), the format, the moves
-  and a delete's focus; a 70 s run after its removal is clean.
-- [**render time and stasis**](https://github.com/JuggyMcNutty/VibeEngine/commit/c7b3e00624c314757db5655caf8f35f9549d40c7) --
-  the roadmap's first M3 item: the renderer stamps when each actor, zone
-  and decal was last drawn, `LastRendered()` answers the time since, and
-  the tick of an actor in stasis -- the original's full test, not "stasis
-  allowed" -- does nothing and destroys a transient one
-  ([out of sight](NATIVES.md#out-of-sight)). **[perf]** re-measured on
-  the Smart Pro with M3's AI work (2026-09-29,
-  [where a frame goes](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#where-a-frame-goes)).
-  **Checked:** a temporary snapshot hook
-  counted Liberty Island each 8 s -- unseen trees and lamps entered stasis
-  as they aged past 5 s while the drawn-recently count fell; a 70 s run
-  after its removal is clean.
-- [**the AI event system**](https://github.com/JuggyMcNutty/VibeEngine/commit/248538769f65b8e3393d102bdf6136ebe369ed22) --
-  the roadmap's M3 hearing item: the original's `UEventManager`, one per
-  level, saved with it -- senders' 16-frame rings and current levels,
-  receivers in one ring walked under the original's turn and 2 ms rules,
-  scores, senses (`AICanSee`, the original's `AICanHear`), and Begin, End,
-  Pulse and ChangeBest to the listeners' script
-  ([hearing](NATIVES.md#hearing-the-ai-event-system)). The manager's
-  class is synthesized into the Engine package, so a save's import of it
-  resolves; the original game's saved manager was recognized and skipped,
-  which let the original's saves load (read whole since 2026-09-27: the
-  saves the original loads, below). **Checked:** a
-  temporary hook stood the player beside a terrorist and raised
-  WeaponFire -- distress seen by sight, footsteps heard fading, HandleShot
-  fired, and the terrorists' own gunfire became senders; a quick save
-  carried 10 event types and 325 listeners through a load; the reference
-  Liberty Island save of the original game loads and plays; a 75 s run
-  after the hooks' removal is clean.
-- [**ScriptedPawn's native tick**](https://github.com/JuggyMcNutty/VibeEngine/commit/4bd245b6e24503319ae5da17eee8c84ddc1e67cd) --
-  the roadmap's M3 tick item: disappearing, the pivot's easing, agitation
-  and fear (the script's own unused `UpdateAgitation` and `UpdateFear`),
-  the sixteen AI timers, cloaking, the advanced-tactics manoeuvre's end,
-  burning out and bleeding, in the original's order before the actor tick
-  ([the native tick](NATIVES.md#the-native-tick-ascriptedpawntick)).
-  **Checked:** a temporary hook set a patrolling terrorist's fields and
-  read the timers counting, the distress rising, the pivot tweening under
-  the script's own values and the bleeding correctly gated off beyond
-  1,200 units; 90 s and 65 s runs show no script error.
-- [**moving**](https://github.com/JuggyMcNutty/VibeEngine/commit/9df38d9520c7daed9d78fc28bdf59eef6934d9c8) --
-  the roadmap's M3 moving item plus the traces item's
-  `RandomBiasedRotation`: `AIDirectionReachable` walks, swims or flies the
-  pawn itself along a direction and puts it back; `AIPickRandomDestination`
-  tries biased random directions through it; `ReachablePathnodes` iterates
-  the original's `GetPathnodeList` and `ComputePathnodeDistances` floods
-  the network from it
+- **The path search and reachability tests**: Deus Ex's `FindPathToward`, `FindPathTo` and the
+  `pointReachable`, `actorReachable` and `Reachable` they ask are `Engine.dll`'s, walking its own
+  moves (`UPawn_Path.cpp`, `UPawn_ReachDeusEx.cpp`); `RouteCache` stays empty, as the original
+  never fills it; other games keep their own flow over the corrected search
   ([moving](NATIVES.md#moving-wandering-and-tactical-movement)).
-  **Checked:** temporary probes on Liberty Island -- a spot found 280
-  units along a pawn's facing, 13 pathnodes nearest first, the flood
-  reaching 876 of 1,198 navpoints; a 70 s run after their removal is
-  clean, no moving native left unimplemented in it.
-- [**traces, moves, probes and conversions**](https://github.com/JuggyMcNutty/VibeEngine/commit/6f9b5e80cde903b4341d5656ffefc188515b39c1) --
-  the roadmap's last M3 item: one probe mask per object set at every
-  `GotoState` and saved as the original's `FStateFrame` keeps it (a save
-  from before this commit restores its pawns' probes wrongly -- dev saves
-  only); the bool, vector, rotator and object conversions; `VRand` drawn
-  inside the unit sphere and normalised; the trace iterators over the original's
-  `MultiLineCheck`; `ParabolicTrace` whole; `GetBoundingBox` at a test
-  place; `SetPhysics` taking its floor; the strafes at Deus Ex's speed
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
-  **Checked:** a terrorist's probe mask -- a real sparse mask, not the old
-  all-on -- round-trips a quick save exactly; the intro's scene plays 238
-  lip-sync lines through the new mask; 60-70 s runs on both maps after the
-  hook's removal are clean.
-- [**render iterators**](https://github.com/JuggyMcNutty/VibeEngine/commit/14d981b3be8b2053efd55888eb8e689f05ec6f13) --
-  the roadmap's first M4 item: an actor with a `RenderIteratorClass` is
-  drawn as the items its iterator lists and gets no sprite of its own --
-  the interface made and dropped as the original's renderer does, the
-  Init, First, IsDone, CurrentItem, Next protocol each scene frame, each
-  item keeping the proxy's place, turn, scale and glow as it was listed,
-  and the proxy's `LastRenderTime` stamped per item, which the generators'
-  freeze logic reads (since 2026-09-27 each item adds an occlusion proxy
-  instead, the proxy drawn only when one shows past the world: what counts
-  as drawn, below); `ParticleIterator.UpdateParticles` 3017 and both
-  iterators' native `CurrentItem`
-  ([particles and lasers](NATIVES.md#particles-and-lasers-render-iterators)).
-  **Checked:** temporary hooks hopped the player past every generator and
-  emitter -- Hell's Kitchen's street steam rises, grows and fades from its
-  grates; Liberty Island's tripwire lasers list their segment runs across
-  the statue room (no beam showed until the fractal textures, below: its
-  texture is a fire texture), and crossing one raised the alarm infolink; its
-  electricity emitters list every segment when in view; frozen generators
-  list nothing until their proxy is seen; 75 s runs on both maps after the
-  hooks' removal are clean.
-- [**mesh detail**](https://github.com/JuggyMcNutty/VibeEngine/commit/e8f93e31385fadb0a7f10ab96622121e16e30fd7) --
-  the roadmap's M4 mesh-detail item: the original's vertex budget worked
-  out each draw -- falling as one over the actor's depth in the view,
-  sooner for a complex mesh -- where the fork drew every LOD mesh whole at
-  any distance; faces past the budget go, each kept corner walks its
-  collapse list, and the top `LODMorph` fraction slides toward what it
-  collapses to, so detail fades rather than pops
-  ([mesh detail](NATIVES.md#mesh-detail)). The per-vertex work falls
-  with the faces. **[perf]** re-measured on the Smart Pro (2026-09-29): the
-  actor meshes ~7.5 ms of the render for ~40 in view (~11 before), their
-  per-vertex work ~3.7 of it and the vertex lighting ~1.1, where the
-  per-vertex work was ~8. **Checked:** a
-  temporary budget log matched the RE doc's own trooper numbers scaled to
-  the window; a forced-coarse run drew pawns at the floor without
-  breaking the scene; 75 s runs on both maps after the hooks' exact-text
-  removal are clean.
-- [**coronas**](https://github.com/JuggyMcNutty/VibeEngine/commit/c475705704feb8deef5b4e2c23f88e49a0736938) --
-  the roadmap's M4 coronas item: the lights shining into the viewer's own
-  leaf of the BSP at any distance, seen past the world, movers, pawns and
-  other actors but the viewer's own pawn, fading in and out over about a
-  third of a second on real time with up to 32 kept from frame to frame,
-  and drawn in the light's colour times the fade
-  ([coronas](NATIVES.md#coronas)); the fork's old Deus Ex take -- drawn
-  parts of the level within 2,000 units, popping at 2.5 times the colour --
-  is gone, and other games keep upstream's (every drawn `bCorona` actor,
-  hidden by the world only, no fade). Since 2026-09-27 the leaf is the one
-  the player's pawn stands in, the eye's only without one (coronas' colour
-  and lights, below). **Checked:** a temporary log
-  on Liberty Island listed the spawn leaf's two dock-lamp coronas fading
-  0 to 1 in the first third of a second, and a frame dump shows the
-  lamp's glow drawn at its head; a 75 s run after the hooks' exact-text
-  removal is clean.
-- [**blend animations**](https://github.com/JuggyMcNutty/VibeEngine/commit/8ff8289da6ad7f54229fe91638af16f9ce5454f4) --
-  the roadmap's M4 blend-animations item: the four slots over the main
-  animation (head turns, lip sync, blinking) tick as the original's --
-  only while the main animation plays or tweens, up to three times their
-  rate, a slot that ends leaving the rest only the time over;
-  `TweenBlendAnim` tweens from the slot's kept last pose (the old take
-  set a positive frame and never tweened); the original's defaults; and
-  the per-call logs a handheld paid for are gone
-  ([its section](NATIVES.md#head-turns-and-lip-sync-blend-animations)).
-  **Checked:** a temporary slot log through the intro walks Bob Page's
-  mouth through its shapes with tweens caught mid-flight; the audit
-  counts `PlayBlendAnim` implemented; 75 s runs on the intro and Liberty
-  Island after the hook's exact-text removal are clean.
-- [**mesh lighting**](https://github.com/JuggyMcNutty/VibeEngine/commit/cdf259354a7e925f8761155f7a26d8a1e9cd710d) --
-  the meshes half of the roadmap's M4 lighting item: an actor's lights
-  picked once a draw from its leaf's permeating list, the moving lights
-  near it and last frame's -- the strongest first, statics until 8, none
-  below an eighth of the strongest, `bCorona` lights counting -- shadows
-  checked through the BSP every 16 frames instead of on every move, each
-  light fading over about a third of a second, and the original's
-  per-vertex formula in place of the fork's own
-  ([lighting](NATIVES.md#lighting)); the coronas' leaf walk moved to
-  `UModel::FindLeafAt`, shared (the coronas' fallback since 2026-09-27,
-  their leaf the pawn's). Other games keep the old path whole.
-  **Checked:** a temporary log through the intro shows 4-7 leaf lights
-  taken with fades ramping and a wall marking one shadowed; the
-  Page-Simons scene's frame dump shows faces in the chamber's ambient
-  and the suit under its key light, nothing blown out; 75 s runs on the
-  intro and Liberty Island after the hooks' exact-text removal are
-  clean.
-- [**light maps**](https://github.com/JuggyMcNutty/VibeEngine/commit/1cba281581db6c206eccb912f4e242ab444429b7) --
-  the light-maps half of the M4 lighting item: a surface's still lights
-  are its kept static map and only its animating lights are added over
-  the loaded colors each frame, through their own shadow bits, where an
-  animated light used to rebuild the whole list -- ambient, shadows and
-  all -- every frame; `NoDynamicLights` works (animated stilled into the
-  map, moving left out); a mover's maps rebuild only when it moved,
-  turned or a light changed ([lighting](NATIVES.md#lighting), with
-  what stays the fork's own). **[perf]** the Smart Pro's lightmap-upload
-  item shares this shape; re-measured there 2026-09-29: the lightmaps ~3.7
-  ms, their uploads ~2. **Checked:** temporary counters
-  -- both test maps bake their static maps once and rebuild nothing from
-  their spawn views (the island's movers rebuilt every frame before);
-  at the 'Ton's flickering sconces ~90 surfaces a frame go through the
-  animated add alone, shadows held, the wall's brightness alternating
-  with the flicker across frame dumps; 75 s runs on both maps after the
-  hooks' exact-text removal are clean.
-- [**fractal textures**](https://github.com/JuggyMcNutty/VibeEngine/commit/eb97215ea939c7d8154b88b93f6a84392492839e) --
-  a late M4 item: `Fire.dll`'s fire, water, wet, wave and ice textures as
-  the original steps and draws them (`FireEngine.cpp`), paced as its
-  `UTexture::Tick` paces them -- those with no `MaxFrameRate` at most 60
-  steps a second, where the original steps them every frame; a mesh's
-  textures chosen, animated and masked as the original's, and sent to the
-  GPU again when they change, which patch 0019's batching had stopped for
-  any texture drawn on a run of two faces or more
-  ([fire, water and ice textures](NATIVES.md#fire-water-and-ice-textures)).
-  **[perf]** a fire or water step is the original's work now; to measure
-  on the Smart Pro. **Checked:** against the DLL's own routines in an
-  emulator, byte for byte
-  ([how](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md#how-it-was-checked));
-  the Dragon's Tooth in hand matches the original's in both engines'
-  shots; a 65 s proving run on Liberty Island is clean.
-- [**loudness**](https://github.com/JuggyMcNutty/VibeEngine/commit/f8d46930a679474967358626ccfefa1f3b1e0a6c) --
-  M5's first item: Deus Ex plays the script's volume -- no rescale
-  toward 1, no halving -- with fall-off linear from the sound to its
-  radius and silent there, and the product capped at full, the Sound
-  slider its ceiling ([sound](NATIVES.md#sound); since Galaxy's mixer,
-  below, each sound plays at its own slider times the louder of the two);
-  a slider move
-  reaches playing sounds now, where a stored value used to wait for the
-  sound's own volume to change. Other games keep the fork's old
-  loudness. **Checked:** a 90 s Liberty Island run with real audio (the
-  distrobox reaches PipeWire since 2026-09-25): the device initializes,
-  ambient sounds play, no AL errors.
-- [**the Speech slider**](https://github.com/JuggyMcNutty/VibeEngine/commit/7fb656a02a0fbc958c6931b8e9dad2a9caf7e594) --
-  `SpeechVolume` is a setting of the fork's audio device, served over
-  the property interface the game's menu binds; speech (the talk slot)
-  gains by it, the rest by the Sound slider (since Galaxy's mixer, below,
-  each by its own slider times the louder one); the three instant-volume
-  natives set the subsystem's sliders, so a menu drag holds instead of
-  lasting one frame, and `SetInstantSpeechVolume` 269 is no stub
-  ([sound](NATIVES.md#sound)). **Checked:** a 90 s intro run -- its
-  conversation exercises the talk slot -- with no AL errors.
-- [**Doppler**](https://github.com/JuggyMcNutty/VibeEngine/commit/ccb021c132731581422cc08ec06fa27a6b453ef5) --
-  only an ambient sound's pitch shifts, by its actor's speed away from
-  the view target at `DopplerSpeed` (a setting, default 6,500), kept to
-  0.5–2, worked out in the ambience update with AL's own
-  listener-velocity Doppler off for Deus Ex -- it used to shift every
-  sound by the player's speed at ~14,800
-  ([sound](NATIVES.md#sound)). **Checked:** a 75 s Liberty Island
-  run with real audio, no AL errors.
-- [**the smaller sound notes**](https://github.com/JuggyMcNutty/VibeEngine/commit/ebf27d6d2301ad350609e6c792df191d89683cf3) --
-  a sound beyond its radius is dropped as the original drops it (its
-  priority goes negative, never beating an empty channel); the mouth
-  shapes lose the fork's own `M` band, `E` reaching to 250 Hz; and
-  `bIsSpeaking` is the script's alone -- `nextPhoneme` written only
-  while ConPlay has it set, the mouth no longer forced closed on a
-  channel's teardown ([sound](NATIVES.md#sound)). **Checked:** a
-  75 s intro run whose conversation drives the lip sync through
-  ConPlay's own flag, no AL errors.
-- [**sounds behind walls**](https://github.com/JuggyMcNutty/VibeEngine/commit/839bd2ce9253d756ea446ab6a55f3715d2615539) --
-  each channel keeps an obstruction time: while the level's BSP stands
-  between the player's own eyes and the sound's actor (movers and
-  actors never block), it grows by the update's own 0-1 s time step to
-  0.5 s and shrinks as the line clears, the channel playing at
-  1 − 2 × that time, at least 0.33 -- a fade to a third over half a
-  second and back; speech and actorless sounds are never muffled
-  ([sound](NATIVES.md#sound)). **Checked:** a temporary transition
-  log on Liberty Island -- ambients clear at true distances, LightWind
-  blocked behind terrain at a third, a boat's idle crossing both ways;
-  a 75 s run after the hook's exact-text removal is clean.
-- [**ambient sounds on lights**](https://github.com/JuggyMcNutty/VibeEngine/commit/c6205fa8cd5a76d294bdadbc2afbb61f4b27cd2c) --
-  an ambient sound on a lit actor is scaled by `LightBrightness` ÷ 255
-  and the light's momentary animation (the renderer's own shapes:
-  pulse, subtle pulse, blink, strobe, and flicker from the renderer's
-  `FlickerRandom`), capped at 1, where the original reads its
-  renderer's `GlobalLighting`; the palette light types stay steady
-  ([sound](NATIVES.md#sound)). Since 2026-09-28 it is the renderer's
-  `GlobalLighting` itself, the original's pulse and the palette lights
-  cycling (light maps as the original's bytes, below). **Checked:** a temporary log on
-  Battery Park named the lit carriers and showed the security cameras'
-  hum at exactly 2 × 0.7 × (192/255) × (120/255) = 0.496 of full; a
-  75 s run after the hooks' exact-text removal is clean.
-- [**music**](https://github.com/JuggyMcNutty/VibeEngine/commit/ed063b1bb828726479031c2e68315214a162ef4a) --
-  a transition fades the playing music out first (1 s `MTRAN_Fade`,
-  5 s `MTRAN_SlowFade`, 1/3 s `MTRAN_FastFade`, at once otherwise,
-  plus twice `Latency`), then the song starts at full volume at the
-  order `SongSection` -- an order now, not a libopenmpt subsong -- a
-  different song loaded, the same one only jumping; the playing order
-  is written back into `SongSection` each frame while no transition
-  waits, and section 255 stops the music
-  ([sound](NATIVES.md#sound)). **Checked:** a temporary hook drove
-  a forced fade (1.08 s = 1 s + 2 × 40 ms Latency, exactly), a
-  same-song jump to order 4 with no reload, a 5.08 s slow fade, and
-  the write-back tracking the playing order; a 75 s run after the
-  hooks' exact-text removal is clean.
-- [**zone reverb**](https://github.com/JuggyMcNutty/VibeEngine/commit/ec7c4cd937d2c5cccfe52faf7c236be9b6181632) --
-  a zone with `bReverbZone` gives every sound its reverb through
-  OpenAL's EFX (one auxiliary slot each source sends to, a NULL effect
-  while no zone asks), set again only when the view target's zone
-  changes; the Galaxy-to-EFX mapping is the fork's own -- `MasterGain`
-  the gain, `CutoffHz` a one-pole lowpass at EFX's 5 kHz reference,
-  the echo train's longest tap the decay, the earliest the reflections
-  delay -- and music stays dry ([sound](NATIVES.md#sound)).
-  **Checked:** a temporary hook dropped the player into Battery Park's
-  reverb zone: the watch fired once and the derivation came out exact
-  (gain 0.392 = 100/255, gainhf 0.768, first tap 40 ms), no AL errors;
-  a 75 s run after the hooks' exact-text removal is clean. EFX's reverb
-  gave way to Galaxy's own with Galaxy's mixer (below).
-- [**keys released under a menu**](https://github.com/JuggyMcNutty/VibeEngine/commit/6a14fdb01e6fb4f9e5cb9cab2f14e994fe6d3cea) --
-  when the UI takes a key, every key the input holds down is released
-  (the tracked buttons false, the axes zero), and a taken mouse button
-  clears only `bFire`/`bAltFire`, both as the original's; a movement
-  key held into a menu no longer walks the player off when it closes
-  ([the UI](NATIVES.md#the-ui)). **Checked:** a temporary hook
-  drove a synthetic held key into an opened menu -- 3 held axes
-  released on the first key event the menu took and stayed clear;
-  a 75 s run after the hook's exact-text removal is clean.
-- [**showing and hiding**](https://github.com/JuggyMcNutty/VibeEngine/commit/ff41d8afcdb11881616af37ade273beca431ec1d) --
-  `Show` and `Hide` ask the window's parent
-  (`ChildRequestedVisibilityChange`, whose script default calls
-  `SetChildVisibility` back on the child; the root sets its own), and
-  `SetChildVisibility` is whole: when the flag changes what can be
-  seen, focus and grabs move away from what is hidden,
-  `VisibilityChanged` goes down the tree, and the tree lays out again
-  -- so `DeusExHUD` re-lays itself as the InfoLink and the log come
-  and go ([the UI](NATIVES.md#the-ui)). **Checked:** a temporary
-  flip log showed the game's own `DeusExHUD` handler firing as the
-  HUD's displays hide and show through real play, and the whole HUD
-  hiding as a synthetic Escape opened the menu, the round trip
-  completing; a 75 s run after the hooks' exact-text removal is clean.
-- [**borders tiled**](https://github.com/JuggyMcNutty/VibeEngine/commit/dfc51c594b5cb9b1a1e2717888a8fcd9e82799b5) --
-  `GC.DrawBorders` tiles each edge and the centre at one texel a pixel
-  (a source rect the size of the run, the same idiom `DrawPattern`
-  uses) instead of stretching them over their length, and honours the
-  stretch flags; margins, which the game never passes, stayed
-  unimplemented ([the UI](NATIVES.md#the-ui)) -- the original's since
-  2026-10-02, the nine pieces laid out as its own (the borders' margins and
-  layout, below). **Checked:** the
-  call sites need a player on the themed screens, so the look is the
-  by-hand check's; a synthetic F1 probe confirmed the Persona screen
-  opens modal and renders, and a 75 s run is clean.
-- [**the key stubs**](https://github.com/JuggyMcNutty/VibeEngine/commit/f554c6eb89b3bbeaf03ca0e85986d6468390e08e) --
-  `EditWindow.Undo`/`Redo` walk a real change list (typing joins,
-  `maxUndos` caps, Ctrl+Z/Ctrl+Y call them; two edit bugs fixed on the
-  way: inserting over a selection dropped the wrong span, backspace at
-  0 pushed the insertion point to −1); `MoveTabGroupNext`/`Prev` move
-  focus between visible tab groups for Tab and Shift+Tab with
-  `GetTabGroupWindow` real; `RootWindow.LockMouse` holds the pointer
-  and eats buttons ([the UI](NATIVES.md#the-ui)). **Checked:** a
-  temporary hook drove all three -- the pointer held under lock and
-  moved after; MoveTabGroupNext focused MenuMain; five typed
-  characters and two backspaces made exactly 3 changes, undo walking
-  'hel' → 'hell' → 'hello' → '' and redo back; a 75 s run after the
-  hook's exact-text removal is clean.
-- [**the small leftovers**](https://github.com/JuggyMcNutty/VibeEngine/commit/a24bcc10396c5aae63567bd6ee350a6e68f496f0) --
-  `FindStairRotation` eases the view down (−5,000) or up (5,400) a
-  flight of stairs from a floor probe ahead at eye height (the probe
-  distances and easing rate the fork's reading);
-  `ResetKeyboard` re-reads the bindings from `User.ini`;
-  `AIGetLightLevel` returns the AI-sight work's own light;
-  `SET InputExt` lands in the key bindings, so the multiplayer keys
-  bind once instead of failing on every map; and a window sound plays
-  one unit from the player, turned by the point's place across the
-  screen when positional sound is on
-  ([small](NATIVES.md#small)). **Checked:** the two log-visible
-  fixes directly -- the InputExt failures and the ResetKeyboard stub
-  line are gone from a 75 s run, leaving only DumpLocation's known
-  not-needed stub; the stairs tilt and the positional sound need
-  their options switched on by hand.
-- [**GC.DrawActor**](https://github.com/JuggyMcNutty/VibeEngine/commit/ca39cb532a9a21d246b8bb2c3a88be44b765eddc) --
-  the vision augmentation's heat sources: the actor draws through the
-  renderer into the scene being drawn with the GC's style, the glow
-  and unlit given, the draw scale multiplied and a given skin
-  replacing every skin, as if not hidden, all put back afterwards;
-  `RenderSubsystem::DrawActor` restores the actor's own `bHidden`
-  instead of forcing it hidden (the Canvas natives shared that stomp);
-  `bConstrain` stays unhonoured, the augmentation's calls covering the
-  whole view ([the UI](NATIVES.md#the-ui)). **Checked:** a
-  temporary hook drew a live visible pawn through the path for 120
-  canvas frames at glow 2 unlit, the fields reading back their own
-  values between frames; a 75 s run after removal is clean.
-- [**the save picture, the menus' background and the save screens' lists**](https://github.com/JuggyMcNutty/VibeEngine/commit/7ea6d871602fc6b8440693fca85dfadc905459da) --
-  the roadmap's last M1 item: the original's grey snapshot of the frame
-  last drawn, read back between frames, which a save takes when asked
-  into a texture beside its save info; the UI background's Snapshot and
-  Black, the world not drawn under them and the raw background drawn
-  under the windows; and the save screens working through the game's
-  script -- the list window sized as the original's (every list in a
-  scroll area had drawn no rows), the listing read by place, the free
-  space measured on the save path, sizes in KB, the temporary save info
-  made ([saving](NATIVES.md#saving-loading-and-travel),
-  [lists](NATIVES.md#lists), [the UI](NATIVES.md#the-ui)).
-  **Checked:** a temporary hook drove the game's own screens -- a save
-  through the Save Game screen's button, its picture read back from disk,
-  the Load Game screen listing it with the quick save and the original
-  game's reference save and showing that save's own picture, and the main
-  menu over the snapshot and over black; a 70 s run after the hook's
-  exact-text removal is clean.
-- [**M0's two findings**](https://github.com/JuggyMcNutty/VibeEngine/commit/69daeb00a50cc6b06914a6077ad2171603141226) --
-  a mover with no brush collides as its cylinder and a model with no BSP
-  nodes is hit by nothing (`09_NYC_ShipBelow` crashed in a trace), and the
-  swimming gravity floors the mass at 1 (`14_OceanLab_Lab`'s massless
-  pawns made a NaN height its splash sounds died on)
-  ([stops the game](NATIVES.md#stops-the-game)). **Checked:**
-  temporary hooks named the mover, the NaN actors and the failing audio
-  call; 70 s runs of both maps after their removal are clean, OceanLab's
-  with real audio.
-- [**the root window starts with the world drawn**](https://github.com/JuggyMcNutty/VibeEngine/commit/48fd9b9055ca99734622e99be7537ccfa14c6fcc) --
-  the save picture commit had the renderer skip the world while the root's
-  rendering is off, and the fork made its root with it off where the
-  original's init turns it on: a freshly loaded map drew only the HUD until
-  a menu opened. Its runs drove the menus first and never showed it.
-  **Checked:** `vibe/tools/dxcap.sh prove` on Liberty Island -- both shots
-  drawn.
-- [**`--ini`, `--userini` and `shot`**](https://github.com/JuggyMcNutty/VibeEngine/commit/eae19f339465de4383f356eb86760df08ac53bc4) --
-  the original's `INI=` and `USERINI=`, and its `SHOT` command, for
-  [scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines).
-  **Checked:** one console class drove both engines to Liberty Island's
-  start and shot it.
-- [**`SetLocation` as the original's `FarMoveActor`**](https://github.com/JuggyMcNutty/VibeEngine/commit/df9421601397dac5808857bb152a952a809977d0) --
-  the actor's zone found again on every teleport (it stayed stale until
-  physics next moved the actor), `bJustTeleported` and `OldLocation` set,
-  what stood on it unbased, a static actor left put; `ZoneChange` run while
-  `Region` still holds the zone being left, so items splash into water; Deus
-  Ex's zone rules left to its scripts
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
-  **Checked:** proving runs on Liberty Island and Battery Park; a scripted
-  run found Battery Park's reverb zone by teleporting into it.
-- [**`--ini` with a game's ini**](https://github.com/JuggyMcNutty/VibeEngine/commit/57c82331a6a7a8e2faed75cfd50ce6d22df5790a) --
-  the client's, audio's and render device's settings read from the game's
-  sections, not left at the engine's defaults.
-  **Checked:** a recorded run's music off as its ini says, its window at
-  the ini's size.
-- [**the script's sockets**](https://github.com/JuggyMcNutty/VibeEngine/commit/c47b8b29df56560c4397ad0014fdaa952b9a65c0) --
-  `InternetLink`, `TcpLink` and `UdpLink` as `IpDrv.dll`'s: the original
-  constructor's link and receive modes, host-order addresses, GameSpy's
-  `Validate`, one read a tick raised by link mode, the TCP states
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** both engines
-  asked 333networks' master server and pinged its servers alike; the Join
-  Internet screen lists the live servers.
-- [**the sky zone turned the right way**](https://github.com/JuggyMcNutty/VibeEngine/commit/11e582e6c005a5b7cd8eaea527f58a277fdd91e4) --
-  the sky's view turned by the inverse of the sky zone's rotation: Liberty
-  Island's city had stood 56° off the original's ([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)).
-  **Checked:** the skyline where the original's is in three captures.
-- [**joining a server**](https://github.com/JuggyMcNutty/VibeEngine/commit/deb094e39e644ad40981361e597338add798ba5a) --
-  a client's side of the original's protocol: a server's address
-  in a URL, the UDP connection and channels, the handshake, the map loaded as
-  a client's, the package map, actor channels receiving the server's actors,
-  properties and calls, the player possessed; an older package's GUID from
-  its heritage ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the
-  fork joined the original's listen server twice and showed its world; the
-  server logged both joins.
-- [**the client's calls and moves**](https://github.com/JuggyMcNutty/VibeEngine/commit/4946f4ea289608f0c10d42aedb4ec1a981773c09) --
-  an actor's call in a net game sent to the server or held back by the
-  original's rule, actors ticked by their roles, the viewport's speed and
-  update intervals, the flush after a tick that sent, and the client's frame
-  rate capped at its speed over 64 ([multiplayer](NATIVES.md#multiplayer)).
-  **Checked:** the fork's player walked on the original's server and ended
-  where the server had it; the host's player moved smoothly on the fork.
-- [**the fork listens**](https://github.com/JuggyMcNutty/VibeEngine/commit/cbc8a8ead8d5fc7768c83780e0567c765fb750f3) --
-  a `?listen` map's net driver, the handshake's server side, the packages in
-  the original's order, and a joining player spawned as the original's
-  `SpawnPlayActor`; a URL's last option no longer dropped
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the original
-  joined the fork's server and got its player spawned.
-- [**the server replicates**](https://github.com/JuggyMcNutty/VibeEngine/commit/09e7b0d8091f6643d68ce4531fd9165e530febbd) --
-  each client sent what the original's server sends it: the viewer, the
-  actors due, priority, relevancy, channels, and each actor's changed values
-  against what that client last got; a client's sends taken as the
-  original's server takes them; a client's pawn ticked as the original's
-  server ticks it; `SimAnim` packed by the animation natives
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the original
-  joined the fork's server, possessed its pawn, saw the map's actors and
-  the host's player walking, and walked on the server.
-- [**the server calls its clients**](https://github.com/JuggyMcNutty/VibeEngine/commit/19ec313296c91a3dd471c666f83bf742318586d0) --
-  a call on an actor a client's player owns goes to that client, the
-  actor's channel opened and the actor sent first if need be; a channel the
-  other side opens is acknowledged from its opening bunch
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the original
-  client got the server's calls and a position correction, and ended where
-  the fork's server had it.
-- [**the server's `ServerActors`**](https://github.com/JuggyMcNutty/VibeEngine/commit/77c37156542ba19f34ef2435837d0ab563a82271) --
-  a listening server spawns the game engine's `ServerActors` with their
-  settings; a URL's port defaults to `[URL]`'s; Deus Ex's engine and net
-  versions are 1100; the computer name is the machine's
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the LAN beacon
-  and the query answerer replied as the original's, but for the host name.
-- [**a client's level gives no travel info**](https://github.com/JuggyMcNutty/VibeEngine/commit/50dca82dfcf5c9d9c6c59ea16b743fa9ac24f809) --
-  leaving a server no longer reads the local pawn's
-  `PlayerReplicationInfo`, which may not have come: a net client's player
-  is the server's, and nothing of it travels. **Checked:** a live server's
-  game disconnected the scripted client, which had segfaulted in
-  `CreateTravelInfo`; it now goes back to `dx.dx` and exits cleanly.
-- [**mods load as the original loads them**](https://github.com/JuggyMcNutty/VibeEngine/commit/1c752ab071582886b5004fdf90de0b559e168b05) --
-  an export with no context flags is None, as Core's linker leaves it
-  (protected mods' `ScriptText`), save files aside; a class's config file
-  not there is empty; path extensions match in any case
-  ([mods](NATIVES.md#mods)). **Checked:** live servers' ANNA, DXNMS and
-  DXMTL packages load on the fork as their client; a mod's folder, named by
-  relative backslashed `Paths` in its own ini, played a custom map
-  standalone.
-- [**a text width of none is no limit**](https://github.com/JuggyMcNutty/VibeEngine/commit/7ce972175ac67f8f9ecc921c2f01fa2d99b24ef1) --
-  `GetTextExtent(0, ...)` measures a line whole, as Extension's line
-  breaking does ([the UI](NATIVES.md#the-ui)). **Checked:** the
-  multiplayer window's progress lines whole and centred in a shot, where
-  they went a word to a line.
-- [**downloads**](https://github.com/JuggyMcNutty/VibeEngine/commit/af63a856fedf11e9ba3dd24cde8f783cab305339) --
-  M7's: a client fetches the packages it lacks over file channels into the
-  cache and loads them under their names; a server sends its downloadable
-  packages, its list the map's, the `ServerPackages` and the game class's
-  package; the cache cleaned at start; the join's messages, `CANCEL`,
-  `DISCONNECT`, `RECONNECT`, `NETSPEED` and `LANSPEED` the original's
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** downloads from
-  live ANNA and CDX servers and a join that stayed in on a DXMTL server;
-  the original downloading a map from the fork's server and walking, and
-  the fork from its own.
-- [**server travel**](https://github.com/JuggyMcNutty/VibeEngine/commit/b65d124294bd92320c8c9415eb56198f35a626b1) --
-  M7's: `servertravel`, the server taking no one new until it switches, a
-  client's relative travel relative to its server's address, and a pending
-  rejoin not sent to the menu by the old connection's close
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the fork's server
-  travelled with the original following it, and the original's with the
-  fork following it.
-- [**a dedicated server**](https://github.com/JuggyMcNutty/VibeEngine/commit/dd92c38d8ba29fe36c8ba9cd491d6d6aeddffc95) --
-  M7's last item: `--server` (the original's `-SERVER`) serves the `--url`
-  map with no window, sound or player, at the original's server tick rate;
-  an empty URL's port is the game's, as any URL's
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** both engines
-  joined it and walked; its beacon and query answerer replied; it idled at
-  under 1% of a core; a Liberty Island proving run is clean.
-- [**brightness as D3DDrv's**](https://github.com/JuggyMcNutty/VibeEngine/commit/fdb0e8e29428ff412522e02f2bde4241ceacc6d7) --
-  the Brightness slider a gamma of 2.5 × Brightness, as Deus Ex's display
-  driver sets its ramp, where the fork's 2 × left mid grey about 11%
-  darker at the GOG build's 0.6 ([brightness](NATIVES.md#brightness)).
-  **Checked:** against `D3DDrv.dll`'s ramp as read; the harness's shots,
-  which carry no gamma here, unchanged.
-- [**an object's path name**](https://github.com/JuggyMcNutty/VibeEngine/commit/4ed78c7db9ff06c739646c07e07c2a267419b11f) --
-  `string(Object)` starts with the package even for an object in a group
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `LaserConsole`'s logs print
-  the laser's texture and iterator as the original's.
-- [**coronas' colour and lights**](https://github.com/JuggyMcNutty/VibeEngine/commit/58a23a6a48f960c687d8106db6c72da4b6c9b0f1) --
-  a corona's colour as `DrawFrame` works it out (the hue whitened by the
-  saturation -- for Liberty Island's lamps 2.4 times the light maps' colour
-  the fork used), its lights
-  from the leaf the player stands in, not the eye's
-  ([coronas](NATIVES.md#coronas)). **Checked:** three lamps' glows in
-  both engines at `CaptureConsole`'s shot 7, cores alike; a proving run
-  on Liberty Island is clean.
-- [**the screen flash**](https://github.com/JuggyMcNutty/VibeEngine/commit/5b5de01b5ab6da316a1fae3e28eb1b90e3af87d2) --
-  the flash handed to the device as Deus Ex's game engine hands it: the
-  player's scale halved, both values clamped, `ScreenFlashes` read and a
-  net game's flash always on; `vec4`'s `!=` tests the fourth component
-  for inequality ([the screen flash](NATIVES.md#the-screen-flash)).
-  **Checked:** `FlashConsole`'s glow as the formula gives in the fork's
-  shots and, through their gamma, in the original's frames; a proving run
-  on Liberty Island is clean.
-- [**an empty config value**](https://github.com/JuggyMcNutty/VibeEngine/commit/22bb8a55c24e33af10b2cc2cdb7e080702baccd6) --
-  a config key with an empty value is a value, as the original's: a
-  string empty, a name, object or class None, a float 0, an int, byte or
-  bool its default ([mods](NATIVES.md#mods)). **Checked:** a fork
-  server's beacon and GameSpy answers the original's word for word, the
-  empty `ServerName=` included.
-- [**a repeated config key**](https://github.com/JuggyMcNutty/VibeEngine/commit/e51ba7b02d8fc6a84b007276fb1eef1bdc6c4487) --
-  of a key given twice in a section the last value counts for a config
-  property, as the original's ([mods](NATIVES.md#mods)); what the fork
-  reads by hand (`GetValue`'s callers, the player's own settings among
-  them) keeps the first. **Checked:** a user ini with
-  `ngWorldSecret` twice gives `PlayerPawn`'s default the last, as the
-  original's player has it.
-- [**a login's checksum and options**](https://github.com/JuggyMcNutty/VibeEngine/commit/572d9543ba70989cafe5d88c2a6ae04a393d72dc) --
-  the world stats checksum the original's login carries, and only the
-  player options the user ini has in the travel URL; the harness's
-  `DXCAP_STATS` ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the
-  original's and the fork's logins to a server logging world stats alike
-  to the byte.
-- [**the console's GET and SET**](https://github.com/JuggyMcNutty/VibeEngine/commit/50ff984dfe7a0de48e5868be4ea5843b7850277a) --
-  a class by its name alone in any package, `GET` undelimited, `SET`
-  the rest of the line on every object and the defaults with the config
-  saved, as the original's -- the multiplayer Host screen's settings read
-  and set at last ([small](NATIVES.md#small)). **Checked:** `GetConsole`
-  alike in both engines, gets, sets and the inis written.
-- [**merged bunches**](https://github.com/JuggyMcNutty/VibeEngine/commit/32e9873e97d2bd3b21a564d1c96aa5d3559e0d2c) --
-  a channel's bunch goes into the last one sent while that ends the
-  packet being built, one header for both, as the original's
-  ([multiplayer](NATIVES.md#multiplayer)). **Checked:** joins and walks
-  both ways with the original, merges counted on each side.
-- [**the Entry level for a lost server**](https://github.com/JuggyMcNutty/VibeEngine/commit/7cd6760e5dbc8452df5b05e4a7319d8af95deb0e) --
-  a client whose server connection closes, or which the server refuses
-  after the join, goes to its Entry level with a new player, as the
-  original's `?failed` -- through a travel until the join loads the next
-  map, else with "Connection failed" ([multiplayer](NATIVES.md#multiplayer)).
-  **Checked:** a travel's second in `Entry.dx` as the original's; both
-  engines' clients alike after their server was killed.
-- [**the pointer and ShowCursor**](https://github.com/JuggyMcNutty/VibeEngine/commit/ca204337a19c7cedc16e78abffde2a86c8898546) --
-  the pointer drawn while a modal window is up only when `ShowCursor`
-  has not hidden it, as the original's -- gone from conversations, the
-  credits, key binding and the multiplayer windows ([the UI](NATIVES.md#the-ui)).
-  **Checked:** the main menu's pointer kept; the lost server's Entry frame
-  as the original's.
-- [**downloads let go**](https://github.com/JuggyMcNutty/VibeEngine/commit/46670560ac88de7a9406c3afc058a211e502afec) --
-  a package loaded from the download cache goes at the next map load
-  that does not use it, as the original's map load collects it: another
-  server's package of that name then loads ([multiplayer](NATIVES.md#multiplayer)).
-  **Checked:** two servers' versions of one package joined one after the
-  other, as the original's client does; without it a version mismatch.
-- [**walking over the floor**](https://github.com/JuggyMcNutty/VibeEngine/commit/690900fee2733aacfc1dcc057879fd116ea4d7b1) --
-  a walking pawn floats 2.1 over where the original's step-down trace
-  stops, 4.8 over the floor for a `MaxStepHeight` of 25, the level its
-  base on the world's floor, as the original's ([small](NATIVES.md#small)).
-  **Checked:** `StandConsole`'s start 0.05 from the original's, where it
-  was 3.75 lower; a client's place 0.05 from the original server's view;
-  proving runs on three maps clean.
-- [**saves the original loads**](https://github.com/JuggyMcNutty/VibeEngine/commit/b8e3abb0b3cbeab9003d32b642adfb59436494ca) --
-  a save written as the original's: every export with the load context,
-  the level's URL and the rest of its data, the event manager in the
-  original's layout, the flag base's hash, a latent action by its poll
-  native's number and a state frame's nodes as the original's; the
-  original's saves read whole in turn
-  ([saving](NATIVES.md#saving-loading-and-travel)). **Checked:**
-  `SaveConsole` and `LoadConsole` -- a fork save played on by the original
-  with its census alike; every listener kept both ways; a proving run
-  clean.
-- [**the native replication lists**](https://github.com/JuggyMcNutty/VibeEngine/commit/3517c553e57254662ec183e12916bea7d7f39e6f) --
-  what eight engine classes declare goes by the original's C++ lists, not
-  their statements, where Deus Ex's differ: the animation values with
-  `AnimSequence`, the blended ones and `PlayerRestartState` never, a
-  player replication info's `Actor` values once, an always-relevant item's
-  `bHidden` alone ([multiplayer](NATIVES.md#multiplayer)). **Checked:** the
-  original's client saw the fork server's pawns animate, where they ran
-  frozen; a fork client alike.
-- [**the harness's live mode**](https://github.com/JuggyMcNutty/VibeEngine/commit/d3bd44aa3c742daf32cf5b0e8648ae91546318a5) --
-  `--timeline=<file>`: keys and console commands at set times, from the
-  start or into a net game, and each second the player's place and the
-  other pawns' logged, so a run keeps the stock console a live server's
-  game wants (`dxcap.sh live`, [live servers](DEVELOPMENT.md#scripted-runs-of-both-engines)).
-  **Checked:** a walk with the stock console on the original's server here
-  and on a live server, the server's corrections taken.
-- [**the harness's own prefix and view**](https://github.com/JuggyMcNutty/VibeEngine/commit/698a5d78ca10d6afd200eb62fd51f76da8e231a1) --
-  the original runs in a Wine prefix of its own and from a view of the
-  game, where IDA's server and the recreated launcher's `DeusEx` had
-  stopped it at its start; `DXCAP_HIDDEN=1` runs the fork off the desktop;
-  `AIConsole` logs what every NPC is doing
-  ([scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)).
-  **Checked:** the original's `AIConsole` run to its exit; proving runs on
-  the hidden display, their shots drawn.
-- [**a level's start and tick**](https://github.com/JuggyMcNutty/VibeEngine/commit/61081df3966ccff5eee6b8b62f28757841a1a46f) --
-  every actor starts a level 10 s undrawn, whatever its map kept, a
-  level's first tick ticks every actor it loaded (it passed over them all,
-  and a frame was drawn first), and the actors' step is at most 0.4 s, as
-  the original's: NPCs out of sight start from `StartUp`'s code, as the
-  original's ([starting up](NATIVES.md#starting-up)). **Checked:**
-  `AIConsole` against the original -- Liberty Island's troops out of the
-  world in `Idle` and its three sitters sitting, where they patrolled and
-  wandered; proving runs on three maps clean.
-- [**what counts as drawn**](https://github.com/JuggyMcNutty/VibeEngine/commit/7b07db7cdeb8ebf5563ddcb2681d2035b9caf59c) --
-  an actor's render time is stamped only when a piece of its proxy, set
-  back at its depth and filtered down the BSP with the walk, shows in its
-  leaf, as the original keeps a sprite; pieces in solid space, hidden
-  subtrees or unseen zones drop, and a zone portal seen from behind leads
-  into its zone ([out of sight](NATIVES.md#out-of-sight)). **[perf]** the
-  filtering is render CPU: re-measured on the Smart Pro 2026-09-29, the
-  render ~3 ms more at native with the proxies' walk. **Checked:**
-  `AIConsole` -- Liberty Island's Terrorist7 patrols on, where it fought
-  the security bot, and NPCs inside the island no longer count as drawn;
-  proving runs on three maps clean, their shots as before.
-- [**the listeners called after the pass**](https://github.com/JuggyMcNutty/VibeEngine/commit/99e01bb72537fc2b02c15c9dab5b56e1bff51101) --
-  the event manager queues each turn's call and makes them all once the
-  senders' slots have moved on, as the original's: a pulse a call raises
-  goes to the next frame, for every listener
-  ([hearing](NATIVES.md#hearing-the-ai-event-system)). **Checked:** 39
-  calls over Battery Park's opening minute, none raising another event
-  inside the call; proving runs on three maps clean.
-- [**the field of view, Deus Ex's 75**](https://github.com/JuggyMcNutty/VibeEngine/commit/c6531074a5d66bc0e82825163fbeade73d9fd33a) --
-  upstream's own `MainFOV` key, missing from Deus Ex's ini, no longer
-  stands in for the game's `DefaultFOV`: the view widened to 90 degrees the
-  first time a weapon came up, the weapon smaller and higher
-  ([small](NATIVES.md#small)). **Checked:** `ViewConsole` in both engines,
-  the view at 75 and the blade where the original's is; proving runs on
-  three maps clean.
-- [**the harness's `TraceConsole`**](https://github.com/JuggyMcNutty/VibeEngine/commit/8a75f0786899ebb41bffb1eb8ca7a50fdd3d69ea) and
-  [**traces out of a cylinder, a level hit's node**](https://github.com/JuggyMcNutty/VibeEngine/commit/13e0d6fcab8bf7d623a71d80b19159bbae2228e7) --
-  a line starting inside an actor's cylinder passes out freely and is
-  stopped at once heading in, and `TraceTexture` names the surface of the
-  node the line meets the level at, as the original's
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:**
-  `TraceConsole` -- every NPC's floor found, where the fork hit the NPC,
-  and 104 of Liberty Island's 107 traces alike (81 before); proving runs
-  on three maps clean.
-- [**the harness through `D3DDrv`**](https://github.com/JuggyMcNutty/VibeEngine/commit/f834887a9685c93b60fa54f0cdf4c4fba417ab7e) and
-  [**its prefix able to load it**](https://github.com/JuggyMcNutty/VibeEngine/commit/5f7125d47050c71b2be1ec64a4635e340477d0f8) --
-  `DXCAP_RENDERER=D3D` draws the original through the game's own renderer;
-  the prefix gets vkd3d's libraries from the Proton build, without which
-  `ddraw.dll` did not load and the game fell back to `SoftDrv` -- whose
-  frames the first commit's figures were, corrected by the second --, and
-  a run that falls back stops with an error; `ViewConsole` logs the
-  level's `Brightness` and each zone's ambient light
-  ([scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)). **Checked:** `ViewConsole`
-  through `D3DDrv` with the libraries taken out first (put back, `D3DDrv`
-  bound), its frames `OpenGLDrv`'s region for region; a two-pass run 1.6
-  times as bright as a one-pass one on lit surfaces, as
-  [`d3ddrv-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness) has it.
-- [**light maps as the original's bytes**](https://github.com/JuggyMcNutty/VibeEngine/commit/34c6dc0affa2a4f81d99139468ad5fab1ab06314) --
-  Deus Ex's maps built as `Render.dll` builds them: the ambient light
-  `FGetHSV`'s colour times 64; each light's shadow byte (254 lit, 127
-  without shadow bits) times its effect's shape on the original's falloff,
-  1 − 3v² + 2v³ times the cosine, through its table -- `GlobalLighting`'s
-  colour and brightness and the level's `Brightness`, in 65536ths, at most
-  127 --, the channels held to 127; the torch and fire wavers and the
-  watery shimmer the plain shape dimmed at random (from the original's
-  random tables since 2026-10-02, below); the ambient sound on a
-  light following `GlobalLighting` ([lighting](NATIVES.md#lighting)).
-  **[perf]** the build's arithmetic changed; the lightmaps re-measured on
-  the Smart Pro with the rest 2026-09-29 (~3.7 ms). **Checked:** against `D3DDrv`'s frames, their gamma given
-  to the fork's shots: `ViewConsole`'s Liberty Island and `LaserConsole`'s
-  corridor within a level or two of 256, region for region (the means 49
-  against 24 and 117 against 46 before); proving runs on three maps clean,
-  their shots right.
-- [**meshes lit in the original's colours**](https://github.com/JuggyMcNutty/VibeEngine/commit/ade9a2bb54a05617779a97e23c9460be8b037c12) --
-  each light's colour the light maps', the zone's ambient light
-  `FGetHSV`'s, an `AmbientGlow` of 255 pulsing 0.25 + 0.2 sin(8t), and a
-  light's strength for the pick (1 − d/r) × `LightBrightness`; the
-  harness's `MeshConsole` puts Paul Denton, a crate, a barrel and a box on
-  Liberty Island's pier for both engines ([lighting](NATIVES.md#lighting)).
-  **Checked:** `MeshConsole` against `D3DDrv`, each within a level of 256
-  (5 to 14% brighter before); proving runs on three maps clean, their
-  shots right.
-- [**Galaxy's mixer: its pan, sliders and reverb**](https://github.com/JuggyMcNutty/VibeEngine/commit/393ec7388666fba992288054317302a3dab7810f) --
-  Deus Ex's sounds mixed by the fork's `GalaxyMixer` as `Galaxy.dll`
-  mixes them, streamed out through one OpenAL source at `OutputRate`: each
-  voice's fall-off from the view's eyes, its pan of at most seven-eighths
-  to a side and each side at the square root of its share, the louder
-  slider squared over every voice, linear resampling and exact loops, and
-  Galaxy's reverb of three allpass stages in place of OpenAL's EFX; other
-  games keep OpenAL's 3D sources ([sound](NATIVES.md#sound)). **Checked:**
-  `SoundConsole` against the original's recording -- the pan, the reverb's
-  ring and tail and the wall's fade each within 0.2 dB or 0.05 s of the
-  original's; proving runs on three maps clean, two with their sound
-  recorded; the Smart Pro's cross build warning-free.
-- [**what counts as drawn: the render box and `BoundVisible`**](https://github.com/JuggyMcNutty/VibeEngine/commit/1d9567042483c7ff79fbfe8646aa81c44420241f) --
-  an actor's proxy rectangle as the original's sprite has it: a mesh's
-  from its render box, the boxes of its animation's frame and the next,
-  through `BoundVisible`'s rules, a sprite's its texture's size, set back
-  at the depth of its location, none for an actor behind the viewer
-  ([out of sight](NATIVES.md#out-of-sight)). **Checked:** `AIConsole` --
-  9 NPCs drawn at Liberty Island's start against the original's 3 (10
-  before), the rest showing 1 to 9 pixels of their rectangles at the
-  edges; `LaserConsole`'s
-  emitter as before; proving runs on three maps clean.
-- [**fitting in and encroaching as the original**](https://github.com/JuggyMcNutty/VibeEngine/commit/8702cc99396afe3e1588819c7657a439e52e9168) --
-  `SetLocation` and spawns fit the actor in with the original's
-  `FindSpot` (the spot pushed off the walls along each axis, then from its
-  corners) and check the spot's encroachment: what blocks it may stop it
-  through the actor's `EncroachingOn` and hears `EncroachedBy`; a spawn so
-  stopped is destroyed; a mover now asks every actor it moves into, not
-  the first of each cell ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:**
-  Liberty Island's four laser views within half a unit of the original's
-  search; `MeshConsole`, `CaptureConsole` and `AIConsole` as before;
-  proving runs on three maps clean.
-- [**traces stopping where the original's do**](https://github.com/JuggyMcNutty/VibeEngine/commit/23143b4eae4651089cfc2ce62b334636526709c9) --
-  each hit given short of what it hits by the original's backoffs -- half
-  a unit for a line and a tenth of the trace for a box on the level or a
-  mover's brush, a thousandth of the trace on an actor's cylinder --, the
-  box check counting a hull up to a tenth past the end and bounding the
-  level's hulls by their boxes as the original's does, and the clear-line
-  tests asking along the line alone, where the fork stopped every hit a
-  unit short and looked a unit past the end; walking's float the
-  original's measure, the reach test's fall a step at a time (Deus Ex's
-  reach tests walk the original's own moves since 2026-10-02, below); other games
-  keep the unit ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:**
-  `StandConsole`'s floor and the laser beams' ends the original's (−303.5,
-  1999.5), and the first laser view fitted as the original's; `TraceConsole`
-  and `AIConsole` as before; `MeshConsole`'s decorations resting 0.1 over
-  the floor (1.0 before) -- the original's rest 2.3 to 2.5 over it, which
-  the fork's do since 2026-10-02 (moves held off, below); proving runs on three maps clean.
-- [**the visible-actor iterators as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/819b54210f05559061da01a7f5494a89d2c4cdd4) --
-  `VisibleCollidingActors` lists the colliding actors, movers too, whose
-  locations lie within the radius (1000 for none), passes over the hidden
-  only when asked and asks the line to each as `FastTrace` does, where the
-  fork's asked no line and so let `HurtRadius` hurt through walls;
-  `VisibleActors`' radius of 0 is no limit; other games keep the fork's;
-  the harness's `VisibleConsole`
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `VisibleConsole`
-  alike in both engines, movers and lists; proving runs on three maps
-  clean.
-- [**`LineOfSightTo`, `CanSee` and `PlayerCanSeeMe` as the original's**](https://github.com/JuggyMcNutty/VibeEngine/commit/c191e4acd085398c3168f3e0238fb68fa1e2a62d) --
-  `LineOfSightTo` UT's (reaches by `Visibility`, the enemy's middle,
-  0.8 of the height, the cylinder's corners), `CanSee` it with the LOS
-  flag, `PlayerCanSeeMe` a player's view within its reach and 60 degrees
-  and then its `LineOfSightTo`, where the fork's `PlayerCanSeeMe` never
-  saw anything a player looked at; other games keep the fork's; the
-  harness's `SightConsole`
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)). **Checked:** `SightConsole`
-  85 of 86 lines the original's (64 before); `AIConsole` as before;
-  proving runs on three maps clean.
-- [**the player's input before its physics**](https://github.com/JuggyMcNutty/VibeEngine/commit/0350c240b0e0004722f741b98b89d368642e67f7) --
-  Deus Ex's player runs `PlayerInput` and `PlayerTick` in its own tick
-  before its state code and physics, as the original's actor tick does,
-  where the fork ran them after and took each move a tick late; other
-  games keep the fork's order; `StandConsole` walks with a held key's
-  forward axis ([small](NATIVES.md#small)). **Checked:** `StandConsole`
-  -- the acceleration the original's from the walk's second tick, the
-  walks' ends within a unit and 7; proving runs on three maps clean.
-- [**`MoveTo` and `MoveToward` as the original's; a touched node a cylinder's**](https://github.com/JuggyMcNutty/VibeEngine/commit/43541c9d43227fc1aa84ea0bd3e7c1af5cdc2aab) --
-  Deus Ex's latent moves step as the original's `moveToward` and its
-  polls (a spot reached within 16 units across, the slowdown near it, the
-  steering, `AlterDestination` for a pawn walking around what it bumped,
-  the first step at once), and a path's node the pawn stands on counts as
-  touched by its cylinder, for every game -- since 2026-10-02 other games'
-  alone, Deus Ex's route the original search's own (below)
-  ([moving](NATIVES.md#moving-wandering-and-tactical-movement)). **Checked:** `AIConsole` --
-  Terrorist15 patrols, within 4 units of the original's at 20 s (374
-  before), where it backed off; proving runs on three maps clean.
-- [**a skipped line stops**](https://github.com/JuggyMcNutty/VibeEngine/commit/5b6cfb74cd82572b77c66384a46c5fb8d747ca36) and
-  [**each object's own sound ID**](https://github.com/JuggyMcNutty/VibeEngine/commit/6e966563f9f29457a666ae97512ec889e14e0832) --
-  `StopSound` stops a channel by its ID alone, as the original's audio
-  subsystem: `ConPlay` stops a line with the player's `StopSound` and the
-  speaker's ID, which the fork's device, matching the caller too, never
-  stopped -- a skipped NPC line played on under the next. A sound's ID packs
-  the object's own number, given the first time it plays a sound and never
-  given out twice, with the slot, where the fork packed the low 24 bits of
-  its address, which two objects 16 MB apart share
-  ([conversations](NATIVES.md#conversations)). **Checked:** `SkipConsole`
-  and `skip.py` -- unfixed, the 7 NPC lines' tails 1.1 to 2.9 dB louder;
-  fixed, nothing over the speech, as in the original's; with the IDs every
-  skipped line still stops, the tails within a dB of the original's.
-- [**text aligned within the width as passed**](https://github.com/JuggyMcNutty/VibeEngine/commit/1371d71b566ec3feaf84bc155e1e8bbfc701a14d) --
-  `DrawText` centres and right-aligns each line within the width it is
-  given, wrap off or on, as the original's `XGC::DrawText`, where the fork
-  aligned within the wrap width, which the no-wrap path had widened to
-  100,000: the object belt's descriptions, counts and slot numbers drew far
-  off the screen ([the UI](NATIVES.md#the-ui)). **Checked:** `BeltConsole`
-  -- the belt's text drawn, laid out as the original's; `GetConsole`'s menu
-  99.9% as before.
-- [**focus between windows**](https://github.com/JuggyMcNutty/VibeEngine/commit/aef5a7d1f89e4ddf1f7c8eebff2864d5ae76f2e2) --
-  the four `MoveFocus` natives are the original's `XWindow::MoveFocus` over
-  the focus's group, the root seeds the focus through the topmost modal's
-  group while nothing has it, buttons are selectable and drawn by their
-  state, and a window's type is set at its creation, where the fork's moves
-  were stubs: a conversation's choices had no selector and never answered
-  Up and Down ([the UI](NATIVES.md#the-ui)). **Checked:** `ChoiceConsole`
-  -- the focus cycles the choices as the original's, the blue moving with
-  it.
-- [**the direct walk**](https://github.com/JuggyMcNutty/VibeEngine/commit/f257562058d9820c626f1e4f4b87ad522d424413),
-  [**the search's first port**](https://github.com/JuggyMcNutty/VibeEngine/commit/5e728c6c9dae6e72c2f4936be8e7431fe0e96b00) and
-  [**the path search end to end**](https://github.com/JuggyMcNutty/VibeEngine/commit/9f45b2b07b806e13aeb3a4e3d22a145629939f36) --
-  `FindPathToward` and `FindPathTo` as Deus Ex's `Engine.dll` has them: a
-  target that can be walked to straight is the route, where the fork always
-  searched and a bot walked off through path nodes; the search best first
-  over its own sorted open list, with the original's penalties and caps
-  (the first port took the level's navigation list for that list and kept
-  the fork's end points); and the whole of it -- the nodes around the pawn
-  and the goal, the anchor and the end points, the reach flags, the step
-  after it, the second way, `HandleSpecial` and a falling goal's landing --,
-  `RouteCache` left empty, as the original never fills it; other games keep
-  their own flow over the corrected search
-  ([moving](NATIVES.md#moving-wandering-and-tactical-movement)).
-  **Checked:** `MoveConsole` with `move.py` against the original's run --
-  SecurityBot1's route the original's from the direct walk on; end to end,
-  48 of Liberty Island's 52 pawns' distance within tolerance (43 with the
-  first port, 50 with the fork's own search), UNATCOTroop1 walking its whole
-  patrol and Terrorist35 no longer stalling; Terrorist34's stall went with
-  the reachability tests (below).
-- [**the harness's mission sweep**](https://github.com/JuggyMcNutty/VibeEngine/commit/8e78caa91954c6fa55ed122aa87529d4c2b46be2) --
-  `MissionConsole` checks a map's `DeusExLevelInfo`, its `MissionScript`
-  and whether the script's state machine came up, holding the player and
-  the flag base; `DXCAP_MISSION_MAP` takes the original's run to a named
-  map ([scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines)).
-  **Checked:** 78 of the 83 maps OK in the fork; of the other five, three
-  are not mission maps (`DX`, `DXOnly`, `Entry`) and two have nothing to
-  run in the original either (`12_Vandenberg_Tunnels` no script actor,
-  `99_Endgame4` no level info).
-- [**a pawn's held item**](https://github.com/JuggyMcNutty/VibeEngine/commit/cfda48dc3abd89974f96486fd677f410fc390e16) and
-  [**in its hand**](https://github.com/JuggyMcNutty/VibeEngine/commit/58d85a907812f440cdc8bf574f3c2055b6d9c031) --
-  what a pawn holds is drawn as `Render.dll` draws it, only where its mesh
-  has a weapon triangle: the weapon in its third-person mesh and scale at
-  the triangle, or, holding no weapon, its `SelectedItem` the same way,
-  each in the pawn's style and lit as the pawn, so a cloaked pawn's weapon
-  goes translucent with it -- where the fork drew only a weapon, and the
-  first commit, reading the RE note's "where the item is", drew the item at
-  its own place in the world: a multitool the size of a building
-  ([what a pawn holds](NATIVES.md#what-a-pawn-holds)). **Checked:**
-  `HeldConsole` -- the player from behind with a multitool, then the
-  assault gun, the multitool in his hand in both engines.
-- [**`Mid` and a sound with no radius**](https://github.com/JuggyMcNutty/VibeEngine/commit/cfda48dc3abd89974f96486fd677f410fc390e16) and
-  [**their edges**](https://github.com/JuggyMcNutty/VibeEngine/commit/ac0c28e5c002a640bc81d4e91e46192c01cf2372) --
-  `Object.Mid` clamps its start and its end as unsigned and takes 65,535
-  characters by default, as Core's `FString::Mid`: a negative start gives an
-  empty string, and a negative count taking the end below 0 the rest of the
-  string, where the fork counted a negative start from 0 and gave nothing
-  for that count; a sound played with no radius of its own is heard 800
-  units out in Deus Ex, its priority worked out on that, where the fork
-  passed 1,500 on -- other games keep 1,500
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
-  **Checked:** `MidConsole`'s ten probes alike in both engines.
-- [**`LevelInfo`'s clock**](https://github.com/JuggyMcNutty/VibeEngine/commit/dfdc49937c2ac8af1cd2ef70b7fb675fd3863f43) --
-  the full year and the month 1 to 12, as the scripts read it -- `StatLog`
-  pads a month below 10 and writes the year as it stands --, where the fork
-  filled them from `tm` as they come, the year from 1900 and the month
-  from 0 ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
-- [**the borders' margins**](https://github.com/JuggyMcNutty/VibeEngine/commit/dfdc49937c2ac8af1cd2ef70b7fb675fd3863f43),
-  [**edges**](https://github.com/JuggyMcNutty/VibeEngine/commit/81f8e7643a93dbc1cf8d127be32364347dbc7fee) and
-  [**layout**](https://github.com/JuggyMcNutty/VibeEngine/commit/f804c77dc18932fa333eb780956f127810c98ab4) --
-  `GC.DrawBorders` as the original's `XGC::DrawBorders`: each side's margin
-  the largest of its textures, a margin given above 0 in its place, both
-  shrunk in proportion in a box too small for two; each of the nine pieces
-  filling its band between the margin lines, the centre drawn last, a
-  source size of 0 tiling -- where Surreal drew the corners at their own
-  size from the box's corners and the edges between them, alike only where
-  a side's textures are one size. The margins' commit had given the edges
-  of a frame with a top-left corner a negative length -- an inventory item's
-  selection frame four dots --, which the edges' restored
-  ([the UI](NATIVES.md#the-ui)). **Checked:**
-  `BorderConsole` -- the selection frame whole, as the original's, and byte
-  for byte alike before and after the layout; `ColorsConsole` -- the Colors
-  screen's 11- and 12-pixel list frames where the original draws them;
-  `BeltConsole`'s belt band as before.
-- [**the reachability tests**](https://github.com/JuggyMcNutty/VibeEngine/commit/6829f0e2d62f0b3f44c3e1a366d159ce3cd474bf) --
-  `pointReachable`, `actorReachable` and the `Reachable` they ask as Deus
-  Ex's `Engine.dll` has them: the zone checks, the look, the destination
-  fitted, an actor's own threshold, then up to 100 of the original's own
-  walking, flying or swimming moves, each result deciding the walk;
-  `AIDirectionReachable` steps with the same moves, and the path search asks
-  the tests with each call site's own knowledge -- where the fork's
-  `pointReachable` looked and fitted and walked nothing
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
-  **Checked:** `MoveConsole` -- Terrorist34, which the redone search still
-  stalled, walks as the original's: 51 of Liberty Island's 52 pawns within
-  tolerance and none stalling where the original's does not; `ReachConsole`
-  -- 142 of 144 answers alike, 124 to the unit (134 since moves are held
-  off, below).
-- [**`RestConsole`**](https://github.com/JuggyMcNutty/VibeEngine/commit/7e52f74bb2f7e58fed61e3863ee44c0dc67ee120) and
-  [**moves held off what they meet**](https://github.com/JuggyMcNutty/VibeEngine/commit/eb7a50e0edbe4f7f3affbf1b7cff0d6ecd980a38) --
-  Deus Ex's falls and the reach tests' moves held off what they meet as the
-  original's `ULevel::MoveActor` holds every move, traced 2 units past its
-  end and stopped 2 units short of what it hits, where the fork's went up to
-  the hit; landing as the original's `processLanded`, the actor hit -- the
-  `LevelInfo` for the world -- the floor `setPhysics` takes through its
-  `SupportActor` event, so the scripts' stomps and bounces come with it and
-  what lands is based on the level; `SetPhysics` the original's
-  `setPhysics`; the reach tests' moves passing decorations as they pass
-  pawns, unless static
-  ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
-  **Checked:** `RestConsole` (the pier's crate, barrel and box, every tick
-  of their fall and traces down from each, in both engines) -- the crate and
-  box at −301.76 and −301.77 where the original's rest at −301.73 (−304
-  before); `DeathConsole`'s carcass on the level at 471.30, as the
-  original's; `ReachConsole` 134 of 144 to the unit (124 before);
-  `MoveConsole` still 51 of 52.
-- [**a texture's colours as they are**](https://github.com/JuggyMcNutty/VibeEngine/commit/bf12e65db023fc688e58295b37fc85c3adbe8143) --
-  no `darkClamp` for Deus Ex: upstream's shaders darken every texture's
-  colours a little (3.1/255 off black), kept as a stand-in for a 16-bit
-  `D3DDrv`'s loss, but `D3DDrv` uploads 32-bit textures on any display of
-  24 bits or more (`Use32BitTextures` is none of its options); the engine
-  sets the device's `DarkClamp` before the window opens and each device
-  compiles its scene shader without it; other games keep the clamp
-  ([brightness](NATIVES.md#brightness)). **Checked:** against `D3DDrv`'s
-  frames, gamma taken in -- `MeshConsole`'s pier 1.7 to 3.0% under (4.5 to
-  5.9% before), its crate, box and barrel within 0.8%, `LaserConsole`'s
-  corridor within 0.9% (1.5%); the coronas still fade to black as the
-  original's.
-- [**mesh faces turned away culled; the laser iterator**](https://github.com/JuggyMcNutty/VibeEngine/commit/8f94d46d7d557c077937e6bd850160680e91a850) --
-  a LOD mesh's face drawn only when it faces the eye, unless the actor's or
-  its material's flags make it two-sided, and a plain mesh's `PF_Flat` faces
-  culled unless two-sided, as `Render.dll`'s `DrawLodMesh` and `DrawMesh`
-  do, where the fork drew every face -- a mesh that shows through itself
-  drew both its sides; the unlit level `AmbientGlow` / 256 + `ScaleGlow` / 2,
-  held to 1, where it was a flat 0.5 ([lighting](NATIVES.md#lighting)); and
-  `ULaserIterator::CurrentItem` as `DeusEx.dll`'s: a beam's k-th of N
-  segments at k/N of its length, an arc's spot jittered and aimed back, the
-  extra item drawing again a segment kept on the way, where the fork's were
-  16 units apart and its extra one random
-  ([particles and lasers](NATIVES.md#particles-and-lasers-render-iterators)).
-  **Checked:** `LaserConsole` against `D3DDrv`, three runs each -- the
-  beams' red over the floor within 0.5% (65 to 70% too red before, the
-  tube's back faces showing through its front ones); `CoronaConsole` --
-  Liberty Island's trees, 1.9 times the original's before, within a tenth
-  of a level; the Dragon's Tooth's blue and the meshes' brightness
-  unchanged.
-- [**the wavers' random tables; the cloud cast**](https://github.com/JuggyMcNutty/VibeEngine/commit/9861c611175316e7bbb01d16e72c8d2eaf94c10e) --
-  the torch and fire wavers and the watery shimmer draw from `Render.dll`'s
-  two tables of 256 a frame (`TickRandoms`) -- fresh draws for the wavers,
-  the shimmer's own entries gliding a sixteenth of the way a tick toward
-  fresh ones, 35 ticks a second --, taken in turn over the light's
-  rectangle on the map, a texel dimmed to i × (1 − amount + amount × a
-  draw) − 0.5, cut down, where the fork drew every texel afresh (the
-  shimmer as harsh as a fire) and rounded half a step high; `LE_CloudCast`
-  is the plain shape, as the original's ([lighting](NATIVES.md#lighting)).
-  **Checked:** a log shows the shimmer's table gliding frame by frame and
-  the fresh one jumping, on Liberty Island's three fire wavers; the
-  proving run clean.
+- **The audio mixer**: `GalaxyMixer` (`SurrealEngine/Audio/GalaxyMixer.cpp`) mixes Deus Ex's
+  sounds as `Galaxy.dll` does (pan, fall-off, sliders, resampling, its reverb) and streams them
+  through one OpenAL source at `OutputRate`; other games keep OpenAL's 3D sources. The fork's
+  audio device adds `SpeechVolume` and `DopplerSpeed` to its ini section
+  ([sound](NATIVES.md#sound)).
+- **The network driver**: `SurrealEngine/Network/` is the fork's own, the original's protocol
+  over UDP (`NetDriver`, channels, the package map, replication by the original's lists) with a
+  client that joins the original's servers, a listen and a dedicated server, downloads and
+  server travel; `IpDrv`'s `InternetLink`, `TcpLink` and `UdpLink` are the original's
+  ([multiplayer](NATIVES.md#multiplayer)).
+
+### The numbered patches
+
+Other docs cite these numbers, which git does not record.
+
+| Patch | Commit | What it does |
+|---|---|---|
+| 0001 | [22a5e87](https://github.com/JuggyMcNutty/VibeEngine/commit/22a5e87cc51aa83be550abe1c17e0b4203f18c79) | Headless and embedded aarch64 support: no launcher window, the log on stderr, an SDL2-only cross build |
+| 0002 | [a40bec6](https://github.com/JuggyMcNutty/VibeEngine/commit/a40bec64d33574529da21d63c1b57b3b3ebfe85e) | Vulkan without descriptor indexing (a descriptor set per batch); CPU decoders for texture formats the GPU lacks |
+| 0003 | [af99616](https://github.com/JuggyMcNutty/VibeEngine/commit/af99616f537480cc63f9f781865e2e76634abe44) | The gamepad; `CycleActors` resumes where it stopped; the first pause-menu press after skipping the intro is not swallowed |
+| 0004 | [e568662](https://github.com/JuggyMcNutty/VibeEngine/commit/e56866259cfd555d44669701e65643e2d0c69b2a) | Vulkan: the CPU runs the next frame while the GPU draws this one |
+| 0005 | [03afa60](https://github.com/JuggyMcNutty/VibeEngine/commit/03afa604679b0e8e89ea5100bb58c1484d677f41) | Lightmaps lit only where a light reaches |
+| 0006 | [af2ed86](https://github.com/JuggyMcNutty/VibeEngine/commit/af2ed868bfe107485ad905a2c183405f01139391) | VM: no casts on the call path; a per-class virtual-function cache |
+| 0007 | [9cc49e2](https://github.com/JuggyMcNutty/VibeEngine/commit/9cc49e284b2e5f3d9f9a12fbd0449117afbc9d79) | VM: native frames without locals, event names looked up once, plain-data locals zero-filled |
+| 0008 | [ce78355](https://github.com/JuggyMcNutty/VibeEngine/commit/ce78355fb3cc47b2ac27dd18b3751c2c564dd5ce) | Distant AI: pawns out of sight think every third frame |
+| 0009 | [a1a2926](https://github.com/JuggyMcNutty/VibeEngine/commit/a1a2926f93fbd6be6288f4dd87191ca36ae9f0f9) | Render scale: the scene drawn smaller than the window and scaled up (Vulkan) |
+| 0010 | [d635be4](https://github.com/JuggyMcNutty/VibeEngine/commit/d635be4bda5c027b5e0b34ee3c13aa64ebc28217) | The clipper's occlusion grid: one row per image row |
+| 0011 | [7599d2b](https://github.com/JuggyMcNutty/VibeEngine/commit/7599d2b600015df7f2eec1e683cd94b6f55c2e5b) | One-sided surfaces seen from behind skipped before the visibility test |
+| 0012 | [f4ea318](https://github.com/JuggyMcNutty/VibeEngine/commit/f4ea318b0b71718e83c19b0e0efd208379bfc91c) | VM: one evaluator per statement, nested values returned directly |
+| 0013 | [9720823](https://github.com/JuggyMcNutty/VibeEngine/commit/9720823c814691ca1455cbef65d13c629fac2a60) | Actor iterators: a class's actors from an index, not a scan |
+| 0014 | [829adcb](https://github.com/JuggyMcNutty/VibeEngine/commit/829adcbd7e1d6e109ae2cd81f67f4e46a84f5c95) | VM: calls without heap allocations or walks over every local |
+| 0015 | [6ba1983](https://github.com/JuggyMcNutty/VibeEngine/commit/6ba1983af99b9fd70a1e6133a70332578a13431c) | VM: the 25 commonest operators evaluated in place |
+| 0016 | [e28aa41](https://github.com/JuggyMcNutty/VibeEngine/commit/e28aa410d11e3a07848d602d814171d0b99c470f) | VM: events found through the virtual-call cache |
+| 0017 | [51d45aa](https://github.com/JuggyMcNutty/VibeEngine/commit/51d45aa37c96a9bc5656d4ce5d89992e94fa8d13) | VM: the commonest leaf expressions made without the visitor |
+| 0018 | [efc2a80](https://github.com/JuggyMcNutty/VibeEngine/commit/efc2a80026cbc0768503c0c365e15db0d9df2c4b) | Meshes: each vertex animated, lit and fogged once a draw |
+| 0019 | [abe6d27](https://github.com/JuggyMcNutty/VibeEngine/commit/abe6d2735c4e4a2a61479e7fc7964b36b61f8e82) | Meshes: a run of faces with one texture drawn in one device call |
+| 0020 | [96f1b6b](https://github.com/JuggyMcNutty/VibeEngine/commit/96f1b6b4b1d7b59cdfca4c878a93a243116cf98c) | The clipper's non-SSE build skips the clip for triangles inside the view |
+| 0021 | [377cf46](https://github.com/JuggyMcNutty/VibeEngine/commit/377cf462b1452f880723cce4305087172bfe7463) | A surface's points gathered only when a test needs them |
+| 0022 | [a41d14b](https://github.com/JuggyMcNutty/VibeEngine/commit/a41d14b1180e2e04957d1b19d7a5406b88800b6c) | Distant AI: every sixth frame beyond 4000 units |
+| 0023 | [56e86e5](https://github.com/JuggyMcNutty/VibeEngine/commit/56e86e57548c00aa5ccb597a52aed093ceaa9172) | The light tree and each surface's lights kept while no light changes |
+| 0024 | [03e4d0c](https://github.com/JuggyMcNutty/VibeEngine/commit/03e4d0cb9696bbad5b26cdc0489dcc028152c29b) | Lightmap uploads: the float-to-byte conversion in NEON on ARM |
+| 0025 | [f984a78](https://github.com/JuggyMcNutty/VibeEngine/commit/f984a7800675f85cc5e7eb134de36b03ffa8aef8) | Ray traces: each BSP child gets only its part of the segment |
+| 0026 | [0f9ce6c](https://github.com/JuggyMcNutty/VibeEngine/commit/0f9ce6cccd7dbc52bf0c71a57ae9490573e08d18) | Sight lines test only the collision cells they cross |
+| 0027 | [469d9c8](https://github.com/JuggyMcNutty/VibeEngine/commit/469d9c8a26d8e910b14576bfca4fb650862681d3) | A walking pawn's step to the ground made with its dry run's trace |
+| 0028 | [40e219a](https://github.com/JuggyMcNutty/VibeEngine/commit/40e219ac8bc05a349950766408daea74c77c57bb) | VM: conditions, operators and plain assignments evaluated as plain values |
+| 0029 | [7e93fe7](https://github.com/JuggyMcNutty/VibeEngine/commit/7e93fe7b86f0e449454db03d9d8eb02b55d6dcfd) | VM: the commonest statements run in place |
+| 0030 | [2d315e3](https://github.com/JuggyMcNutty/VibeEngine/commit/2d315e3602663f73f802a25a58c282ae545dafec) | Ray traces: a polygon's plane tested before its vertex count and surface |
+| 0031 | [0098ca8](https://github.com/JuggyMcNutty/VibeEngine/commit/0098ca8c5f69c1d2c8ff397a75d1915afc20872b) | Collision: each cell's actors in an open-addressed table |
+| 0032 | [e9a806d](https://github.com/JuggyMcNutty/VibeEngine/commit/e9a806d56f88f63efded8ec14f8487afbc863b0a) | Collision: moves and traces without casts or allocations |
+| 0033 | [bec6e26](https://github.com/JuggyMcNutty/VibeEngine/commit/bec6e261edcd00d9225cb95ef7e4a8e0b7298261) | VM: an optional argument left out is not copied into the call |
+| 0034 | [b5d0885](https://github.com/JuggyMcNutty/VibeEngine/commit/b5d08853dbf4e24894d56942c07a5a743438e824) | NPCs see: `IsValidEnemy`, `AICanSee` and `AIVisibility` as the original's |
+| 0035 | [e77ac55](https://github.com/JuggyMcNutty/VibeEngine/commit/e77ac558510f7aa3e10d0af783d3232af9e18498) | The GL device's `ReadPixels` |
+| 0036 | [494e22e](https://github.com/JuggyMcNutty/VibeEngine/commit/494e22e09391cc08e36d562e4573ff4ad9e67bec) | The GL device's `Exit()` runs once and does not throw |
+| 0037 | [db0961e](https://github.com/JuggyMcNutty/VibeEngine/commit/db0961e5b06b64ad6aaf4d4babb88f4ad35851fd) | The GL device on OpenGL ES: `RenderAPI::GLES`, `"Type": "GLES"` |
+| 0038 | [aa94a7a](https://github.com/JuggyMcNutty/VibeEngine/commit/aa94a7af8dc496d11dff3dca55b24e72c26337df) | The GL device: render scale; CPU decoders for BC1 and RGBA32F |
+| 0039 | [b9bc870](https://github.com/JuggyMcNutty/VibeEngine/commit/b9bc8706a1288d94e35930a76241932c92a9d210) | The GL device on the Smart Pro: the GE8300's sampler set; fullscreen under SDL2 |
+| 0040 | [765f180](https://github.com/JuggyMcNutty/VibeEngine/commit/765f180199b60e3e19ce9ebc56f77ffdce2c6cc8) | The GL scene buffers 8-bit unless HDR is on; `ReadPixels` reads what the buffer is |
+| 0041 | [0c8e99b](https://github.com/JuggyMcNutty/VibeEngine/commit/0c8e99b3207d55149171250603fbf6896a478eaf) | The GL device streams its vertices through CPU staging arrays |
+| 0042 | [469bd9c](https://github.com/JuggyMcNutty/VibeEngine/commit/469bd9cef81ec00cd8fe720cf66f78947f2f30d4) | `ReadPixels`: the GL shots the right way up |

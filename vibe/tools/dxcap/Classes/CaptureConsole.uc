@@ -1,6 +1,6 @@
 //=============================================================================
 // CaptureConsole: the acceptance captures -- what the original shows of
-// things the fork read but had never seen (vibe/docs/ROADMAP.md, M0), run the same
+// things the fork read but had never seen, run the same
 // in both engines (vibe/docs/DEVELOPMENT.md, scripted runs).
 //
 // On Liberty Island: a shot of each laser tripwire's beam from its side, and

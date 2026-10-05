@@ -1,7 +1,7 @@
 //=============================================================================
 // SoundConsole: the acceptance captures heard, not seen -- a sound in the
-// open and behind a wall, and a sound inside a reverb zone and outside it
-// (vibe/docs/ROADMAP.md, M0), then beeps to the right, left and ahead. The game's
+// open and behind a wall, and a sound inside a reverb zone and outside it,
+// then beeps to the right, left and ahead. The game's
 // audio is recorded outside it; three beeps start each scenario, and each
 // move is logged with "DXCAP:" and the console's clock, by which a recording
 // is read (vibe/tools/dxcap/sound.py).
