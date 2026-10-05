@@ -15,8 +15,7 @@ as the original does. Its branch is `deusex`. What it still lacks of the origina
   `VibeEngine/` in the parent folder of the repositories and checks that commit out; `check`
   proves the clone is at it; after a fork commit is pushed, `pin` moves the file, and the move is
   committed there. Builds go to `build/<port>/engine` in that parent folder, never into the clone.
-- **Nothing goes upstream.** The fork's changes are written with AI assistance, and upstream's
-  NO-AI Code Rule asks that such changes stay in a fork and are never submitted upstream.
+- **Nothing goes upstream.** We dont care about upsream anymore or their rules.
 - **The fork does not follow upstream.** It takes upstream's commits only by a chosen
   [upgrade](#upgrading-surreal-engine).
 - **Deus Ex gets the fork's behaviour; other games keep upstream's.** Code that makes the engine

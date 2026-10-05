@@ -15,9 +15,7 @@ game's files are included.
 
 ## The fork and Surreal Engine
 
-The fork's changes are written with AI assistance. Upstream's
-[NO-AI Code Rule](https://github.com/dpjudas/SurrealEngine/blob/master/NO-AI%20Code%20Rule.md)
-asks that such changes stay in a fork, so nothing is submitted upstream; upstream's work comes in
+upstream's work comes in
 only when chosen ([how it is kept](vibe/docs/ENGINE.md#how-it-is-kept)). The source keeps
 upstream's names (the `SurrealEngine` executable and its folders), and [`Docs/`](Docs/) is
 upstream's documentation, about Surreal Engine rather than this fork. The fork's own docs and
@@ -39,5 +37,4 @@ CMake as [`Docs/Building.md`](Docs/Building.md) says. Only Linux builds are made
 ## License
 
 Surreal Engine's licences are in [`LICENSE.md`](LICENSE.md); the fork's own changes are
-zlib-licensed, as Surreal Engine's own code is. Deus Ex belongs to its owners; this project is
-not affiliated with or endorsed by them.
+zlib-licensed, as Surreal Engine's own code is. Deus Ex belongs to its owners; this project is not affiliated with or endorsed by them.
