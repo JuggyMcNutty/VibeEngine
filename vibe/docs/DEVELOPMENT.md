@@ -103,6 +103,7 @@ the run. *Either*: one engine on each side of a pair.
 | `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |
 | `RestConsole` | both | where a falling decoration rests | `DXREST:` | |
 | `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |
+| `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |
 | `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` | |

@@ -1119,32 +1119,41 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	if (url.HasOption("listen") || LaunchInfo.dedicatedServer)
 		Listen(url);
 
-	// Find the game info class
-	UClass* gameInfoClass = packages->FindClass(LevelInfo->URL.GetOption("game"));
-	if (!gameInfoClass)
-		gameInfoClass = LevelInfo->DefaultGameType();
-	if (!gameInfoClass)
-		gameInfoClass = packages->FindClass(packages->GetIniValue("system", "Engine.Engine", "DefaultGame"));
-	if (!gameInfoClass)
-		gameInfoClass = packages->FindClass("Botpack.DeathMatchPlus");
-	if (!gameInfoClass)
-		Exception::Throw("Could not find any gameinfo class!");
+	// A level already begun -- one from Current -- keeps the game it was
+	// saved with, as the original's LoadMap spawns a game only when the
+	// level has none: a second would have no mutators, and its IsRelevant
+	// then refuses every actor spawned (the player's augmentation and skill
+	// managers, the key ring).
+	GameInfo = UObject::TryCast<UGameInfo>(LevelInfo->Game());
+	if (!GameInfo)
+	{
+		// Find the game info class
+		UClass* gameInfoClass = packages->FindClass(LevelInfo->URL.GetOption("game"));
+		if (!gameInfoClass)
+			gameInfoClass = LevelInfo->DefaultGameType();
+		if (!gameInfoClass)
+			gameInfoClass = packages->FindClass(packages->GetIniValue("system", "Engine.Engine", "DefaultGame"));
+		if (!gameInfoClass)
+			gameInfoClass = packages->FindClass("Botpack.DeathMatchPlus");
+		if (!gameInfoClass)
+			Exception::Throw("Could not find any gameinfo class!");
 
-	// Spawn GameInfo actor
-	// Named and flagged as the original's spawned game: DeusExGameInfo0, and
-	// the flags any spawned actor has (UActor::Spawn).
-	GameInfo = UObject::Cast<UGameInfo>(LevelPackage->NewObject(gameInfoClass->Name.ToString() + "0", gameInfoClass, ObjectFlags::Transactional | ObjectFlags::LoadContextFlags | ObjectFlags::HasStack));
-	GameInfo->XLevel() = Level;
-	GameInfo->Level() = LevelInfo;
-	Level->Collision.AddToCollision(GameInfo);
-	GameInfo->Tag() = gameInfoClass->Name;
-	GameInfo->bTicked() = false;
-	GameInfo->InitActorZone();
-	GameInfo->Index = (int)Level->Actors.size();
-	Level->Actors.push_back(GameInfo);
-	Level->ActorsVersion++;
+		// Spawn GameInfo actor
+		// Named and flagged as the original's spawned game: DeusExGameInfo0, and
+		// the flags any spawned actor has (UActor::Spawn).
+		GameInfo = UObject::Cast<UGameInfo>(LevelPackage->NewObject(gameInfoClass->Name.ToString() + "0", gameInfoClass, ObjectFlags::Transactional | ObjectFlags::LoadContextFlags | ObjectFlags::HasStack));
+		GameInfo->XLevel() = Level;
+		GameInfo->Level() = LevelInfo;
+		Level->Collision.AddToCollision(GameInfo);
+		GameInfo->Tag() = gameInfoClass->Name;
+		GameInfo->bTicked() = false;
+		GameInfo->InitActorZone();
+		GameInfo->Index = (int)Level->Actors.size();
+		Level->Actors.push_back(GameInfo);
+		Level->ActorsVersion++;
 
-	LevelInfo->Game() = GameInfo;
+		LevelInfo->Game() = GameInfo;
+	}
 
 	if (ServerLevel)
 		ServerLevel->BuildMasterMap(GameInfo);
