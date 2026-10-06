@@ -238,6 +238,9 @@ void Engine::Run()
 
 	float currentZoneTimeDilation = 1.0f; // Unreal 227 allows zones to specify their own time dilations
 
+	if (const char* stress = std::getenv("SURREAL_GC_STRESS"))
+		GarbageStressFrames = std::max(std::atoi(stress), 0);
+
 	std::unique_ptr<Timeline> timeline;
 	if (!LaunchInfo.timelinePath.empty())
 	{
@@ -467,6 +470,11 @@ void Engine::Run()
 			LoginPlayer();
 		}
 
+		if (GarbageStressFrames > 0 && ++GarbageStressCount >= GarbageStressFrames)
+		{
+			GarbageStressCount = 0;
+			RequestGarbageCollection("stress");
+		}
 		if (!GarbageRequest.empty())
 			CollectGarbage();
 	}
@@ -1110,7 +1118,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		GameInfo = nullptr;
 		LevelInfo->Game() = nullptr;
 		BeginPlay(url);
-		RequestGarbageCollection("client map " + url.Map);
+		RequestGarbageCollection("client map " + url.Map, true);
 		return;
 	}
 
@@ -1160,7 +1168,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 
 	BeginPlay(url);
 
-	RequestGarbageCollection("map " + url.Map);
+	RequestGarbageCollection("map " + url.Map, true);
 
 	// As the original's map load collects what the new level does not use:
 	// a server's downloads go, but a pending join's.
@@ -1308,7 +1316,7 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 	if (!GameInfo)
 		Exception::Throw("Save file has no GameInfo actor for " + LevelPackage->GetPackageName().ToString() + "!");
 
-	RequestGarbageCollection("saved level " + realMapName);
+	RequestGarbageCollection("saved level " + realMapName, true);
 }
 
 // Deus Ex's ShowMainMenu sets the travel variable bIgnoreNextShowMenu when
@@ -2321,6 +2329,11 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	else if (command == "getcurrentcolordepth")
 	{
 		return "32";
+	}
+	else if (command == "obj" && args.size() >= 2 && StrTools::equals_ignore_case(args[1], "garbage"))
+	{
+		// The original's OBJ GARBAGE, at the end of this frame.
+		RequestGarbageCollection("obj garbage");
 	}
 	else if (command == "getping")
 	{

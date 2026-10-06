@@ -176,3 +176,10 @@ uint8_t USound::GetLipsyncLetterAt(float seconds)
 	int block = (int)(seconds * frequency / LIPSYNC_BLOCK_SIZE);
 	return letters[std::max(0, std::min(block, (int)letters.size() - 1))];
 }
+
+void USound::OnGCDestroy()
+{
+	if (engine && engine->audiodev && engine->audiodev->GetDevice())
+		engine->audiodev->GetDevice()->RemoveSound(this);
+	UObject::OnGCDestroy();
+}

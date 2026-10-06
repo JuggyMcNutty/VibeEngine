@@ -98,6 +98,8 @@ public:
 	void MarkRoots(GCMarker& marker);
 	// Objects made but not loaded yet: no collection may run then.
 	bool HasPendingLoads() const { return !delayLoads.empty(); }
+	// The open files of dying packages closed (GC::IsDying).
+	void PurgeDying();
 	// Whether a package is one of `packages` or a save info.
 	bool IsRegisteredPackage(const Package* package) const;
 

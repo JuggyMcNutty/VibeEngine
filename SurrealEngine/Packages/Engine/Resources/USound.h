@@ -27,6 +27,9 @@ public:
 
 	void GetSound();
 	float GetDuration();
+
+	// Gone from the audio device's buffers and mixer.
+	void OnGCDestroy() override;
 	int GetChannels();
 
 	NameString Format;

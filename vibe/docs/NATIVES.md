@@ -325,26 +325,43 @@ Differs:
 
 ## Housekeeping, not seen directly
 
+**Garbage** is collected at every map load but one of Entry, as the
+original's map load collects it
+([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-map-loads-collection)):
+what nothing reachable holds is destroyed and freed, the level left behind
+with it, and the new level's actors that are not in its `Actors` (an editor
+brush, a camera) go with every reference to them made None. The fork's
+collection ([objects and memory](ENGINE.md#objects-and-memory)) differs:
+
+- **When**: at the end of the frame of the load, once the new level has
+  begun and the player is in, where the original's runs before the new
+  level begins.
+- **A level left behind** is eliminated: every reference to one of its
+  objects is made None, where the original's keeps the objects a live
+  reference reaches. Without it a conversation event's `speaker`, the game
+  replication info's `PRIArray` or a HUD's `clientObject` keeps a whole
+  level. No stock script reads such a reference before setting it again.
+- **Code is never freed**: a class stays loaded with its defaults and
+  everything they reach, where the original's frees a script class nothing
+  uses and loads it again when asked for.
+- **A package's other objects** stay while it is loaded: every export of a
+  package of the game's paths is kept, where the original's frees a
+  texture, a sound or a mesh nothing uses.
+
+On linux-x86_64, Liberty Island and Battery Park loaded in turn
+(`reload-fresh.txt`), twenty loads: 396 MB at the end where the fork kept
+every level (922 MB); each island load's collection leaves the same 52,210
+objects, and the resident memory after it grows some 0.6 MB a load.
+Liberty Island and UNATCO HQ through `Current` (`reload-current.txt`):
+385 MB at most throughout. A collection takes 25 to 60 ms there, a session's
+first up to 120 ms; on the Smart Pro some 250 ms.
+
 **`Object.CriticalDelete` 751** (20 call sites) is a stub. The original frees
 the object at once, whatever still refers to it
 ([`CriticalDelete`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#criticaldelete)),
 and the game's callers delete objects of their own and drop their
-reference. The fork has no object lifecycle: nothing deletes a `UObject`,
-and the collector never runs (`GC::Collect`, its one call commented out in
-`Engine::UnloadMap`). A bare delete would leave the package's object table
-pointing at freed memory, so freeing at once waits for a lifecycle. A
-deleted object lives on unreferenced, which costs memory and nothing else:
-`CreateGameDirectoryObject` makes a new object each call, as the original's
-does.
-
-Nor is a level freed. Every map load -- travel, `open`, a loaded save --
-makes its level a new package (`PackageManager::LoadMap`), and the level it
-replaces stays in memory with all its objects (`UnloadPackage` only closes
-its file), where the original's map load collects the garbage once the new
-map is in ([downloads](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#downloads)).
-A session's memory grows by a level at each load and is given back only at
-exit: on linux-x86_64 at c2acaf1, 362 MB with Liberty Island up, then 39 MB
-more for each load of Liberty Island and 11 MB for each of UNATCO HQ.
+reference. In the fork the object goes at the next collection once nothing
+refers to it.
 
 ## Small
 
@@ -448,8 +465,9 @@ server-only stubs are under
 - **The download cache.** A package is cached as its GUID with `CacheExt`,
   where the original writes `.uxx` whatever `CacheExt` says (the game's ini
   names `.uxx`). A package a join loaded from the cache is let go by name at
-  the next map load that does not use it, where the original's map load
-  collects it ([housekeeping](#housekeeping-not-seen-directly)).
+  the next map load that does not use it, and that load's collection frees
+  what nothing uses of it but its code, which stays loaded, where the
+  original's collects it all ([housekeeping](#housekeeping-not-seen-directly)).
 - **Sounds a server plays.** The original's `PlaySound` has every player pawn
   hear the sound (`CheckHearSound`,
   [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),

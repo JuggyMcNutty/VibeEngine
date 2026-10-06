@@ -10,6 +10,10 @@ public:
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
 
+	// The render device caches a texture by its address: the collection
+	// flushes it (Engine::CollectGarbage) before another can take the place.
+	void OnGCDestroy() override;
+
 	UTexture* GetAnimTexture() { return AnimCurrent() ? AnimCurrent() : this; }
 
 	int GetAnimTextureCount()

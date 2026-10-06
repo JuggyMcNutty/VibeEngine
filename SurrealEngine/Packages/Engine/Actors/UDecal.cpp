@@ -165,3 +165,9 @@ void UDecal::DetachDecal()
 	}
 	Nodes.clear();
 }
+
+void UDecal::OnGCDestroy()
+{
+	DetachDecal();
+	UActor::OnGCDestroy();
+}

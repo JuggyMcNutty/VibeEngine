@@ -193,6 +193,15 @@ GCCollectResult GC::Collect(const std::function<void(GCMarker&)>& markRoots, con
 	if (purgeWeak)
 		purgeWeak();
 
+	if (options.Dying)
+	{
+		for (GCAllocation* allocation = allocations; allocation != nullptr; allocation = allocation->allocklistNext)
+		{
+			if (allocation->unreferencedFlag)
+				options.Dying(allocation->object());
+		}
+	}
+
 	// Phase 1: every dying object is told, all of them still allocated.
 	for (GCAllocation* allocation = allocations; allocation != nullptr; allocation = allocation->allocklistNext)
 	{

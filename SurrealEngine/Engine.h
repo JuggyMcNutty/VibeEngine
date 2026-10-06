@@ -143,12 +143,20 @@ public:
 
 	// The collector (vibe/docs/ENGINE.md, objects and memory). A request is
 	// carried out at the end of the frame, with no script running.
-	void RequestGarbageCollection(const std::string& reason);
+	// A map change's also takes the new level's actors that are not in its
+	// Actors (the original's orphans).
+	void RequestGarbageCollection(const std::string& reason, bool mapChange = false);
 	void CollectGarbage();
 	// The engine's roots: its subsystems, levels and objects, the net
 	// drivers', the natives' and the package manager's.
 	void MarkRoots(GCMarker& marker);
 	std::string GarbageRequest;
+	bool GarbageMapChange = false;
+	// A texture freed by the collection under way (UTexture::OnGCDestroy).
+	bool GarbageTextureDied = false;
+	// SURREAL_GC_STRESS=<frames>: a collection every that many frames.
+	int GarbageStressFrames = 0;
+	int GarbageStressCount = 0;
 
 	std::string ConsoleCommand(UObject* context, const std::string& command, BitfieldBool& found);
 

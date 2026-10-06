@@ -529,8 +529,9 @@ void PackageManager::ReleaseNetPackages(const Array<NameString>& keep)
 			++it;
 			continue;
 		}
-		// Only the name goes: the fork collects no garbage, so what the old
-		// package made stays where anything still points at it.
+		// The name goes, and the package is no longer a root: the map load's
+		// collection frees what nothing uses of it. Its code stays loaded
+		// (UField::IsGCRoot).
 		if (IsPackageLoaded(it->first))
 			LogMessage("Releasing package " + it->first.ToString());
 		packages.erase(it->first);
@@ -608,6 +609,11 @@ void PackageManager::MarkRoots(GCMarker& marker)
 		for (UObject* obj : it.second->ExportObjects)
 			marker.MarkConst(obj);
 	}
+}
+
+void PackageManager::PurgeDying()
+{
+	openStreams.remove_if([](const OpenStream& stream) { return GC::IsDying(stream.Pkg); });
 }
 
 bool PackageManager::IsRegisteredPackage(const Package* package) const

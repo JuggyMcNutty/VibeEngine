@@ -24,6 +24,7 @@ RenderSubsystem::RenderSubsystem(RenderDevice* renderdevice) : Device(renderdevi
 
 void RenderSubsystem::DrawGame(float levelTimeElapsed)
 {
+	DrawnSinceFlush = true;
 	LevelTimeElapsed = levelTimeElapsed;
 	AutoUV += levelTimeElapsed * 64.0f;
 	engine->Level->Light.Tick(levelTimeElapsed);
@@ -189,9 +190,23 @@ void RenderSubsystem::UpdateTextureInfo(TextureInfo& info, UTexture* texture)
 		texture->TextureModified = false;
 }
 
+void RenderSubsystem::PurgeDying()
+{
+	CoronaStates.erase(std::remove_if(CoronaStates.begin(), CoronaStates.end(), [](const CoronaState& state) { return GC::IsDying(state.Light); }), CoronaStates.end());
+	CoronaDynamicLights.erase(std::remove_if(CoronaDynamicLights.begin(), CoronaDynamicLights.end(), [](UActor* light) { return GC::IsDying(light); }), CoronaDynamicLights.end());
+	IteratorActors.erase(std::remove_if(IteratorActors.begin(), IteratorActors.end(), [](UActor* actor) { return GC::IsDying(actor); }), IteratorActors.end());
+}
+
+void RenderSubsystem::FlushDevice()
+{
+	Device->Flush(true);
+	DrawnSinceFlush = false;
+}
+
 void RenderSubsystem::OnMapLoaded()
 {
 	Device->Flush(true);
+	DrawnSinceFlush = false;
 	engine->Level->Light.OnMapLoaded();
 	// Nothing of the level before: its lights are not this one's.
 	IteratorActors.clear();

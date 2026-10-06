@@ -106,7 +106,7 @@ struct GCCollectOptions
 	bool Verify = false;
 	// The objects the dry run names the first holder of.
 	std::function<bool(GCObject*)> Watch;
-	// The dry run: each object that would go, before anything is unmarked.
+	// Each object that goes (in a dry run, would go), before any is told.
 	std::function<void(GCObject*)> Dying;
 };
 

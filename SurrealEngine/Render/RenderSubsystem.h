@@ -28,6 +28,13 @@ public:
 	void DrawGame(float levelTimeElapsed);
 	void OnMapLoaded();
 
+	// The collector's: the coronas, corona lights and iterator actors let
+	// go of the dying (GC::IsDying); the device flushed when a freed
+	// texture may sit in its cache, which holds textures by address.
+	void PurgeDying();
+	void FlushDevice();
+	bool DrawnSinceFlush = false;
+
 	// The last frame drawn, as the device reads it back. Only between
 	// frames: a read inside one would end the frame the device is still
 	// recording. False when there is none to read.

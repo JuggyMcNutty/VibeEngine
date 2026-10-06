@@ -1,6 +1,7 @@
 
 #include "Precomp.h"
 #include "UTexture.h"
+#include "Engine.h"
 
 void UTexture::Load(ObjectStream* stream)
 {
@@ -139,4 +140,11 @@ void UTexture::UpdateFrame()
 	cur = cur->AnimNext();
 	if (!cur) cur = this;
 	AnimCurrent() = cur;
+}
+
+void UTexture::OnGCDestroy()
+{
+	if (engine)
+		engine->GarbageTextureDied = true;
+	UBitmap::OnGCDestroy();
 }

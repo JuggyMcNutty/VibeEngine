@@ -77,6 +77,8 @@ protected:
 	// tables, not its other objects. What keeps those is the package
 	// manager's roots (PackageManager::MarkRoots).
 	void Mark(GCMarker& marker) override {}
+	// Its file closed.
+	void OnGCDestroy() override;
 
 private:
 

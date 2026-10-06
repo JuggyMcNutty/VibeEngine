@@ -183,7 +183,8 @@ The environment:
 | `SURREALWIDGETS_DISPLAY_BACKEND` | The window backend: `SDL2`, `SDL3` or `X11`. Unset, or naming one the build lacks: the first that starts of Wayland, X11, SDL3 and SDL2. `run-game.sh` defaults it to `SDL2`, the backend with the pad. |
 | `SURREALWIDGETS_FONT`, `SURREALWIDGETS_MONOSPACE_FONT` | The UI's font files, on a build without GSettings and fontconfig (the embedded cross build). |
 | `DXL_LAUNCHER_FD` | The recreated launcher's line ([running it](#running-it)). |
-| `SURREAL_GC_DRYRUN=1` | At each map change, the collector marks and frees nothing: the log has what would go, by where it lives and by class, and the first holder outside them of each object of a level left behind ([objects and memory](#objects-and-memory)). |
+| `SURREAL_GC_DRYRUN=1` | Each collection marks and frees nothing: the log has what would go, by where it lives and by class, and the first holder outside them of each object of a level left behind ([objects and memory](#objects-and-memory)). |
+| `SURREAL_GC_STRESS=<frames>` | A collection every that many frames, besides the map loads'. |
 | `SURREAL_GC_VERIFY=1` | Each collection checks that every pointer it is handed is a live object, and logs the holders of those that are not. |
 | `SURREAL_PERF_LOG=1`, `SURREAL_PERF_DETAIL=1`, `SURREAL_PERF_TURN=<aBaseX>`, `SURREAL_PERF_SAMPLE=<file>` | Only with [the profiling hooks](#the-profiling-hooks) on: where the frame goes, every 60 frames on stderr; tick by actor class and script functions by self time (which inflates what it measures); the player turning on the spot; the sampling profiler. |
 
@@ -306,8 +307,12 @@ original](NATIVES.md#implemented-not-as-the-original)), in
 
 `SurrealEngine/GC`: a mark and sweep from roots, as UE1's collector
 ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#garbage-collection)).
-Nothing is freed yet: a collection runs only under `SURREAL_GC_DRYRUN` or `SURREAL_GC_VERIFY`,
-after each map load but Entry's, at the end of the frame with no script running, and marks only.
+A collection runs at the end of the frame, with no script running (`Engine::CollectGarbage`,
+in `EngineGC.cpp`), when asked for: by every map load but Entry's, by the console's
+`obj garbage`, and every `SURREAL_GC_STRESS` frames. It logs the original's lines
+(`Collecting garbage`, `Purging garbage`, `Garbage: objects: ...; refs: ...`) with the
+milliseconds it took, the resident memory before and after, what it freed by kind and the
+references it made None by holder, and gives the freed memory back to the system (`malloc_trim`).
 
 - **Roots** (`Engine::MarkRoots`, in `EngineGC.cpp`): the engine's subsystems, levels and
   objects; the net drivers' players, channels and package maps; the natives; every export of a
@@ -327,6 +332,17 @@ after each map load but Entry's, at the end of the frame with no script running,
 - **Elimination**: a reference to an object flagged `EliminateObject` is made None where the
   marker finds it (`GCMarker::Mark`), as the original's. One held where it may not be written
   (`MarkConst`: the subsystems, the net layer, what code names) keeps it, and the log says so.
+  A collection flags every object of a level left behind (a package tagged as a level that is
+  neither the current one nor Entry's) and, at a map load, the new level's actors that are not
+  in its `Actors`, as the original's.
+- **The weak holders** let go of the dying before anything is freed (`GC::IsDying`): the
+  camera actor, the coronas and iterator actors, the audio device's sound numbers and reverb
+  zone, the open package files.
+- **The sweep** tells each dying object first, all of them still allocated
+  (`OnGCDestroy`): its properties are destructed and its package's export slot emptied, so a
+  later reference loads it from its file again; a sound leaves the audio device, a decal its
+  BSP nodes, a package closes its file, a freed texture has the render device flushed (it caches
+  textures by address) if anything was drawn since its last flush. Then each is freed.
 
 ### Gameplay
 

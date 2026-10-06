@@ -500,3 +500,8 @@ std::string Package::GetGuidString() const
 	snprintf(text, sizeof(text), "%08X%08X%08X%08X", d[0], d[1], d[2], d[3]);
 	return text;
 }
+
+void Package::OnGCDestroy()
+{
+	Packages->UnloadPackage(this);
+}
