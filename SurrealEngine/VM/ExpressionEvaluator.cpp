@@ -521,10 +521,16 @@ void ExpressionEvaluator::Expr(StructCmpNeExpression* expr)
 
 void ExpressionEvaluator::Expr(StructMemberExpression* expr)
 {
-	if (expr->Field)
-		*Out = Value(expr->Value).Member(expr->Field);
-	else
+	if (!expr->Field)
 		Frame::ThrowException("Null field encountered in struct member expression");
+
+	// A member of a value (a call's result, a constant) points into that value's storage,
+	// which goes when this returns: copy it out
+	ExpressionValue base = Value(expr->Value);
+	ExpressionValue member = base.Member(expr->Field);
+	if (!base.IsVariable())
+		member.Load();
+	*Out = std::move(member);
 }
 
 void ExpressionEvaluator::Expr(UnicodeStringConstExpression* expr)

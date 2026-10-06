@@ -250,9 +250,7 @@ cd gamefiles && gdb -batch -ex run -ex bt --args <scratchpad>/dbg/SurrealEngine 
 
 An object freed while something still points at it shows only in an AddressSanitizer build,
 which stops at the first bad access with the stacks of the access, the free and the allocation.
-A harness run takes it through `DXCAP_ENGINE`. The VM's struct members trip its check for a
-stack frame read after it returned (`StructMemberExpression`, in the conversation consoles);
-`detect_stack_use_after_return=0` in `ASAN_OPTIONS` leaves the rest checked:
+A harness run takes it through `DXCAP_ENGINE`:
 
 ```sh
 cmake -S VibeEngine -B <scratchpad>/asan -C deusex-launcher/linux-x86_64/ports/linux-x86_64/engine.cmake \
