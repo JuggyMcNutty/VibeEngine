@@ -364,7 +364,10 @@ freed memory, and the fork lets them gather between collections
 ([when](ENGINE.md#objects-and-memory)): a collection is a hitch on the
 Smart Pro (above). A map load does not clean
 the chain of the level it leaves, as the original's does only for `?push`:
-that level is freed whole. A destroyed decal is drawn until it is freed.
+that level is freed whole. A decal attached again after its `Destroyed`
+(which detaches it) stays on its surfaces until that cleanup, as the
+original's; there the fork takes it off them, where the original's surfaces
+keep pointing at the deleted decal.
 
 **`Object.CriticalDelete` 751** (20 call sites). The original frees the
 object at once, whatever still refers to it

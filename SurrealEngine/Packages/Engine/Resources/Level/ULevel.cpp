@@ -2,6 +2,7 @@
 #include "Precomp.h"
 #include "ULevel.h"
 #include "Packages/Core/UClass.h"
+#include "Packages/Engine/Actors/UDecal.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
@@ -215,6 +216,10 @@ void ULevel::CleanupDestroyed(bool force)
 		actor->Deleted() = nullptr;
 		if (manager)
 			manager->ActorDestroyed(actor);
+		// A decal attached again after its Destroyed stays on its surfaces
+		// until here; the original's then points at the freed decal.
+		if (UDecal* decal = UObject::TryCast<UDecal>(actor))
+			decal->DetachDecal();
 		// The original deletes it here; the fork frees it at the next
 		// collection, which makes every other reference to it None (a
 		// window's, a conversation's): one deleted now would leave those
