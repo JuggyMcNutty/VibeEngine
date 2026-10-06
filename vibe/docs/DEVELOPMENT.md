@@ -244,6 +244,21 @@ cd gamefiles && gdb -batch -ex run -ex bt --args <scratchpad>/dbg/SurrealEngine 
     --ini=<parent>/build/dxcap/System/Fork.ini --userini=<parent>/build/dxcap/System/ForkUser.ini --url=<map>
 ```
 
+An object freed while something still points at it shows only in an AddressSanitizer build,
+which stops at the first bad access with the stacks of the access, the free and the allocation.
+A harness run takes it through `DXCAP_ENGINE`. The VM's struct members trip its check for a
+stack frame read after it returned (`StructMemberExpression`, in the conversation consoles);
+`detect_stack_use_after_return=0` in `ASAN_OPTIONS` leaves the rest checked:
+
+```sh
+cmake -S VibeEngine -B <scratchpad>/asan -C deusex-launcher/linux-x86_64/ports/linux-x86_64/engine.cmake \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer" \
+    -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address
+cmake --build <scratchpad>/asan --target SurrealEngine
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 DXCAP_ENGINE=<scratchpad>/asan/SurrealEngine \
+    vibe/tools/dxcap.sh fork <console> <map>
+```
+
 ## Gotchas
 
 The workspace's:

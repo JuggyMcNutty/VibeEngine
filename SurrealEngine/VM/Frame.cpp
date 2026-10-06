@@ -39,6 +39,17 @@ Frame::Frame(UObject* instance, UStruct* func)
 	SetState(func);
 }
 
+void Frame::Mark(GCMarker& marker)
+{
+	// Its object is the one that holds it, marked already.
+	marker.MarkConst(Func);
+	if (Variables.Func && Variables.Data)
+	{
+		for (UProperty* prop : Variables.Func->RefProps())
+			prop->MarkProperty(marker, static_cast<uint8_t*>(Variables.Data) + prop->DataOffset.DataOffset);
+	}
+}
+
 void Frame::SetState(UStruct* func)
 {
 	Func = func;

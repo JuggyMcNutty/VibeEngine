@@ -113,12 +113,20 @@ std::string UFixedArrayProperty::PrintValue(const void* data)
 	return "fixed array";
 }
 
-GCAllocation* UFixedArrayProperty::MarkPropertyElement(GCAllocation* marklist, void* data)
+bool UFixedArrayProperty::ComputeContainsRefs()
+{
+	return Inner && Inner->ContainsRefs();
+}
+
+void UFixedArrayProperty::MarkValue(GCMarker& marker, void* data)
 {
 	size_t pitch = Inner->ElementPitch();
 	for (int i = 0; i < Count; i++)
-	{
-		marklist = Inner->MarkPropertyElement(marklist, static_cast<uint8_t*>(data) + i * pitch);
-	}
-	return marklist;
+		Inner->MarkValue(marker, static_cast<uint8_t*>(data) + i * pitch);
+}
+
+void UFixedArrayProperty::Mark(GCMarker& marker)
+{
+	UProperty::Mark(marker);
+	marker.MarkConst(Inner);
 }

@@ -256,8 +256,10 @@ public:
 	size_t Size = 0;
 	UClass* Class = nullptr;
 
-private:
+	// The values destructed with Class's properties, and the memory freed.
 	void Reset();
+
+private:
 
 	PropertyDataBlock(const PropertyDataBlock&) = delete;
 	PropertyDataBlock& operator=(const PropertyDataBlock&) = delete;
@@ -413,8 +415,19 @@ public:
 	int& ObjectIndex() { return Value<int>(PropOffsets_Object.ObjectIndex); }
 	UObject*& ObjectArchetype() { return Value<UObject*>(PropOffsets_Object.ObjectArchetype); }
 
-private:
-	GCAllocation* Mark(GCAllocation* marklist) override;
+	std::string GCClassName() const override;
+	std::string GCDescribe() const override;
+
+protected:
+	// Its class, package and delay load, its state frame, and every
+	// reference its properties hold (its class's RefProps). A native
+	// class with members of its own marks them, then calls this.
+	void Mark(GCMarker& marker) override;
+	// Its properties destructed, its state frame and delay load gone, and
+	// its package's export slot emptied, so a later reference loads it from
+	// its file again. A class undoing more calls this last.
+	void OnGCDestroy() override;
+	bool IsGCEliminated() const override { return AnyFlags(Flags, ObjectFlags::EliminateObject); }
 };
 
 template<typename T>

@@ -1,6 +1,7 @@
 
 #include "Precomp.h"
 #include "UMapProperty.h"
+#include "UObjectProperty.h"
 #include "Utils/AlignedAlloc.h"
 
 void UMapProperty::Load(ObjectStream* stream)
@@ -86,14 +87,29 @@ std::string UMapProperty::PrintValue(const void* data)
 	return "map";
 }
 
-GCAllocation* UMapProperty::MarkPropertyElement(GCAllocation* marklist, void* data)
+bool UMapProperty::ComputeContainsRefs()
+{
+	return (Key && Key->ContainsRefs()) || (Value && Value->ContainsRefs());
+}
+
+// A key is the map's order: an object in one is kept, never made None.
+void UMapProperty::MarkValue(GCMarker& marker, void* data)
 {
 	Map* map = static_cast<Map*>(data);
 	for (auto& it : *map)
 	{
-		marklist = it.second.Property->MarkPropertyElement(marklist, it.second.Data);
+		if (UObject::TryCast<UObjectProperty>(it.first.Property))
+			marker.MarkConst(*static_cast<UObject* const*>(it.first.Data));
+		if (it.second.Property && it.second.Property->ContainsRefs())
+			it.second.Property->MarkValue(marker, it.second.Data);
 	}
-	return marklist;
+}
+
+void UMapProperty::Mark(GCMarker& marker)
+{
+	UProperty::Mark(marker);
+	marker.MarkConst(Key);
+	marker.MarkConst(Value);
 }
 
 /////////////////////////////////////////////////////////////////////////////

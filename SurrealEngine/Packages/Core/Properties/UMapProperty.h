@@ -51,8 +51,13 @@ public:
 
 	std::string PrintValue(const void* data) override;
 
-	GCAllocation* MarkPropertyElement(GCAllocation* marklist, void* data) override;
+	void MarkValue(GCMarker& marker, void* data) override;
+	void Mark(GCMarker& marker) override;
 
+protected:
+	bool ComputeContainsRefs() override;
+
+public:
 	UProperty* Key = nullptr;
 	UProperty* Value = nullptr;
 };

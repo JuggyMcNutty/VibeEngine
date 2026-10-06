@@ -66,8 +66,16 @@ public:
 
 	template<class T> Array<T*> GetAllObjects();
 
+	std::string GCClassName() const override { return "Package"; }
+	std::string GCDescribe() const override { return "Package " + Name.ToString(); }
+
+protected:
+	// Nothing: a package reached through its objects keeps its file and
+	// tables, not its other objects. What keeps those is the package
+	// manager's roots (PackageManager::MarkRoots).
+	void Mark(GCMarker& marker) override {}
+
 private:
-	GCAllocation* Mark(GCAllocation* marklist) override;
 
 	// A savegame, by its extension: its exports are made whatever their
 	// flags.

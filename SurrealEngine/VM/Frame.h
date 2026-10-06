@@ -173,6 +173,10 @@ public:
 	void GotoLabel(const NameString& label);
 	void Tick();
 
+	// What a state frame keeps alive: its function and the references its
+	// locals and iterators hold.
+	void Mark(GCMarker& marker);
+
 	std::string GetName();
 
 	LatentRunState LatentState = LatentRunState::Continue;

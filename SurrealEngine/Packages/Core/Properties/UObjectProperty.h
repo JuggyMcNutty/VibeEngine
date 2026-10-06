@@ -20,7 +20,12 @@ public:
 	bool IsDefaultValue(void* val) override;
 	void SetValueFromString(void* data, const std::string& valueString) override;
 
-	GCAllocation* MarkPropertyElement(GCAllocation* marklist, void* data) override;
+	void MarkValue(GCMarker& marker, void* data) override;
+	void Mark(GCMarker& marker) override;
 
+protected:
+	bool ComputeContainsRefs() override;
+
+public:
 	UClass* ObjectClass = nullptr;
 };

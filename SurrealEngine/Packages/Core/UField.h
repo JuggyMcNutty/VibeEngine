@@ -10,6 +10,13 @@ public:
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
 
+protected:
+	// Loaded code is never collected: a native class loaded again would
+	// register its natives twice. A field made at run time, in no package
+	// (a call's temporary property), goes like any other object.
+	bool IsGCRoot() const override { return package != nullptr; }
+
+public:
 	UField* BaseField = nullptr;
 	UField* Next = nullptr;
 };

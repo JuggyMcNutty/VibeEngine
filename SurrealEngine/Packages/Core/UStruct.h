@@ -46,7 +46,15 @@ public:
 	int GetStatementLine(Expression* statement);
 	FunctionDebugInfo* GetDebugInfo();
 
+	// The properties whose values can hold references to objects, as the
+	// original's RefLink and StructLink: what the collector walks in an
+	// instance. Built when first asked for, again if Properties grew.
+	const Array<UProperty*>& RefProps();
+
 private:
+	Array<UProperty*> RefPropList;
+	size_t RefPropsBuiltFrom = (size_t)-1;
+
 	ExprToken ReadToken(ObjectStream* stream, int depth);
 	void PushBytes(const void* data, size_t size);
 	void PushUInt8(uint8_t value);

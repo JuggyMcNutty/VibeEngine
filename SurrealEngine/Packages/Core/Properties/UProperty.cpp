@@ -58,18 +58,13 @@ void UProperty::ThrowIfTypeMismatch(const PropertyHeader& header, UnrealProperty
 		Exception::Throw("Property value does not match property type!");
 }
 
-GCAllocation* UProperty::MarkProperty(GCAllocation* marklist, void* data)
+void UProperty::MarkProperty(GCMarker& marker, void* data)
 {
-	if (ValueType == ExpressionValueType::ValueObject ||
-		ValueType == ExpressionValueType::ValueStruct ||
-		ValueType == ExpressionValueType::ValueArray)
-	{
-		for (int i = 0; i < ArrayDimension; i++)
-		{
-			marklist = MarkPropertyElement(marklist, GetElement(data, i));
-		}
-	}
-	return marklist;
+	if (!ContainsRefs())
+		return;
+	marker.SetField(this);
+	for (int i = 0; i < ArrayDimension; i++)
+		MarkValue(marker, GetElement(data, i));
 }
 
 void UProperty::ConstructArray(void* data)

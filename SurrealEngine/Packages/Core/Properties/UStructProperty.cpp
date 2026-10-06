@@ -157,16 +157,26 @@ bool UStructProperty::CompareLessElement(const void* v1, const void* v2)
 	return false;
 }
 
-GCAllocation* UStructProperty::MarkPropertyElement(GCAllocation* marklist, void* data)
+// A struct not loaded yet is taken to hold references: the answer is
+// kept, and its properties are walked once they are there.
+bool UStructProperty::ComputeContainsRefs()
 {
-	if (Struct)
-	{
-		for (UProperty* prop : Struct->Properties)
-		{
-			marklist = prop->MarkPropertyElement(marklist, static_cast<uint8_t*>(data) + prop->DataOffset.DataOffset);
-		}
-	}
-	return marklist;
+	return Struct && (Struct->DelayLoad || !Struct->RefProps().empty());
+}
+
+void UStructProperty::MarkValue(GCMarker& marker, void* data)
+{
+	if (Struct->DelayLoad)
+		return;
+	for (UProperty* prop : Struct->RefProps())
+		prop->MarkProperty(marker, static_cast<uint8_t*>(data) + prop->DataOffset.DataOffset);
+	marker.SetField(this);
+}
+
+void UStructProperty::Mark(GCMarker& marker)
+{
+	UProperty::Mark(marker);
+	marker.MarkConst(Struct);
 }
 
 void UStructProperty::GetExportText(std::string& buf, const std::string& whitespace, UObject* obj, UObject* defobj, int i)

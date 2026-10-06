@@ -181,6 +181,21 @@ bool UStruct::IsEqual(const void* v1, const void* v2)
 	return true;
 }
 
+const Array<UProperty*>& UStruct::RefProps()
+{
+	if (RefPropsBuiltFrom != Properties.size())
+	{
+		RefPropList.clear();
+		for (UProperty* prop : Properties)
+		{
+			if (prop->ContainsRefs())
+				RefPropList.push_back(prop);
+		}
+		RefPropsBuiltFrom = Properties.size();
+	}
+	return RefPropList;
+}
+
 int UStruct::GetStatementLine(Expression* statement)
 {
 	if (!Code)

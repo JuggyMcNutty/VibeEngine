@@ -20,5 +20,4 @@ public:
 	void DestructElement(void* data) override {}
 	bool CompareElement(const void* v1, const void* v2) override { return true; }
 	bool CompareLessElement(const void* v1, const void* v2) override { return false; }
-	GCAllocation* MarkPropertyElement(GCAllocation* marklist, void* data) override { return marklist; }
 };

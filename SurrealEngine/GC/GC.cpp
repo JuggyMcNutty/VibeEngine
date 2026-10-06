@@ -5,6 +5,7 @@
 static GCRootNode* roots;
 static GCAllocation* allocations;
 static GCStats stats;
+bool GC::collecting = false;
 
 GCRootNode::GCRootNode()
 {
@@ -45,30 +46,28 @@ GCAllocation* GC::AllocMemory(size_t size)
 		throw std::bad_alloc();
 	allocation->allocklistNext = allocations;
 	allocation->memsize = memsize;
-	allocation->unreferencedFlag = true;
+	// Made during a collection, it is not one of those the sweep may free.
+	allocation->unreferencedFlag = !collecting;
 	allocations = allocation;
 	stats.numObjects++;
 	stats.memoryUsage += memsize;
 	return allocation;
 }
 
+// A constructor that threw: the allocation leaves the list first. It is
+// the list's head unless the constructor allocated others.
 void GC::FreeMemory(GCAllocation* allocation)
 {
-	free(allocation);
-}
-
-void GC::Collect()
-{
-	GCAllocation* marklist = nullptr;
-	for (GCRootNode* root = roots; root != nullptr; root = root->next)
-		marklist = GC::MarkObject(marklist, root->obj);
-
-	while (marklist)
+	GCAllocation** link = &allocations;
+	while (*link && *link != allocation)
+		link = &(*link)->allocklistNext;
+	if (*link)
 	{
-		marklist = Mark(marklist);
+		*link = allocation->allocklistNext;
+		stats.numObjects--;
+		stats.memoryUsage -= allocation->memsize;
 	}
-
-	Sweep();
+	free(allocation);
 }
 
 GCStats GC::GetStats()
@@ -76,18 +75,133 @@ GCStats GC::GetStats()
 	return stats;
 }
 
-GCAllocation* GC::Mark(GCAllocation* marklist)
+bool GCMarker::Visit(GCObject* obj, bool writable)
 {
-	GCAllocation* marklistout = nullptr;
-	for (GCAllocation* allocation = marklist; allocation != nullptr; allocation = allocation->marklistNext)
+	Result->Refs++;
+	GCAllocation* allocation = obj->Allocation();
+	if (Live && Live->find(allocation) == Live->end())
 	{
-		marklistout = allocation->object()->Mark(marklistout);
+		Result->Invalid[HolderKey()]++;
+		return false;
 	}
-	return marklistout;
+	if (obj->IsGCEliminated())
+	{
+		if (writable && Eliminates())
+		{
+			Result->Cleared[HolderKey()]++;
+			return true;
+		}
+		if (!writable)
+			Result->KeptEliminated[HolderKey()]++;
+	}
+	if (allocation->unreferencedFlag)
+	{
+		allocation->unreferencedFlag = false;
+		if (Options->Watch && Options->Watch(obj))
+			Result->FirstHolder[obj] = HolderKey();
+		Worklist.push_back(obj);
+	}
+	return false;
 }
 
-void GC::Sweep()
+std::string GCMarker::HolderKey() const
 {
+	std::string key;
+	if (Holder)
+		key = Holder->GCClassName();
+	else
+		key = std::string("root ") + (RootName ? RootName : "?");
+	if (FieldName)
+		key += std::string(".") + FieldName;
+	else if (FieldObject)
+		key += "." + FieldObject->GCDescribe();
+	return key;
+}
+
+void GCMarker::Drain()
+{
+	while (!Worklist.empty())
+	{
+		GCObject* obj = Worklist.back();
+		Worklist.pop_back();
+		Holder = obj;
+		FieldName = nullptr;
+		FieldObject = nullptr;
+		obj->Mark(*this);
+	}
+	Holder = nullptr;
+	FieldName = nullptr;
+	FieldObject = nullptr;
+}
+
+GCCollectResult GC::Collect(const std::function<void(GCMarker&)>& markRoots, const std::function<void()>& purgeWeak, const GCCollectOptions& options)
+{
+	GCCollectResult result;
+	result.ObjectsBefore = stats.numObjects;
+	result.BytesBefore = stats.memoryUsage;
+
+	std::unique_ptr<std::unordered_set<GCAllocation*>> live;
+	if (options.Verify)
+	{
+		live = std::make_unique<std::unordered_set<GCAllocation*>>();
+		live->reserve(stats.numObjects);
+		for (GCAllocation* allocation = allocations; allocation != nullptr; allocation = allocation->allocklistNext)
+			live->insert(allocation);
+	}
+
+	// Every flag is set between collections: an object is unreferenced
+	// until the marker reaches it.
+	collecting = true;
+	GCMarker marker(options, result, live.get());
+
+	marker.SetRoot("GCRoot");
+	for (GCRootNode* root = roots; root != nullptr; root = root->next)
+		marker.MarkConst(root->obj);
+	marker.SetRoot("code");
+	for (GCAllocation* allocation = allocations; allocation != nullptr; allocation = allocation->allocklistNext)
+	{
+		if (allocation->object()->IsGCRoot())
+			marker.MarkConst(allocation->object());
+	}
+	marker.Drain();
+
+	marker.SetRoot(nullptr);
+	markRoots(marker);
+	marker.Drain();
+
+	if (options.DryRun)
+	{
+		for (GCAllocation* allocation = allocations; allocation != nullptr; allocation = allocation->allocklistNext)
+		{
+			if (allocation->unreferencedFlag)
+			{
+				if (options.Dying)
+					options.Dying(allocation->object());
+			}
+			else
+			{
+				allocation->unreferencedFlag = true;
+			}
+		}
+		collecting = false;
+		result.ObjectsAfter = stats.numObjects;
+		result.BytesAfter = stats.memoryUsage;
+		return result;
+	}
+
+	// The weak holders let go of the dying.
+	if (purgeWeak)
+		purgeWeak();
+
+	// Phase 1: every dying object is told, all of them still allocated.
+	for (GCAllocation* allocation = allocations; allocation != nullptr; allocation = allocation->allocklistNext)
+	{
+		if (allocation->unreferencedFlag)
+			allocation->object()->OnGCDestroy();
+	}
+
+	// Phase 2: destroyed and freed; the survivors unreferenced again for the
+	// next collection.
 	GCAllocation* prev = nullptr;
 	GCAllocation* cur = allocations;
 	while (cur)
@@ -116,4 +230,9 @@ void GC::Sweep()
 			cur = cur->allocklistNext;
 		}
 	}
+
+	collecting = false;
+	result.ObjectsAfter = stats.numObjects;
+	result.BytesAfter = stats.memoryUsage;
+	return result;
 }

@@ -83,8 +83,18 @@ void UObjectProperty::SetValueFromString(void* data, const std::string& valueStr
 	}
 }
 
-GCAllocation* UObjectProperty::MarkPropertyElement(GCAllocation* marklist, void* data)
+bool UObjectProperty::ComputeContainsRefs()
 {
-	GC::MarkObject(marklist, static_cast<UObject*>(data));
-	return marklist;
+	return true;
+}
+
+void UObjectProperty::MarkValue(GCMarker& marker, void* data)
+{
+	marker.Mark(*static_cast<UObject**>(data));
+}
+
+void UObjectProperty::Mark(GCMarker& marker)
+{
+	UProperty::Mark(marker);
+	marker.MarkConst(ObjectClass);
 }

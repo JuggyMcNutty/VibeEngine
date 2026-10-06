@@ -93,8 +93,19 @@ public:
 	bool CompareArray(const void* v1, const void* v2);
 	bool CompareLessArray(const void* v1, const void* v2);
 
-	GCAllocation* MarkProperty(GCAllocation* marklist, void* data);
-	virtual GCAllocation* MarkPropertyElement(GCAllocation* marklist, void* data) = 0;
+	// Whether a value of this property can hold a reference to an object,
+	// worked out once.
+	bool ContainsRefs()
+	{
+		if (RefsState < 0)
+			RefsState = ComputeContainsRefs() ? 1 : 0;
+		return RefsState == 1;
+	}
+
+	// The references in every element of the property at data.
+	void MarkProperty(GCMarker& marker, void* data);
+	// The references in one element.
+	virtual void MarkValue(GCMarker& marker, void* data) {}
 
 	virtual void GetExportText(std::string& buf, const std::string& whitespace, UObject* obj, UObject* defobj, int i);
 	virtual void GetExportText(std::string& buf, const std::string& whitespace, void* objval, void* defval, int i);
@@ -112,7 +123,12 @@ public:
 	PropertyDataOffset DataOffset = { 0, 1 };
 	ExpressionValueType ValueType = ExpressionValueType::Nothing;
 
+private:
+	int8_t RefsState = -1;
+
 protected:
+	virtual bool ComputeContainsRefs() { return false; }
+
 	static std::pair<NameString, std::string> ParseSingleProperty(std::string& propString);
 	static std::map<NameString, std::string> ParsePropertiesFromString(std::string propertiesString);
 };
@@ -134,8 +150,6 @@ public:
 
 	bool CompareElement(const void* v1, const void* v2) override { return *static_cast<const T*>(v1) == *static_cast<const T*>(v2); }
 	bool CompareLessElement(const void* v1, const void* v2) override { return *static_cast<const T*>(v1) < *static_cast<const T*>(v2); }
-
-	GCAllocation* MarkPropertyElement(GCAllocation* marklist, void* data) override { return marklist; }
 };
 
 // Dummy property class so we can keep the virtual functions in UProperty abstract

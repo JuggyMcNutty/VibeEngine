@@ -569,30 +569,65 @@ void UObject::GotoState(NameString stateName, const NameString& labelName)
 		CallEvent(this, EventName::BeginState);
 }
 
-GCAllocation* UObject::Mark(GCAllocation* marklist)
+void UObject::Mark(GCMarker& marker)
 {
-	if (Class)
+	marker.SetField("Class");
+	marker.MarkConst(Class);
+	// A package reached only through its objects is a shell: its file and
+	// tables, none of its other objects (Package::Mark).
+	marker.SetField("package");
+	marker.MarkConst(package);
+	if (DelayLoad)
 	{
-		marklist = GC::MarkObject(marklist, Class);
-		for (UProperty* prop : Class->Properties)
-			marklist = prop->MarkProperty(marklist, PropertyData.Ptr(prop));
+		marker.SetField("DelayLoad");
+		marker.MarkConst(DelayLoad->Class);
+		marker.MarkConst(DelayLoad->package);
+		marker.Mark(DelayLoad->Outer);
 	}
-	return marklist;
+	if (StateFrame)
+	{
+		marker.SetField("StateFrame");
+		StateFrame->Mark(marker);
+	}
+	// The values are laid out by the block's class: a class's own block is
+	// its defaults.
+	if (PropertyData.Data && PropertyData.Class)
+	{
+		for (UProperty* prop : PropertyData.Class->RefProps())
+			prop->MarkProperty(marker, PropertyData.Ptr(prop));
+	}
+}
+
+void UObject::OnGCDestroy()
+{
+	PropertyData.Reset();
+	StateFrame.reset();
+	DelayLoad.reset();
+	if (package && package->IsExportObject(this, (int)exportIndex))
+		package->ExportObjects[exportIndex] = nullptr;
+}
+
+std::string UObject::GCClassName() const
+{
+	return Class ? Class->Name.ToString() : std::string("Object");
+}
+
+std::string UObject::GCDescribe() const
+{
+	return GCClassName() + " " + Name.ToString();
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 void PropertyDataBlock::Reset()
 {
-	// To do: this crashes as the class might have been destroyed first
-	/*if (Data && Class)
+	// Classes are never collected (UField::IsGCRoot), so the class that
+	// laid the values out is there to destruct them.
+	if (Data && Class)
 	{
-		for (auto& it : Class->Properties)
-		{
-			UProperty* prop = it.second;
-			prop->Destruct(Ptr(prop));
-		}
-	}*/
+		for (UProperty* prop : Class->Properties)
+			prop->DestructArray(Ptr(prop));
+	}
 	AlignedFree(Data);
 	Data = nullptr;
 	Class = nullptr;
@@ -781,7 +816,7 @@ ScriptArray::ScriptArray(UProperty* type) : Type(type)
 {
 }
 
-ScriptArray::ScriptArray(const ScriptArray& other)
+ScriptArray::ScriptArray(const ScriptArray& other) : Type(other.Type)
 {
 	Reserve(other.Size);
 	try
@@ -801,7 +836,7 @@ ScriptArray::ScriptArray(const ScriptArray& other)
 	}
 }
 
-ScriptArray::ScriptArray(ScriptArray&& other)
+ScriptArray::ScriptArray(ScriptArray&& other) : Type(other.Type)
 {
 	Data = other.Data;
 	Size = other.Size;

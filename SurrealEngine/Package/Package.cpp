@@ -74,13 +74,6 @@ void Package::Save(UObject* object, const std::string& filename)
 	writer.Save(object, filename);
 }
 
-GCAllocation* Package::Mark(GCAllocation* marklist)
-{
-	for (UObject* obj : ExportObjects)
-		marklist = GC::MarkObject(marklist, obj);
-	return marklist;
-}
-
 UObject* Package::NewObject(const NameString& objname, UClass* objclass, ObjectFlags flags, bool initProperties)
 {
 	if (!objclass)

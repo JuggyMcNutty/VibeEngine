@@ -28,7 +28,6 @@ public:
 	bool IsDefaultValue(void* val) override;
 	std::string PrintValue(const void* data) override;
 
-	GCAllocation* MarkPropertyElement(GCAllocation* marklist, void* data) override { return marklist; }
 
 	bool GetBool(const void* data) const;
 	void SetBool(void* data, bool value);

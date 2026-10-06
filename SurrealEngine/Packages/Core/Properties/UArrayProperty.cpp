@@ -131,13 +131,21 @@ std::string UArrayProperty::PrintValue(const void* data)
 	return "array";
 }
 
-GCAllocation* UArrayProperty::MarkPropertyElement(GCAllocation* marklist, void* data)
+bool UArrayProperty::ComputeContainsRefs()
+{
+	return Inner && Inner->ContainsRefs();
+}
+
+void UArrayProperty::MarkValue(GCMarker& marker, void* data)
 {
 	ScriptArray* array = static_cast<ScriptArray*>(data);
 	size_t count = array->GetSize();
 	for (size_t i = 0; i < count; i++)
-	{
-		marklist = Inner->MarkPropertyElement(marklist, array->GetItem(i));
-	}
-	return marklist;
+		Inner->MarkValue(marker, array->GetItem(i));
+}
+
+void UArrayProperty::Mark(GCMarker& marker)
+{
+	UProperty::Mark(marker);
+	marker.MarkConst(Inner);
 }

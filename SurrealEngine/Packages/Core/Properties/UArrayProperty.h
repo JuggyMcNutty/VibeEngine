@@ -28,7 +28,12 @@ public:
 	void GetExportText(std::string& buf, const std::string& whitespace, UObject* obj, UObject* defobj, int i) override;
 	std::string PrintValue(const void* data) override;
 
-	GCAllocation* MarkPropertyElement(GCAllocation* marklist, void* data) override;
+	void MarkValue(GCMarker& marker, void* data) override;
+	void Mark(GCMarker& marker) override;
 
+protected:
+	bool ComputeContainsRefs() override;
+
+public:
 	UProperty* Inner = nullptr;
 };
