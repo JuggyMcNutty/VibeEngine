@@ -188,6 +188,8 @@ public:
 	UObject* GetTabGroupWindow();
 	UObject* MoveTabGroup(bool next);
 	bool IsTraversable(bool checkTopmost);
+	void CheckFocusWindow();
+	void CheckGrabbedWindow();
 	UObject* MoveFocus(int dir);
 	float GetTickOffset();
 	UObject* GetTopChild(std::optional<bool> bVisibleOnly);
@@ -392,6 +394,7 @@ public:
 	float UnderlineHeight = 0.0f;
 	float UsedX = 0.0f;
 	float UsedY = 0.0f;
+	bool Destroyed = false;
 
 	class WTimer
 	{

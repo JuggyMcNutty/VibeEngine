@@ -258,15 +258,13 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
 
 - **`GC.DrawActor` ignores `bConstrain`**: the vision augmentation's calls
   cover the whole view. Its render time: [out of sight](#out-of-sight).
-- **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)),
-  read from both codes, unchecked in a run:
-  - `MoveTabGroup` (Tab, Shift+Tab, and a focus move with nowhere to go in
-    its group) gives the focus to the next tab group window itself, among
-    every visible tab group under the root in `tabGroupIndex` order. The
-    original gives it to the first traversable window of the next group in
-    the topmost modal's table.
-  - With no focus, `MoveFocus` seeds it from the topmost modal's own group,
-    where the original goes through `MoveTabGroup`.
+- **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
+  `MoveFocus`, `MoveTabGroup`, the focus moving off a window hidden, made
+  unselectable or destroyed, and the windows ticking before the engine are
+  the original's (`ChoiceConsole`). Differs, read from both codes, unchecked
+  in a run:
+  - The tab groups' table passes no window over as clipped away: the fork
+    keeps no clip rectangles.
   - The root's tick seeds the focus whatever the topmost modal's
     `focusMode`, so the keypad (`MFOCUS_EnterLeave`) gets a focused key as
     it opens, and seeds nothing with no modal up. The original's leaves an

@@ -274,6 +274,12 @@ void Engine::Run()
 		float entryLevelElapsed = EntryLevel ? realTimeElapsed * clamp(EntryLevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f) : 0.0f;
 		float levelElapsed = realTimeElapsed * clamp(LevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f);
 
+		// The windows tick before the engine, as the original's
+		// (Extension.dll XGameEngineExt::Tick 0x100266a0): what the level
+		// makes this frame has been laid out by the time they next tick.
+		if (dxRootWindow)
+			dxRootWindow->Tick(levelElapsed); // Should this maybe be realTimeElapsed?
+
 		TotalTime += realTimeElapsed;
 
 		if (EntryLevel && EntryLevel != Level)
@@ -331,9 +337,6 @@ void Engine::Run()
 			ServerLevel->TickNetServer(levelElapsed);
 		if (LevelNetDriver)
 			LevelNetDriver->TickFlush();
-
-		if (dxRootWindow)
-			dxRootWindow->Tick(levelElapsed); // Should this maybe be realTimeElapsed?
 
 		// To do: improve CallEvent so parameter passing isn't this painful
 		UFunction* funcPlayerCalcView = viewport->Actor() ? FindEventFunction(viewport->Actor(), "PlayerCalcView") : nullptr;
