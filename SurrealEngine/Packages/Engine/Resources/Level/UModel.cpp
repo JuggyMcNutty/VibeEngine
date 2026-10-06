@@ -8,6 +8,8 @@
 #include "UPolys.h"
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Resources/Textures/UTexture.h"
+#include "Packages/Engine/Actors/UActor.h"
+#include "Packages/Engine/Resources/Textures/UTexture.h"
 #include "Utils/Logger.h"
 #include "Engine.h"
 
@@ -525,4 +527,40 @@ BBox BspNode::GetCollisionBox(UModel* model) const
 	bbox.max = bboxStart[1];
 
 	return bbox;
+}
+
+void UModel::MarkSurfaces(GCMarker& marker, Array<BspSurface>& surfaces)
+{
+	marker.SetField("Surfaces");
+	for (BspSurface& surface : surfaces)
+	{
+		marker.Mark(surface.Material);
+		marker.Mark(surface.BrushActor);
+	}
+}
+
+void UModel::MarkZones(GCMarker& marker, Array<ZoneProperties>& zones)
+{
+	marker.SetField("Zones");
+	for (ZoneProperties& zone : zones)
+		marker.Mark(zone.ZoneActor);
+}
+
+void UModel::Mark(GCMarker& marker)
+{
+	UPrimitive::Mark(marker);
+	MarkSurfaces(marker, Surfaces);
+	MarkZones(marker, Zones);
+	marker.SetField("OldFormat");
+	marker.Mark(OldFormat.Vectors);
+	marker.Mark(OldFormat.Points);
+	marker.Mark(OldFormat.Nodes);
+	marker.Mark(OldFormat.Surfaces);
+	marker.Mark(OldFormat.Verts);
+	marker.Mark(OldFormat.Unknown1);
+	marker.Mark(OldFormat.Unknown2);
+	marker.SetField("Polys");
+	marker.Mark(Polys);
+	marker.SetField("Lights");
+	marker.MarkArray(Lights);
 }

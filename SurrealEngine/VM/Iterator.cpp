@@ -655,3 +655,90 @@ bool TraceVisibleActorsIterator::Next()
 	return true;
 }
 
+void AllObjectsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+	marker.MarkConst(InOuter);
+	if (!(m_Iterator == m_Objects.end()))
+		marker.MarkConst(*m_Iterator);
+}
+
+void AllActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+}
+
+void BasedActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+	for (UActor* a : BasedActors)
+		marker.MarkConst(a);
+}
+
+void ChildActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+	for (UActor* a : ChildActors)
+		marker.MarkConst(a);
+}
+
+void CycleActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+}
+
+void RadiusActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+	for (UActor* a : RadiusActors)
+		marker.MarkConst(a);
+}
+
+void TouchingActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+	for (UActor* a : TouchingActors)
+		marker.MarkConst(a);
+}
+
+void TraceActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(SelfActor);
+	marker.MarkConst(BaseClass);
+	for (TraceInfo& t : tracedActors)
+		marker.MarkConst(t.tracedActor);
+}
+
+void VisibleActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+	for (UActor* a : VisibleActors)
+		marker.MarkConst(a);
+}
+
+void VisibleCollidingActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(BaseClass);
+	for (UActor* a : HitActors)
+		marker.MarkConst(a);
+}
+
+void ZoneActorsIterator::Mark(GCMarker& marker)
+{
+	marker.MarkConst(Zone);
+	marker.MarkConst(BaseClass);
+	for (UActor* a : ZoneActors)
+		marker.MarkConst(a);
+}
+
+void TraceTextureIterator::Mark(GCMarker& marker)
+{
+	for (const CollisionHit& hit : m_CollList)
+		marker.MarkConst(hit.Actor);
+}
+
+void TraceVisibleActorsIterator::Mark(GCMarker& marker)
+{
+	for (const CollisionHit& hit : m_CollList)
+		marker.MarkConst(hit.Actor);
+}

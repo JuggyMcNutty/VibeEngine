@@ -1,5 +1,7 @@
 #pragma once
 
+class GCMarker;
+
 #include "NetBits.h"
 #include "Utils/Array.h"
 #include "Package/NameString.h"
@@ -22,6 +24,9 @@ class NetConnection;
 class NetPackageMap
 {
 public:
+	// Its packages and the classes it caches.
+	void Mark(GCMarker& marker);
+
 	struct PackageInfo
 	{
 		Package* Pkg = nullptr;

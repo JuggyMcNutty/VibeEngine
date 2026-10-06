@@ -80,6 +80,13 @@ public:
 
 	AudioDevice* GetDevice() { return m_Device.get(); }
 
+	// The sounds playing and the song: kept while they play. A playing
+	// sound's actor may be made None, and it plays on where it was; an
+	// ambient sound's is kept.
+	void Mark(GCMarker& marker) override;
+	// SoundSerials and the reverb zone let go of the dying (GC::IsDying).
+	void PurgeDying();
+
 private:
 	void StartAmbience();
 	void UpdateAmbience();

@@ -92,6 +92,15 @@ public:
 
 	void CloseStreams();
 
+	// The collector's roots here: every export of a package of `packages`
+	// and of a save info. A map, a save and a download are not among them:
+	// what their levels reach stays.
+	void MarkRoots(GCMarker& marker);
+	// Objects made but not loaded yet: no collection may run then.
+	bool HasPendingLoads() const { return !delayLoads.empty(); }
+	// Whether a package is one of `packages` or a save info.
+	bool IsRegisteredPackage(const Package* package) const;
+
 	Package* LoadSaveFile(const std::string& path);
 	Package* LoadSaveSlot(const uint32_t slotNum);
 

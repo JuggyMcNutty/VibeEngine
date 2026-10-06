@@ -1093,3 +1093,14 @@ void UListWindow::DispatchListSelectionChanged()
 			break;
 	}
 }
+
+void UListWindow::Mark(GCMarker& marker)
+{
+	UWindow::Mark(marker);
+	marker.SetField("columns");
+	for (Column& column : columns)
+		marker.Mark(column.font);
+	marker.SetField("items");
+	for (Item& item : items)
+		marker.Mark(item.clientObj);
+}

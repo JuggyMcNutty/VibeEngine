@@ -204,6 +204,13 @@ public:
 
 	PointRegion FindRegion(const vec3& point, UZoneInfo* levelZoneInfo);
 
+	// The surfaces' textures and brushes, the zones' actors, the old
+	// format's parts, the polys and the lights. A node's actor list and
+	// decals are the level's actors, kept by the level.
+	void Mark(GCMarker& marker) override;
+	static void MarkSurfaces(GCMarker& marker, Array<BspSurface>& surfaces);
+	static void MarkZones(GCMarker& marker, Array<ZoneProperties>& zones);
+
 	Array<vec3> Vectors;
 	Array<vec3> Points;
 	Array<BspNode> Nodes;

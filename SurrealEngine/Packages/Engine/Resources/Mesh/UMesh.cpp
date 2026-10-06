@@ -377,3 +377,11 @@ void UMesh::Save(PackageStreamWriter* stream)
 			stream->WriteFloat(v);
 	}
 }
+
+void UMesh::Mark(GCMarker& marker)
+{
+	UPrimitive::Mark(marker);
+	marker.SetField("Textures");
+	for (UTexture*& texture : Textures)
+		marker.Mark(texture);
+}

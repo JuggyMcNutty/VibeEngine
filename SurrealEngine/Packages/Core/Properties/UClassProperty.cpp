@@ -23,3 +23,9 @@ std::string UClassProperty::PrintValue(const void* data)
 	else
 		return "None";
 }
+
+void UClassProperty::Mark(GCMarker& marker)
+{
+	UObjectProperty::Mark(marker);
+	marker.MarkConst(MetaClass);
+}

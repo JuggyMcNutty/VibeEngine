@@ -13,6 +13,11 @@ public:
 	virtual ~Iterator() = default;
 	virtual bool Next() = 0;
 
+	// What a state frame's iterator keeps across a latent call: the class
+	// it tests and the actors it has yet to return, kept as they are (an
+	// entry made None would end the walk early).
+	virtual void Mark(GCMarker& marker) {}
+
 	size_t StartStatementIndex = 0;
 	size_t EndStatementIndex = 0;
 };
@@ -32,6 +37,7 @@ public:
 	// InOuter is a 227-exclusive parameter
 	AllObjectsIterator(UObject* BaseClass, UObject** ReturnValue, UObject* InOuter = nullptr);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 private:
 	UObject* BaseClass = nullptr;
@@ -64,6 +70,7 @@ public:
 	// TODO: Handle bAllLevels parameter
 	AllActorsIterator(UObject* BaseClass, UObject** ReturnValue, NameString MatchTag, NameString MatchEvent, bool bAllLevels);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 private:
 	UObject* BaseClass = nullptr;
@@ -95,6 +102,7 @@ class BasedActorsIterator : public Iterator
 public:
 	BasedActorsIterator(UActor* Caller, UObject* BaseClass, UObject** Actor);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject* BaseClass = nullptr;
 	UObject** Actor = nullptr;
@@ -110,6 +118,7 @@ class ChildActorsIterator : public Iterator
 public:
 	ChildActorsIterator(UActor* Caller, UObject* BaseClass, UObject** Actor);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject* BaseClass = nullptr;
 	UObject** Actor = nullptr;
@@ -129,6 +138,7 @@ class CycleActorsIterator : public Iterator
 public:
 	CycleActorsIterator(UObject* BaseClass, UObject** Actor, int* outIndex);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 private:
 	bool NextByScan();
 
@@ -159,6 +169,7 @@ class RadiusActorsIterator : public Iterator
 public:
 	RadiusActorsIterator(UActor* Caller, UObject* BaseClass, UObject** Actor, float Radius, vec3 Location);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject* BaseClass = nullptr;
 	UObject** Actor = nullptr;
@@ -175,6 +186,7 @@ class TouchingActorsIterator : public Iterator
 public:
 	TouchingActorsIterator(UActor* Caller, UObject* BaseClass, UObject** outActor);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject* BaseClass = nullptr;
 	UObject** outActor = nullptr;
@@ -189,6 +201,7 @@ class TraceActorsIterator : public Iterator
 public:
 	TraceActorsIterator(UActor* SelfActor, UObject* BaseClass, UObject** Actor, vec3* HitLoc, vec3* HitNorm, const vec3& End, const vec3& Start, const vec3& Extent);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UActor* SelfActor = nullptr;
 	UObject* BaseClass = nullptr;
@@ -216,6 +229,7 @@ class VisibleActorsIterator : public Iterator
 public:
 	VisibleActorsIterator(UActor* Caller, UObject* BaseClass, UObject** Actor, float Radius, const vec3& Location);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject* BaseClass = nullptr;
 	UObject** Actor = nullptr;
@@ -232,6 +246,7 @@ class VisibleCollidingActorsIterator : public Iterator
 public:
 	VisibleCollidingActorsIterator(UObject* BaseClass, UObject** ReturnValue, float Radius, const vec3& Location, bool IgnoreHidden);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject* BaseClass = nullptr;
 	UObject** ReturnValue = nullptr;
@@ -249,6 +264,7 @@ class ZoneActorsIterator : public Iterator
 public:
 	ZoneActorsIterator(UZoneInfo* zone, UObject* BaseClass, UObject** Actor);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UZoneInfo* Zone = nullptr;
 	UObject* BaseClass = nullptr;
@@ -269,6 +285,7 @@ class TraceTextureIterator : public Iterator
 public:
 	TraceTextureIterator(UObject* BaseClass, UObject** OutActor, NameString* TexName, NameString* TexGroup, int* Flags, vec3* HitLoc, vec3* HitNorm, const vec3& End, const vec3& Start, const vec3& Extent);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject** OutActor = nullptr;
 	NameString* TexName = nullptr;
@@ -292,6 +309,7 @@ class TraceVisibleActorsIterator : public Iterator
 public:
 	TraceVisibleActorsIterator(UObject* BaseClass, UObject** OutActor, vec3* HitLoc, vec3* HitNorm, const vec3& End, const vec3& Start, const vec3& Extent);
 	bool Next() override;
+	void Mark(GCMarker& marker) override;
 
 	UObject** OutActor = nullptr;
 	vec3* HitLoc = nullptr;

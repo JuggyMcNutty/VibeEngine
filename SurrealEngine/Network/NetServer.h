@@ -1,5 +1,7 @@
 #pragma once
 
+class GCMarker;
+
 #include "NetDriver.h"
 #include "UnrealURL.h"
 #include <map>
@@ -22,6 +24,9 @@ public:
 	// the game engine's section lists, and the game's (Engine's
 	// UGameEngine::BuildServerMasterMap), each with what it imports.
 	void BuildMasterMap(UObject* game);
+
+	// The level and the packages it offers.
+	void Mark(GCMarker& marker);
 
 	bool NotifyAcceptingConnection() override;
 	bool NotifyAcceptingChannel(NetChannel* channel) override;

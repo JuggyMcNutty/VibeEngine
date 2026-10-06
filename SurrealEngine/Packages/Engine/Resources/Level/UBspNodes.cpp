@@ -1,6 +1,7 @@
 
 #include "Precomp.h"
 #include "UBspNodes.h"
+#include "UModel.h"
 #include "Packages/Engine/Actors/UActor.h"
 
 void UBspNodes::Load(ObjectStream* stream)
@@ -79,4 +80,10 @@ void UBspNodes::Save(PackageStreamWriter* stream)
 		stream->WriteUInt64(zone.Connectivity);
 		stream->WriteUInt64(zone.Visibility);
 	}
+}
+
+void UBspNodes::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	UModel::MarkZones(marker, Zones);
 }

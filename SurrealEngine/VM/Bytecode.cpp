@@ -7,12 +7,15 @@
 Bytecode::Bytecode(const Array<uint8_t>& bytecode, Package* package)
 {
 	BytecodeStream stream(bytecode.data(), bytecode.size(), package);
+	stream.Referenced = &ReferencedObjects;
 	while (!stream.IsEnd())
 	{
 		StatementOffsets.push_back(stream.GetOffset());
 		Statements.push_back(ReadToken(&stream, 0));
 		Statements.back()->StatementIndex = (int)Statements.size() - 1;
 	}
+	std::sort(ReferencedObjects.begin(), ReferencedObjects.end());
+	ReferencedObjects.erase(std::unique(ReferencedObjects.begin(), ReferencedObjects.end()), ReferencedObjects.end());
 }
 
 Expression* Bytecode::ReadToken(BytecodeStream* stream, int depth)

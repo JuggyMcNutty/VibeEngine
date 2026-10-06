@@ -17,6 +17,7 @@ class ULevelInfo;
 class UEventManager : public UObject
 {
 public:
+	void Mark(GCMarker& marker) override;
 	using UObject::UObject;
 
 	void Load(ObjectStream* stream) override;
@@ -130,6 +131,7 @@ public:
 
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
+	void Mark(GCMarker& marker) override;
 
 	NameString EventName;
 	int32_t EventHash = 0;
@@ -145,6 +147,7 @@ public:
 
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
+	void Mark(GCMarker& marker) override;
 
 	UObject* EventType = nullptr;
 	UActor* EventActor = nullptr;
@@ -171,6 +174,7 @@ public:
 
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
+	void Mark(GCMarker& marker) override;
 
 	NameString Callback;
 	NameString ScoreCallback;

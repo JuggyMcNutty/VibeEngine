@@ -230,9 +230,9 @@ void Engine::Run()
 		ExecFile(viewport->Actor(), execFile);
 	LauncherLine::Get().Ready();
 
-	auto objprop = GC::Alloc<UObjectProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
-	auto vecprop = GC::Alloc<UStructProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
-	auto rotprop = GC::Alloc<UStructProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
+	objprop = GC::Alloc<UObjectProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
+	vecprop = GC::Alloc<UStructProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
+	rotprop = GC::Alloc<UStructProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
 
 	bool firstCall = true;
 
@@ -461,6 +461,9 @@ void Engine::Run()
 			LoadMap(url, travelInfo);
 			LoginPlayer();
 		}
+
+		if (!GarbageRequest.empty())
+			CollectGarbage();
 	}
 
 	LogMessage("Shutting down...");
@@ -936,6 +939,8 @@ void Engine::LoadEntryMap()
 	EntryLevel = Level;
 	EntryDeusExLevelInfo = DeusExLevelInfo;
 	EntryLevelPackage = std::move(LevelPackage);
+	// As the original's: no collection at a load of Entry.
+	GarbageRequest.clear();
 	LevelInfo = nullptr;
 	Level = nullptr;
 	viewport->Actor() = nullptr;
@@ -1091,6 +1096,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		GameInfo = nullptr;
 		LevelInfo->Game() = nullptr;
 		BeginPlay(url);
+		RequestGarbageCollection("client map " + url.Map);
 		return;
 	}
 
@@ -1130,6 +1136,8 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		ServerLevel->BuildMasterMap(GameInfo);
 
 	BeginPlay(url);
+
+	RequestGarbageCollection("map " + url.Map);
 
 	// As the original's map load collects what the new level does not use:
 	// a server's downloads go, but a pending join's.
@@ -1275,6 +1283,8 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 	GameInfo = UObject::Cast<UGameInfo>(LevelInfo->Game());
 	if (!GameInfo)
 		Exception::Throw("Save file has no GameInfo actor for " + LevelPackage->GetPackageName().ToString() + "!");
+
+	RequestGarbageCollection("saved level " + realMapName);
 }
 
 // Deus Ex's ShowMainMenu sets the travel variable bIgnoreNextShowMenu when

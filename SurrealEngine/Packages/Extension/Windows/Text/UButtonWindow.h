@@ -5,6 +5,7 @@
 class UButtonWindow : public UTextWindow
 {
 public:
+	void Mark(GCMarker& marker) override;
 	using UTextWindow::UTextWindow;
 
 	void ActivateButton(EInputKey key);

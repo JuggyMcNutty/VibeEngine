@@ -277,3 +277,11 @@ void NetDriver::LowLevelSend(NetConnection* connection, const uint8_t* data, int
 	to.sin_port = htons((uint16_t)connection->RemotePort);
 	sendto((decltype(socket(0, 0, 0)))Socket, (const char*)data, count, 0, (sockaddr*)&to, sizeof(to));
 }
+
+void NetDriver::Mark(GCMarker& marker)
+{
+	if (ServerConnection)
+		ServerConnection->Mark(marker);
+	for (auto& connection : ClientConnections)
+		connection->Mark(marker);
+}

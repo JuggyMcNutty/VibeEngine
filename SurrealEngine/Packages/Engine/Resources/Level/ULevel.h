@@ -42,6 +42,10 @@ public:
 
 	void Tick(float elapsed, bool gamePaused);
 
+	// The reach specs' ends and the BSP model. The collision hash and the
+	// light caches hold only actors of Actors, kept there.
+	void Mark(GCMarker& marker) override;
+
 	Array<LevelReachSpec> ReachSpecs;
 	UModel* Model = nullptr;
 

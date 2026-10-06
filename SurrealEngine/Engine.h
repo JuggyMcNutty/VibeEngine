@@ -52,6 +52,9 @@ class UnrealURL;
 class VideoPlayer;
 class UnrealMipmap;
 class UFloatProperty;
+class UObjectProperty;
+class UStructProperty;
+class GCMarker;
 class UDXSaveInfo;
 class UDeusExLevelInfo;
 class URootWindow;
@@ -138,6 +141,15 @@ public:
 
 	UObject* FindObject(NameString name, NameString className);
 
+	// The collector (vibe/docs/ENGINE.md, objects and memory). A request is
+	// carried out at the end of the frame, with no script running.
+	void RequestGarbageCollection(const std::string& reason);
+	void CollectGarbage();
+	// The engine's roots: its subsystems, levels and objects, the net
+	// drivers', the natives' and the package manager's.
+	void MarkRoots(GCMarker& marker);
+	std::string GarbageRequest;
+
 	std::string ConsoleCommand(UObject* context, const std::string& command, BitfieldBool& found);
 
 	void UpdateInput(float timeElapsed);
@@ -199,6 +211,10 @@ public:
 	URootWindow* dxRootWindow = nullptr;
 
 	UFloatProperty* floatprop = nullptr;
+	// PlayerCalcView's three out parameters, as properties (Run).
+	UObjectProperty* objprop = nullptr;
+	UStructProperty* vecprop = nullptr;
+	UStructProperty* rotprop = nullptr;
 
 	ULevelInfo* EntryLevelInfo = nullptr;
 	ULevel* EntryLevel = nullptr;

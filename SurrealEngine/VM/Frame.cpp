@@ -48,6 +48,9 @@ void Frame::Mark(GCMarker& marker)
 		for (UProperty* prop : Variables.Func->RefProps())
 			prop->MarkProperty(marker, static_cast<uint8_t*>(Variables.Data) + prop->DataOffset.DataOffset);
 	}
+	marker.SetField("Iterators");
+	for (auto& iterator : Iterators)
+		iterator->Mark(marker);
 }
 
 void Frame::SetState(UStruct* func)

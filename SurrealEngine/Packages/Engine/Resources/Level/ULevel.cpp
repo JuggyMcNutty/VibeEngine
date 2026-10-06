@@ -1,6 +1,8 @@
 
 #include "Precomp.h"
 #include "ULevel.h"
+#include "UModel.h"
+#include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
@@ -173,4 +175,17 @@ void ULevel::Tick(float elapsed, bool gamePaused)
 		ActorsHaveHoles = false;
 		ActorsVersion++;
 	}
+}
+
+void ULevel::Mark(GCMarker& marker)
+{
+	ULevelBase::Mark(marker);
+	marker.SetField("ReachSpecs");
+	for (LevelReachSpec& spec : ReachSpecs)
+	{
+		marker.Mark(spec.startActor);
+		marker.Mark(spec.endActor);
+	}
+	marker.SetField("Model");
+	marker.Mark(Model);
 }

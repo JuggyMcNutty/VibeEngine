@@ -1,5 +1,7 @@
 #pragma once
 
+class GCMarker;
+
 #include "NetBits.h"
 #include "NetPackageMap.h"
 #include "Utils/Array.h"
@@ -69,6 +71,11 @@ struct NetInBunch
 class NetConnection
 {
 public:
+	// The player and its connection object, the actors its channels
+	// replicate and the classes they cache, the packages of its map: kept,
+	// never made None, while the connection is open.
+	void Mark(GCMarker& marker);
+
 	static constexpr int MaxChannels = 1023;
 	static constexpr int MaxPacketId = 16384;
 	static constexpr int MaxChSequence = 1024;

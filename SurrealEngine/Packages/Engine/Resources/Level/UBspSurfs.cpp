@@ -1,6 +1,7 @@
 
 #include "Precomp.h"
 #include "UBspSurfs.h"
+#include "UModel.h"
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Resources/Textures/UTexture.h"
 
@@ -48,4 +49,10 @@ void UBspSurfs::Save(PackageStreamWriter* stream)
 		stream->WriteInt16(surface.PanV);
 		stream->WriteObject(surface.BrushActor);
 	}
+}
+
+void UBspSurfs::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	UModel::MarkSurfaces(marker, Surfaces);
 }

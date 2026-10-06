@@ -4,6 +4,8 @@
 #include "NetConnection.h"
 #include "NetChannel.h"
 #include "Package/Package.h"
+#include "Packages/Core/UClass.h"
+#include "GC/GC.h"
 #include "Packages/Core/UObject.h"
 #include "Packages/Core/UClass.h"
 #include "Packages/Core/UFunction.h"
@@ -230,4 +232,12 @@ NetPackageMap::ClassNetCache* NetPackageMap::GetClassNetCache(UClass* cls)
 		}
 	}
 	return result;
+}
+
+void NetPackageMap::Mark(GCMarker& marker)
+{
+	for (PackageInfo& info : List)
+		marker.MarkConst(info.Pkg);
+	for (auto& it : ClassCaches)
+		marker.MarkConst(it.first);
 }

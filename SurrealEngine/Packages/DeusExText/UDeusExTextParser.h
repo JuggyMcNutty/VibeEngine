@@ -42,6 +42,7 @@ enum class DeusExTextTags : uint8_t
 class UDXTextParser : public UObject
 {
 public:
+	void Mark(GCMarker& marker) override;
 	using UObject::UObject;
 
 	int& Text() { return Value<int>(PropOffsets_DeusExTextParser.Text); }

@@ -183,6 +183,8 @@ The environment:
 | `SURREALWIDGETS_DISPLAY_BACKEND` | The window backend: `SDL2`, `SDL3` or `X11`. Unset, or naming one the build lacks: the first that starts of Wayland, X11, SDL3 and SDL2. `run-game.sh` defaults it to `SDL2`, the backend with the pad. |
 | `SURREALWIDGETS_FONT`, `SURREALWIDGETS_MONOSPACE_FONT` | The UI's font files, on a build without GSettings and fontconfig (the embedded cross build). |
 | `DXL_LAUNCHER_FD` | The recreated launcher's line ([running it](#running-it)). |
+| `SURREAL_GC_DRYRUN=1` | At each map change, the collector marks and frees nothing: the log has what would go, by where it lives and by class, and the first holder outside them of each object of a level left behind ([objects and memory](#objects-and-memory)). |
+| `SURREAL_GC_VERIFY=1` | Each collection checks that every pointer it is handed is a live object, and logs the holders of those that are not. |
 | `SURREAL_PERF_LOG=1`, `SURREAL_PERF_DETAIL=1`, `SURREAL_PERF_TURN=<aBaseX>`, `SURREAL_PERF_SAMPLE=<file>` | Only with [the profiling hooks](#the-profiling-hooks) on: where the frame goes, every 60 frames on stderr; tick by actor class and script functions by self time (which inflates what it measures); the player turning on the spot; the sampling profiler. |
 
 ## What the fork changes
@@ -299,6 +301,25 @@ pawn steps to the ground with its dry run's trace (0027). Deus Ex's traces and m
 `ULevel::MoveActor` holds them, landing as `processLanded`; [implemented, not as the
 original](NATIVES.md#implemented-not-as-the-original)), in
 `SurrealEngine/Collision/TopLevel/TraceTest.cpp` and `UActor_Phys.cpp`.
+
+### Objects and memory
+
+`SurrealEngine/GC`: a mark and sweep from roots, as UE1's collector
+([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#garbage-collection)).
+Nothing is freed yet: a collection runs only under `SURREAL_GC_DRYRUN` or `SURREAL_GC_VERIFY`,
+after each map load but Entry's, at the end of the frame with no script running, and marks only.
+
+- **Roots** (`Engine::MarkRoots`, in `EngineGC.cpp`): the engine's subsystems, levels and
+  objects; the net drivers' players, channels and package maps; the natives; every export of a
+  package of `PackageManager::packages` and of a save info. A map's or a save's package is not
+  one: what its level reaches stays. Loaded code (a `UField` in a package) is always kept.
+- **What an object holds**: its class, package, delay load and state frame, and the references
+  its properties hold (`UStruct::RefProps`); a native class marks its own members in its `Mark`.
+  An object reached only through its package keeps the package's file and tables, not its other
+  objects.
+- **Elimination**: a reference to an object flagged `EliminateObject` is made None where the
+  marker finds it (`GCMarker::Mark`), as the original's. One held where it may not be written
+  (`MarkConst`: the subsystems, the net layer, what code names) keeps it, and the log says so.
 
 ### Gameplay
 

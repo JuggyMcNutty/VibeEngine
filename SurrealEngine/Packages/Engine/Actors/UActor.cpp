@@ -732,3 +732,29 @@ float UActor::AIVisibility(std::optional<bool> bIncludeVelocity)
 	}
 	return std::clamp(visibility, 0.0f, 1.0f);
 }
+
+void UActor::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	marker.SetField("ChildActors");
+	marker.MarkArray(ChildActors);
+	marker.SetField("BasedActors");
+	marker.MarkArray(BasedActors);
+	marker.SetField("TouchingLights");
+	size_t before = TouchingLights.List.size();
+	marker.MarkArray(TouchingLights.List);
+	if (TouchingLights.List.size() != before)
+		TouchingLights.NeedsUpdate = true;
+	marker.SetField("MeshLights");
+	size_t out = 0;
+	for (size_t i = 0; i < MeshLights.List.size(); i++)
+	{
+		marker.Mark(MeshLights.List[i].Light);
+		if (MeshLights.List[i].Light)
+			MeshLights.List[out++] = MeshLights.List[i];
+	}
+	MeshLights.List.resize(out);
+	marker.SetField("BspInfo");
+	marker.MarkConst(BspInfo.Prev);
+	marker.MarkConst(BspInfo.Next);
+}

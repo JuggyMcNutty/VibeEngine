@@ -31,6 +31,8 @@ inline bool AnyFlags(FunctionFlags value, FunctionFlags flags) { return (uint32_
 class UFunction : public UStruct
 {
 public:
+	void Mark(GCMarker& marker) override;
+
 	using UStruct::UStruct;
 
 	void Load(ObjectStream* stream) override;

@@ -203,3 +203,15 @@ bool UButtonWindow::MouseButtonReleased(float pointX, float pointY, EInputKey bu
 
 	return UTextWindow::MouseButtonReleased(pointX, pointY, button, numClicks);
 }
+
+void UButtonWindow::Mark(GCMarker& marker)
+{
+	UTextWindow::Mark(marker);
+	marker.SetField("ButtonTextures");
+	marker.Mark(ButtonTextures.Normal);
+	marker.Mark(ButtonTextures.Pressed);
+	marker.Mark(ButtonTextures.NormalFocus);
+	marker.Mark(ButtonTextures.PressedFocus);
+	marker.Mark(ButtonTextures.NormalInsensitive);
+	marker.Mark(ButtonTextures.PressedInsensitive);
+}

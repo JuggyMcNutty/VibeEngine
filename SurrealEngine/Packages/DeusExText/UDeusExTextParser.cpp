@@ -312,3 +312,10 @@ void UDXTextParser::SetPlayerName(const std::string& newPlayerName)
 	PlayerName() = newPlayerName;
 	PlayerFirstName() = newPlayerName.substr(0, newPlayerName.find(' '));
 }
+
+void UDXTextParser::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	marker.SetField("textObject");
+	marker.Mark(textObject);
+}

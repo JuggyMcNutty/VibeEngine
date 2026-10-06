@@ -51,6 +51,12 @@ public:
 	// instance. Built when first asked for, again if Properties grew.
 	const Array<UProperty*>& RefProps();
 
+protected:
+	// Its fields, its script text and what its code names.
+	void Mark(GCMarker& marker) override;
+
+public:
+
 private:
 	Array<UProperty*> RefPropList;
 	size_t RefPropsBuiltFrom = (size_t)-1;

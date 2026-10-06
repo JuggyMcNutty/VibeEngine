@@ -940,3 +940,69 @@ void UAIReceiverEvent::Save(PackageStreamWriter* stream)
 	stream->WriteObject(NextProcess);
 	stream->WriteObject(PrevProcess);
 }
+
+void UEventManager::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	// A sender or receiver whose actor is eliminated is dropped, as
+	// DestroyActor drops a destroyed one.
+	bool cleared = false;
+	marker.SetField("Events");
+	for (auto& [name, type] : Events)
+	{
+		for (auto& sender : type.Senders)
+		{
+			if (!sender->Actor)
+				continue;
+			marker.Mark(sender->Actor);
+			if (!sender->Actor)
+			{
+				sender->Delete = true;
+				cleared = true;
+			}
+		}
+		for (auto& receiver : type.Receivers)
+		{
+			marker.Mark(receiver->BestActor);
+			if (!receiver->Actor)
+				continue;
+			marker.Mark(receiver->Actor);
+			if (!receiver->Actor)
+			{
+				receiver->Delete = true;
+				cleared = true;
+			}
+		}
+	}
+	if (cleared)
+	{
+		DueCalls.clear();
+		CleanupEvents();
+	}
+}
+
+void UAIEventType::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	marker.SetField("chain");
+	marker.Mark(Senders);
+	marker.Mark(Receivers);
+	marker.Mark(NextEventType);
+}
+
+void UAIEvent::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	marker.SetField("chain");
+	marker.Mark(EventType);
+	marker.Mark(EventActor);
+	marker.Mark(NextEvent);
+}
+
+void UAIReceiverEvent::Mark(GCMarker& marker)
+{
+	UAIEvent::Mark(marker);
+	marker.Mark(BestSender);
+	marker.Mark(NextProcess);
+	marker.Mark(PrevProcess);
+}

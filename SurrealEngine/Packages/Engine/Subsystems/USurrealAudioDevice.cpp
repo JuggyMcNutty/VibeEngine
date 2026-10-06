@@ -848,3 +848,35 @@ float USurrealAudioDevice::SoundPriority(UViewport* Viewport, vec3 Location, flo
 	// Other games keep the fork's floor, a free channel taken and held silent.
 	return engine->LaunchInfo.IsDeusEx() ? priority : std::max(priority, 0.0f);
 }
+
+void USurrealAudioDevice::Mark(GCMarker& marker)
+{
+	UAudioSubsystem::Mark(marker);
+	marker.SetField("PlayingSounds");
+	for (PlayingSound& playing : PlayingSounds)
+	{
+		marker.MarkConst(playing.Sound);
+		// An ambient sound reads its actor each update: kept, never None.
+		if ((playing.Id & 14) == SLOT_Ambient * 2)
+			marker.MarkConst(playing.Actor);
+		else
+			marker.Mark(playing.Actor);
+	}
+	marker.SetField("CurrentSong");
+	marker.MarkConst(CurrentSong);
+	marker.SetField("m_Viewport");
+	marker.MarkConst(m_Viewport);
+}
+
+void USurrealAudioDevice::PurgeDying()
+{
+	for (auto it = SoundSerials.begin(); it != SoundSerials.end();)
+	{
+		if (GC::IsDying(it->first))
+			it = SoundSerials.erase(it);
+		else
+			++it;
+	}
+	if (GC::IsDying(m_ReverbZone))
+		m_ReverbZone = nullptr;
+}

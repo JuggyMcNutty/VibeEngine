@@ -76,3 +76,9 @@ void UByteProperty::SetValueFromString(void* data, const std::string& valueStrin
 		}
 	}
 }
+
+void UByteProperty::Mark(GCMarker& marker)
+{
+	UPropertyT<uint8_t>::Mark(marker);
+	marker.MarkConst(EnumType);
+}

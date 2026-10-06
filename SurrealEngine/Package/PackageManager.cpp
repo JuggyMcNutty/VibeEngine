@@ -589,6 +589,42 @@ void PackageManager::UnloadPackage(Package* package)
 	}
 }
 
+void PackageManager::MarkRoots(GCMarker& marker)
+{
+	marker.SetRoot("packages");
+	for (auto& it : packages)
+	{
+		Package* package = it.second.get();
+		if (!package)
+			continue;
+		marker.MarkConst(package);
+		for (UObject* obj : package->ExportObjects)
+			marker.MarkConst(obj);
+	}
+	marker.SetRoot("saveInfos");
+	for (auto& it : saveInfos)
+	{
+		marker.MarkConst(it.second);
+		for (UObject* obj : it.second->ExportObjects)
+			marker.MarkConst(obj);
+	}
+}
+
+bool PackageManager::IsRegisteredPackage(const Package* package) const
+{
+	for (auto& it : packages)
+	{
+		if (it.second.get() == package)
+			return true;
+	}
+	for (auto& it : saveInfos)
+	{
+		if (it.second == package)
+			return true;
+	}
+	return false;
+}
+
 void PackageManager::CloseStreams()
 {
 	openStreams.clear();

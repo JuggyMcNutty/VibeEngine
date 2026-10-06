@@ -14,3 +14,11 @@ void UConAudioList::Load(ObjectStream* stream)
 	}
 	stream->ThrowIfNotEnd();
 }
+
+void UConAudioList::Mark(GCMarker& marker)
+{
+	UConObject::Mark(marker);
+	marker.SetField("conAudioList");
+	for (USound*& sound : conAudioList)
+		marker.Mark(sound);
+}

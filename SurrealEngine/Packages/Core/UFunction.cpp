@@ -33,3 +33,10 @@ void UFunction::Save(PackageStreamWriter* stream)
 	if (AllFlags(FuncFlags, FunctionFlags::Net))
 		stream->WriteUInt16(ReplicationOffset);
 }
+
+void UFunction::Mark(GCMarker& marker)
+{
+	UStruct::Mark(marker);
+	marker.SetField("NativeStruct");
+	marker.MarkConst(NativeStruct);
+}

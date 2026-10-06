@@ -5,6 +5,7 @@
 class UListWindow : public UWindow
 {
 public:
+	void Mark(GCMarker& marker) override;
 	using UWindow::UWindow;
 
 	int AddRow(const std::string& rowStr, std::optional<int> clientData);

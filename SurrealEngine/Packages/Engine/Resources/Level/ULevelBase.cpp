@@ -54,3 +54,23 @@ void ULevelBase::Save(PackageStreamWriter* stream)
 	stream->WriteInt32(Port);
 	stream->WriteInt32(Unknown);
 }
+
+void ULevelBase::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	marker.SetField("Actors");
+	bool cleared = false;
+	for (UActor*& actor : Actors)
+	{
+		if (!actor)
+			continue;
+		marker.Mark(actor);
+		if (!actor)
+			cleared = true;
+	}
+	if (cleared)
+	{
+		ActorsHaveHoles = true;
+		ActorsVersion++;
+	}
+}

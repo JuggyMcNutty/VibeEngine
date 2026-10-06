@@ -13,6 +13,9 @@ public:
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
 
+	// Its actors: a slot of an eliminated one becomes a hole.
+	void Mark(GCMarker& marker) override;
+
 	Array<UActor*> Actors;
 
 	// Bumped whenever Actors changes: an actor added, one destroyed (its slot

@@ -115,3 +115,11 @@ FontGlyph UFont::FindGlyph(char c) const
 	}
 	return {};
 }
+
+void UFont::Mark(GCMarker& marker)
+{
+	UTexture::Mark(marker);
+	marker.SetField("pages");
+	for (FontPage& page : pages)
+		marker.Mark(page.Texture);
+}

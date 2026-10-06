@@ -15,6 +15,7 @@ protected:
 	// register its natives twice. A field made at run time, in no package
 	// (a call's temporary property), goes like any other object.
 	bool IsGCRoot() const override { return package != nullptr; }
+	void Mark(GCMarker& marker) override;
 
 public:
 	UField* BaseField = nullptr;

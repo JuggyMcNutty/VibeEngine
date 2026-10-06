@@ -124,8 +124,14 @@ struct GCCollectResult
 	std::map<std::string, size_t> KeptEliminated;
 	// SURREAL_GC_VERIFY: pointers that were no live allocation, by holder.
 	std::map<std::string, size_t> Invalid;
-	// The dry run: each watched object reached, and what reached it first.
-	std::unordered_map<GCObject*, std::string> FirstHolder;
+	// The dry run: each watched object reached, what reached it first (none
+	// for a root) and that holder's class and field.
+	struct Holder
+	{
+		const GCObject* Object = nullptr;
+		std::string Key;
+	};
+	std::unordered_map<GCObject*, Holder> FirstHolder;
 };
 
 // The marking pass's worklist. A holder's Mark hands each reference over:

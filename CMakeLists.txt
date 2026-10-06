@@ -39,6 +39,7 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/DebuggerApp.cpp
 	SurrealEngine/DebuggerApp.h
 	SurrealEngine/Engine.cpp
+	SurrealEngine/EngineGC.cpp
 	SurrealEngine/Engine.h
 	SurrealEngine/GameFolder.cpp
 	SurrealEngine/GameFolder.h

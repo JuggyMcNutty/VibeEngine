@@ -180,3 +180,10 @@ void USkeletalMesh::Save(PackageStreamWriter* stream)
 	stream->WriteFloat(WeaponAdjust.ZAxis.y);
 	stream->WriteFloat(WeaponAdjust.ZAxis.z);
 }
+
+void USkeletalMesh::Mark(GCMarker& marker)
+{
+	ULodMesh::Mark(marker);
+	marker.SetField("DefaultAnimation");
+	marker.Mark(DefaultAnimation);
+}

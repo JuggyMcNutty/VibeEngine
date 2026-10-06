@@ -416,6 +416,12 @@ public:
 		return true;
 	}
 
+	void Mark(GCMarker& marker) override
+	{
+		for (auto& node : Nodes)
+			marker.MarkConst(node.first);
+	}
+
 private:
 	Array<std::pair<UNavigationPoint*, float>> Nodes;
 	size_t Pos = 0;

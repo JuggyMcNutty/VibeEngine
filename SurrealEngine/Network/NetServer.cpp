@@ -550,3 +550,11 @@ void NetServerLevel::NotifyConnectionClosed(NetConnection* connection)
 		pawn->Destroy();
 	}
 }
+
+void NetServerLevel::Mark(GCMarker& marker)
+{
+	marker.SetRoot("NetServerLevel");
+	marker.MarkConst(Level);
+	for (NetPackageMap::PackageInfo& info : Packages)
+		marker.MarkConst(info.Pkg);
+}

@@ -1,6 +1,7 @@
 
 #include "Precomp.h"
 #include "UFlagBase.h"
+#include "Packages/Core/UClass.h"
 #include "UFlag.h"
 #include "Engine.h"
 #include "Package/PackageManager.h"
@@ -351,4 +352,15 @@ bool UFlagBase::SetVector(const NameString& FlagName, const vec3& NewValue, std:
 		return true;
 	}
 	return false;
+}
+
+void UFlagBase::Mark(GCMarker& marker)
+{
+	UExtensionObject::Mark(marker);
+	marker.SetField("FlagIterators");
+	for (auto& it : FlagIterators)
+		marker.MarkConst(it.second.NextFlag);
+	marker.SetField("FlagClasses");
+	for (UClass* cls : FlagClasses)
+		marker.MarkConst(cls);
 }

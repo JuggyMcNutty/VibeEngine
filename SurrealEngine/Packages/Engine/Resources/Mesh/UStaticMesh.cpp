@@ -42,3 +42,11 @@ void UStaticMesh::Save(PackageStreamWriter* stream)
 {
 	LogUnimplemented("Static Mesh saving");
 }
+
+void UStaticMesh::Mark(GCMarker& marker)
+{
+	UMesh::Mark(marker);
+	marker.SetField("LODLevels");
+	for (StaticMeshLODLevel& level : LODLevels)
+		marker.Mark(level.StaticMesh);
+}

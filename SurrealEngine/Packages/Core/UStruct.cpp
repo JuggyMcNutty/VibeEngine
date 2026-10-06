@@ -196,6 +196,28 @@ const Array<UProperty*>& UStruct::RefProps()
 	return RefPropList;
 }
 
+void UStruct::Mark(GCMarker& marker)
+{
+	UField::Mark(marker);
+	marker.SetField("BaseStruct");
+	marker.MarkConst(BaseStruct);
+	marker.SetField("ScriptText");
+	marker.MarkConst(ScriptText);
+	marker.SetField("Children");
+	marker.MarkConst(Children);
+	marker.SetField("StructParent");
+	marker.MarkConst(StructParent);
+	marker.SetField("Properties");
+	for (UProperty* prop : Properties)
+		marker.MarkConst(prop);
+	if (Code)
+	{
+		marker.SetField("Code");
+		for (UObject* obj : Code->ReferencedObjects)
+			marker.MarkConst(obj);
+	}
+}
+
 int UStruct::GetStatementLine(Expression* statement)
 {
 	if (!Code)

@@ -22,5 +22,7 @@ public:
 	bool IsDefaultValue(void* val) override;
 	void SetValueFromString(void* data, const std::string& valueString) override;
 
+	void Mark(GCMarker& marker) override;
+
 	UEnum* EnumType = nullptr; // null if it is a normal byte, otherwise it is an enum type
 };

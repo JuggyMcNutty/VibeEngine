@@ -37,6 +37,8 @@ static uint32_t operator^(const ClassFlags lhs, const ClassFlags rhs) { return u
 class UClass : public UState
 {
 public:
+	void Mark(GCMarker& marker) override;
+
 	UClass(NameString name, UClass* base, ObjectFlags flags);
 
 	void Load(ObjectStream* stream) override;

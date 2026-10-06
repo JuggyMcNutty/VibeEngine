@@ -47,6 +47,10 @@ public:
 
 	Array<Expression*> Statements;
 
+	// Every object the code names (functions, properties, classes, object
+	// constants), as read: what the collector keeps for the code.
+	Array<UObject*> ReferencedObjects;
+
 private:
 	Expression* ReadToken(BytecodeStream* stream, int depth);
 
@@ -136,8 +140,13 @@ public:
 	template<typename T>
 	T* ReadObject()
 	{
-		return UObject::Cast<T>(package->GetUObject(ReadIndex()));
+		UObject* obj = package->GetUObject(ReadIndex());
+		if (obj && Referenced)
+			Referenced->push_back(obj);
+		return UObject::Cast<T>(obj);
 	}
+
+	Array<UObject*>* Referenced = nullptr;
 
 	uint16_t GetOffset() const { return pos; }
 	bool IsEnd() const { return pos == size; }

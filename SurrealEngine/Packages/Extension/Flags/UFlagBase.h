@@ -18,6 +18,7 @@ enum class EFlagType : uint8_t
 class UFlagBase : public UExtensionObject
 {
 public:
+	void Mark(GCMarker& marker) override;
 	using UExtensionObject::UExtensionObject;
 
 	bool CheckFlag(const NameString& FlagName, uint8_t flagType);

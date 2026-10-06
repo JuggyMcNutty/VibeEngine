@@ -83,3 +83,14 @@ void UPolys::Save(PackageStreamWriter* stream)
 		stream->WriteInt16(poly.PanV);
 	}
 }
+
+void UPolys::Mark(GCMarker& marker)
+{
+	UObject::Mark(marker);
+	marker.SetField("Polys");
+	for (Poly& poly : Polys)
+	{
+		marker.Mark(poly.Actor);
+		marker.Mark(poly.Texture);
+	}
+}

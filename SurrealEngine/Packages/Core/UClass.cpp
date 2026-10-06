@@ -503,3 +503,14 @@ void UClass::SaveProperties(PropertyDataBlock* propertyBlock)
 		}
 	}
 }
+
+void UClass::Mark(GCMarker& marker)
+{
+	UState::Mark(marker);
+	marker.SetField("Dependencies");
+	for (ClassDependency& dep : Dependencies)
+		marker.MarkConst(dep.Class);
+	marker.SetField("States");
+	for (auto& it : States)
+		marker.MarkConst(it.second);
+}

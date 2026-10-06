@@ -43,6 +43,7 @@ public:
 
 	void Load(ObjectStream* stream) override;
 	void Save(PackageStreamWriter* stream) override;
+	void Mark(GCMarker& marker) override;
 
 	Array<ExtMeshWedge> ExtWedges;
 	Array<vec3> Points;

@@ -19,6 +19,8 @@ inline bool AnyFlags(ScriptStateFlags value, ScriptStateFlags flags) { return (u
 class UState : public UStruct
 {
 public:
+	void Mark(GCMarker& marker) override;
+
 	using UStruct::UStruct;
 
 	void Load(ObjectStream* stream) override;

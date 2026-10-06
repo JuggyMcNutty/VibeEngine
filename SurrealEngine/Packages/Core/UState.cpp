@@ -28,3 +28,11 @@ void UState::Save(PackageStreamWriter* stream)
 	stream->WriteUInt16(LabelTableOffset);
 	stream->WriteUInt32((uint32_t)StateFlags);
 }
+
+void UState::Mark(GCMarker& marker)
+{
+	UStruct::Mark(marker);
+	marker.SetField("Functions");
+	for (auto& it : Functions)
+		marker.MarkConst(it.second);
+}

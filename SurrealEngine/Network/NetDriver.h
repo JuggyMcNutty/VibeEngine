@@ -1,5 +1,7 @@
 #pragma once
 
+class GCMarker;
+
 #include "NetConnection.h"
 #include <initializer_list>
 #include <memory>
@@ -66,6 +68,9 @@ public:
 
 	// A server's actor is gone: each client's channel for it closes.
 	void NotifyActorDestroyed(UActor* actor);
+
+	// What its connections hold (NetConnection::Mark).
+	void Mark(GCMarker& marker);
 
 	NetNotify* Notify = nullptr;
 	std::unique_ptr<NetConnection> ServerConnection;

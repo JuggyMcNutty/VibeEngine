@@ -3,6 +3,9 @@
 #include "NetConnection.h"
 #include "NetChannel.h"
 #include "NetDriver.h"
+#include "Package/Package.h"
+#include "Packages/Core/UClass.h"
+#include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Utils/Logger.h"
 #include <algorithm>
 #include <cmath>
@@ -462,4 +465,20 @@ void NetConnection::SendText(const std::string& text)
 {
 	if (NetControlChannel* control = GetControlChannel())
 		control->SendText(text);
+}
+
+void NetConnection::Mark(GCMarker& marker)
+{
+	marker.SetRoot("NetConnection");
+	marker.MarkConst(Actor);
+	marker.MarkConst(PlayerObject);
+	for (UActor* actor : SentTemporaries)
+		marker.MarkConst(actor);
+	for (auto& it : ActorChannels)
+	{
+		marker.MarkConst(it.first);
+		marker.MarkConst(it.second->Actor);
+		marker.MarkConst(it.second->ActorClass);
+	}
+	PackageMap.Mark(marker);
 }

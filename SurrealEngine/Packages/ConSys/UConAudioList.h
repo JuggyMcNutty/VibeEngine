@@ -7,6 +7,7 @@ class USound;
 class UConAudioList : public UConObject
 {
 public:
+	void Mark(GCMarker& marker) override;
 	using UConObject::UConObject;
 
 	void Load(ObjectStream* stream) override;

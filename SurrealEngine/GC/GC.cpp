@@ -98,7 +98,7 @@ bool GCMarker::Visit(GCObject* obj, bool writable)
 	{
 		allocation->unreferencedFlag = false;
 		if (Options->Watch && Options->Watch(obj))
-			Result->FirstHolder[obj] = HolderKey();
+			Result->FirstHolder[obj] = { Holder, HolderKey() };
 		Worklist.push_back(obj);
 	}
 	return false;
