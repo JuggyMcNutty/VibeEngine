@@ -35,7 +35,9 @@ public:
 	NameString Format;
 	Array<uint8_t> Data;
 
+	// The decoded samples, only while GetSound hands them to the device.
 	Array<float> samples;
+	bool decoded = false;
 	float duration = 0.0f;
 	int frequency = 0;
 	int channels = 0;
@@ -43,10 +45,12 @@ public:
 	AudioLoopInfo loopInfo;
 
 	Array<uint8_t> lipsyncLetters;
+	bool lipsyncDone = false;
 
 	uint8_t GetLipsyncLetterAt(float seconds);
 
 private:
+	Array<float> Decode();
 	static uint8_t LetterForHz(float hz);
 	static constexpr int LIPSYNC_BLOCK_SIZE = 2048;
 	const Array<uint8_t>& GetLipsyncLetters();

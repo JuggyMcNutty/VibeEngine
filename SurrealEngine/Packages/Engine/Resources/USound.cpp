@@ -35,11 +35,10 @@ void USound::Save(PackageStreamWriter* stream)
 		stream->EndSkipOffset();
 }
 
-void USound::GetSound()
+// The sound's samples, decoded from its data, and what the decoder says of
+// them.
+Array<float> USound::Decode()
 {
-	if (samples.size() > 0)
-		return;
-
 	std::unique_ptr<AudioSource> source;
 
 	if (Format == "wav")
@@ -55,49 +54,65 @@ void USound::GetSound()
 		Exception::Throw("Unsupported sound format: " + Format.ToString());
 	}
 
+	Array<float> decoded;
 	#define ALIGN(x, a) ((x & ~(a-1)) + a)
-	samples.resize(ALIGN(source->GetSamples(), 4));
-	samples.resize(ALIGN(source->ReadSamples(samples.data(), samples.size()), 4));
+	decoded.resize(ALIGN(source->GetSamples(), 4));
+	decoded.resize(ALIGN(source->ReadSamples(decoded.data(), decoded.size()), 4));
 
 	frequency = source->GetFrequency();
-	duration = samples.size() / (float)frequency;
+	duration = decoded.size() / (float)frequency;
 	channels = source->GetChannels();
 
 	loopInfo.Looped = source->bIsLooped;
 	loopInfo.LoopStart = source->loopStart;
 	loopInfo.LoopEnd = source->loopEnd;
+	return decoded;
+}
 
-	engine->audiodev->GetDevice()->AddSound(this);
+// Decoded once, for the audio device, which keeps a copy of its own (the
+// mixer's 16-bit one, OpenAL's buffer): the samples are not kept here.
+void USound::GetSound()
+{
+	if (decoded)
+		return;
+	decoded = true;
+
+	samples = Decode();
+	if (engine && engine->audiodev && engine->audiodev->GetDevice())
+		engine->audiodev->GetDevice()->AddSound(this);
+	samples = Array<float>();
 }
 
 float USound::GetDuration()
 {
-	if (duration == 0.0f)
-		GetSound();
+	GetSound();
 
 	return duration;
 }
 
 int USound::GetChannels()
 {
-	if (channels == 0)
-		GetSound();
+	GetSound();
 
 	return channels;
 }
 
+// Worked out once, from the samples decoded again for it and let go after.
 const Array<uint8_t>& USound::GetLipsyncLetters()
 {
-	if(!lipsyncLetters.empty())
+	if (lipsyncDone)
 		return lipsyncLetters;
+	lipsyncDone = true;
 
 	GetSound();
 
 	if (channels != 1)
 		return lipsyncLetters;
 
+	Array<float> pcm = Decode();
+
 	// guard against empty sound or decoding error
-	if (samples.empty())
+	if (pcm.empty())
 		return lipsyncLetters;
 
 	static const float MIN_VOLUME = 0.02f;
@@ -110,19 +125,19 @@ const Array<uint8_t>& USound::GetLipsyncLetters()
 	Array<kiss_fft_cpx> freq(LIPSYNC_BLOCK_SIZE / 2 + 1);
 	float binHz = frequency / (float)LIPSYNC_BLOCK_SIZE;
 
-	for(size_t i = 0; i + LIPSYNC_BLOCK_SIZE <= samples.size(); i += LIPSYNC_BLOCK_SIZE)
+	for(size_t i = 0; i + LIPSYNC_BLOCK_SIZE <= pcm.size(); i += LIPSYNC_BLOCK_SIZE)
 	{
 		float maxVolume = 0.0f;
 
 		for(size_t j = i; j < i + LIPSYNC_BLOCK_SIZE; ++j)
-			maxVolume = std::max(maxVolume, std::fabs(samples[j]));
+			maxVolume = std::max(maxVolume, std::fabs(pcm[j]));
 
 		if (maxVolume < MIN_VOLUME)
 		{
 			lipsyncLetters.push_back('X');
 			continue;
 		}
-		kiss_fftr(fftcfg.get(), samples.data() + i, freq.data());
+		kiss_fftr(fftcfg.get(), pcm.data() + i, freq.data());
 
 		float bestMagn = 0.0f;
 		int bestBin = 0;

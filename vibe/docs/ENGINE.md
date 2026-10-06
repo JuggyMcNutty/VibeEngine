@@ -328,6 +328,9 @@ references it made None by holder, and gives the freed memory back to the system
   base and what travels with the player in the player's, the event manager in its
   `LevelInfo`'s, a conversation's camera and flag refs in the conversation's. A package played
   as a level is tagged so (`Package::IsLevel`).
+- **A sound** is decoded once, when first played, for the audio device, which keeps a copy of
+  its own (the mixer's 16-bit one, OpenAL's buffer); the sound keeps only its length, channels,
+  rate and loop. Its lip-sync shapes decode it again once, into a buffer let go after.
 - **Saving a level** writes what the level reaches (`PackageWriter`), never the rest of its
   file: an export the collector freed is not loaded back to be saved.
 - **Elimination**: a reference to an object flagged `EliminateObject` is made None where the
