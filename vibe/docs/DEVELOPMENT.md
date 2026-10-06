@@ -222,7 +222,8 @@ how full: `https://master.333networks.com/json/deusex`. Pick an empty server.
 
 The original's window is on the hidden display (`:99`), the fork's on the desktop.
 `DXCAP_HIDDEN=1` puts a fork run on a hidden display of its own (Xvfb on `:98`, so a net test can
-run both) through SDL's `x11` driver (`SDL_VIDEODRIVER=x11`, `WAYLAND_DISPLAY` unset). It renders
+run both) through the window's X11 backend (`SURREALWIDGETS_DISPLAY_BACKEND=X11`, `WAYLAND_DISPLAY`
+unset, and `SDL_VIDEODRIVER=x11` for SDL's own use). It renders
 there and its `shot` is right, but a grab of that display shows its window black.
 
 ### Crashes

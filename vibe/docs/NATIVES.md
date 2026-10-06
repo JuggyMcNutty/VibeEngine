@@ -34,7 +34,8 @@ natives whose call would.
 
 Matches the original ([travel and saving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-game-engine-travel-and-saving),
 [the save directory](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-save-directory)):
-each engine loads the other's saves (`SaveConsole`, `LoadConsole`). Differs:
+each engine loads the other's saves (`SaveConsole`, `LoadConsole`), and a
+level returned to keeps its game (`ReturnConsole`). Differs:
 
 - The pre-travel prune leaves a carried decoration, which the original's
   destroys with the augmentations and skills (`PruneTravelActors`).
@@ -303,9 +304,7 @@ reach tests (`ReachConsole`), falls coming to rest (`RestConsole`),
 Differs:
 
 - **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so a player can tell
-  which engine they run: `1.112fm VibeEngine <commit> (<date>)`, the engine's commit and its
-  date as built (`-dirty` after the commit with uncommitted changes), shown under the main
-  menu ([the version](ENGINE.md#running-on-our-devices)). The original's is
+  which engine they run ([the version](ENGINE.md#running-on-our-devices)). The original's is
   "Mon Mar 19 12:06:14 2001 v1.112fm".
 - **Landing** (`processLanded`,
   [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)):
@@ -324,13 +323,11 @@ Differs:
 
 ## Housekeeping, not seen directly
 
-**Garbage** is collected at every map load but one of Entry, as the
-original's map load collects it
-([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-map-loads-collection)):
-what nothing reachable holds is destroyed and freed, the level left behind
-with it, and the new level's actors that are not in its `Actors` (an editor
-brush, a camera) go with every reference to them made None. The fork's
-collection ([objects and memory](ENGINE.md#objects-and-memory)) differs:
+**Garbage** is collected as the original's map load collects it
+([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-map-loads-collection);
+the fork's: [objects and memory](ENGINE.md#objects-and-memory)), the new
+level's actors that are not in its `Actors` (an editor brush, a camera)
+with it. `GarbageConsole` and `DeleteConsole` run both engines. Differs:
 
 - **When**: at the end of the frame of the load, once the new level has
   begun and the player is in, where the original's runs before the new
@@ -340,13 +337,11 @@ collection ([objects and memory](ENGINE.md#objects-and-memory)) differs:
   reference reaches. Without it a conversation event's `speaker`, the game
   replication info's `PRIArray` or a HUD's `clientObject` keeps a whole
   level. No stock script reads such a reference before setting it again.
-- **Code is never freed**: a class stays loaded with its defaults and
-  everything they reach, where the original's frees a script class nothing
+- **Code is never freed**, where the original's frees a script class nothing
   uses and loads it again when asked for.
 
 On linux-x86_64, Liberty Island and Battery Park loaded in turn
-(`reload-fresh.txt`), twenty loads: 381 MB at the end where the fork kept
-every level (922 MB); each island load's collection leaves the same 43,055
+(`reload-fresh.txt`), twenty loads: 381 MB at the end; each island load's collection leaves the same 43,055
 objects and frees some 130 textures and 20 sounds. Liberty Island and UNATCO
 HQ through `Current` (`reload-current.txt`): 378 MB at most throughout. A
 collection takes 25 to 45 ms there; on the Smart Pro 200 to 265 ms.
@@ -365,8 +360,9 @@ references to them are made None and the event manager is told. The
 original then deletes them; the fork frees them at the next collection,
 which makes every other reference to them None (a window's, a
 conversation's), where the original's delete leaves those pointing at
-freed memory. 2048 actors let go but not yet freed ask for a collection: a
-collection costs some 250 ms on the Smart Pro. A map load does not clean
+freed memory, and the fork lets them gather between collections
+([when](ENGINE.md#objects-and-memory)): a collection is a hitch on the
+Smart Pro (above). A map load does not clean
 the chain of the level it leaves, as the original's does only for `?push`:
 that level is freed whole. A destroyed decal is drawn until it is freed.
 
@@ -495,8 +491,7 @@ server-only stubs are under
   `ClientHearSound` is a stub. So a fork client hears none of the sounds an
   original server plays, and an original client none of a fork server's: each
   hears only what it plays itself.
-- **Unchecked:** whether a live server corrects the client at a stop, now that
-  the traces and moves are the original's.
+- **Unchecked:** whether a live server corrects the client at a stop.
 
 As in the original:
 

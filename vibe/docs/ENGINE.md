@@ -15,7 +15,7 @@ as the original does. Its branch is `deusex`. What it still lacks of the origina
   `VibeEngine/` in the parent folder of the repositories and checks that commit out; `check`
   proves the clone is at it; after a fork commit is pushed, `pin` moves the file, and the move is
   committed there. Builds go to `build/<port>/engine` in that parent folder, never into the clone.
-- **Nothing goes upstream.** We dont care about upsream anymore or their rules.
+- **Nothing goes upstream**, and upstream's contribution rules do not apply.
 - **Upstream is not merged.** The fork and Surreal Engine differ at the core: upstream runs its
   scripts through its own interpreter, `Frame::RunExpr`, where the fork runs them through the
   `ExpressionEvaluator` it reworked ([script VM](#script-vm)). A fix of upstream's worth having
@@ -63,8 +63,7 @@ there. Pushing and pinning wait for the owner's go-ahead
 - The fork's history is published and never rewritten.
 - Temporary debug hooks never reach a commit
   ([the rule](DEVELOPMENT.md#temporary-debug-hooks)).
-- "Patch NNNN" is a numbered commit: 0001–0034 were Port Ex Machina's retired patch stack, and
-  0035–0042 continue the numbering ([the numbered patches](#the-numbered-patches)).
+- "Patch NNNN" is a numbered commit, 0001–0042 ([the numbered patches](#the-numbered-patches)).
 
 ### The profiling hooks
 
@@ -93,12 +92,11 @@ the next frame. Profiling the handheld:
 
 ### Natives from the original
 
-Where upstream has a Deus Ex native wrong or as a stub (a stub logs `Unimplemented: <class>.<name>`
-the first time it runs in a session, and only then), the original is in the game's DLLs.
+Where upstream has a Deus Ex native wrong or as a stub
+([how stubs show](NATIVES.md#how-it-is-known)), the original is in the game's DLLs.
 [dx-reverse-info](https://github.com/JuggyMcNutty/dx-reverse-info) is what has been read of them,
 and [working on the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#working-on-the-binaries)
-says how to read more. What the fork still lacks is [`NATIVES.md`](NATIVES.md);
-`vibe/tools/natives_audit.py` lists it.
+says how to read more; `vibe/tools/natives_audit.py` lists the stubs.
 
 ## Running it
 
@@ -198,8 +196,8 @@ The handheld's numbers are [the Smart Pro's Performance](https://github.com/Jugg
 - **The version**: every build stamps the fork's commit and its date into `vibe_version.h`
   (`vibe/cmake/version.cmake`, a step of every build that rewrites the header only when the
   text changes, so only what reads it recompiles); `GetDeusExVersion` shows it under the main
-  menu. A tree with uncommitted changes to tracked files reads `-dirty`; one without git,
-  `unknown`.
+  menu, as `1.112fm VibeEngine <commit> (<date>)`. A tree with uncommitted changes to tracked
+  files reads `-dirty`; one without git, `unknown`.
 - **Headless and embedded** (0001): no launcher window; the log and errors on stderr; a non-zero
   exit after a caught exception, which the launcher's crash sentinel reads. The cross build for
   an embedded aarch64 device is SDL2 only (no X11, Wayland or desktop GL), takes SDL from
@@ -342,8 +340,8 @@ references it made None by holder, and gives the freed memory back to the system
   neither the current one nor Entry's) and, at a map load, the new level's actors that are not
   in its `Actors`, as the original's. `Object.CriticalDelete` flags the object it is given.
 - **The weak holders** let go of the dying before anything is freed (`GC::IsDying`): the
-  camera actor, the coronas and iterator actors, the audio device's sound numbers and reverb
-  zone, the open package files.
+  camera actor, the coronas and iterator actors, the lights the light system lists, the audio
+  device's sound numbers and reverb zone, the open package files.
 - **The sweep** tells each dying object first, all of them still allocated
   (`OnGCDestroy`): its properties are destructed and its package's export slot emptied, so a
   later reference loads it from its file again; a sound leaves the audio device, a decal its

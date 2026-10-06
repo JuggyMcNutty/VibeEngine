@@ -440,8 +440,8 @@ run_fork() {
     shift 5
     local before; before="$(shots_before)"
     mkdir -p "$dir"
-    # A hidden run draws on an Xvfb display of its own, through SDL's X11
-    # driver: the engine renders there, and its shots are right.
+    # A hidden run draws on an Xvfb display of its own, through the window's
+    # X11 backend: the engine renders there, and its shots are right.
     local xpid=""
     if [ "${DXCAP_HIDDEN:-0}" = 1 ]; then
         command -v Xvfb >/dev/null || die "Xvfb is needed for a hidden run"
@@ -457,7 +457,7 @@ run_fork() {
         cd "$GAME"
         if [ "${DXCAP_HIDDEN:-0}" = 1 ]; then
             unset WAYLAND_DISPLAY
-            export DISPLAY="$FORK_XDISPLAY" SDL_VIDEODRIVER=x11
+            export DISPLAY="$FORK_XDISPLAY" SURREALWIDGETS_DISPLAY_BACKEND=X11 SDL_VIDEODRIVER=x11
         fi
         if [ "${DXCAP_RECORD:-0}" = 1 ]; then
             printf '[general]\ndrivers = pulse\n' > "$CAP/alsoft-pulse.conf"
