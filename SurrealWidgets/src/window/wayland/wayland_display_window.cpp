@@ -609,12 +609,13 @@ void WaylandDisplayWindow::CreateGLContext()
 	EGLint majorVer, minorVer;
 
 	// OpenGL ES 3.2 (the GL device's ES shaders are GLSL ES 3.20) or desktop
-	// 3.2 core: ES takes the ES3 bit and no profile mask.
+	// 4.2 core (its desktop shaders are GLSL 4.20): ES takes the ES3 bit and
+	// no profile mask.
 	const bool es = m_renderAPI == RenderAPI::GLES;
 	EGLint ctxAttrs[7];
 	int ctxAttrCount = 0;
 	ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_MAJOR_VERSION;
-	ctxAttrs[ctxAttrCount++] = 3;
+	ctxAttrs[ctxAttrCount++] = es ? 3 : 4;
 	ctxAttrs[ctxAttrCount++] = EGL_CONTEXT_MINOR_VERSION;
 	ctxAttrs[ctxAttrCount++] = 2;
 	if (!es)

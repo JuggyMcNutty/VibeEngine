@@ -224,8 +224,9 @@ By area, as the code stands, with what a merge of upstream meets. A number such 
   pkg-config and a host-built `zipdir`, and finds fonts without GSettings or fontconfig.
 - **The gamepad** (0003): the SDL2 display backend gives the pad as polled state
   (`GetGamepadState`), and `GamepadInput` turns it into UE1 joystick keys and axes that
-  `User.ini` binds; menus get their own controls. Only the SDL2 backend has it
-  ([no pad in game](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/ports/linux-x86_64/README.md#no-pad-in-game)).
+  `User.ini` binds; menus get their own controls. Only the SDL2 backend has it, and
+  SurrealWidgets builds SDL3's instead when both are on, so the ports build the engine without
+  SDL3.
 - **The launchers' lines**: `--cmdline=` (`OriginalCommandLine`) and `DXL_LAUNCHER_FD`
   (`LauncherLine`) ([running it](#running-it)), with the console's `exec` and an `open` that
   takes a map's file name.
@@ -278,9 +279,9 @@ texture as `UNSIGNED_BYTE`.
 - **ES 3.2, not 3.0**: RGBA16F (the scene buffers with `Hdr`) is colour-renderable only from ES
   3.2 core, and the shaders bind their samplers with `layout(binding)`, which GLSL ES 3.00 lacks.
   `gl_FragCoord.w` is 1/w on ES as on desktop, so the detail-texture distance fade is unchanged.
-- **The desktop context**: every window backend asks for a desktop 3.2 core context, while
-  `CompileGlsl` prepends `#version 420`. Mesa grants a 4.6 context, so it works there; a strict
-  driver could refuse the shaders.
+- **The desktop context**: every Linux window backend asks for a desktop 4.2 core context, as the
+  shaders are GLSL 4.20 (`CompileGlsl` prepends `#version 420`): a driver without 4.2 fails at
+  the context, with an error that says so, not at a shader.
 - The vertices stream through CPU staging arrays, each flush uploading the range written since
   the last one (`glBufferSubData`): the GE8300 has no `glBufferStorage` (persistent mapping), and
   mapping the buffers' unused tails on every flush costs 2/3 of its frame.
