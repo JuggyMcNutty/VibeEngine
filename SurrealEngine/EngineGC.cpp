@@ -114,15 +114,17 @@ namespace
 			return "the level";
 		if (pkg == engine->EntryLevelPackage)
 			return "the Entry level";
+		if (pkg->IsLevel())
+			return "departed levels";
 		if (engine->packages->IsRegisteredPackage(pkg))
 			return "packages";
-		return "departed levels";
+		return "other packages";
 	}
 
 	bool InDepartedLevel(Engine* engine, const GCObject* obj)
 	{
 		const UObject* uobj = dynamic_cast<const UObject*>(obj);
-		return uobj && uobj->package && uobj->package != engine->LevelPackage && uobj->package != engine->EntryLevelPackage && !engine->packages->IsRegisteredPackage(uobj->package);
+		return uobj && uobj->package && uobj->package->IsLevel() && uobj->package != engine->LevelPackage && uobj->package != engine->EntryLevelPackage;
 	}
 
 	template<typename Map>
@@ -169,8 +171,9 @@ void Engine::CollectGarbage()
 	options.Watch = [this](GCObject* obj) { return InDepartedLevel(this, obj); };
 	options.Dying = [&](GCObject* obj)
 	{
-		dyingByKind[PackageKind(this, obj)]++;
-		dyingByClass[obj->GCClassName()]++;
+		std::string kind = PackageKind(this, obj);
+		dyingByKind[kind]++;
+		dyingByClass[obj->GCClassName() + " (" + kind + ")"]++;
 		if (UField* field = dynamic_cast<UField*>(obj))
 		{
 			if (field->package)
@@ -192,7 +195,7 @@ void Engine::CollectGarbage()
 		dying += it.second;
 	LogMessage("Garbage (dry run): objects: " + std::to_string(result.ObjectsBefore) + "->" + std::to_string(result.ObjectsBefore - dying) + "; refs: " + std::to_string(result.Refs) + "; " + std::to_string((int)ms) + " ms");
 	LogTop("GC dry run: what would go, by where it lives:", dyingByKind, 20);
-	LogTop("GC dry run: what would go, by class:", dyingByClass, 30);
+	LogTop("GC dry run: what would go, by class (and where):", dyingByClass, 40);
 
 	// What keeps the levels left behind: the first holder from outside them
 	// of each of their objects reached.

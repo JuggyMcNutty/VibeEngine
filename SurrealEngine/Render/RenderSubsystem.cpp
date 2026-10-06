@@ -193,5 +193,8 @@ void RenderSubsystem::OnMapLoaded()
 {
 	Device->Flush(true);
 	engine->Level->Light.OnMapLoaded();
+	// Nothing of the level before: its lights are not this one's.
 	IteratorActors.clear();
+	CoronaStates.clear();
+	CoronaDynamicLights.clear();
 }

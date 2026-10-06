@@ -64,7 +64,8 @@ void UActor::DeusExConBindEvents()
 		// Each goes to the front, so the list runs from the mission list's
 		// last conversation to its first.
 		NameString name;
-		UConListItem* newItem = UObject::Cast<UConListItem>(engine->LevelPackage->NewObject(name, clsConListItem, ObjectFlags::Transient, true));
+		// In the actor's own package: the list goes with its level.
+		UConListItem* newItem = UObject::Cast<UConListItem>(package->NewObject(name, clsConListItem, ObjectFlags::Transient, true));
 		newItem->con() = conversation;
 		newItem->Next() = UObject::Cast<UConListItem>(ConListItems());
 		ConListItems() = newItem;

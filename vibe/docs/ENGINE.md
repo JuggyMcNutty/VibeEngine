@@ -317,6 +317,13 @@ after each map load but Entry's, at the end of the frame with no script running,
   its properties hold (`UStruct::RefProps`); a native class marks its own members in its `Mark`.
   An object reached only through its package keeps the package's file and tables, not its other
   objects.
+- **Where objects are made**: each in the package of the level it belongs to, as the
+  original's: a spawned actor in its level's (the Entry level's own pawn in Entry's), the flag
+  base and what travels with the player in the player's, the event manager in its
+  `LevelInfo`'s, a conversation's camera and flag refs in the conversation's. A package played
+  as a level is tagged so (`Package::IsLevel`).
+- **Saving a level** writes what the level reaches (`PackageWriter`), never the rest of its
+  file: an export the collector freed is not loaded back to be saved.
 - **Elimination**: a reference to an object flagged `EliminateObject` is made None where the
   marker finds it (`GCMarker::Mark`), as the original's. One held where it may not be written
   (`MarkConst`: the subsystems, the net layer, what code names) keeps it, and the log says so.

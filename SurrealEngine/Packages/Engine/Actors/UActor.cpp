@@ -50,7 +50,8 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 		location = result.second;
 	}
 
-	// To do: package needs to be grabbed from outer, or the "transient package" if it is None, a virtual package for runtime objects
+	// In the package of the level it is spawned in, as the original's: an
+	// actor the Entry level spawns is Entry's, not the map's.
 	// To do: find unique new name in the package
 	static std::map<NameString, int> nextIndex;
 	NameString name = SpawnClass->Name.ToString() + std::to_string(nextIndex[SpawnClass->Name]++);
@@ -58,7 +59,8 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	// context -- client, server, editor -- and with a state frame
 	// (InitExecution); a save then writes it as the original's does, which
 	// the original's load needs to make it at all.
-	UActor* actor = UObject::Cast<UActor>(engine->LevelPackage->NewObject(name, UObject::Cast<UClass>(SpawnClass), ObjectFlags::Transactional | ObjectFlags::LoadContextFlags | ObjectFlags::HasStack, true));
+	Package* levelPackage = XLevel() && XLevel()->package ? XLevel()->package : engine->LevelPackage;
+	UActor* actor = UObject::Cast<UActor>(levelPackage->NewObject(name, UObject::Cast<UClass>(SpawnClass), ObjectFlags::Transactional | ObjectFlags::LoadContextFlags | ObjectFlags::HasStack, true));
 
 	// An actor the server owns and this client copies has the roles turned.
 	if (remoteOwned)

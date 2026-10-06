@@ -16,21 +16,19 @@ void UDeusExPlayer::ConBindEvents()
 UObject* UDeusExPlayer::CreateDataVaultImageNoteObject()
 {
 	auto cls = engine->packages->FindClass("DeusEx.DataVaultImageNote");
-	return engine->LevelPackage->NewObject("DataVaultImageNote", cls, ObjectFlags::NoFlags);
+	return package->NewObject("DataVaultImageNote", cls, ObjectFlags::NoFlags);
 }
 
 UObject* UDeusExPlayer::CreateDumpLocationObject()
 {
 	auto cls = engine->packages->FindClass("DeusEx.DumpLocation");
-	return engine->LevelPackage->NewObject("DumpLocation", cls, ObjectFlags::NoFlags);
+	return package->NewObject("DumpLocation", cls, ObjectFlags::NoFlags);
 }
 
 UObject* UDeusExPlayer::CreateGameDirectoryObject()
 {
 	// A new one each call, in the transient package, both as the original's;
-	// the scripts CriticalDelete it after use, which the fork does not do:
-	// its collector is never run, so each one stays (NATIVES.md,
-	// "Housekeeping").
+	// the scripts CriticalDelete it after use.
 	auto cls = engine->packages->FindClass("DeusEx.GameDirectory");
 	return Cast<UDXGameDirectory>(engine->packages->GetTransientPackage()->NewObject("GameDirectory", cls, ObjectFlags::Transient));
 }
@@ -38,19 +36,19 @@ UObject* UDeusExPlayer::CreateGameDirectoryObject()
 UObject* UDeusExPlayer::CreateHistoryEvent()
 {
 	auto cls = engine->packages->FindClass("ConSys.ConHistoryEvent");
-	return engine->LevelPackage->NewObject("ConHistoryEvent", cls, ObjectFlags::NoFlags);
+	return package->NewObject("ConHistoryEvent", cls, ObjectFlags::NoFlags);
 }
 
 UObject* UDeusExPlayer::CreateHistoryObject()
 {
 	auto cls = engine->packages->FindClass("ConSys.ConHistory");
-	return Cast<UConHistory>(engine->LevelPackage->NewObject("ConHistory", cls, ObjectFlags::NoFlags));
+	return Cast<UConHistory>(package->NewObject("ConHistory", cls, ObjectFlags::NoFlags));
 }
 
 UObject* UDeusExPlayer::CreateLogObject()
 {
 	auto cls = engine->packages->FindClass("DeusEx.DeusExLog");
-	return engine->LevelPackage->NewObject("DeusExLog", cls, ObjectFlags::NoFlags);
+	return package->NewObject("DeusExLog", cls, ObjectFlags::NoFlags);
 }
 
 void UDeusExPlayer::DeleteSaveGameFiles(std::optional<std::string> saveDirectory)

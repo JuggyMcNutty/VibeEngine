@@ -183,14 +183,15 @@ UObject* UConversation::CreateConCamera()
 {
 	UClass* cls = engine->packages->FindClass("ConSys.ConCamera");
 	NameString name;
-	return engine->LevelPackage->NewObject(name, cls, ObjectFlags::Transient, true);
+	// In the conversation's package, which outlives any level.
+	return package->NewObject(name, cls, ObjectFlags::Transient, true);
 }
 
 UObject* UConversation::CreateFlagRef(const NameString& FlagName, bool flagValue)
 {
 	UClass* cls = engine->packages->FindClass("ConSys.ConFlagRef");
 	NameString name;
-	UObject* obj = engine->LevelPackage->NewObject(name, cls, ObjectFlags::Transient, true);
+	UObject* obj = package->NewObject(name, cls, ObjectFlags::Transient, true);
 	UConFlagRef* flagObj = UObject::Cast<UConFlagRef>(obj);
 	flagObj->FlagName() = FlagName;
 	flagObj->Value() = flagValue;

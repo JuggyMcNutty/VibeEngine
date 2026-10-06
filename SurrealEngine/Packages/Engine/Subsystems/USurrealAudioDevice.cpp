@@ -795,6 +795,8 @@ void USurrealAudioDevice::StopSounds()
 	for (size_t i = 0; i < PlayingSounds.size(); i++)
 		StopSound(i);
 	SoundSerials.clear();
+	// Set again from the next level's zones.
+	m_ReverbZone = nullptr;
 
 	m_Device->PlayMusic(nullptr);
 	m_Viewport = nullptr;

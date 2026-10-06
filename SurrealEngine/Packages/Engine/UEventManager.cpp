@@ -62,7 +62,7 @@ void UEventManager::InitEventManager(ULevelInfo* info)
 	if (UObject::TryCast<UEventManager>(info->Value<UObject*>(offset)))
 		return;
 	UClass* cls = engine->packages->GetPackage("Engine")->GetClass("EventManager");
-	info->Value<UObject*>(offset) = engine->LevelPackage->NewObject("EventManager0", cls, ObjectFlags::NoFlags);
+	info->Value<UObject*>(offset) = info->package->NewObject("EventManager0", cls, ObjectFlags::NoFlags);
 }
 
 UEventManager::EventType& UEventManager::GetEventType(const NameString& name)

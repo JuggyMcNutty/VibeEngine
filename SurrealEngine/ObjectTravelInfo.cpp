@@ -159,7 +159,7 @@ Array<UObject*> ActorTravelInfo::Accept(UPlayerPawn* pawn, const std::string& tr
 			{
 				// In the level package, so a save keeps what travelled: the
 				// flag base and its flags, the key list, the history.
-				object = engine->LevelPackage->NewObject({}, cls, ObjectFlags::NoFlags);
+				object = pawn->package->NewObject({}, cls, ObjectFlags::NoFlags);
 			}
 			else
 			{

@@ -386,8 +386,11 @@ void Engine::Run()
 					if (packages->IsDeusEx())
 						DeleteSaveGameFiles("Current"); // the original's ?restart empties Current
 					// Passes the level's own TravelInfo back in, so it means to preserve it.
+					// Copies: LoadMap unloads the level that holds them.
 					ClientTravelInfo.TravelType = ETravelType::TRAVEL_Relative;
-					LoadMap(LevelInfo->URL, Level->TravelInfo);
+					UnrealURL restartURL = LevelInfo->URL;
+					auto restartTravelInfo = Level->TravelInfo;
+					LoadMap(restartURL, restartTravelInfo);
 					if (!dedicated)
 						LoginPlayer();
 				}
@@ -419,7 +422,9 @@ void Engine::Run()
 		{
 			if (packages->IsDeusEx())
 				DeleteSaveGameFiles("Current"); // the original's ?restart empties Current
-			LoadMap(LevelInfo->URL, Level->TravelInfo);
+			UnrealURL restartURL = LevelInfo->URL;
+			auto restartTravelInfo = Level->TravelInfo;
+			LoadMap(restartURL, restartTravelInfo);
 			LoginPlayer();
 		}
 
@@ -938,11 +943,14 @@ void Engine::LoadEntryMap()
 	EntryLevelInfo = LevelInfo;
 	EntryLevel = Level;
 	EntryDeusExLevelInfo = DeusExLevelInfo;
-	EntryLevelPackage = std::move(LevelPackage);
+	EntryLevelPackage = LevelPackage;
+	EntryGameInfo = GameInfo;
 	// As the original's: no collection at a load of Entry.
 	GarbageRequest.clear();
 	LevelInfo = nullptr;
 	Level = nullptr;
+	LevelPackage = nullptr;
+	GameInfo = nullptr;
 	viewport->Actor() = nullptr;
 }
 
@@ -962,6 +970,8 @@ void Engine::ReturnToEntry(bool failed)
 	UnloadMap();
 	Level = EntryLevel;
 	LevelInfo = EntryLevelInfo;
+	LevelPackage = EntryLevelPackage;
+	GameInfo = EntryGameInfo;
 	if (packages->IsDeusEx())
 		DeusExLevelInfo = EntryDeusExLevelInfo;
 	LevelInfo->LevelAction() = LEVACT_None;
@@ -988,6 +998,8 @@ void Engine::UnloadMap()
 		if (packages->IsDeusEx())
 			DeusExLevelInfo = nullptr;
 		Level = nullptr;
+		LevelPackage = nullptr;
+		GameInfo = nullptr;
 		dxRootWindow = nullptr;
 		return;
 	}
@@ -1001,9 +1013,10 @@ void Engine::UnloadMap()
 	Level = nullptr;
 	viewport->Actor() = nullptr;
 	dxRootWindow = nullptr;
-	packages->UnloadPackage(std::move(LevelPackage));
-
-	// GC::Collect();
+	GameInfo = nullptr;
+	CameraActor = nullptr;
+	packages->UnloadPackage(LevelPackage);
+	LevelPackage = nullptr;
 }
 
 void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo, bool asClient)
@@ -1046,6 +1059,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		std::string file = asClient ? packages->FindPackageFile(url.Map, {}) : std::string();
 		LevelPackage = !file.empty() ? packages->LoadMapFile(url.Map, file) : packages->LoadMap(url.Map);
 	}
+	LevelPackage->SetIsLevel();
 
 	GetLevelInfoObject();
 
@@ -1253,6 +1267,7 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 	UnloadMap();
 
 	LevelPackage = savefilePackage;
+	LevelPackage->SetIsLevel();
 
 	GetLevelInfoObject();
 
@@ -1330,7 +1345,7 @@ void Engine::EnsureFlagBase(UPlayerPawn* pawn)
 		if (!pawnExt->FlagBase())
 		{
 			auto flagBaseCls = packages->FindClass("Extension.FlagBase");
-			pawnExt->FlagBase() = UObject::Cast<UFlagBase>(LevelPackage->NewObject("FlagBase", flagBaseCls, ObjectFlags::NoFlags));
+			pawnExt->FlagBase() = UObject::Cast<UFlagBase>(pawn->package->NewObject("FlagBase", flagBaseCls, ObjectFlags::NoFlags));
 		}
 	}
 }

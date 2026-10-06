@@ -61,6 +61,9 @@ public:
 	int GetNameCount() const { return FileNameCount; }
 	bool IsExportObject(const UObject* obj, int index) const { return index >= 0 && (size_t)index < ExportObjects.size() && ExportObjects[index] == obj; }
 	PackageFlags GetFlags() const { return Flags; }
+	// A package the engine played as a level: a map, or a save's level.
+	bool IsLevel() const { return LevelPackage; }
+	void SetIsLevel() { LevelPackage = true; }
 	// The packages this one imports from, in its import table's order.
 	Array<NameString> GetImportedPackages() const;
 
@@ -101,6 +104,7 @@ private:
 	Array<Generation> Generations;
 	int FileExportCount = 0;
 	int FileNameCount = 0;
+	bool LevelPackage = false;
 
 	std::map<NameString, int> NameHash;
 

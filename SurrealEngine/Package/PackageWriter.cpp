@@ -15,8 +15,12 @@ PackageWriter::PackageWriter(Package* package) : Source(package)
 
 void PackageWriter::Save(UObject* packageObject, std::string filename)
 {
-	// Everything must be loaded
-	Source->LoadAll();
+	// A whole package is written from what it holds, so all of it is
+	// loaded first. An object given is written with what it reaches: a
+	// level's export the collector freed is no longer part of it, and
+	// loading it again would bring it back.
+	if (!packageObject)
+		Source->LoadAll();
 
 	if (filename.empty())
 		filename = Source->GetPackageFilePath();
@@ -58,6 +62,10 @@ void PackageWriter::Save(UObject* packageObject, std::string filename)
 			Source->ImportTable = std::move(ImportTable);
 			Source->ExportTable = std::move(ExportTable);
 			Source->ExportObjects = std::move(ExportObjects);
+			// Each object is the export of its new place in the table, so the
+			// collector empties the right slot.
+			for (size_t i = 0; i < Source->ExportObjects.size(); i++)
+				Source->ExportObjects[i]->exportIndex = (uint32_t)i;
 		}
 	}
 	catch (...)
@@ -199,6 +207,11 @@ int PackageWriter::GetObjectReference(UObject* obj)
 		return 0;
 	
 	if (AllFlags(obj->Flags, ObjectFlags::NotForClient | ObjectFlags::NotForServer))
+		return 0;
+
+	// Going at the next collection (CriticalDelete, a destroyed actor):
+	// written as None, as the collection will make the reference.
+	if (AnyFlags(obj->Flags, ObjectFlags::EliminateObject))
 		return 0;
 
 	if (obj != obj->Class)
