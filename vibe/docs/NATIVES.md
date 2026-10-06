@@ -337,6 +337,15 @@ deleted object lives on unreferenced, which costs memory and nothing else:
 `CreateGameDirectoryObject` makes a new object each call, as the original's
 does.
 
+Nor is a level freed. Every map load -- travel, `open`, a loaded save --
+makes its level a new package (`PackageManager::LoadMap`), and the level it
+replaces stays in memory with all its objects (`UnloadPackage` only closes
+its file), where the original's map load collects the garbage once the new
+map is in ([downloads](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#downloads)).
+A session's memory grows by a level at each load and is given back only at
+exit: on linux-x86_64 at c2acaf1, 362 MB with Liberty Island up, then 39 MB
+more for each load of Liberty Island and 11 MB for each of UNATCO HQ.
+
 ## Small
 
 - **`Pawn.FindStairRotation` 524**: the probe distances and the easing rate
@@ -441,6 +450,15 @@ server-only stubs are under
   names `.uxx`). A package a join loaded from the cache is let go by name at
   the next map load that does not use it, where the original's map load
   collects it ([housekeeping](#housekeeping-not-seen-directly)).
+- **Sounds a server plays.** The original's `PlaySound` has every player pawn
+  hear the sound (`CheckHearSound`,
+  [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),
+  a remote player's through `Pawn.ClientHearSound`, which the server sends to
+  that player's client, where its native plays the sound. The fork's
+  `PlaySound` plays a sound only where it is called and sends nothing, and its
+  `ClientHearSound` is a stub. So a fork client hears none of the sounds an
+  original server plays, and an original client none of a fork server's: each
+  hears only what it plays itself.
 - **Unchecked:** whether a live server corrects the client at a stop, now that
   the traces and moves are the original's.
 
@@ -472,3 +490,14 @@ Stubs a single-player game does without; the audit lists each:
   its only user, calls only implemented ones.
 - `ClipWindow`'s unit sizes, `GC`'s `PushGC`, `PopGC`, `CopyGC` and
   `Intersect`, and 6 more of the windows' stubs, which no script calls.
+- Five more that no script of the game calls, so only a mod reaches them:
+  `Object.ResetConfig`, which in the original copies the class's section
+  back from `Default.ini` or `DefUser.ini` and reads it again
+  ([configuration](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)),
+  `DeusExPlayer.SetBoolFlagFromString` 3001
+  ([the player](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-player)),
+  `ExtString.GetNextTextPart` 1146
+  ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)),
+  `Canvas.DrawPortal` 480, which draws nothing, and `Pawn.FindRandomDest`
+  525, upstream's own pick of a random navigation point the pawn can reach;
+  the original's two are unread.

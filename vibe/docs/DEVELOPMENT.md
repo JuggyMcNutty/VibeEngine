@@ -16,7 +16,8 @@ on its path in the maps that reached one, a side-by-side
 [`NATIVES.md`](NATIVES.md) says what still differs. The audit reads a native "partial" when
 another game's branch on its call chain logs `Unimplemented`: `ParabolicTrace`, `actorReachable`,
 `FindPathToward` and `ReachablePathnodes` read so, though their Deus Ex path is the original's.
-The runs say whether a stub fired.
+It reads `AICanSmell` "empty": the original's answer is always 0 too. The runs say whether a stub
+fired.
 
 ## Temporary debug hooks
 

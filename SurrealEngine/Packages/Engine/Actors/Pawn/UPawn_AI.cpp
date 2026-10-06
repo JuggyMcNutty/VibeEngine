@@ -256,7 +256,7 @@ bool UPawn::CanHearNoise(UActor* source, float loudness)
 
 void UPawn::ClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters)
 {
-	LogUnimplemented("UPawn.ClientHearSound()");
+	LogUnimplemented("Pawn.ClientHearSound");
 }
 
 UActor* UPawn::PickAnyTarget(float& bestAim, float& bestDist, const vec3& FireDir, const vec3& projStart)
