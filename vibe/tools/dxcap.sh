@@ -8,7 +8,9 @@
 #   vibe/tools/dxcap.sh compile                    vibe/tools/dxcap -> build/dxcap/System/DXCapture.u (UCC, under Proton)
 #   vibe/tools/dxcap.sh original <console> [<secs>] the original, from its menu map (it takes no map to start)
 #   vibe/tools/dxcap.sh fork <console> <map> [<secs>] the fork's linux-x86_64 build, straight into <map>
-#                                                  (or joining a server: <map> an address, as 127.0.0.1:7790)
+#                                                  (or joining a server: <map> an address, as 127.0.0.1:7790);
+#                                                  <console> - keeps the stock console, and DXCAP_TIMELINE=<file>
+#                                                  drives the run (vibe/tools/dxcap/timelines)
 #   vibe/tools/dxcap.sh prove <map>                the fork's proving run: shots at 20 s and 60 s, exit at 65 s
 #   vibe/tools/dxcap.sh live <address> [<secs>]    the fork joining a live server with the stock console its
 #                                                  game wants, driven by a timeline (the fork's --timeline):
@@ -43,6 +45,9 @@
 # so that a client, whose paths lack <dir>, downloads them.
 # DXCAP_MISSION_MAP=<map> names, through the run's ini, the map an original
 # run's console travels to (MissionConsole's TargetMap): it starts at its menu map.
+# DXCAP_ENGINE=<binary> runs another build of the fork than linux-x86_64's
+# (an ASan build). DXCAP_MEMLOG=1 logs a fork run's resident memory each
+# second into the run's memlog.txt: seconds since the start, then MB.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../.." && pwd)}"
@@ -52,9 +57,9 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 GAME="$DX_ROOT/gamefiles"
 CAP="$DX_ROOT/build/dxcap"
 SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
-ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
+ENGINE_BIN="${DXCAP_ENGINE:-$DX_ROOT/build/linux-x86_64/engine/SurrealEngine}"
 
-usage() { sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,1\}//'; exit 2; }
 # Every command but help needs the game.
 need_game() { [ -d "$GAME/System" ] || die "no game install at $GAME"; }
 
@@ -411,6 +416,23 @@ cmd_original() {
     fi
 }
 
+# memlog <timeout's pid> <file>: the engine's resident memory (/proc's statm)
+# each second, as "<seconds> <MB>", until it exits.
+memlog() {
+    local tpid="$1" out="$2" pid="" t=0 pages
+    local page; page="$(getconf PAGESIZE)"
+    : > "$out"
+    while kill -0 "$tpid" 2>/dev/null; do
+        [ -n "$pid" ] || pid="$(pgrep -P "$tpid" | head -1)" || true
+        if [ -n "$pid" ] && [ -r "/proc/$pid/statm" ]; then
+            read -r _ pages _ < "/proc/$pid/statm" || break
+            awk -v t="$t" -v p="$pages" -v s="$page" 'BEGIN { printf "%d %.1f\n", t, p * s / 1048576 }' >> "$out"
+        fi
+        sleep 1
+        t=$((t + 1))
+    done
+}
+
 # A fork run into <map> or a server's address, its log into <dir>; any
 # further arguments go to the engine.
 run_fork() {
@@ -444,7 +466,16 @@ run_fork() {
             printf '[general]\ndrivers = null\n' > "$CAP/alsoft-null.conf"
             export ALSOFT_CONF="$CAP/alsoft-null.conf"
         fi
-        timeout -s KILL "$secs" "$ENGINE_BIN" --no-launcher "$GAME" --ini="$ini" --userini="$userini" --url="$map" "$@" > "$dir/engine.log" 2>&1
+        timeout -s KILL "$secs" "$ENGINE_BIN" --no-launcher "$GAME" --ini="$ini" --userini="$userini" --url="$map" "$@" > "$dir/engine.log" 2>&1 &
+        local tpid=$! mpid=""
+        if [ "${DXCAP_MEMLOG:-0}" = 1 ]; then
+            memlog "$tpid" "$dir/memlog.txt" &
+            mpid=$!
+        fi
+        local erc=0
+        wait "$tpid" || erc=$?
+        [ -z "$mpid" ] || kill "$mpid" 2>/dev/null || true
+        exit "$erc"
     ) || rc=$?
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_stop
     if [ -n "$xpid" ]; then
@@ -461,10 +492,18 @@ cmd_fork() {
     [ -f "$CAP/System/DXCapture.u" ] || die "vibe/tools/dxcap.sh compile first"
     [ -x "$ENGINE_BIN" ] || die "no engine build at $ENGINE_BIN"
     local ini="$CAP/System/Fork.ini" userini="$CAP/System/ForkUser.ini"
-    local dir="$CAP/runs/fork-$console-$(date +%H%M%S)"
+    local name="$console"
+    [ "$console" != - ] || { console=""; name=stock; }
+    local dir="$CAP/runs/fork-$name-$(date +%H%M%S)"
     make_ini fork "$console" "$ini"
     user_ini "$userini"
-    run_fork "$dir" "$ini" "$userini" "$map" "$secs"
+    local args=()
+    if [ -n "${DXCAP_TIMELINE:-}" ]; then
+        mkdir -p "$dir"
+        cp "$DXCAP_TIMELINE" "$dir/timeline.txt"
+        args=(--timeline="$dir/timeline.txt")
+    fi
+    run_fork "$dir" "$ini" "$userini" "$map" "$secs" "${args[@]}"
 }
 
 # The fork on a live server: the stock console, and a timeline for what a

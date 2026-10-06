@@ -38,7 +38,7 @@ the fork alike, each driven by a console class of the DXCapture package: UnrealS
 vibe/tools/dxcap.sh setup                          # once, and again after the parent folder moves
 vibe/tools/dxcap.sh compile                        # after setup, and after changing vibe/tools/dxcap
 vibe/tools/dxcap.sh prove 01_NYC_UNATCOIsland.dx   # the fork: shots at 20 s and 60 s, exit at 65 s
-vibe/tools/dxcap.sh fork <console> <map> [<secs>]  # the fork, straight into <map> or a server's address
+vibe/tools/dxcap.sh fork <console> <map> [<secs>]  # the fork, straight into <map> or a server's address; - the stock console
 vibe/tools/dxcap.sh original <console> [<secs>]    # the original, from its menu map
 vibe/tools/dxcap.sh live <address> [<secs>]        # the fork on a live server (below)
 ```
@@ -70,7 +70,9 @@ are gone.
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
 | `DXCAP_MISSION_MAP=<map>` | the map an original run's `MissionConsole` travels to |
-| `DXCAP_TIMELINE=<file>` | a `live` run's timeline, not `JoinConsole`'s walk |
+| `DXCAP_TIMELINE=<file>` | a `live` run's timeline, not `JoinConsole`'s walk; a `fork` run's [timeline](#timelines) |
+| `DXCAP_ENGINE=<binary>` | a fork run on that build, not linux-x86_64's (an [ASan build](#crashes)) |
+| `DXCAP_MEMLOG=1` | a fork run's resident memory each second in its `memlog.txt`: seconds, MB |
 | `DXCAP_UPLINK=<host>:<port>` | the server announces itself to that master (`DoUplink`); otherwise to none |
 | `DXCAP_STATS=<password>` | on both runs: the server logs world stats (`bWorldLog`); the player holds that world stats password, so its login carries the checksum (a fork server logs the login's URL: `login request`) |
 | `DXCAP_SERVERPKGS=<dir>` | the server offers the packages in `<dir>` (`ServerPackages`) for a client to download |
@@ -107,6 +109,7 @@ the run. *Either*: one engine on each side of a pair.
 | `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` | |
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
 | `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` | |
+| `GarbageConsole` | both | 128 actors destroyed, one a tick, and when a live actor's references to them go None | `DXGARBAGE:` | |
 | `SoundConsole` | both | a sound behind a wall, a reverb zone, beeps from three sides | `DXCAP:` | `sound.py <run>`, with `DXCAP_RECORD=1` |
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
 | `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load | `DXSAVE:` | |
@@ -124,6 +127,23 @@ the run. *Either*: one engine on each side of a pair.
 - In `VisibleConsole`'s logs the original numbers the player and its shadow one higher: its menu
   map made the first.
 - A sweep runs `MissionConsole` over every mission map; no driver for it is committed.
+
+### Timelines
+
+A fork run with `-` for its console keeps the stock one and does what `DXCAP_TIMELINE`'s file
+says, in [the live mode's format](#live-servers). `vibe/tools/dxcap/timelines` has the map
+loads that show what a session keeps of the levels it left, both from Liberty Island, ten
+loads of each map 25 s apart, then an exit:
+
+| Timeline | Between | So each load |
+|---|---|---|
+| `reload-fresh.txt` | the island and Battery Park | crosses a mission: `Current` emptied, the map from `Maps` |
+| `reload-current.txt` | the island and UNATCO HQ | stays in mission 1: the map left saved into `Current`, the next one from there |
+
+```sh
+DXCAP_HIDDEN=1 DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \
+    vibe/tools/dxcap.sh fork - 01_NYC_UNATCOIsland 580
+```
 
 ### Net tests
 
@@ -233,6 +253,11 @@ Starting the engine (a map only after `=`, SIGTERM under SDL, `Running.ini`):
 before changing the engine: [profiling](ENGINE.md#profiling-and-validating-on-the-desktop),
 [the profiling hooks](ENGINE.md#the-profiling-hooks).
 
+- **`compile` takes `DXCapture.u` away before it builds it again**: a run started meanwhile, or
+  one of a sweep, finds no console class. Compile between runs, never under one.
+- **A fork run straight into a mission map leaves `Save/Current` as earlier runs left it**: only
+  travel to another mission, or a new game, empties it. A run that returns to a map within its
+  mission takes that map from there; a timeline that first crosses a mission starts it empty.
 - **An unattended run sees no NPC react to the player.** Liberty Island starts the player 7,000
   to 20,000 units from every NSF, and no NPC reacts to a player it cannot see. `AIConsole`,
   `MoveConsole` and `ReachConsole` watch the AI's own work (states, routes, the reachability

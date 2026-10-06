@@ -1,0 +1,25 @@
+# Ten loads of Battery Park and ten of Liberty Island, in turn, 25 s apart:
+# each map change crosses a mission, so Current is emptied and each map loads
+# fresh from Maps. Run straight into the island with the stock console:
+# DXCAP_TIMELINE=<this> DXCAP_MEMLOG=1 vibe/tools/dxcap.sh fork - 01_NYC_UNATCOIsland 580
+start 20 open 03_NYC_BatteryPark
+start 45 open 01_NYC_UNATCOIsland
+start 70 open 03_NYC_BatteryPark
+start 95 open 01_NYC_UNATCOIsland
+start 120 open 03_NYC_BatteryPark
+start 145 open 01_NYC_UNATCOIsland
+start 170 open 03_NYC_BatteryPark
+start 195 open 01_NYC_UNATCOIsland
+start 220 open 03_NYC_BatteryPark
+start 245 open 01_NYC_UNATCOIsland
+start 270 open 03_NYC_BatteryPark
+start 295 open 01_NYC_UNATCOIsland
+start 320 open 03_NYC_BatteryPark
+start 345 open 01_NYC_UNATCOIsland
+start 370 open 03_NYC_BatteryPark
+start 395 open 01_NYC_UNATCOIsland
+start 420 open 03_NYC_BatteryPark
+start 445 open 01_NYC_UNATCOIsland
+start 470 open 03_NYC_BatteryPark
+start 495 open 01_NYC_UNATCOIsland
+start 520 exit
