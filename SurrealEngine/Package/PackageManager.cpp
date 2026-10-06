@@ -592,16 +592,12 @@ void PackageManager::UnloadPackage(Package* package)
 
 void PackageManager::MarkRoots(GCMarker& marker)
 {
+	// A package of `packages` keeps its code (UField::IsGCRoot) and no
+	// other export: a texture, a sound, a mesh nothing reaches goes, and is
+	// loaded from the file again when next asked for, as the original's.
 	marker.SetRoot("packages");
 	for (auto& it : packages)
-	{
-		Package* package = it.second.get();
-		if (!package)
-			continue;
-		marker.MarkConst(package);
-		for (UObject* obj : package->ExportObjects)
-			marker.MarkConst(obj);
-	}
+		marker.MarkConst(it.second.get());
 	marker.SetRoot("saveInfos");
 	for (auto& it : saveInfos)
 	{

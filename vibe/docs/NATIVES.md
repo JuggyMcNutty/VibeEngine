@@ -344,9 +344,6 @@ collection ([objects and memory](ENGINE.md#objects-and-memory)) differs:
 - **Code is never freed**: a class stays loaded with its defaults and
   everything they reach, where the original's frees a script class nothing
   uses and loads it again when asked for.
-- **A package's other objects** stay while it is loaded: every export of a
-  package of the game's paths is kept, where the original's frees a
-  texture, a sound or a mesh nothing uses.
 
 On linux-x86_64, Liberty Island and Battery Park loaded in turn
 (`reload-fresh.txt`), twenty loads: 396 MB at the end where the fork kept

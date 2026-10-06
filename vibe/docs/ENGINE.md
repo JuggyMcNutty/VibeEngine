@@ -316,8 +316,9 @@ references it made None by holder, and gives the freed memory back to the system
 
 - **Roots** (`Engine::MarkRoots`, in `EngineGC.cpp`): the engine's subsystems, levels and
   objects; the net drivers' players, channels and package maps; the natives; every export of a
-  package of `PackageManager::packages` and of a save info. A map's or a save's package is not
-  one: what its level reaches stays. Loaded code (a `UField` in a package) is always kept.
+  save info. Loaded code (a `UField` in a package) is always kept; any other export of a package
+  stays only while something reaches it, and is loaded from its file again when next asked for.
+  A map's or a save's package is not a root: what its level reaches stays.
 - **What an object holds**: its class, package, delay load and state frame, and the references
   its properties hold (`UStruct::RefProps`); a native class marks its own members in its `Mark`.
   An object reached only through its package keeps the package's file and tables, not its other

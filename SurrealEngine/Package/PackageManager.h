@@ -92,9 +92,9 @@ public:
 
 	void CloseStreams();
 
-	// The collector's roots here: every export of a package of `packages`
-	// and of a save info. A map, a save and a download are not among them:
-	// what their levels reach stays.
+	// The collector's roots here: the packages of `packages`, their code
+	// kept as all code is, and every export of a save info. A map, a save
+	// and a download are not among them: what their levels reach stays.
 	void MarkRoots(GCMarker& marker);
 	// Objects made but not loaded yet: no collection may run then.
 	bool HasPendingLoads() const { return !delayLoads.empty(); }
