@@ -198,6 +198,21 @@ const Array<UProperty*>& UStruct::RefProps()
 	return RefPropList;
 }
 
+const Array<UProperty*>& UStruct::NameProps()
+{
+	if (NamePropsBuiltFrom != Properties.size())
+	{
+		NamePropList.clear();
+		for (UProperty* prop : Properties)
+		{
+			if (prop->ContainsNames())
+				NamePropList.push_back(prop);
+		}
+		NamePropsBuiltFrom = Properties.size();
+	}
+	return NamePropList;
+}
+
 void UStruct::Mark(GCMarker& marker)
 {
 	UField::Mark(marker);

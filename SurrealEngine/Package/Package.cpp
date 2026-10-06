@@ -101,6 +101,29 @@ UObject* Package::NewObject(const NameString& objname, UClass* objclass, ObjectF
 	Exception::Throw("Could not find the native class for " + objname.ToString());
 }
 
+NameString Package::MakeUniqueObjectName(UClass* cls)
+{
+	std::string base = cls->Name.ToString();
+	while (!base.empty() && base.back() >= '0' && base.back() <= '9')
+		base.pop_back();
+
+	if (ExportNamesBuiltFrom != ExportTable.size())
+	{
+		ExportNameIndexes.clear();
+		for (const ExportTableEntry& entry : ExportTable)
+			ExportNameIndexes.insert(entry.ObjName);
+		ExportNamesBuiltFrom = ExportTable.size();
+	}
+
+	while (true)
+	{
+		std::string candidate = base + std::to_string(cls->ClassUnique++);
+		auto it = NameHash.find(NameString::Collectable(candidate));
+		if (it == NameHash.end() || !ExportNameIndexes.count(it->second))
+			return NameString::Collectable(candidate);
+	}
+}
+
 void Package::AddRuntimeExport(UObject* obj)
 {
 	int nameIndex;

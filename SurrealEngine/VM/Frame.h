@@ -176,6 +176,7 @@ public:
 	// What a state frame keeps alive: its function and the references its
 	// locals and iterators hold.
 	void Mark(GCMarker& marker);
+	void MarkNames();
 
 	std::string GetName();
 

@@ -107,6 +107,18 @@ public:
 	// The references in one element.
 	virtual void MarkValue(GCMarker& marker, void* data) {}
 
+	// Whether a value of this property can hold a name, worked out once;
+	// the names in every element, and in one, for the name collection
+	// (NameString::Mark).
+	bool ContainsNames()
+	{
+		if (NamesState < 0)
+			NamesState = ComputeContainsNames() ? 1 : 0;
+		return NamesState == 1;
+	}
+	void MarkPropertyNames(void* data);
+	virtual void MarkNames(void* data) {}
+
 	virtual void GetExportText(std::string& buf, const std::string& whitespace, UObject* obj, UObject* defobj, int i);
 	virtual void GetExportText(std::string& buf, const std::string& whitespace, void* objval, void* defval, int i);
 	virtual bool IsDefaultValue(void* val) { return false; }
@@ -125,9 +137,11 @@ public:
 
 private:
 	int8_t RefsState = -1;
+	int8_t NamesState = -1;
 
 protected:
 	virtual bool ComputeContainsRefs() { return false; }
+	virtual bool ComputeContainsNames() { return false; }
 
 	static std::pair<NameString, std::string> ParseSingleProperty(std::string& propString);
 	static std::map<NameString, std::string> ParsePropertiesFromString(std::string propertiesString);

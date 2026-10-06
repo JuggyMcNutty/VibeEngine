@@ -51,6 +51,9 @@ public:
 	// instance. Built when first asked for, again if Properties grew.
 	const Array<UProperty*>& RefProps();
 
+	// The properties whose values can hold a name, for the name collection.
+	const Array<UProperty*>& NameProps();
+
 	// Every reference in data, laid out as this struct, to an actor waiting
 	// to be freed made None, as the original's UStruct::CleanupDestroyed:
 	// each element of an object property and of a struct property, never a
@@ -66,6 +69,8 @@ public:
 private:
 	Array<UProperty*> RefPropList;
 	size_t RefPropsBuiltFrom = (size_t)-1;
+	Array<UProperty*> NamePropList;
+	size_t NamePropsBuiltFrom = (size_t)-1;
 
 	ExprToken ReadToken(ObjectStream* stream, int depth);
 	void PushBytes(const void* data, size_t size);

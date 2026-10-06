@@ -34,6 +34,10 @@ protected:
 	// finds it, and the object is not followed.
 	virtual bool IsGCEliminated() const { return false; }
 
+	// Every name it holds, for the name collection after a sweep
+	// (NameString::Mark).
+	virtual void GCMarkNames() {}
+
 public:
 	// For the collector's log: the object's class, and the class and name.
 	virtual std::string GCClassName() const { return "?"; }
@@ -230,6 +234,9 @@ public:
 
 	static GCStats GetStats();
 	static GCObjectList GetObjects();
+
+	// Calls GCMarkNames on every object.
+	static void MarkNames();
 
 private:
 	static GCAllocation* GetAllocations();

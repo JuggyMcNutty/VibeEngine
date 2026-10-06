@@ -34,10 +34,12 @@ public:
 	void SetValueFromString(void* data, const std::string& valueString) override;
 
 	void MarkValue(GCMarker& marker, void* data) override;
+	void MarkNames(void* data) override;
 	void Mark(GCMarker& marker) override;
 
 protected:
 	bool ComputeContainsRefs() override;
+	bool ComputeContainsNames() override;
 
 public:
 	UStruct* Struct = nullptr;

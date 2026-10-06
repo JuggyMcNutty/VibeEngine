@@ -598,6 +598,20 @@ void UObject::Mark(GCMarker& marker)
 	}
 }
 
+void UObject::MarkNames()
+{
+	Name.Mark();
+	if (DelayLoad)
+		DelayLoad->ObjName.Mark();
+	if (PropertyData.Data && PropertyData.Class)
+	{
+		for (UProperty* prop : PropertyData.Class->NameProps())
+			prop->MarkPropertyNames(PropertyData.Ptr(prop));
+	}
+	if (StateFrame)
+		StateFrame->MarkNames();
+}
+
 void UObject::OnGCDestroy()
 {
 	PropertyData.Reset();

@@ -347,6 +347,12 @@ references it made None by holder, and gives the freed memory back to the system
   later reference loads it from its file again; a sound leaves the audio device, a decal its
   BSP nodes, a package closes its file, a freed texture has the render device flushed (it caches
   textures by address) if anything was drawn since its last flush. Then each is freed.
+- **The names** go after the objects: a name the engine makes for an object
+  (`NameString::Collectable`, through `Package::MakeUniqueObjectName`) is deleted when no live
+  object holds it (`GCObject::GCMarkNames`: its own name, its properties', its state frame's
+  locals), its slot taken by the next name made; a name looked up by its spelling is kept from
+  then on, so no other holder can see its index taken. A cache keyed by name indexes keeps no
+  collectable name (`FindScriptFunction`).
 
 ### Gameplay
 

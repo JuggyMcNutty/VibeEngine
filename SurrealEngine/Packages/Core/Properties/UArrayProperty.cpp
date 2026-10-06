@@ -144,6 +144,14 @@ void UArrayProperty::MarkValue(GCMarker& marker, void* data)
 		Inner->MarkValue(marker, array->GetItem(i));
 }
 
+void UArrayProperty::MarkNames(void* data)
+{
+	ScriptArray* array = static_cast<ScriptArray*>(data);
+	size_t count = array->GetSize();
+	for (size_t i = 0; i < count; i++)
+		Inner->MarkNames(array->GetItem(i));
+}
+
 void UArrayProperty::Mark(GCMarker& marker)
 {
 	UProperty::Mark(marker);

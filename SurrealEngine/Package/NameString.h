@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <unordered_map>
+#include <cstdint>
+#include <string>
 
 class NameString
 {
@@ -30,11 +32,55 @@ public:
 
 	int GetCompareIndex() const { return CompareIndex; }
 
+	// A name made for an object the engine names itself (an actor spawned,
+	// an AI event's object): the collector may delete it once nothing marks
+	// it, as the original's deletes every name nothing reaches
+	// (dx-reverse-info core-dll.md, Garbage collection). Every other name
+	// is kept: a name looked up by its spelling, from a package, an ini, the
+	// script or C++, is kept from then on.
+	static NameString Collectable(const std::string& value);
+
+	// The collection: BeginMark, then Mark for every name a live holder has,
+	// then Sweep deletes every collectable name not marked, its slots taken
+	// again by the next names made, last freed first; it hands back the
+	// compare indexes it freed.
+	static void BeginMark();
+	void Mark() const
+	{
+		if (CompareIndex < (int)Marks.size())
+			Marks[CompareIndex] |= MarkedFlag;
+		if (SpelledIndex < (int)Marks.size())
+			Marks[SpelledIndex] |= MarkedFlag;
+	}
+	static std::vector<int> Sweep();
+	static size_t Count() { return Names.size() - Available.size(); }
+
+	// Whether the collector may delete it: a cache keyed by name indexes
+	// keeps none such, as its index may be taken by another name.
+	bool IsCollectable() const { return (Marks[CompareIndex] | Marks[SpelledIndex]) & CollectableFlag; }
+
 private:
 	int CompareIndex = 0;
 	int SpelledIndex = 0;
 
-	void GetIndex(const std::string& value)
+	enum : uint8_t { CollectableFlag = 1, MarkedFlag = 2 };
+
+	static int NewSlot(const std::string& value)
+	{
+		if (!Available.empty())
+		{
+			int index = Available.back();
+			Available.pop_back();
+			Names[index] = value;
+			Marks[index] = 0;
+			return index;
+		}
+		Names.push_back(value);
+		Marks.push_back(0);
+		return (int)Names.size() - 1;
+	}
+
+	void GetIndex(const std::string& value, bool collectable = false)
 	{
 		// Have we seen this spelling before?
 		auto it = SpellStringToIndex.find(value);
@@ -42,6 +88,11 @@ private:
 		{
 			CompareIndex = it->second.first;
 			SpelledIndex = it->second.second;
+			if (!collectable)
+			{
+				Marks[CompareIndex] &= ~CollectableFlag;
+				Marks[SpelledIndex] &= ~CollectableFlag;
+			}
 			return;
 		}
 
@@ -49,6 +100,7 @@ private:
 		if (Names.empty())
 		{
 			Names.push_back("None");
+			Marks.push_back(0);
 			CompareStringToIndex["NONE"] = 0;
 			SpellStringToIndex["None"] = { 0, 0 };
 		}
@@ -93,21 +145,31 @@ private:
 		if (it2 != CompareStringToIndex.end())
 		{
 			CompareIndex = it2->second;
+			if (!collectable)
+				Marks[CompareIndex] &= ~CollectableFlag;
 		}
 		else
 		{
-			CompareIndex = (int)Names.size();
-			Names.push_back(compareValue);
+			CompareIndex = NewSlot(compareValue);
 			CompareStringToIndex[compareValue] = CompareIndex;
+			if (collectable)
+				Marks[CompareIndex] = CollectableFlag;
 		}
 
 		// Create spellstring index
-		SpelledIndex = (int)Names.size();
-		Names.push_back(value);
+		SpelledIndex = NewSlot(value);
 		SpellStringToIndex[value] = { CompareIndex, SpelledIndex };
+		if (collectable)
+		{
+			Marks[SpelledIndex] = CollectableFlag;
+			CollectableSpellings.push_back({ SpelledIndex, CompareIndex });
+		}
 	}
 
 	static Array<std::string> Names;
+	static std::vector<uint8_t> Marks;
+	static std::vector<int> Available;
+	static std::vector<std::pair<int, int>> CollectableSpellings; // spelled, compare
 	static std::unordered_map<std::string, int> CompareStringToIndex;
 	static std::unordered_map<std::string, std::pair<int, int>> SpellStringToIndex;
 };

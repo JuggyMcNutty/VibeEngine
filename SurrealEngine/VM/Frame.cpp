@@ -53,6 +53,15 @@ void Frame::Mark(GCMarker& marker)
 		iterator->Mark(marker);
 }
 
+void Frame::MarkNames()
+{
+	if (Variables.Func && Variables.Data)
+	{
+		for (UProperty* prop : Variables.Func->NameProps())
+			prop->MarkPropertyNames(static_cast<uint8_t*>(Variables.Data) + prop->DataOffset.DataOffset);
+	}
+}
+
 void Frame::SetState(UStruct* func)
 {
 	Func = func;

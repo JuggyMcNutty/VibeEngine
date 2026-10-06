@@ -52,14 +52,12 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 
 	// In the package of the level it is spawned in, as the original's: an
 	// actor the Entry level spawns is Entry's, not the map's.
-	// To do: find unique new name in the package
-	static std::map<NameString, int> nextIndex;
-	NameString name = SpawnClass->Name.ToString() + std::to_string(nextIndex[SpawnClass->Name]++);
 	// Made as the original's SpawnActor makes one: transactional, for any
 	// context -- client, server, editor -- and with a state frame
 	// (InitExecution); a save then writes it as the original's does, which
 	// the original's load needs to make it at all.
 	Package* levelPackage = XLevel() && XLevel()->package ? XLevel()->package : engine->LevelPackage;
+	NameString name = levelPackage->MakeUniqueObjectName(UObject::Cast<UClass>(SpawnClass));
 	UActor* actor = UObject::Cast<UActor>(levelPackage->NewObject(name, UObject::Cast<UClass>(SpawnClass), ObjectFlags::Transactional | ObjectFlags::LoadContextFlags | ObjectFlags::HasStack, true));
 
 	// An actor the server owns and this client copies has the roles turned.

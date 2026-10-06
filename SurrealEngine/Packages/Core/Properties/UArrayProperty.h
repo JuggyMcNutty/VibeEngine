@@ -29,10 +29,12 @@ public:
 	std::string PrintValue(const void* data) override;
 
 	void MarkValue(GCMarker& marker, void* data) override;
+	void MarkNames(void* data) override;
 	void Mark(GCMarker& marker) override;
 
 protected:
 	bool ComputeContainsRefs() override;
+	bool ComputeContainsNames() override { return Inner && Inner->ContainsNames(); }
 
 public:
 	UProperty* Inner = nullptr;

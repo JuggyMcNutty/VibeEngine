@@ -6,6 +6,7 @@
 #include "ObjectFlags.h"
 #include "NameString.h"
 #include <functional>
+#include <unordered_set>
 
 class PackageManager;
 class PackageStream;
@@ -24,6 +25,13 @@ public:
 	// Makes a runtime-made class findable in this package, so a save's
 	// import of it resolves on load (the AI event manager's has no script).
 	void AddRuntimeExport(UObject* obj);
+
+	// A name for an object the engine makes in this package, as the
+	// original's UObject::MakeUniqueObjectName (Core.dll 0x101575b0): the
+	// class's name without its trailing digits, then the class's own
+	// count, counted on past any number an object of this package already
+	// has. Collectable (NameString::Collectable).
+	NameString MakeUniqueObjectName(UClass* cls);
 
 	UObject* GetUObject(int objref);
 	UObject* GetUObject(const NameString& className, const NameString& objectName) { return GetUObject(className, objectName, {}, true); }
@@ -109,6 +117,11 @@ private:
 	bool LevelPackage = false;
 
 	std::map<NameString, int> NameHash;
+
+	// The name-table indexes of the exports' names, for MakeUniqueObjectName;
+	// built again when the export table has grown.
+	std::unordered_set<int> ExportNameIndexes;
+	size_t ExportNamesBuiltFrom = (size_t)-1;
 
 	Array<UObject*> ExportObjects;
 

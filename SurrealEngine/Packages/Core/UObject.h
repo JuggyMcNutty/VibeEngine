@@ -421,6 +421,11 @@ public:
 	std::string GCClassName() const override;
 	std::string GCDescribe() const override;
 
+	// Every name it holds for the name collection (NameString::Mark): its
+	// own, its delay load's, its properties' (a class's are its defaults)
+	// and its state frame's locals.
+	void MarkNames();
+
 protected:
 	// Its class, package and delay load, its state frame, and every
 	// reference its properties hold (its class's RefProps). A native
@@ -431,6 +436,7 @@ protected:
 	// its file again. A class undoing more calls this last.
 	void OnGCDestroy() override;
 	bool IsGCEliminated() const override { return AnyFlags(Flags, ObjectFlags::EliminateObject); }
+	void GCMarkNames() override { MarkNames(); }
 };
 
 template<typename T>

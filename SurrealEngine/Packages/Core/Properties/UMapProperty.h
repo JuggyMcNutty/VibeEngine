@@ -52,10 +52,12 @@ public:
 	std::string PrintValue(const void* data) override;
 
 	void MarkValue(GCMarker& marker, void* data) override;
+	void MarkNames(void* data) override;
 	void Mark(GCMarker& marker) override;
 
 protected:
 	bool ComputeContainsRefs() override;
+	bool ComputeContainsNames() override { return (Key && Key->ContainsNames()) || (Value && Value->ContainsNames()); }
 
 public:
 	UProperty* Key = nullptr;

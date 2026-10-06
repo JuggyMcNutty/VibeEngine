@@ -711,10 +711,9 @@ void UEventManager::Save(PackageStreamWriter* stream)
 	UClass* senderClass = engine->packages->GetPackage("Engine")->GetClass("AISenderEvent");
 	UClass* receiverClass = engine->packages->GetPackage("Engine")->GetClass("AIReceiverEvent");
 	// Named as the original names them, by class and a count of each.
-	static int typeCount = 0, senderCount = 0, receiverCount = 0;
-	auto make = [&](UClass* cls, int& count) -> UObject*
+	auto make = [&](UClass* cls) -> UObject*
 	{
-		UObject* obj = pkg->NewObject(NameString(cls->Name.ToString() + std::to_string(count++)), cls, ObjectFlags::LoadContextFlags);
+		UObject* obj = pkg->NewObject(pkg->MakeUniqueObjectName(cls), cls, ObjectFlags::LoadContextFlags);
 		obj->Outer() = this;
 		return obj;
 	};
@@ -726,7 +725,7 @@ void UEventManager::Save(PackageStreamWriter* stream)
 	std::vector<std::pair<std::string, UAIEventType*>> bucketTypes[256];
 	for (auto& [name, type] : Events)
 	{
-		UAIEventType* savedType = UObject::Cast<UAIEventType>(make(typeClass, typeCount));
+		UAIEventType* savedType = UObject::Cast<UAIEventType>(make(typeClass));
 		savedType->EventName = type.Name;
 		uint32_t hash = StrTools::ue1_strihash(type.Name.ToString());
 		savedType->EventHash = (int32_t)hash;
@@ -736,7 +735,7 @@ void UEventManager::Save(PackageStreamWriter* stream)
 		{
 			if (sender->Delete || !sender->Actor)
 				continue;
-			UAISenderEvent* saved = UObject::Cast<UAISenderEvent>(make(senderClass, senderCount));
+			UAISenderEvent* saved = UObject::Cast<UAISenderEvent>(make(senderClass));
 			saved->EventType = savedType;
 			saved->EventActor = sender->Actor;
 			for (int i = 0; i < NumSlots; i++)
@@ -754,7 +753,7 @@ void UEventManager::Save(PackageStreamWriter* stream)
 		{
 			if (receiver->Delete || !receiver->Actor)
 				continue;
-			UAIReceiverEvent* saved = UObject::Cast<UAIReceiverEvent>(make(receiverClass, receiverCount));
+			UAIReceiverEvent* saved = UObject::Cast<UAIReceiverEvent>(make(receiverClass));
 			saved->EventType = savedType;
 			saved->EventActor = receiver->Actor;
 			saved->Callback = receiver->Callback;

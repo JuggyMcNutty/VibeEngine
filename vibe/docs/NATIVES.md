@@ -344,11 +344,19 @@ objects and frees some 130 textures and 20 sounds. Liberty Island and UNATCO
 HQ through `Current` (`reload-current.txt`): 378 MB at most throughout. A
 collection takes 25 to 45 ms there; on the Smart Pro 200 to 265 ms.
 
-**Names** are never freed: each actor spawned takes a name of its own
-(`GarbageMarker123`), kept for the session, where the original's collection
-deletes the names nothing uses. The resident memory left after each
-collection grows by that: some 0.3 KB an actor spawned (`ChurnConsole`,
-2,200 actors a second for two minutes: 77 MB), some 0.4 MB a map load.
+**Names** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
+a spawned actor and an AI event's object are named as the original names
+them (`MakeUniqueObjectName`: the class's name without trailing digits and
+the class's count, past any number an object of the level's package
+already has), and the collection deletes such a name once nothing holds it
+(an object's own name, its properties', a class's defaults, a state
+frame's locals), its slot taken by the next name made. Differs: every other
+name -- from a package, an ini, the script or C++, or a spawned actor's
+looked up by its spelling -- is kept for the session, where the original's
+deletes any name nothing reaches but the hard-coded ones. `ChurnConsole`
+(2,200 actors a second for two minutes) stays at 358 MB resident, where
+keeping every name grew it by 77 MB; the name walk adds some 5 ms to a
+collection on linux-x86_64.
 
 **Destroyed actors** are the original's
 ([destroyed actors](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#destroyed-actors)):

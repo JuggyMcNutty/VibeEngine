@@ -74,6 +74,10 @@ public:
 	// Classes, states and their functions do not change once loaded.
 	std::unordered_map<uint64_t, UFunction*> VirtualFunctionCache;
 
+	// The count Package::MakeUniqueObjectName names this class's objects
+	// by, as the original's ClassUnique.
+	int ClassUnique = 0;
+
 private:
 	std::map<NameString, std::string> ParseStructValue(const std::string& text);
 };

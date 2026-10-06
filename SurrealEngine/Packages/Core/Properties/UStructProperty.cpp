@@ -164,6 +164,19 @@ bool UStructProperty::ComputeContainsRefs()
 	return Struct && (Struct->DelayLoad || !Struct->RefProps().empty());
 }
 
+bool UStructProperty::ComputeContainsNames()
+{
+	return Struct && (Struct->DelayLoad || !Struct->NameProps().empty());
+}
+
+void UStructProperty::MarkNames(void* data)
+{
+	if (Struct->DelayLoad)
+		return;
+	for (UProperty* prop : Struct->NameProps())
+		prop->MarkPropertyNames(static_cast<uint8_t*>(data) + prop->DataOffset.DataOffset);
+}
+
 void UStructProperty::MarkValue(GCMarker& marker, void* data)
 {
 	if (Struct->DelayLoad)

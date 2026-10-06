@@ -105,6 +105,18 @@ void UMapProperty::MarkValue(GCMarker& marker, void* data)
 	}
 }
 
+void UMapProperty::MarkNames(void* data)
+{
+	Map* map = static_cast<Map*>(data);
+	for (auto& it : *map)
+	{
+		if (it.first.Property && it.first.Property->ContainsNames())
+			it.first.Property->MarkNames(const_cast<void*>(static_cast<const void*>(it.first.Data)));
+		if (it.second.Property && it.second.Property->ContainsNames())
+			it.second.Property->MarkNames(it.second.Data);
+	}
+}
+
 void UMapProperty::Mark(GCMarker& marker)
 {
 	UProperty::Mark(marker);

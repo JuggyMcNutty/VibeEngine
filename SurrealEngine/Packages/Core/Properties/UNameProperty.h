@@ -16,4 +16,9 @@ public:
 	void SetValueFromString(void* data, const std::string& valueString) override;
 	std::string PrintValue(const void* data) override;
 	bool IsDefaultValue(void* val) override;
+
+	void MarkNames(void* data) override { static_cast<NameString*>(data)->Mark(); }
+
+protected:
+	bool ComputeContainsNames() override { return true; }
 };

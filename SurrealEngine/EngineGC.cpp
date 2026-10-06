@@ -317,6 +317,19 @@ void Engine::CollectGarbage()
 	if (!dryRun)
 		GarbageDestroyedBacklog = 0;
 
+	// The names, as the original's purge deletes every name nothing reaches
+	// once the objects are gone: here only the collectable ones
+	// (NameString::Collectable), which a live object's own name, its
+	// properties or its state frame's locals keep.
+	size_t namesBefore = NameString::Count();
+	size_t namesFreed = 0;
+	if (!dryRun)
+	{
+		NameString::BeginMark();
+		GC::MarkNames();
+		namesFreed = NameString::Sweep().size();
+	}
+
 #if defined(__GLIBC__)
 	if (!dryRun)
 		malloc_trim(0);
@@ -351,7 +364,8 @@ void Engine::CollectGarbage()
 			residentBefore / 1048576.0, residentAfter / 1048576.0, (int)eliminated.size(), (int)keptEliminated);
 		LogMessage(line);
 		LogMessage("Freed: " + std::to_string(freedActors) + " actors, " + std::to_string(freedTextures) + " textures, " + std::to_string(freedSounds) + " sounds, " +
-			std::to_string(freedMeshes) + " meshes, " + std::to_string(freedPackages) + " packages, " + std::to_string(freedOther) + " other objects");
+			std::to_string(freedMeshes) + " meshes, " + std::to_string(freedPackages) + " packages, " + std::to_string(freedOther) + " other objects, " +
+			std::to_string(namesFreed) + " names (" + std::to_string(namesBefore) + " before)");
 		LogTop("GC: references made None, by holder:", result.Cleared, 20);
 	}
 	LogTop("GC: eliminated objects kept through a reference that may not be written:", result.KeptEliminated, 30);

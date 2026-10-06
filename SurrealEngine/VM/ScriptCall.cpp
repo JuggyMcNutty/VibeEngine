@@ -143,6 +143,7 @@ UFunction* FindScriptFunction(UClass* cls, const NameString& stateName, const Na
 	if (it != cls->VirtualFunctionCache.end())
 		return it->second;
 	UFunction* func = SearchScriptFunction(cls, stateName, name);
-	cls->VirtualFunctionCache[key] = func;
+	if (!stateName.IsCollectable() && !name.IsCollectable())
+		cls->VirtualFunctionCache[key] = func;
 	return func;
 }

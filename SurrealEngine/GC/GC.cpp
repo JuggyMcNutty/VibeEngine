@@ -245,3 +245,9 @@ GCCollectResult GC::Collect(const std::function<void(GCMarker&)>& markRoots, con
 	result.BytesAfter = stats.memoryUsage;
 	return result;
 }
+
+void GC::MarkNames()
+{
+	for (GCAllocation* alloc = GetAllocations(); alloc; alloc = alloc->allocklistNext)
+		alloc->object()->GCMarkNames();
+}

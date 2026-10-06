@@ -67,6 +67,14 @@ void UProperty::MarkProperty(GCMarker& marker, void* data)
 		MarkValue(marker, GetElement(data, i));
 }
 
+void UProperty::MarkPropertyNames(void* data)
+{
+	if (!ContainsNames())
+		return;
+	for (int i = 0; i < ArrayDimension; i++)
+		MarkNames(GetElement(data, i));
+}
+
 void UProperty::ConstructArray(void* data)
 {
 	for (int i = 0; i < ArrayDimension; i++)

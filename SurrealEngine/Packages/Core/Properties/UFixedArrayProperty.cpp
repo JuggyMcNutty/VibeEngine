@@ -125,6 +125,13 @@ void UFixedArrayProperty::MarkValue(GCMarker& marker, void* data)
 		Inner->MarkValue(marker, static_cast<uint8_t*>(data) + i * pitch);
 }
 
+void UFixedArrayProperty::MarkNames(void* data)
+{
+	size_t pitch = Inner->ElementPitch();
+	for (int i = 0; i < Count; i++)
+		Inner->MarkNames(static_cast<uint8_t*>(data) + i * pitch);
+}
+
 void UFixedArrayProperty::Mark(GCMarker& marker)
 {
 	UProperty::Mark(marker);
