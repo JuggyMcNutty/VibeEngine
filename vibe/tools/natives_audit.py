@@ -403,11 +403,21 @@ def main(argv):
         if "iterator" in nat.mods and "Iterator" not in handed_over(nat.reg, defs):
             nat.status = "no-iterator"
 
-    # Runs: "Unimplemented: Class.Name" lines, with the caller when logged.
+    # Runs: "Unimplemented: Class.Name" lines, with the caller when logged,
+    # and the map then up: the last whose game started (GameInfo.InitGame's
+    # "Base Mutator is <map>.") or that a client loaded ("Net: loading <map>
+    # as a client"). Before either, the log's own name -- or, for a log the
+    # harness named (engine.log, DeusEx.log), its run's folder.
     fired = {}
     for log in a.runs:
         mapname = os.path.basename(log).rsplit(".", 1)[0]
+        if mapname in ("engine", "DeusEx"):
+            mapname = os.path.basename(os.path.dirname(os.path.abspath(log)))
         for line in open(log, encoding="utf-8", errors="replace"):
+            m = re.search(r"Base Mutator is (\w+)\.|Net: loading (\w+) as a client", line)
+            if m:
+                mapname = m.group(1) or m.group(2)
+                continue
             m = re.search(r"Unimplemented:\s*([\w]+)\.(\w+)", line)
             if m:
                 caller = line.split("Unimplemented:")[0].strip(" :[]\t")

@@ -55,6 +55,8 @@ SDK="$DX_ROOT/reference/ReleaseSDK1112f/System"
 ENGINE_BIN="$DX_ROOT/build/linux-x86_64/engine/SurrealEngine"
 
 usage() { sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2; }
+# Every command but help needs the game.
+need_game() { [ -d "$GAME/System" ] || die "no game install at $GAME"; }
 
 # The recording: a null sink that the game's stream goes to (PULSE_SINK),
 # and parecord on its monitor, detached so it outlives the call.
@@ -76,8 +78,6 @@ rec_stop() {
         rm -f "$CAP/sink.module"
     fi
 }
-
-[ -d "$GAME/System" ] || die "no game install at $GAME"
 
 # The prefix's Windows programs -- the original and the SDK's UCC -- run
 # here with the Proton build's own wine, as dx-reverse-info's tools/ida/idalib-mcp.sh runs IDA.
@@ -515,12 +515,12 @@ cmd_prove() {
 
 cmd="${1:-help}"; shift || true
 case "$cmd" in
-    setup)    cmd_setup ;;
-    compile)  cmd_compile ;;
-    original) cmd_original "$@" ;;
-    fork)     cmd_fork "$@" ;;
-    prove)    cmd_prove "$@" ;;
-    live)     cmd_live "$@" ;;
+    setup)    need_game; cmd_setup ;;
+    compile)  need_game; cmd_compile ;;
+    original) need_game; cmd_original "$@" ;;
+    fork)     need_game; cmd_fork "$@" ;;
+    prove)    need_game; cmd_prove "$@" ;;
+    live)     need_game; cmd_live "$@" ;;
     -h|--help|help) usage ;;
     *)        die "unknown command '$cmd' (vibe/tools/dxcap.sh help)" ;;
 esac

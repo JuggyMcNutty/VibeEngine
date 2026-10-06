@@ -162,6 +162,8 @@ def align(rec, startbeep, endbeep):
 
 
 def main(runs):
+    if not runs:
+        sys.exit(__doc__)
     parsed = []
     for run in runs:
         startbeep, endbeep, first, last, tails = parse(read_log(run))
