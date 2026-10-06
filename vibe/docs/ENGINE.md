@@ -309,7 +309,9 @@ original](NATIVES.md#implemented-not-as-the-original)), in
 ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#garbage-collection)).
 A collection runs at the end of the frame, with no script running (`Engine::CollectGarbage`,
 in `EngineGC.cpp`), when asked for: by every map load but Entry's, by the console's
-`obj garbage`, and every `SURREAL_GC_STRESS` frames. It logs the original's lines
+`obj garbage`, by 2048 destroyed actors let go since the last one
+([destroyed actors](NATIVES.md#housekeeping-not-seen-directly)), and every
+`SURREAL_GC_STRESS` frames. It logs the original's lines
 (`Collecting garbage`, `Purging garbage`, `Garbage: objects: ...; refs: ...`) with the
 milliseconds it took, the resident memory before and after, what it freed by kind and the
 references it made None by holder, and gives the freed memory back to the system (`malloc_trim`).

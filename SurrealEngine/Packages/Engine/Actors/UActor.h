@@ -665,6 +665,8 @@ public:
 	// Index in level Actors array
 	int Index = -1;
 
+	bool IsPendingKill() override { return bDeleteMe(); }
+
 	// The native lists: its children and the actors based on it, the lights
 	// on it. Each holds actors of the level, kept by the level; an
 	// eliminated one leaves the list. The BSP links stay as they are.

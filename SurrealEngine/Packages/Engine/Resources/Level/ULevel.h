@@ -42,8 +42,9 @@ public:
 
 	void Tick(float elapsed, bool gamePaused);
 
-	// The reach specs' ends and the BSP model. The collision hash and the
-	// light caches hold only actors of Actors, kept there.
+	// The reach specs' ends, the BSP model and the destroyed actors' chain.
+	// The collision hash and the light caches hold only actors of Actors,
+	// kept there.
 	void Mark(GCMarker& marker) override;
 
 	Array<LevelReachSpec> ReachSpecs;
@@ -52,6 +53,16 @@ public:
 	CollisionSystem Collision;
 	LightSystem Light;
 	std::map<std::string, std::string> TravelInfo;
+
+	// The actors destroyed, last first, linked through their Deleted, and how
+	// many: freed in a batch, as the original's (dx-reverse-info
+	// engine-dll.md, destroyed actors).
+	UActor* FirstDeleted = nullptr;
+	int DeletedCount = 0;
+	// Once 128 wait, or forced (before a save): every live actor's
+	// references to them made None, the event manager told, and each flagged
+	// to be freed at the next collection.
+	void CleanupDestroyed(bool force);
 
 private:
 	void TickActor(float elapsed, UActor* actor);

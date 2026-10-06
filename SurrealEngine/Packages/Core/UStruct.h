@@ -51,6 +51,12 @@ public:
 	// instance. Built when first asked for, again if Properties grew.
 	const Array<UProperty*>& RefProps();
 
+	// Every reference in data, laid out as this struct, to an actor waiting
+	// to be freed made None, as the original's UStruct::CleanupDestroyed:
+	// each element of an object property and of a struct property, never a
+	// dynamic array's.
+	void CleanupDestroyed(void* data);
+
 protected:
 	// Its fields, its script text and what its code names.
 	void Mark(GCMarker& marker) override;

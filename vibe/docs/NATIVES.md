@@ -38,7 +38,6 @@ each engine loads the other's saves (`SaveConsole`, `LoadConsole`). Differs:
 
 - The pre-travel prune leaves a carried decoration, which the original's
   destroys with the augmentations and skills (`PruneTravelActors`).
-- A saved level keeps the destroyed actors the original's save drops.
 
 ## Flags
 
@@ -346,12 +345,30 @@ collection ([objects and memory](ENGINE.md#objects-and-memory)) differs:
   uses and loads it again when asked for.
 
 On linux-x86_64, Liberty Island and Battery Park loaded in turn
-(`reload-fresh.txt`), twenty loads: 396 MB at the end where the fork kept
-every level (922 MB); each island load's collection leaves the same 52,210
-objects, and the resident memory after it grows some 0.6 MB a load.
-Liberty Island and UNATCO HQ through `Current` (`reload-current.txt`):
-385 MB at most throughout. A collection takes 25 to 60 ms there, a session's
-first up to 120 ms; on the Smart Pro some 250 ms.
+(`reload-fresh.txt`), twenty loads: 381 MB at the end where the fork kept
+every level (922 MB); each island load's collection leaves the same 43,055
+objects and frees some 130 textures and 20 sounds. Liberty Island and UNATCO
+HQ through `Current` (`reload-current.txt`): 378 MB at most throughout. A
+collection takes 25 to 45 ms there; on the Smart Pro 200 to 265 ms.
+
+**Names** are never freed: each actor spawned takes a name of its own
+(`GarbageMarker123`), kept for the session, where the original's collection
+deletes the names nothing uses. The resident memory left after each
+collection grows by that: some 0.3 KB an actor spawned (`ChurnConsole`,
+2,200 actors a second for two minutes: 77 MB), some 0.4 MB a map load.
+
+**Destroyed actors** are the original's
+([destroyed actors](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#destroyed-actors)):
+each joins the level's chain (`FirstDeleted`, through `Deleted`), and at the
+end of a level's tick, once 128 wait, or before a save, every live actor's
+references to them are made None and the event manager is told. The
+original then deletes them; the fork frees them at the next collection,
+which makes every other reference to them None (a window's, a
+conversation's), where the original's delete leaves those pointing at
+freed memory. 2048 actors let go but not yet freed ask for a collection: a
+collection costs some 250 ms on the Smart Pro. A map load does not clean
+the chain of the level it leaves, as the original's does only for `?push`:
+that level is freed whole. A destroyed decal is drawn until it is freed.
 
 **`Object.CriticalDelete` 751** (20 call sites). The original frees the
 object at once, whatever still refers to it

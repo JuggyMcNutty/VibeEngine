@@ -154,6 +154,11 @@ public:
 	bool GarbageMapChange = false;
 	// A texture freed by the collection under way (UTexture::OnGCDestroy).
 	bool GarbageTextureDied = false;
+	// Actors freed by no collection yet since ULevel::CleanupDestroyed let go
+	// of them: past the threshold a collection is asked for. A collection
+	// takes some 250 ms on the Smart Pro, so the backlog is let grow.
+	int GarbageDestroyedBacklog = 0;
+	static constexpr int GarbageDestroyedThreshold = 2048;
 	// SURREAL_GC_STRESS=<frames>: a collection every that many frames.
 	int GarbageStressFrames = 0;
 	int GarbageStressCount = 0;

@@ -1,6 +1,8 @@
 
 #include "Precomp.h"
 #include "LightSystem.h"
+#include "GC/GC.h"
+#include <algorithm>
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
@@ -178,4 +180,22 @@ void LightSystem::UpdateLightList(UActor* actor)
 void LightSystem::SetLevel(ULevel* level)
 {
 	Level = level;
+}
+
+void LightSystem::PurgeDying()
+{
+	auto dying = [](UActor* actor) { return GC::IsDying(actor); };
+	FogBalls.erase(std::remove_if(FogBalls.begin(), FogBalls.end(), dying), FogBalls.end());
+	TempDynLightList.clear();
+	bool stale = false;
+	for (const TreeLight& light : TreeLights)
+		stale = stale || GC::IsDying(light.Actor);
+	if (stale)
+	{
+		TreeLights.clear();
+		SurfaceLightCache.clear();
+		LightTree.Lights.clear();
+		LightTree.CollectedLights.clear();
+		LightTreeVersion++;
+	}
 }

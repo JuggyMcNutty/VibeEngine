@@ -319,6 +319,9 @@ public:
 
 	bool IsA(const NameString& className) const;
 
+	// An actor destroyed and waiting to be freed (the original's).
+	virtual bool IsPendingKill() { return false; }
+
 	// The original keeps one 64-bit probe mask on the object, set afresh at
 	// every GotoState -- the probes the state or the class has a function
 	// for, less those the state ignores -- and checks nothing else: any

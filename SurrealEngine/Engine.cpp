@@ -1461,6 +1461,7 @@ void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 	{
 		const std::string saveFileName = "Save" + std::to_string(slotNum) + "." + packages->GetSaveExtension();
 		const std::string saveFileFullPath = (saveFolderPath / saveFileName).string();
+		Level->CleanupDestroyed(true);
 		SetLevelURLForSave();
 		LevelPackage->Save(Level, saveFileFullPath);
 
@@ -1702,6 +1703,9 @@ void Engine::SaveCurrentLevel(int32_t slot) const
 		fs::create_directories(folder);
 	const auto levelName = Level->package->GetPackageName().ToString() + "." + packages->GetSaveExtension();
 	fs::remove(folder / levelName);
+	// The destroyed actors let go first, as the original's save does: the
+	// file holds none of them.
+	Level->CleanupDestroyed(true);
 	SetLevelURLForSave();
 	LevelPackage->Save(Level, (folder / levelName).string());
 }

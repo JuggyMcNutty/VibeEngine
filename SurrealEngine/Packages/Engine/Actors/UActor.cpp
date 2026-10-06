@@ -155,15 +155,8 @@ bool UActor::Destroy()
 	//GotoState({}, {}); // What should happen to function calls after Destroy() has been called? Razor2 calls SetRoll afterwards!
 	SetBase(nullptr, true);
 
-	engine->audiodev->ActorDestroyed(this);
-
-	// The event manager marks the actor's events for deletion, and it
-	// stops being any listener's best sender.
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		if (UEventManager* manager = UEventManager::Get())
-			manager->ActorDestroyed(this);
-	}
+	if (engine->audiodev)
+		engine->audiodev->ActorDestroyed(this);
 
 	ULevel* level = XLevel();
 
@@ -206,6 +199,13 @@ bool UActor::Destroy()
 	level->Actors[Index] = nullptr;
 	level->ActorsVersion++;
 	level->ActorsHaveHoles = true;
+
+	// To the level's chain of the destroyed: the event manager is told, and
+	// live actors' references made None, when the chain is cleaned up
+	// (ULevel::CleanupDestroyed).
+	Deleted() = level->FirstDeleted;
+	level->FirstDeleted = this;
+	level->DeletedCount++;
 
 	return true;
 }

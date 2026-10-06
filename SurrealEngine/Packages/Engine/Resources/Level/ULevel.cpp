@@ -1,8 +1,7 @@
 
 #include "Precomp.h"
 #include "ULevel.h"
-#include "UModel.h"
-#include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
+#include "Packages/Core/UClass.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
@@ -175,6 +174,9 @@ void ULevel::Tick(float elapsed, bool gamePaused)
 		ActorsHaveHoles = false;
 		ActorsVersion++;
 	}
+
+	// The original's last step of a level tick.
+	CleanupDestroyed(false);
 }
 
 void ULevel::Mark(GCMarker& marker)
@@ -188,4 +190,40 @@ void ULevel::Mark(GCMarker& marker)
 	}
 	marker.SetField("Model");
 	marker.Mark(Model);
+	// The destroyed actors waiting to be let go, each linked to the next by
+	// its Deleted: kept until CleanupDestroyed, as the original's level keeps
+	// its FirstDeleted.
+	marker.SetField("FirstDeleted");
+	marker.MarkConst(FirstDeleted);
+}
+
+void ULevel::CleanupDestroyed(bool force)
+{
+	if (!FirstDeleted || (!force && DeletedCount < 128))
+		return;
+
+	for (UActor* actor : Actors)
+	{
+		if (actor && actor->PropertyData.Class && actor->PropertyData.Data)
+			actor->PropertyData.Class->CleanupDestroyed(actor->PropertyData.Data);
+	}
+
+	UEventManager* manager = engine->LaunchInfo.IsDeusEx() && this == engine->Level ? UEventManager::Get() : nullptr;
+	while (UActor* actor = FirstDeleted)
+	{
+		FirstDeleted = actor->Deleted();
+		actor->Deleted() = nullptr;
+		if (manager)
+			manager->ActorDestroyed(actor);
+		// The original deletes it here; the fork frees it at the next
+		// collection, which makes every other reference to it None (a
+		// window's, a conversation's): one deleted now would leave those
+		// pointing at freed memory.
+		actor->Flags |= ObjectFlags::EliminateObject;
+		engine->GarbageDestroyedBacklog++;
+	}
+	DeletedCount = 0;
+
+	if (engine->GarbageDestroyedBacklog >= Engine::GarbageDestroyedThreshold)
+		engine->RequestGarbageCollection("destroyed actors");
 }

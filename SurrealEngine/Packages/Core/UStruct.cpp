@@ -7,6 +7,8 @@
 #include "Packages/Core/UFunction.h"
 #include "Packages/Core/UTextBuffer.h"
 #include "Packages/Core/Properties/UBoolProperty.h"
+#include "Packages/Core/Properties/UObjectProperty.h"
+#include "Packages/Core/Properties/UStructProperty.h"
 #include "Compiler/Frontend/Compiler.h"
 
 UStruct::UStruct(NameString name, UClass* cls, ObjectFlags flags) : UField(std::move(name), cls, flags)
@@ -215,6 +217,30 @@ void UStruct::Mark(GCMarker& marker)
 		marker.SetField("Code");
 		for (UObject* obj : Code->ReferencedObjects)
 			marker.MarkConst(obj);
+	}
+}
+
+void UStruct::CleanupDestroyed(void* data)
+{
+	for (UProperty* prop : RefProps())
+	{
+		uint8_t* values = static_cast<uint8_t*>(data) + prop->DataOffset.DataOffset;
+		if (UObject::TryCast<UObjectProperty>(prop))
+		{
+			for (int i = 0; i < prop->ArrayDimension; i++)
+			{
+				UObject*& obj = *reinterpret_cast<UObject**>(values + i * prop->ElementPitch());
+				if (obj && obj->IsPendingKill())
+					obj = nullptr;
+			}
+		}
+		else if (UStructProperty* structProp = UObject::TryCast<UStructProperty>(prop))
+		{
+			if (!structProp->Struct || structProp->Struct->DelayLoad)
+				continue;
+			for (int i = 0; i < prop->ArrayDimension; i++)
+				structProp->Struct->CleanupDestroyed(values + i * prop->ElementPitch());
+		}
 	}
 }
 

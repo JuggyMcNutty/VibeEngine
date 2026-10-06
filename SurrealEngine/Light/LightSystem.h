@@ -274,6 +274,13 @@ private:
 	TextureInfo GetLightmap(UModel* model, int lightmapIndex, const Coords& coords, UZoneInfo* zoneActor, const vec3& worldLocation, float radius, UMover* mover, bool specialLit);
 	TextureInfo GetFogmap(UModel* model, int lightmapIndex, const Coords& coords, UZoneInfo* zoneActor);
 	void CheckLight(UActor* light);
+
+public:
+	// The collector's: lights about to be freed leave every list; the tree
+	// and its answers are built again.
+	void PurgeDying();
+
+private:
 	const Array<UActor*>& CollectSurfaceLights(UModel* model, int lightmapIndex, const vec3& center, float radius);
 	void UpdateFogmapTexture(uint32_t* texels, UModel* model, const Coords& mapCoords, int lightMap, UZoneInfo* zoneActor);
 

@@ -294,6 +294,10 @@ void Engine::CollectGarbage()
 		}
 		if (GC::IsDying(CameraActor))
 			CameraActor = nullptr;
+		if (Level && !GC::IsDying(Level))
+			Level->Light.PurgeDying();
+		if (EntryLevel && EntryLevel != Level && !GC::IsDying(EntryLevel))
+			EntryLevel->Light.PurgeDying();
 		if (render)
 			render->PurgeDying();
 		if (audiodev)
@@ -310,6 +314,8 @@ void Engine::CollectGarbage()
 	if (GarbageTextureDied && render && render->DrawnSinceFlush)
 		render->FlushDevice();
 	GarbageTextureDied = false;
+	if (!dryRun)
+		GarbageDestroyedBacklog = 0;
 
 #if defined(__GLIBC__)
 	if (!dryRun)
