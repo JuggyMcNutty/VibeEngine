@@ -15,11 +15,11 @@ game's files are included.
 
 ## The fork and Surreal Engine
 
-upstream's work comes in
-only when chosen ([how it is kept](vibe/docs/ENGINE.md#how-it-is-kept)). The source keeps
-upstream's names (the `SurrealEngine` executable and its folders), and [`Docs/`](Docs/) is
-upstream's documentation, about Surreal Engine rather than this fork. The fork's own docs and
-tools are in [`vibe/`](vibe/), where a merge from upstream never reaches.
+Upstream's work does not come in: the two differ at the core
+([how it is kept](vibe/docs/ENGINE.md#how-it-is-kept)). The source keeps upstream's names (the
+`SurrealEngine` executable and its folders), and [`Docs/`](Docs/) is upstream's documentation,
+about Surreal Engine rather than this fork. The fork's own docs and tools are in
+[`vibe/`](vibe/).
 
 - [`vibe/docs/ENGINE.md`](vibe/docs/ENGINE.md): how the fork is kept, run and profiled, and
   [what it changes](vibe/docs/ENGINE.md#what-the-fork-changes).

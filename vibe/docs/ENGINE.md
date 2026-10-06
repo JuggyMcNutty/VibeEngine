@@ -16,8 +16,10 @@ as the original does. Its branch is `deusex`. What it still lacks of the origina
   proves the clone is at it; after a fork commit is pushed, `pin` moves the file, and the move is
   committed there. Builds go to `build/<port>/engine` in that parent folder, never into the clone.
 - **Nothing goes upstream.** We dont care about upsream anymore or their rules.
-- **The fork does not follow upstream.** It takes upstream's commits only by a chosen
-  [upgrade](#upgrading-surreal-engine).
+- **Upstream is not merged.** The fork and Surreal Engine differ at the core: upstream runs its
+  scripts through its own interpreter, `Frame::RunExpr`, where the fork runs them through the
+  `ExpressionEvaluator` it reworked ([script VM](#script-vm)). A fix of upstream's worth having
+  is ported by hand, as a commit of the fork's own.
 - **Deus Ex gets the fork's behaviour; other games keep upstream's.** Code that makes the engine
   behave as Deus Ex's original binaries do is gated on `IsDeusEx()`, upstream's test that the
   game's executable is `DeusEx`, asked as `engine->LaunchInfo.IsDeusEx()` or
@@ -35,7 +37,7 @@ In the workspace, Port Ex Machina's:
 ```sh
 scripts/engine.sh fetch                     # clone the fork at the pin
 scripts/engine.sh check                     # the clone is at the pin, on its branch
-scripts/engine.sh status                    # the pin, the fork, how far upstream has moved
+scripts/engine.sh status                    # the pin and the fork's branch
 scripts/engine.sh pin                       # after a pushed fork commit: move ENGINE-PIN.txt to it
 scripts/engine.sh build <port>              # build/<port>/engine, from the port's engine.cmake
 ```
@@ -45,7 +47,6 @@ scripts/engine.sh build <port>              # build/<port>/engine, from the port
 
 ```sh
 vibe/tools/perf/perf.sh on|off|save         # the profiling hooks (below)
-vibe/tools/upgrade.sh [<ref>]               # merge upstream in (below); status, --continue, --abort
 vibe/tools/host-tools.sh                    # perf and the validation layer, into the repositories' deps/
 vibe/tools/natives_audit.py                 # the original's natives against the fork's (NATIVES.md)
 vibe/tools/dxcap.sh                         # scripted runs of both engines (DEVELOPMENT.md)
@@ -98,27 +99,6 @@ the first time it runs in a session, and only then), the original is in the game
 and [working on the binaries](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/README.md#working-on-the-binaries)
 says how to read more. What the fork still lacks is [`NATIVES.md`](NATIVES.md);
 `vibe/tools/natives_audit.py` lists it.
-
-## Upgrading Surreal Engine
-
-Only when the owner chooses to. `vibe/tools/upgrade.sh status` (or the workspace's
-`scripts/engine.sh status`) fetches upstream and says how many commits it is past the fork. To
-take them in:
-
-```sh
-vibe/tools/perf/perf.sh off                 # if the profiling hooks are on
-vibe/tools/upgrade.sh                       # upstream's latest; or upgrade.sh <sha|tag|branch>
-```
-
-`upgrade.sh` needs the clone on `deusex` with a clean tree. It merges the chosen upstream commit
-into the fork's branch, keeping both histories. If files conflict it stops: resolve them,
-`git add` them, then `vibe/tools/upgrade.sh --continue`, or `--abort` to leave the fork as it was.
-[What the fork changes](#what-the-fork-changes) says what a merge meets.
-
-Then, before pinning: build and run linux-x86_64, check the Vulkan validation layer
-([below](#profiling-and-validating-on-the-desktop)), `perf.sh on` (and `save` if the hooks
-moved), profile on the devices, bring [what the fork changes](#what-the-fork-changes) up to date,
-push the branch, and pin it in the workspace.
 
 ## Running it
 
@@ -207,9 +187,8 @@ The environment:
 
 ## What the fork changes
 
-By area, as the code stands, with what a merge of upstream meets. A number such as (0005) is a
-[patch number](#the-numbered-patches). The handheld's numbers are
-[the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance).
+By area, as the code stands. A number such as (0005) is a [patch number](#the-numbered-patches).
+The handheld's numbers are [the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance).
 
 ### Running on our devices
 
@@ -253,8 +232,8 @@ for triangles inside the view (0020, an upstream bug); one-sided surfaces seen f
 skipped before the visibility test (0011); a surface's points gathered only when a test needs
 them (0021); each mesh vertex animated, lit and fogged once a draw (0018), and a run of faces
 with one texture drawn in one device call (0019). Deus Ex's look, as `Render.dll` and
-`D3DDrv.dll` make it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); a merge
-meets it in `SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`),
+`D3DDrv.dll` make it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); its code
+is in `SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`),
 `SurrealEngine/Light/` and `SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`,
 the fractal textures).
 
@@ -305,9 +284,7 @@ conditions, `&&` and `||`, the commonest operators (`UFunction::FastOperator`) a
 to plain variables evaluate as plain values, not through an `ExpressionValue`; conditions,
 jumps, plain assignments, calls, `return;` and a foreach's next pass run by `Frame::Run` in
 place, without an `ExpressionEvalResult` each (`Frame::ClassifyStatement`). A call leaving out
-an optional struct or array argument does not copy it, where upstream crashes (0033). Upstream's
-`Frame::Run` calls its own interpreter, `Frame::RunExpr`, in place of `ExpressionEvaluator`,
-which holds this work.
+an optional struct or array argument does not copy it, where upstream crashes (0033).
 
 ### Game tick
 
@@ -326,7 +303,7 @@ original](NATIVES.md#implemented-not-as-the-original)), in
 ### Gameplay
 
 What else Deus Ex needs is gated as [above](#how-it-is-kept) and described by feature in
-[`NATIVES.md`](NATIVES.md). Where a merge meets the most of it:
+[`NATIVES.md`](NATIVES.md). Where most of its code is:
 
 - **The path search and reachability tests**: Deus Ex's `FindPathToward`, `FindPathTo` and the
   `pointReachable`, `actorReachable` and `Reachable` they ask are `Engine.dll`'s, walking its own
