@@ -10,6 +10,18 @@
 #include "Utils/Random.h"
 #include "Package/ObjectFlags.h"
 #include "Packages/Core/UClass.h"
+#include "Packages/Extension/Windows/UGC.h"
+#include "Packages/Engine/Subsystems/USurrealNetworkDevice.h"
+#include "Packages/Engine/Subsystems/USurrealAudioDevice.h"
+#include "Packages/Engine/Subsystems/USurrealRenderDevice.h"
+#include "Packages/Engine/Subsystems/UGameEngine.h"
+#include "Packages/Engine/USurrealClient.h"
+#include "Packages/Engine/UConsole.h"
+#include "Packages/Engine/UCanvas.h"
+#include "Packages/Engine/UViewport.h"
+#include "Packages/Engine/Actors/UActor.h"
+#include "Packages/Core/USubsystem.h"
+#include "Packages/Core/UPackage.h"
 #include "Packages/Core/UEnum.h"
 #include <cmath>
 
@@ -578,9 +590,26 @@ void NObject::Disable(UObject* Self, const NameString& ProbeFunc)
 	Self->DisableEvent(ProbeFunc);
 }
 
+// The original's deletes the object at once, whatever still refers to it
+// (dx-reverse-info core-dll.md, CriticalDelete). The fork's flags it to go at
+// the next collection, which makes every reference to it None: until then
+// it is as it was, so a script that reads the object it just deleted (as
+// NanoKeyRing.RemoveAllKeys does) reads it whole. An actor is destroyed
+// first. Code, a package and the engine's own objects are not deleted.
 void NObject::CriticalDelete(UObject* Self, UObject* myObject)
 {
-	LogUnimplemented("Object.CriticalDelete");
+	if (!myObject || AnyFlags(myObject->Flags, ObjectFlags::EliminateObject))
+		return;
+	bool engineHeld = myObject == engine->client || myObject == engine->viewport || myObject == engine->canvas || myObject == engine->console ||
+		myObject == engine->audiodev || myObject == engine->renderdev || myObject == engine->netdev || myObject == engine->gameengine || myObject == engine->dxgc;
+	if (UObject::TryCast<UField>(myObject) || UObject::TryCast<UPackage>(myObject) || UObject::TryCast<USubsystem>(myObject) || engineHeld)
+	{
+		LogMessage("CriticalDelete: not deleting " + UObject::GetUClassName(myObject).ToString() + " " + myObject->Name.ToString());
+		return;
+	}
+	if (UActor* actor = UObject::TryCast<UActor>(myObject))
+		actor->Destroy();
+	myObject->Flags |= ObjectFlags::EliminateObject;
 }
 
 void NObject::Divide_U227(std::string& Src, std::string& Divider, std::string& LeftPart, std::string& RightPart, BitfieldBool& ReturnValue)

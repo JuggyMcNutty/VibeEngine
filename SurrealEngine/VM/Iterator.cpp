@@ -53,7 +53,9 @@ bool AllObjectsIterator::Next()
 
 		++m_Iterator;
 
-		if (currentObject && currentObject->IsA(BaseClass->Name) && (!InOuter || InOuter == currentObject->Outer()))
+		// An object deleted (CriticalDelete) is gone to the script, as the
+		// original's leaves the object table.
+		if (currentObject && !AnyFlags(currentObject->Flags, ObjectFlags::EliminateObject) && currentObject->IsA(BaseClass->Name) && (!InOuter || InOuter == currentObject->Outer()))
 		{
 			*ReturnValue = currentObject;
 			return true;

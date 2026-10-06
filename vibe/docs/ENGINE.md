@@ -338,7 +338,7 @@ references it made None by holder, and gives the freed memory back to the system
   (`MarkConst`: the subsystems, the net layer, what code names) keeps it, and the log says so.
   A collection flags every object of a level left behind (a package tagged as a level that is
   neither the current one nor Entry's) and, at a map load, the new level's actors that are not
-  in its `Actors`, as the original's.
+  in its `Actors`, as the original's. `Object.CriticalDelete` flags the object it is given.
 - **The weak holders** let go of the dying before anything is freed (`GC::IsDying`): the
   camera actor, the coronas and iterator actors, the audio device's sound numbers and reverb
   zone, the open package files.

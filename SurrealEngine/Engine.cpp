@@ -2173,7 +2173,7 @@ UObject* Engine::FindObject(NameString name, NameString className)
 {
 	for (auto actor : Level->Actors)
 	{
-		if (actor && actor->Name == name && UObject::GetUClassFullName(actor) == className)
+		if (actor && !AnyFlags(actor->Flags, ObjectFlags::EliminateObject) && actor->Name == name && UObject::GetUClassFullName(actor) == className)
 			return actor;
 	}
 
@@ -2592,7 +2592,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 				for (GCObject* gcObj : GC::GetObjects())
 				{
 					UObject* obj = dynamic_cast<UObject*>(gcObj);
-					if (!obj || obj == cls)
+					if (!obj || obj == cls || AnyFlags(obj->Flags, ObjectFlags::EliminateObject))
 						continue;
 					for (UStruct* objClass = obj->Class; objClass; objClass = objClass->BaseStruct)
 					{

@@ -353,12 +353,16 @@ Liberty Island and UNATCO HQ through `Current` (`reload-current.txt`):
 385 MB at most throughout. A collection takes 25 to 60 ms there, a session's
 first up to 120 ms; on the Smart Pro some 250 ms.
 
-**`Object.CriticalDelete` 751** (20 call sites) is a stub. The original frees
-the object at once, whatever still refers to it
-([`CriticalDelete`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#criticaldelete)),
-and the game's callers delete objects of their own and drop their
-reference. In the fork the object goes at the next collection once nothing
-refers to it.
+**`Object.CriticalDelete` 751** (20 call sites). The original frees the
+object at once, whatever still refers to it
+([`CriticalDelete`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#criticaldelete)).
+The fork's flags it (`EliminateObject`), destroying an actor first: it goes
+at the next collection, which makes every reference to it None, and until
+then it stays as it was, which `NanoKeyRing.RemoveAllKeys` relies on as it
+reads the next key from the one it deleted. Gone to the script at once as
+the original's: `AllObjects`, the console's `SET` and a find by name pass it
+over, and a save writes a reference to it as None. Code, a package and the
+engine's own objects are not deleted (the log says so).
 
 ## Small
 

@@ -111,6 +111,7 @@ the run. *Either*: one engine on each side of a pair.
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
 | `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` | |
 | `GarbageConsole` | both | 128 actors destroyed, one a tick, and when a live actor's references to them go None | `DXGARBAGE:` | |
+| `DeleteConsole` | both | `CriticalDelete` as the game uses it: nano keys, the log, the history, a game directory; what `AllObjects` still finds | `DXDELETE:` | |
 | `SoundConsole` | both | a sound behind a wall, a reverb zone, beeps from three sides | `DXCAP:` | `sound.py <run>`, with `DXCAP_RECORD=1` |
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
 | `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load | `DXSAVE:` | |
