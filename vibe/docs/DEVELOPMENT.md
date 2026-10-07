@@ -111,6 +111,7 @@ the run. *Either*: one engine on each side of a pair.
 | `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` | |
 | `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` | |
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
+| `RotatorConsole` | both | `rotator(v)`, a rotator's string, `vector(r)`, `GetAxes`, `GetUnAxes` | `DXROT:` | |
 | `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` | |
 | `GarbageConsole` | both | 128 actors destroyed, one a tick, and when a live actor's references to them go None | `DXGARBAGE:` | |
 | `ChurnConsole` | fork | 20 actors spawned and 20 destroyed every tick for 120 s (with `DXCAP_MEMLOG=1`) | `DXCHURN:` | |

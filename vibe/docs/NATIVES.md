@@ -345,6 +345,13 @@ Differs:
   carcass's bounce off a slope, a `bBounceVelocity` zone throwing again what
   is not a pawn, and a pawn with nothing under it fitted (`FindSpot`) and
   pushed on at random.
+- **Rotators** convert as the original's (`RotatorConsole`, 699 of 702
+  lines the same): `rotator(v)` scales by 65535 over a turn, truncates and
+  does not wrap; a rotator's string wraps each part to 0-65535; `vector(r)`,
+  `GetAxes` and `GetUnAxes` (`GetAxes` transposed) take the original's sine
+  table, 16384 steps round the turn. Differs: a part that is 0 to within
+  1e-7 can carry the other sign, seen looking straight down at a yaw of 180
+  degrees. The engine's own rotations (the view, movement) keep exact angles.
 - **`TraceActors`** runs over the multi-hit line check of Deus Ex's own
   iterators, as the original's: every hit nearest first, the level's as the
   `LevelInfo`, nothing past the first wall, `BaseClass` not used

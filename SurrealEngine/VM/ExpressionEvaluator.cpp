@@ -545,7 +545,7 @@ void ExpressionEvaluator::Expr(UnicodeStringConstExpression* expr)
 void ExpressionEvaluator::Expr(RotatorToVectorExpression* expr)
 {
 	Rotator rot = Value(expr->Value).ToRotator();
-	*Out = ExpressionValue::VectorValue(Coords::Rotation(rot).XAxis);
+	*Out = ExpressionValue::VectorValue(Coords::TableRotation(rot).XAxis);
 }
 
 void ExpressionEvaluator::Expr(ByteToIntExpression* expr)
@@ -750,9 +750,9 @@ void ExpressionEvaluator::Expr(VectorToStringExpression* expr)
 
 void ExpressionEvaluator::Expr(RotatorToStringExpression* expr)
 {
-	// The original prints the parts as they are, not wrapped to 0-65535.
+	// The original prints each part wrapped to 0-65535 (RotatorConsole).
 	Rotator v = Value(expr->Value).ToRotator();
-	*Out = ExpressionValue::StringValue(std::to_string(v.Pitch) + "," + std::to_string(v.Yaw) + "," + std::to_string(v.Roll));
+	*Out = ExpressionValue::StringValue(std::to_string(v.Pitch & 0xffff) + "," + std::to_string(v.Yaw & 0xffff) + "," + std::to_string(v.Roll & 0xffff));
 }
 
 void ExpressionEvaluator::Expr(StringToNameExpression* expr)

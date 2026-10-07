@@ -68,9 +68,11 @@ public:
 		}
 	}
 
+	// The original's (Core.dll FVector::Rotation, RotatorConsole): the
+	// angles scaled by 65535 over a turn, not 65536, truncated, unwrapped
 	static Rotator FromVector(const vec3& v)
 	{
-		float scale = 0x10000 / (2.0f * 3.14159265359f);
+		float scale = 65535.0f / (2.0f * 3.14159265359f);
 		Rotator rotation;
 		rotation.Yaw = (int)(std::atan2(v.y, v.x) * scale);
 		rotation.Pitch = (int)(std::atan2(v.z, std::sqrt(v.x * v.x + v.y * v.y)) * scale);

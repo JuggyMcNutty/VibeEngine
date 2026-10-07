@@ -877,7 +877,7 @@ void NObject::FRand(float& ReturnValue)
 
 void NObject::GetAxes(const Rotator& A, vec3& X, vec3& Y, vec3& Z)
 {
-	Coords::Rotation(A).GetAxes(X, Y, Z);
+	Coords::TableRotation(A).GetAxes(X, Y, Z);
 }
 
 void NObject::GetClassFlags_U227(UObject* Class, int& ReturnValue)
@@ -927,7 +927,11 @@ void NObject::GetStateName(UObject* Self, NameString& ReturnValue)
 
 void NObject::GetUnAxes(const Rotator& A, vec3& X, vec3& Y, vec3& Z)
 {
-	Coords::Rotation(A).GetUnAxes(X, Y, Z);
+	// The original's are GetAxes' transposed (RotatorConsole)
+	Coords axes = Coords::TableRotation(A);
+	X = { axes.XAxis.x, axes.YAxis.x, axes.ZAxis.x };
+	Y = { axes.XAxis.y, axes.YAxis.y, axes.ZAxis.y };
+	Z = { axes.XAxis.z, axes.YAxis.z, axes.ZAxis.z };
 }
 
 void NObject::GetUnitCoords_U227(Coords& ReturnValue)
