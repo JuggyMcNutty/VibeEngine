@@ -258,6 +258,12 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
 
 - **`GC.DrawActor` ignores `bConstrain`**: the vision augmentation's calls
   cover the whole view. Its render time: [out of sight](#out-of-sight).
+- **Keys** go up from the focus window to the root as the original's, so
+  Esc and F1 close a screen (a timeline's presses, checked in a fork run
+  only). Differs, read from both codes: the keyboard counts as grabbed while a
+  modal shows, where the original counts its grabs (every modal grabs while
+  shown); the fork tries only the focus window's accelerator, and passes on
+  a release of a key not down, which the original takes and drops.
 - **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
   `MoveFocus`, `MoveTabGroup`, the focus moving off a window hidden, made
   unselectable or destroyed, and the windows ticking before the engine are

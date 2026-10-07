@@ -46,6 +46,8 @@ public:
 
 	bool IsCursorVisible();
 	bool IsModalOpen();
+	UModalWindow* TopmostModal();
+	bool RouteKey(const std::function<bool(UWindow*)>& handle);
 
 	UTexture*& DefaultMoveCursor() { return Value<UTexture*>(PropOffsets_RootWindow.DefaultMoveCursor); }
 	UWindow*& FocusWindow() { return Value<UWindow*>(PropOffsets_RootWindow.FocusWindow); }

@@ -500,57 +500,56 @@ bool URootWindow::OnWindowRawMouseMove(int dx, int dy)
 	return IsModalOpen();
 }
 
+// The original's (dx-reverse-info/extension-dll.md, the root window): while a
+// window holds the keyboard -- every shown modal does -- a key goes to the
+// focus window, else the topmost shown modal, and up its parents to the root
+// until one handles it; windows that are not modal pass it over while Alt is
+// down. The UI then takes every key, handled or not.
+bool URootWindow::RouteKey(const std::function<bool(UWindow*)>& handle)
+{
+	UWindow* modal = TopmostModal();
+	if (!modal)
+		return false;
+
+	UWindow* start = FocusWindow() ? FocusWindow() : modal;
+	bool alt = engine->window->GetKeyState(IK_Alt);
+	for (UWindow* cur = start; cur; cur = cur->parentOwner())
+	{
+		if (alt && !UObject::TryCast<UModalWindow>(cur))
+			continue;
+		if (handle(cur))
+			break;
+	}
+	return true;
+}
+
 bool URootWindow::OnWindowKeyChar(std::string chars)
 {
-	UWindow* focus = FocusWindow();
-	if (!focus)
-		return IsModalOpen();
-
-	if (focus->KeyPressed(chars))
-		return true;
-
 	// To do: fire these for edit windows
 	// event bool TextChanged(window edit, bool bModified)
 	// event bool EditActivated(window edit, bool bModified)
 
-	return IsModalOpen();
+	return RouteKey([&](UWindow* w) { return w->KeyPressed(chars); });
 }
 
 bool URootWindow::OnWindowKeyDown(EInputKey key)
 {
-	UWindow* focus = FocusWindow();
-	if (!focus)
-		return IsModalOpen();
-
 	// To do: this shouldn't just check the focus window. It needs to build an accelerator table for all windows
-	if (engine->window->GetKeyState(IK_Alt) && focus->acceleratorKey() != 0)
+	UWindow* focus = FocusWindow();
+	if (focus && TopmostModal() && engine->window->GetKeyState(IK_Alt) && focus->acceleratorKey() != 0)
 	{
 		std::string chars(1, (char)focus->acceleratorKey());
-		EInputKey accelKey = (EInputKey)(uint8_t)chars.front();
 		if (focus->AcceleratorKeyPressed(chars))
 			return true;
 	}
 
 	bool repeat = false; // To do: can surrealwidgets tell us this?
 
-	if (focus->RawKeyPressed(key, EInputType::IST_Press, repeat))
-		return true;
-
-	if (focus->VirtualKeyPressed(key, repeat))
-		return true;
-
-	return IsModalOpen();
+	return RouteKey([&](UWindow* w) { return w->RawKeyPressed(key, EInputType::IST_Press, repeat) || w->VirtualKeyPressed(key, repeat); });
 }
 
 bool URootWindow::OnWindowKeyUp(EInputKey key)
 {
-	UWindow* focus = FocusWindow();
-	if (!focus)
-		return IsModalOpen();
-
-	if (focus->RawKeyPressed(key, EInputType::IST_Release, false))
-		return true;
-
 	// To do: fire these for specific window types
 	// event bool ButtonActivated(Window button)
 	// event bool ToggleChanged(Window button, bool bNewToggle)
@@ -558,15 +557,24 @@ bool URootWindow::OnWindowKeyUp(EInputKey key)
 	// event bool ListRowActivated(window list, int rowId)
 	// event bool ListSelectionChanged(window list, int numSelections, int focusRowId)
 
-	return IsModalOpen();
+	return RouteKey([&](UWindow* w) { return w->RawKeyPressed(key, EInputType::IST_Release, false); });
 }
 
-bool URootWindow::IsModalOpen()
+UModalWindow* URootWindow::TopmostModal()
 {
 	for (UWindow* child = lastChild(); child; child = child->prevSibling())
 	{
-		if (UObject::TryCast<UModalWindow>(child))
-			return true;
+		if (child->bIsVisible())
+		{
+			if (UModalWindow* modal = UObject::TryCast<UModalWindow>(child))
+				return modal;
+		}
 	}
-	return false;
+	return nullptr;
+}
+
+// A shown modal holds the mouse and the keyboard; a hidden one holds neither.
+bool URootWindow::IsModalOpen()
+{
+	return TopmostModal() != nullptr;
 }
