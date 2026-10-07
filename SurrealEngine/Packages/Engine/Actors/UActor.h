@@ -409,7 +409,10 @@ public:
 	void TickSpider(float elapsed);
 	void TickTrailer(float elapsed);
 
-	void PhysLanded(UActor* hitActor, const vec3& hitNormal);
+	// remaining: what the tick has left, which a Deus Ex pawn that lands
+	// walks out.
+	void PhysLanded(UActor* hitActor, const vec3& hitNormal, float remaining);
+	void DeusExPhysLanded(UActor* hitActor, const vec3& hitNormal, float remaining);
 
 	// True (and fires FellOutOfWorld) if the actor's location has no valid region at all, i.e. it fell outside the level's BSP geometry.
 	bool HasLeftWorld();

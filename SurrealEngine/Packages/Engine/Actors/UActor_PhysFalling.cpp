@@ -87,6 +87,11 @@ void UActor::TickFalling(float elapsed)
 	bool heldOff = engine->LaunchInfo.IsDeusEx();
 	auto move = [&](const vec3& delta) { return heldOff ? TryMoveHeldOff(delta) : TryMove(delta); };
 
+	// Deus Ex's floor is a normal over 0.7 (Engine.dll physFalling
+	// 0x103d0a50); other games keep 0.7071.
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
+	auto isFloor = [&](const vec3& normal) { return deusEx ? normal.z > 0.7f : normal.z > 0.7071f; };
+
 	float timeLeft = elapsed;
 	for (int iteration = 0; timeLeft > 0.0f && iteration < 5; iteration++)
 	{
@@ -103,11 +108,20 @@ void UActor::TickFalling(float elapsed)
 		vec3 moveDelta = (newVelocity + zone->ZoneVelocity() * elapsed * 25.0f) * timeLeft;
 		vec3 dirNormal = normalize(newVelocity);
 
+		// The step's start and length, for the velocity a landing takes.
+		vec3 stepStart = Location();
+		float stepTime = timeLeft;
+
 		CollisionHit hit = move(moveDelta);
 		timeLeft -= timeLeft * hit.Fraction;
 
 		if (hit.Fraction < 1.0f)
 		{
+			// Deus Ex: a decoration that hits the player loses a landing
+			// (not under 0).
+			if (deusEx && decor && UObject::TryCast<UPlayerPawn>(hit.Actor))
+				decor->numLandings() = std::max(decor->numLandings() - 1, 0);
+
 			if (hit.Actor && hit.Actor->IsA("Pawn"))
 			{
 				// So projectiles don't think they hit a wall.
@@ -125,16 +139,18 @@ void UActor::TickFalling(float elapsed)
 			}
 			else
 			{
-				if (hit.Normal.z < 0.7071f)
+				if (!isFloor(hit.Normal))
 				{
 					// We hit a slope. Try to follow it.
 					vec3 alignedDelta = (moveDelta - hit.Normal * dot(moveDelta, hit.Normal)) * (1.0f - hit.Fraction);
 					if (dot(moveDelta, alignedDelta) >= 0.0f) // Don't end up going backwards
 					{
 						hit = move(alignedDelta);
-						if (hit.Fraction < 1.0f && hit.Normal.z > 0.7071f)
+						if (hit.Fraction < 1.0f && isFloor(hit.Normal))
 						{
-							PhysLanded(hit.Actor, hit.Normal);
+							// A floor the slide meets lands with the velocity as
+							// it is, the step's time spent.
+							PhysLanded(hit.Actor, hit.Normal, 0.0f);
 							return;
 						}
 					}
@@ -147,7 +163,12 @@ void UActor::TickFalling(float elapsed)
 				}
 				else
 				{
-					PhysLanded(hit.Actor, hit.Normal);
+					// Deus Ex: the velocity becomes the move's own, the
+					// distance gone over the time it took, and the time the
+					// move did not take is left to the landing.
+					if (deusEx && !bJustTeleported() && hit.Fraction > 0.1f && hit.Fraction * stepTime > 0.003f)
+						velocity = (Location() - stepStart) / (hit.Fraction * stepTime);
+					PhysLanded(hit.Actor, hit.Normal, timeLeft);
 					timeLeft = 0.0f;
 				}
 			}

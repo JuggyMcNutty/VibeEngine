@@ -5,7 +5,18 @@
 // first walkMove's drop traced down from where the player stands (its box and
 // three others), then each one's collision and the colliding actors near it
 // logged, then every tick for 1.5 s its place, the bottom of its cylinder,
-// physics, velocity and base; then exit. Each line starts "DXREST:".
+// physics, velocity and base.
+//
+// Then a landing on an edge: the pier's edge over the water south of the
+// player's start, where a lip a few units high runs along it, as a scan of
+// the original's traces found it; its outer face found by stepping traces
+// down and halving to a quarter unit. A small crate dropped there 0.4 of its
+// radius past the edge, then the player 0.95 of its own, each 2 over the
+// lip; for 2 s each, every tick, its place, physics, velocity and base (and
+// the crate's landings). The original's landing nudges the crate off the
+// ledge and fits the player clear of it, pushing it on at random
+// (dx-reverse-info engine-dll.md, moving); then exit. Each line starts
+// "DXREST:".
 //=============================================================================
 class RestConsole extends Console;
 
@@ -14,6 +25,9 @@ var float StepTime;
 var int Phase;
 var Actor Placed[3];
 var int Ticks;
+var vector Edge, EdgeDir;
+var float FloorZ, LedgeZ;
+var Actor Dropped;
 
 function Actor Place(PlayerPawn P, class<Actor> C, vector Where)
 {
@@ -58,6 +72,69 @@ function DropProbe(PlayerPawn P, string Label, vector From, float Radius, float 
 		Log("DXREST: drop " $ Label $ " from z " $ From.Z $ " hits nothing");
 	else
 		Log("DXREST: drop " $ Label $ " from z " $ From.Z $ " hits " $ Hit $ " at z " $ HitLocation.Z $ " moved " $ (From.Z - HitLocation.Z) $ " normal " $ HitNormal);
+}
+
+// The top under a spot, from 64 over the floor: 0 when nothing stands
+// within 60 under the floor, the water's edge passed.
+function float TopAt(PlayerPawn P, vector Spot)
+{
+	local vector HitLocation, HitNormal, From;
+
+	From = Spot;
+	From.Z = FloorZ + 64;
+	if (P.Trace(HitLocation, HitNormal, From - vect(0,0,124), From, false) == None)
+		return 0;
+	return HitLocation.Z;
+}
+
+// The edge: from a spot on the pier south of the start (a scan of the
+// original's traces found the lip there), the last top before the water,
+// halved to a quarter unit.
+function bool PickEdge(PlayerPawn P)
+{
+	local vector HitLocation, HitNormal, Spot;
+	local float D, Lo, Hi, Mid;
+
+	Spot = vect(-4760.569824, 10046.811523, -256.200012);
+	EdgeDir = vect(0, -1, 0);
+	if (P.Trace(HitLocation, HitNormal, Spot - vect(0,0,200), Spot, false) == None)
+		return false;
+	FloorZ = HitLocation.Z;
+	Lo = 0;
+	for (D = 4; D < 200; D += 4)
+	{
+		if (TopAt(P, Spot + D * EdgeDir) == 0)
+		{
+			Hi = D;
+			break;
+		}
+		Lo = D;
+	}
+	if (D >= 200)
+		return false;
+	while (Hi - Lo > 0.25)
+	{
+		Mid = (Lo + Hi) / 2;
+		if (TopAt(P, Spot + Mid * EdgeDir) != 0)
+			Lo = Mid;
+		else
+			Hi = Mid;
+	}
+	Edge = Spot + Lo * EdgeDir;
+	LedgeZ = TopAt(P, Edge - EdgeDir);
+	Edge.Z = LedgeZ;
+	Log("DXREST: the edge at " $ Edge $ " along " $ EdgeDir $ ", the pier's floor at z " $ FloorZ $ ", the ledge's top at z " $ LedgeZ);
+	return true;
+}
+
+function LogDropped(PlayerPawn P)
+{
+	local string Landings;
+
+	if (Decoration(Dropped) != None)
+		Landings = " landings " $ Decoration(Dropped).numLandings;
+	Log("DXREST: edge tick " $ Ticks $ " t " $ StepTime $ " " $ Dropped.Class.Name $ " past the edge " $ ((Dropped.Location - Edge) dot EdgeDir)
+		$ " z " $ Dropped.Location.Z $ " physics " $ int(Dropped.Physics) $ " velocity " $ Dropped.Velocity $ " base " $ Dropped.Base $ Landings);
 }
 
 function LogNear(PlayerPawn P, Actor D)
@@ -143,9 +220,65 @@ event Tick(float Delta)
 					$ " vz " $ Placed[i].Velocity.Z $ " base " $ Placed[i].Base);
 		if (StepTime > 1.5)
 		{
-			Log("DXCAP: done, exiting");
-			P.ConsoleCommand("exit");
-			Phase = 3;
+			for (i = 0; i < 3; i++)
+				if (Placed[i] != None)
+					Placed[i].Destroy();
+			if (!PickEdge(P))
+			{
+				Log("DXREST: no edge over deep water");
+				Phase = 5;
+			}
+			else
+			{
+				// The crate, its bottom 2 over the floor, 0.4 of its radius past
+				// the edge.
+				Dropped = P.Spawn(class'CrateUnbreakableSmall',,, Edge + vect(0,0,1) * (class'CrateUnbreakableSmall'.Default.CollisionHeight + 2)
+					+ EdgeDir * 0.4 * class'CrateUnbreakableSmall'.Default.CollisionRadius, rot(0,0,0));
+				if (Dropped == None)
+				{
+					Log("DXREST: no room for the crate");
+					Phase = 5;
+				}
+				else
+				{
+					Dropped.SetPhysics(PHYS_Falling);
+					Ticks = 0;
+					StepTime = 0;
+					Phase = 3;
+				}
+			}
 		}
+	}
+	else if (Phase == 3)
+	{
+		Ticks++;
+		LogDropped(P);
+		if (StepTime > 2.0)
+		{
+			Dropped.Destroy();
+			// The player, its feet 2 over the floor, 0.95 of its radius past
+			// the edge, still.
+			P.SetLocation(Edge + vect(0,0,1) * (P.CollisionHeight + 2) + EdgeDir * 0.95 * P.CollisionRadius);
+			P.Velocity = vect(0,0,0);
+			P.Acceleration = vect(0,0,0);
+			P.SetPhysics(PHYS_Falling);
+			Dropped = P;
+			Ticks = 0;
+			StepTime = 0;
+			Phase = 4;
+		}
+	}
+	else if (Phase == 4)
+	{
+		Ticks++;
+		LogDropped(P);
+		if (StepTime > 2.0)
+			Phase = 5;
+	}
+	else if (Phase == 5)
+	{
+		Log("DXCAP: done, exiting");
+		P.ConsoleCommand("exit");
+		Phase = 6;
 	}
 }

@@ -6,6 +6,10 @@
 #include "Packages/Engine/Actors/UProjectile.h"
 #include "Packages/Engine/Actors/Brush/UBrush.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
+#include "Packages/Engine/Actors/Decoration/UDecoration.h"
+#include "Packages/Engine/Actors/Decoration/UCarcass.h"
+#include "Packages/Engine/Actors/Info/UZoneInfo.h"
+#include "Utils/Random.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
@@ -231,21 +235,20 @@ bool UActor::SetCollisionSize(float newRadius, float newHeight)
 	return true;
 }
 
-void UActor::PhysLanded(UActor* hitActor, const vec3& hitNormal)
+void UActor::PhysLanded(UActor* hitActor, const vec3& hitNormal, float remaining)
 {
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		DeusExPhysLanded(hitActor, hitNormal, remaining);
+		return;
+	}
+
 	// landed on the floor
 	CallEvent(this, EventName::Landed, { ExpressionValue::VectorValue(hitNormal) });
 
 	if (Physics() == PHYS_Falling) // Landed event might have changed the physics mode
 	{
-		if (engine->LaunchInfo.IsDeusEx())
-		{
-			// The original's processLanded (Engine.dll 0x103cef60): the hit
-			// actor, the level's LevelInfo for the world, is the floor given
-			// to setPhysics.
-			SetPhysics(UObject::TryCast<UPawn>(this) ? PHYS_Walking : PHYS_None, hitActor ? hitActor : Level());
-		}
-		else if (UObject::TryCast<UPawn>(this))
+		if (UObject::TryCast<UPawn>(this))
 		{
 			SetPhysics(PHYS_Walking);
 			SetBase(hitActor, true);
@@ -256,6 +259,112 @@ void UActor::PhysLanded(UActor* hitActor, const vec3& hitNormal)
 			SetBase(hitActor, true);
 			Velocity() = vec3(0.0f);
 		}
+	}
+}
+
+// The original's processLanded (Engine.dll 0x103cef60; dx-reverse-info
+// engine-dll.md, moving), each branch in its order.
+void UActor::DeusExPhysLanded(UActor* hitActor, const vec3& hitNormal, float remaining)
+{
+	// A non-pawn in a zone that throws back is thrown again: the zone's
+	// velocity and 80 up.
+	UZoneInfo* zone = Region().Zone;
+	if (!bIsPawn() && zone && zone->bBounceVelocity() && zone->ZoneVelocity() != vec3(0.0f))
+	{
+		Velocity() = zone->ZoneVelocity() + vec3(0.0f, 0.0f, 80.0f);
+		return;
+	}
+
+	TraceFlags projTargets; // the original's flags 55
+	projTargets.pawns = true;
+	projTargets.movers = true;
+	projTargets.world = true;
+	projTargets.others = true;
+	projTargets.onlyProjectiles = true;
+	float radius = CollisionRadius();
+	float height = CollisionHeight();
+
+	UPawn* pawn = UObject::TryCast<UPawn>(this);
+	if (pawn)
+	{
+		// With nothing under 0.9 of its box within 0.2 of its radius + 8, a
+		// pawn is fitted with room to spare and, if that moved it, pushed on
+		// at random, still falling: off a ledge it hangs over.
+		CollisionHit below = XLevel()->Collision.TraceFirstHit(Location(), Location() - vec3(0.0f, 0.0f, radius * 0.2f + 8.0f), this, vec3(radius, radius, height) * 0.9f, projTargets);
+		if (!below.Actor)
+		{
+			auto spot = FindSpot(Location(), radius * 1.1f, height * 1.1f, false);
+			if (spot.first && spot.second != Location())
+			{
+				SetLocation(spot.second);
+				Velocity().x += FRand() * 60.0f - 30.0f;
+				Velocity().y += FRand() * 60.0f - 30.0f;
+				return;
+			}
+		}
+	}
+	else if (UDecoration* decor = UObject::TryCast<UDecoration>(this))
+	{
+		if (decor->numLandings() >= 5)
+		{
+			decor->numLandings() = 0;
+		}
+		else
+		{
+			// Nothing under its middle: four boxes, a quarter of it each, 8
+			// down from its corners. More than one free, one of each
+			// diagonal at least, sends it off toward the free side.
+			CollisionHit middle = XLevel()->Collision.TraceFirstHit(Location() - vec3(0.0f, 0.0f, height * 0.8f), Location() - vec3(0.0f, 0.0f, height + radius + 8.0f), this, vec3(0.0f), projTargets);
+			if (!middle.Actor)
+			{
+				TraceFlags colliding; // the original's flags 23
+				colliding.pawns = true;
+				colliding.movers = true;
+				colliding.world = true;
+				colliding.others = true;
+				vec3 extent(radius * 0.5f, radius * 0.5f, height);
+				auto cornerFree = [&](float x, float y) {
+					vec3 start = Location() + vec3(x * radius * 0.5f, y * radius * 0.5f, 0.0f);
+					return XLevel()->Collision.TraceFirstHit(start, start - vec3(0.0f, 0.0f, 8.0f), this, extent, colliding).Actor ? 0 : 1;
+				};
+				int pp = cornerFree(1.0f, 1.0f), mp = cornerFree(-1.0f, 1.0f), mm = cornerFree(-1.0f, -1.0f), pm = cornerFree(1.0f, -1.0f);
+				if (pp + mp + mm + pm > 1 && mm + pp != 0 && pm + mp != 0)
+				{
+					decor->numLandings()++;
+					float speed = std::clamp(-Velocity().z, 30.0f, radius + 30.0f);
+					Velocity() = vec3((float)(pm + pp - mp - mm), (float)(mp + pp - mm - pm), 0.5f) * (2.0f * speed);
+					return;
+				}
+			}
+
+			// A sliding carcass bounces off a slope, a landing counted one
+			// time in five.
+			UCarcass* carcass = UObject::TryCast<UCarcass>(this);
+			if (carcass && hitNormal.z < 0.9f && carcass->bSlidingCarcass())
+			{
+				if (FRand() < 0.2f)
+					decor->numLandings()++;
+				Velocity() = hitNormal * 120.0f;
+				Velocity().z = 70.0f;
+				return;
+			}
+			decor->numLandings() = 0;
+		}
+	}
+
+	// It lands: the hit actor, the level's LevelInfo for the world, is the
+	// floor setPhysics is given. A pawn walking walks out the rest of the
+	// tick, its acceleration made unit length first.
+	CallEvent(this, EventName::Landed, { ExpressionValue::VectorValue(hitNormal) });
+	if (Physics() == PHYS_Falling)
+		SetPhysics(pawn ? PHYS_Walking : PHYS_None, hitActor ? hitActor : Level());
+	if (pawn && Physics() == PHYS_Walking)
+	{
+		vec3& acceleration = Acceleration();
+		float squareSum = dot(acceleration, acceleration);
+		acceleration = squareSum < 1e-8f ? vec3(0.0f) : acceleration * (1.0f / std::sqrt(squareSum));
+		if (remaining > 0.01f)
+			TickWalking(remaining);
 	}
 }
 

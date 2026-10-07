@@ -102,7 +102,7 @@ the run. *Either*: one engine on each side of a pair.
 | `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators | `DXVIS:` | |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
 | `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |
-| `RestConsole` | both | where a falling decoration rests | `DXREST:` | |
+| `RestConsole` | both | where a falling decoration rests; a crate and the player dropped over the pier's edge | `DXREST:` | |
 | `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |

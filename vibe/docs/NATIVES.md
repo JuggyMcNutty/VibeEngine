@@ -345,9 +345,12 @@ Every other native the scripted runs compare matches the original
 [`Engine.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md)):
 the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
 frob target, through decorations), sight (`SightConsole`), the reach tests
-(`ReachConsole`), falls coming to rest (`RestConsole`) and in water
-(`FloatConsole`: a buoyant crate rises and bobs at the surface at the
-original's speeds), `SetLocation`, the rotators' conversions (`RotatorConsole`,
+(`ReachConsole`), falls coming to rest and their landing on a ledge -- a
+crate nudged off it, a pawn fitted clear of it and pushed on at random
+(`RestConsole`,
+[moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving))
+--, falls in water (`FloatConsole`: a buoyant crate rises and bobs at the
+surface at the original's speeds), `SetLocation`, the rotators' conversions (`RotatorConsole`,
 702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
 `MidConsole`'s ten probes of both, and `Object.DynamicLoadObject` with a
 group in the name, its own, another or none, and a class that is not the
@@ -358,19 +361,15 @@ Differs:
 - **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so a player can tell
   which engine they run ([the version](ENGINE.md#running-on-our-devices)). The original's is
   "Mon Mar 19 12:06:14 2001 v1.112fm".
-- **Landing** (`processLanded`,
-  [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)):
-  its other branches are not ported. Those are a decoration nudged off a
-  ledge it overhangs (four traces down at its corners, up to five times), a
-  carcass's bounce off a slope, a `bBounceVelocity` zone throwing again what
-  is not a pawn, and a pawn with nothing under it fitted (`FindSpot`) and
-  pushed on at random.
 - **The engine's own rotations** (the view, movement) take exact angles;
   the scripts' conversions take the original's sine table
   ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
 - **A box started inside a cylinder** keeps the least penetration's normal;
   the original's is level, out from the axis, as a line's is in both
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
+- **A pawn falling into water** goes deeper: the player pushed off the pier
+  (`RestConsole`) stops at z −373 in the original's and rises again, and
+  sinks to −486 first in the fork's. Swimming's own physics are unread.
 - **Falling out of water** keeps the fork's own step, where the original's
   moves by the step's mean velocity
   ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).
