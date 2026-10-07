@@ -115,6 +115,7 @@ the run. *Either*: one engine on each side of a pair.
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
 | `RotatorConsole` | both | `rotator(v)`, a rotator's string, `vector(r)`, `GetAxes`, `GetUnAxes` | `DXROT:` | |
 | `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` | |
+| `DynLoadConsole` | both | `Object.DynamicLoadObject` with a group in the name, its own, another or none; as a class not the object's own; a name not there | `DXDYNLOAD:` | |
 | `GarbageConsole` | both | 128 actors destroyed, one a tick, and when a live actor's references to them go None | `DXGARBAGE:` | |
 | `ChurnConsole` | fork | 20 actors spawned and 20 destroyed every tick for 120 s (with `DXCAP_MEMLOG=1`) | `DXCHURN:` | |
 | `DeleteConsole` | both | `CriticalDelete` as the game uses it: nano keys, the log, the history, a game directory; what `AllObjects` still finds | `DXDELETE:` | |

@@ -37,6 +37,13 @@ public:
 	UObject* GetUObject(const NameString& className, const NameString& objectName) { return GetUObject(className, objectName, {}, true); }
 	UObject* GetUObject(const NameString& className, const NameString& objectName, const NameString& group, bool ignoreGroup = false);
 
+	// Deus Ex's StaticLoadObject in this, the top package, whatever group
+	// the name gave (Core.dll 0x10154d50): the export of that name, in any
+	// group, of exactly the class (a Mesh finds a LodMesh too); else an
+	// object already loaded of that name and class, a subclass too, right in
+	// the package. Null when neither is there.
+	UObject* LoadObjectAnyGroup(UClass* cls, const NameString& objectName);
+
 	UClass* GetClass(const NameString& className);
 
 	void LoadAll();

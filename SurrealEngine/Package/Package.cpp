@@ -262,6 +262,69 @@ UObject* Package::GetUObject(const NameString& className, const NameString& obje
 	return GetUObject(FindObjectReference(className, objectName, group, ignoreGroup));
 }
 
+UObject* Package::LoadObjectAnyGroup(UClass* cls, const NameString& objectName)
+{
+	if (!cls)
+		return nullptr;
+
+	// The export's class must be the one asked for, by its name and its
+	// package (Core's FindExportIndex); a Mesh asked for is looked for again
+	// as a LodMesh, its package the same.
+	auto exportClassIs = [&](const ExportTableEntry& entry, const NameString& className) {
+		NameString name, package;
+		if (entry.ObjClass == 0)
+		{
+			name = "Class";
+			package = "Core";
+		}
+		else if (entry.ObjClass < 0)
+		{
+			ImportTableEntry* classImport = GetImportEntry(entry.ObjClass);
+			name = GetName(classImport->ObjName);
+			ImportTableEntry* outer = classImport->ObjOuter < 0 ? GetImportEntry(classImport->ObjOuter) : nullptr;
+			while (outer && outer->ObjOuter < 0)
+				outer = GetImportEntry(outer->ObjOuter);
+			if (outer)
+				package = GetName(outer->ObjName);
+		}
+		else
+		{
+			name = GetName(GetExportEntry(entry.ObjClass)->ObjName);
+			package = Name;
+		}
+		return name == className && cls->package && package == cls->package->GetPackageName();
+	};
+	auto findExact = [&](const NameString& className) -> int {
+		for (size_t index = 0; index < ExportTable.size(); index++)
+		{
+			const ExportTableEntry& entry = ExportTable[index];
+			if (GetName(entry.ObjName) == objectName && exportClassIs(entry, className))
+				return (int)index + 1;
+		}
+		return 0;
+	};
+
+	int objref = findExact(cls->Name);
+	if (objref == 0 && cls->Name == "Mesh")
+		objref = findExact("LodMesh");
+	if (objref != 0)
+		return GetUObject(objref);
+
+	// Core's StaticFindObject on what is loaded, its outer the package.
+	for (size_t index = 0; index < ExportTable.size() && index < ExportObjects.size(); index++)
+	{
+		UObject* obj = ExportObjects[index];
+		if (!obj || ExportTable[index].ObjOuter != 0 || GetName(ExportTable[index].ObjName) != objectName)
+			continue;
+		for (UClass* c = obj->Class; c; c = static_cast<UClass*>(c->BaseStruct))
+		{
+			if (c == cls)
+				return GetUObject((int)index + 1);
+		}
+	}
+	return nullptr;
+}
+
 UClass* Package::GetClass(const NameString& className)
 {
 	return UObject::Cast<UClass>(GetUObject("Class", className));

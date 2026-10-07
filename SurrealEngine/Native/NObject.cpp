@@ -711,7 +711,16 @@ void NObject::DynamicLoadObject(const std::string& ObjectName, UObject* ObjectCl
 
 			try
 			{
-				ReturnValue = engine->packages->GetPackage(packageName)->GetUObject(ObjectClass->Name, objectName);
+				// Deus Ex's looks in the first part's package for the name
+				// after the last dot, in whatever group, of exactly the class
+				// asked for (Core.dll StaticLoadObject, dx-reverse-info
+				// core-dll.md, the natives): Effects.Laser.LaserBeam1 and
+				// Effects.Wrong.LaserBeam1 are the one FireTexture, which a
+				// Texture asked for does not find.
+				if (engine->LaunchInfo.IsDeusEx())
+					ReturnValue = engine->packages->GetPackage(packageName)->LoadObjectAnyGroup(UObject::Cast<UClass>(ObjectClass), ObjectName.substr(ObjectName.rfind('.') + 1));
+				else
+					ReturnValue = engine->packages->GetPackage(packageName)->GetUObject(ObjectClass->Name, objectName);
 			}
 			catch (...)
 			{

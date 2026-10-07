@@ -343,8 +343,10 @@ frob target, through decorations), sight (`SightConsole`), the reach tests
 (`ReachConsole`), falls coming to rest (`RestConsole`) and in water
 (`FloatConsole`: a buoyant crate rises and bobs at the surface at the
 original's speeds), `SetLocation`, the rotators' conversions (`RotatorConsole`,
-702 of them), and `Object.Mid` 127 at its edges, its end's clamp known from
-`MidConsole`'s ten probes of both. `LevelInfo`'s clock is the original's
+702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
+`MidConsole`'s ten probes of both, and `Object.DynamicLoadObject` with a
+group in the name, its own, another or none, and a class that is not the
+object's own (`DynLoadConsole`). `LevelInfo`'s clock is the original's
 ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
 Differs:
 
@@ -367,9 +369,6 @@ Differs:
 - **Falling out of water** keeps the fork's own step, where the original's
   moves by the step's mean velocity
   ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).
-- **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the
-  fork looks the rest up as one name and finds nothing. The game's scripts
-  name no group.
 - **Known risk:** a pawn landing on an NPC or the player bounces off and
   stomps it, and one landing on a decoration that cannot be a base is pushed
   off, through the scripts' `SupportActor`; untried in play. Check: jumping
