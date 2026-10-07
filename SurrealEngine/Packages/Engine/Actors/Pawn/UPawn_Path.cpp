@@ -817,9 +817,10 @@ UActor* UPawn::DeusExFindPath(UActor* goalActor, vec3 goalPoint, bool singlePath
 	}
 
 	// Anchored, the goal may be a step away: a navigation point among the
-	// anchor's own open specs is the route; another goal reachable from the
-	// anchor makes the anchor the route. Otherwise the anchor's neighbours
-	// are the end points.
+	// anchor's own open specs, or any goal reachable from the anchor, ends
+	// the search at once, as both of the original's tests do (0x103db6ad):
+	// the route is the goal when it is a navigation point, else the anchor.
+	// Otherwise the anchor's neighbours are the end points.
 	if (anchored)
 	{
 		if ((goalNav && CanMoveTo(this, pawnList.Path[0], goalNav)) || ReachableFromAnchor(this, pawnList, goal))

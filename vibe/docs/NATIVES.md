@@ -104,10 +104,6 @@ Matches the original ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/b
 `Dying` for good is the original's own behaviour, and the rest of a death
 is alike too (`DeathConsole`). Differs:
 
-- **The anchored search.** With the pawn anchored and a goal reachable from
-  the anchor but not one of its own reach specs away, the original's route
-  is the anchor; the fork's (`UPawn_Path.cpp`) is a navigation-point goal
-  itself.
 - **Terrorist10** moves 1,010 units to the original's 652. Both stop at
   PatrolPoint102 with no move target, but at 20 s the fork's finds a route
   on toward PathNode580 and walks some 8 s more, where the original's finds
