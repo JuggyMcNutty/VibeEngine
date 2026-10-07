@@ -98,11 +98,15 @@ the manager as its own older saves lay it out.
 Matches the original ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving),
 [reaching](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#reaching),
 [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)):
-`MoveConsole` (`move.py`) has 51 of Liberty Island's 52 pawns move within
+`MoveConsole` (`move.py`) has 50 of Liberty Island's 52 pawns move within
 15% (or 200 units) of the original's distance. A dead robot frozen in
 `Dying` for good is the original's own behaviour, and the rest of a death
 is alike too (`DeathConsole`). Differs:
 
+- **Terrorist12** walks on from the ledge where its first patrol leg ends:
+  the original's stops being ticked there 3 s in, frozen mid-step, and the
+  fork's, ticking on, takes its next leg 6 s in, some 2,000 units to 38.
+  Unexplained.
 - **Terrorist10** moves 1,010 units to the original's 652. Both stop at
   PatrolPoint102 with no move target, but at 20 s the fork's finds a route
   on toward PathNode580 and walks some 8 s more, where the original's finds
