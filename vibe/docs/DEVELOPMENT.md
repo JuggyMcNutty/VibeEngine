@@ -106,6 +106,7 @@ the run. *Either*: one engine on each side of a pair.
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |
+| `FrobConsole` | both | the frob highlight round two decorations, the view turned about them | `DXFROB:` | |
 | `LootConsole` | both | two carcasses searched, the inventory grid against its items | `DXLOOT:` | with `vibe/tools/dxcap/timelines/loot-drags.txt` on the fork |
 | `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` | |
 | `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` | |

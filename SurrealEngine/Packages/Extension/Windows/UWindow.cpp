@@ -302,35 +302,29 @@ std::string UWindow::ConvertScriptString(const std::string& oldStr)
 	return oldStr;
 }
 
+// A point in the world to this window's coordinates: projected by the main
+// scene's view into its pixels, then into the root window's coordinates as
+// the root lays itself out -- a pixel over the UI's scale, less the offset
+// that centres the 4:3 root on a wider screen.
 bool UWindow::ConvertVectorToCoordinates(const vec3& Location, float& relativeX, float& relativeY)
 {
-	// Convert to view space
-	vec4 viewSpaceLocation = engine->render->MainFrame.Frame.WorldToView * vec4(Location, 1.0f);
+	const SceneNode& view = engine->render->MainView;
+	vec4 viewSpaceLocation = view.WorldToView * vec4(Location, 1.0f);
 	if (viewSpaceLocation.z < 1.0f)
 		return false;
 
-	// Perform perspective projection
-	vec4 projLocation = engine->render->MainFrame.Frame.Projection * viewSpaceLocation;
+	vec4 projLocation = view.Projection * viewSpaceLocation;
 	float rcpW = 1.0f / projLocation.w;
-	projLocation.x *= rcpW;
-	projLocation.y *= rcpW;
-	projLocation.z *= rcpW;
+	float pixelX = view.XB + (projLocation.x * rcpW + 1.0f) * view.FX * 0.5f;
+	float pixelY = view.YB + (projLocation.y * rcpW + 1.0f) * view.FY * 0.5f;
 
-	// Scale to viewport
-	vec2 viewportLocation = vec2(
-		(projLocation.x + 1.0f) * engine->viewport->ViewportWidth() * 0.5f,
-		(projLocation.y + 1.0f) * engine->viewport->ViewportHeight() * 0.5f);
-
-	// Convert to virtual coordinates
-	vec2 rootLocation = vec2(
-		viewportLocation.x * GetVirtualWidth() / engine->viewport->ViewportWidth(),
-		viewportLocation.y * GetVirtualHeight() / engine->viewport->ViewportHeight());
-
-	// Convert from root window to our window
-	UWindow* root = GetRootWindow();
+	URootWindow* root = GetRootWindow();
 	if (!root)
 		return false;
-	ConvertCoordinates(root, rootLocation.x, rootLocation.y, this, relativeX, relativeY);
+	float scale = GetVirtualScale();
+	float rootX = pixelX / scale - root->UsedX;
+	float rootY = pixelY / scale - root->UsedY;
+	ConvertCoordinates(root, rootX, rootY, this, relativeX, relativeY);
 
 	// Return true if the point is still inside the window
 	return relativeX >= 0.0f && relativeX < Width() && relativeY >= 0.0f && relativeY < Height();

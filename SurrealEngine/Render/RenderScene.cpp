@@ -56,6 +56,7 @@ void RenderSubsystem::DrawScene()
 	mat4 worldToView = Coords::ViewToRenderDev().ToMatrix() * Coords::Rotation(engine->CameraRotation).Inverse().ToMatrix() * Coords::Location(engine->CameraLocation).ToMatrix();
 	SceneFrameStart = FrameCounter;
 	MainFrame.Process(engine->CameraLocation, worldToView, Coords::Rotation(engine->CameraRotation));
+	MainView = MainFrame.Frame;
 	MainFrame.Draw();
 	MainFrame.DrawCoronas();
 }

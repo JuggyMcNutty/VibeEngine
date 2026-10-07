@@ -264,6 +264,11 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
   modal shows, where the original counts its grabs (every modal grabs while
   shown); the fork tries only the focus window's accelerator, and passes on
   a release of a key not down, which the original takes and drops.
+- **The frob highlight's box** (`ConvertVectorToCoordinates`) is projected
+  by the main scene's view into the root window's coordinates, so it hugs
+  the target as the original's does (`FrobConsole`: two decorations, the
+  crosshair on their middle and turned 5 degrees four ways, the box's edges
+  within 7 pixels of the original's at 1280x720).
 - **Mouse buttons**: a press grabs the mouse for the window pressed until the
   button comes up, as the original's, so a drag's moves and its drop reach
   the item it started on (`LootConsole`: two carcasses searched, the original

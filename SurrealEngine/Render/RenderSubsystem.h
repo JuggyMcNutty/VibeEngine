@@ -123,6 +123,7 @@ public:
 	} Stats;
 
 	VisibleFrame MainFrame;
+	SceneNode MainView; // The main scene's view, which a ViewportWindow's draw leaves alone
 
 private:
 	void DrawScene();
