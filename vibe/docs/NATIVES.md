@@ -324,6 +324,15 @@ Differs:
   carcass's bounce off a slope, a `bBounceVelocity` zone throwing again what
   is not a pawn, and a pawn with nothing under it fitted (`FindSpot`) and
   pushed on at random.
+- **`TraceActors`** runs over the multi-hit line check of Deus Ex's own
+  iterators, as the original's: every hit nearest first, the level's as the
+  `LevelInfo`, nothing past the first wall, `BaseClass` not used
+  (`TraceConsole`: lines through 10 decorations list the same actors in the
+  same order). The player's frob target, `HighlightCenterObject`, takes the
+  first pawn or mover on it. Differs: an actor's hit is up to 4 units nearer;
+  the lines to 2 of the decorations, crates under the pier, meet the floor
+  some 490 units before the original's do, in the level check `TraceTexture`
+  shares.
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the
   fork looks the rest up as one name and finds nothing. The game's scripts
   name no group.

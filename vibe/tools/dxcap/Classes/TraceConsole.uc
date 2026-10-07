@@ -4,7 +4,10 @@
 // level's time, for each NPC in the world, the hits of a line from the
 // player's eye to it, and the first hit of a line from it straight down 200
 // units (its floor, as footsteps read it): each hit's actor, texture, group,
-// flags and distance, one line each; then an exit.
+// flags and distance, one line each. Then TraceActors along the line to each
+// decoration within 3000 units (they stay put) and on past it as far again,
+// of Actor and of ScriptedPawn: each hit's actor, distance and normal, in
+// the order given. Then an exit.
 //=============================================================================
 class TraceConsole extends Console;
 
@@ -50,9 +53,26 @@ function string Hits(PlayerPawn P, vector Start, vector End, int Max)
 	return S;
 }
 
+function string ActorHits(PlayerPawn P, class<Actor> C, vector Start, vector End, int Max)
+{
+	local Actor Hit;
+	local vector HitLoc, HitNorm;
+	local int Count;
+	local string S;
+
+	foreach P.TraceActors(C, Hit, HitLoc, HitNorm, End, Start)
+	{
+		S = S $ " [" $ Hit.Name $ " at " $ int(VSize(HitLoc - Start)) $ " n " $ int(HitNorm.X * 100) $ "," $ int(HitNorm.Y * 100) $ "," $ int(HitNorm.Z * 100) $ "]";
+		if (++Count >= Max)
+			break;
+	}
+	return S;
+}
+
 function Traces(PlayerPawn P)
 {
 	local ScriptedPawn S;
+	local DeusExDecoration D;
 	local vector Eye;
 
 	Eye = P.Location + vect(0,0,1) * P.EyeHeight;
@@ -64,6 +84,13 @@ function Traces(PlayerPawn P)
 		Log("DXTRACE: " $ S.Name $ " floor" $ Hits(P, S.Location, S.Location - vect(0,0,200), 1));
 	}
 	Log("DXTRACE: player floor" $ Hits(P, P.Location, P.Location - vect(0,0,200), 1));
+	foreach P.AllActors(class'DeusExDecoration', D)
+	{
+		if (VSize(D.Location - Eye) > 3000)
+			continue;
+		Log("DXTRACE: " $ D.Name $ " actors" $ ActorHits(P, class'Actor', Eye, Eye + 2 * (D.Location - Eye), 8));
+		Log("DXTRACE: " $ D.Name $ " pawns" $ ActorHits(P, class'ScriptedPawn', Eye, Eye + 2 * (D.Location - Eye), 8));
+	}
 }
 
 event Tick(float Delta)

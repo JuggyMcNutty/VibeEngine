@@ -97,7 +97,7 @@ the run. *Either*: one engine on each side of a pair.
 | `AIConsole` | both | every NPC's state, orders, enemy, time since drawn | `DXAI:`, `DXAISTATE:` | |
 | `MoveConsole` | both | every pawn's moves, every 2 s for 120 s | `DXMOVE:` | `move.py <original run> <fork run>` |
 | `ReachConsole` | both | `AIDirectionReachable`, `PointReachable`, `ActorReachable` | `DXREACH:` | |
-| `TraceConsole` | both | `TraceTexture`'s hits | `DXTRACE:` | |
+| `TraceConsole` | both | `TraceTexture`'s hits; `TraceActors`' through decorations | `DXTRACE:` | |
 | `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators | `DXVIS:` | |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
 | `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |
