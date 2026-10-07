@@ -45,10 +45,9 @@ logs the saved player in as the original's does, with `?loadgame`: the
 game's `Login` keeps it as saved, and its `TravelPostAccept` spawns the
 level's mission script, which no save holds -- an object of a transient
 class is not written (`LoadConsole` over either engine's saves and the
-original's hub save, `ReturnConsole`). Differs:
-
-- The pre-travel prune leaves a carried decoration, which the original's
-  destroys with the augmentations and skills (`PruneTravelActors`).
+original's hub save, `ReturnConsole`). Before a level is saved into
+`Current`, what travels with the player goes from it, a decoration in its
+hands too (`PruneTravelActors`; `ReturnConsole`).
 
 ## Flags
 

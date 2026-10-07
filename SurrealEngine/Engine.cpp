@@ -22,6 +22,7 @@
 #include "Packages/Engine/UCanvas.h"
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
+#include "Packages/Engine/Actors/Decoration/UDecoration.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Actors/Info/UGameInfo.h"
 #include "Packages/Engine/Actors/Info/UZoneInfo.h"
@@ -1674,9 +1675,9 @@ void Engine::DeusExPreTravel(const UnrealURL& url)
 }
 
 // Destroys what travels with the player, so it is not saved twice: the
-// augmentations and skills with their managers, and the flag base (below).
-// The original also destroys a carried decoration; the fork keeps no offset
-// for CarriedDecoration.
+// augmentations and skills with their managers, the flag base and a carried
+// decoration (below), as the original's PruneTravelActors (DeusEx.dll
+// 0x1000f9b0).
 void Engine::PruneTravelActors() const
 {
 	for (UActor* actor : Level->Actors)
@@ -1693,6 +1694,18 @@ void Engine::PruneTravelActors() const
 		{
 			flagBase->DeleteAllFlags();
 			pawnExt->FlagBase() = nullptr;
+		}
+	}
+	// Then the decoration in the player's hands, and the player lets go of
+	// it. Left there, it stays in the level, a translucent ghost saved into
+	// Current, and the pawn found again there on a return holds it still:
+	// travel never sets a reference to None.
+	if (auto pawn = UObject::TryCast<UPawn>(viewport->Actor()))
+	{
+		if (UDecoration* carried = pawn->carriedDecoration())
+		{
+			carried->Destroy();
+			pawn->carriedDecoration() = nullptr;
 		}
 	}
 }

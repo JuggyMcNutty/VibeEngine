@@ -8,6 +8,13 @@
 // engine-dll.md, a level's tick), so all are there each time. A LoadMarker
 // spawned on the first visit to Liberty Island logs its PostPostBeginPlay
 // calls each time there: one, then two on the return.
+//
+// On the first visit the player also leaves carrying a basketball, tagged
+// DXReturnBall. Each map logs the player's CarriedDecoration and every
+// basketball (tag, style, base); UNATCO HQ then destroys any tagged one that
+// came along. The original's travel destroys the ball and empties the hands
+// (dx-reverse-info deusex-dll.md, PruneTravelActors): neither UNATCO HQ nor
+// the return has it.
 //=============================================================================
 class ReturnConsole extends Console;
 
@@ -46,6 +53,62 @@ function Report(DeusExPlayer P, string Map)
 		Log("DXRETURN: in " $ Map $ " " $ M.Name $ " PostPostBeginPlay " $ M.Begun $ " times");
 }
 
+// A basketball put in the player's hands as the game does it, with nothing
+// inside to drop if it breaks.
+function CarryBall(DeusExPlayer P)
+{
+	local Basketball B;
+
+	B = P.Spawn(class'Basketball', , 'DXReturnBall', P.Location + 64 * vector(P.Rotation));
+	if (B == None)
+	{
+		Log("DXRETURN: no room for the ball");
+		return;
+	}
+	B.Contents = None;
+	P.CarriedDecoration = B;
+	P.PutCarriedDecorationInHand();
+}
+
+// The player's hands and every basketball, by tag: names differ between
+// the engines.
+function ReportBalls(DeusExPlayer P, string Map)
+{
+	local Basketball B;
+	local int Count;
+
+	if (P.CarriedDecoration == None)
+		Log("DXRETURN: in " $ Map $ " CarriedDecoration None");
+	else
+		Log("DXRETURN: in " $ Map $ " CarriedDecoration " $ P.CarriedDecoration.Class.Name $ " tag " $ P.CarriedDecoration.Tag
+			$ " style " $ P.CarriedDecoration.Style $ " base " $ (P.CarriedDecoration.Base == P));
+	foreach P.AllActors(class'Basketball', B)
+	{
+		Log("DXRETURN: in " $ Map $ " basketball tag " $ B.Tag $ " style " $ B.Style $ " based on the player " $ (B.Base == P)
+			$ " base " $ (B.Base != None));
+		Count++;
+	}
+	Log("DXRETURN: in " $ Map $ " " $ Count $ " basketballs");
+}
+
+// What came along to UNATCO HQ goes, so the return shows only what the
+// return brings.
+function DropTravelled(DeusExPlayer P)
+{
+	local Basketball B;
+
+	foreach P.AllActors(class'Basketball', B)
+	{
+		if (B.Tag == 'DXReturnBall')
+		{
+			if (P.CarriedDecoration == B)
+				P.CarriedDecoration = None;
+			Log("DXRETURN: destroying the ball that came along");
+			B.Destroy();
+		}
+	}
+}
+
 event Tick(float Delta)
 {
 	local PlayerPawn P;
@@ -71,9 +134,18 @@ event Tick(float Delta)
 	else
 	{
 		if (Step == 0)
+		{
 			P.Spawn(class'LoadMarker');
+			if (DeusExPlayer(P) != None)
+				CarryBall(DeusExPlayer(P));
+		}
 		if (DeusExPlayer(P) != None)
+		{
 			Report(DeusExPlayer(P), Map);
+			ReportBalls(DeusExPlayer(P), Map);
+			if (Step == 1)
+				DropTravelled(DeusExPlayer(P));
+		}
 		Step++;
 		if (Step == 1)
 			Next = "01_NYC_UNATCOHQ";
