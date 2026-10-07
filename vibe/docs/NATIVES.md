@@ -264,6 +264,13 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
   modal shows, where the original counts its grabs (every modal grabs while
   shown); the fork tries only the focus window's accelerator, and passes on
   a release of a key not down, which the original takes and drops.
+- **Mouse buttons**: a press grabs the mouse for the window pressed until the
+  button comes up, as the original's, so a drag's moves and its drop reach
+  the item it started on (`LootConsole`: two carcasses searched, the original
+  and the fork alike; the drags between them with `loot-drags.txt`, the fork
+  only). Differs, from the RE's notes, the code unread: the grab is let go
+  at that button's release whoever holds it then; a press is no click
+  count: every one is 1.
 - **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
   `MoveFocus`, `MoveTabGroup`, the focus moving off a window hidden, made
   unselectable or destroyed, and the windows ticking before the engine are

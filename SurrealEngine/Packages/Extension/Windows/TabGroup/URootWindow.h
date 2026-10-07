@@ -38,6 +38,7 @@ public:
 	bool OnWindowMouseDown(const Point& pos, EInputKey key);
 	bool OnWindowMouseDoubleclick(const Point& pos, EInputKey key);
 	bool OnWindowMouseUp(const Point& pos, EInputKey key);
+	bool ReleaseMouseButton(EInputKey key);
 	bool OnWindowMouseWheel(const Point& pos, EInputKey key);
 	bool OnWindowRawMouseMove(int dx, int dy);
 	bool OnWindowKeyChar(std::string chars);
@@ -46,6 +47,9 @@ public:
 
 	bool IsCursorVisible();
 	bool IsModalOpen();
+
+	// The button whose press grabbed the mouse; its release lets go
+	EInputKey pressGrabButton = IK_None;
 	UModalWindow* TopmostModal();
 	bool RouteKey(const std::function<bool(UWindow*)>& handle);
 

@@ -434,6 +434,16 @@ bool URootWindow::OnWindowMouseDown(const Point& pos, EInputKey key)
 	if (!focus->bIsSensitive())
 		return IsModalOpen();
 
+	// The original's HandleButtons (dx-reverse-info/extension-dll.md, the
+	// root window): a press grabs the mouse for the window pressed until the
+	// button comes up, so a drag's moves and its release reach the window it
+	// started on wherever the pointer goes.
+	if (IsModalOpen() && !grabbedWindow())
+	{
+		grabbedWindow() = focus;
+		pressGrabButton = key;
+	}
+
 	if (focus->RawMouseButtonPressed(relativeX, relativeY, key, EInputType::IST_Press))
 		return true;
 
@@ -461,6 +471,17 @@ bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)
 	if (bMouseButtonLocked())
 		return true;
 
+	bool handled = ReleaseMouseButton(key);
+	if (key == pressGrabButton)
+	{
+		pressGrabButton = IK_None;
+		grabbedWindow() = nullptr;
+	}
+	return handled || IsModalOpen();
+}
+
+bool URootWindow::ReleaseMouseButton(EInputKey key)
+{
 	float relativeX = 0.0f, relativeY = 0.0f;
 	UWindow* focus = GetCursorFocus(relativeX, relativeY);
 
@@ -468,7 +489,7 @@ bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)
 		return true;
 
 	if (!focus->bIsSensitive())
-		return IsModalOpen();
+		return false;
 
 	int numClicks = 1; // What is this?
 	for (UWindow* cur = focus; cur; cur = cur->parentOwner())
@@ -476,8 +497,7 @@ bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)
 		if (cur->MouseButtonReleased(relativeX, relativeY, key, numClicks))
 			return true;
 	}
-
-	return IsModalOpen();
+	return false;
 }
 
 bool URootWindow::OnWindowMouseWheel(const Point& pos, EInputKey key)
