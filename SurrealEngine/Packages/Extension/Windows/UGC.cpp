@@ -567,8 +567,11 @@ void UGC::SetStyle(EDrawStyle NewStyle)
 		bTextTranslucent() = true;
 		break;
 	case EDrawStyle::Modulated:
+		// Text is never modulated: the GC keeps a translucent flag for text
+		// and no modulated one, and the original draws the frob label, set
+		// out after its modulated backing, in its colour (FrobConsole)
 		PolyFlags() = 0;
-		textPolyFlags() = PF_Modulated;
+		textPolyFlags() = 0;
 		bDrawEnabled() = true;
 		bMasked() = false;
 		bTranslucent() = false;

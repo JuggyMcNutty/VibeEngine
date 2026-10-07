@@ -280,6 +280,11 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
   crosshair on their middle and turned 5 degrees four ways, the box's edges
   within 7 pixels of the original's at 1280x720 with the original's
   [view width](#the-views-width)).
+- **Text in the modulated style** is drawn masked in its colour, not
+  modulated, so the frob label over its modulated backing reads as the
+  original's (`FrobConsole`'s shots). Read from the runs and the GC's
+  fields (a translucent flag for text, no modulated one), not from
+  `XGC::SetStyle`.
 - **Mouse buttons**: a press grabs the mouse for the window pressed until the
   button comes up, as the original's, so a drag's moves and its drop reach
   the item it started on (`LootConsole`: two carcasses searched, the original
