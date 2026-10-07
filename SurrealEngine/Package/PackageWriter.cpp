@@ -205,7 +205,14 @@ int PackageWriter::GetObjectReference(UObject* obj)
 
 	if (obj->package == Source->GetPackageManager()->GetTransientPackage())
 		return 0;
-	
+
+	// An object of a transient class is not written, and a reference to one
+	// is None, as the original's save tags no object flagged RF_Transient,
+	// which every object of such a class is: a level's mission script is in
+	// no save, and its player's TravelPostAccept spawns it again at the load.
+	if (obj->Class && (obj->Class->ClsFlags & ClassFlags::Transient))
+		return 0;
+
 	if (AllFlags(obj->Flags, ObjectFlags::NotForClient | ObjectFlags::NotForServer))
 		return 0;
 

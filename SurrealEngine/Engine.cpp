@@ -437,8 +437,28 @@ void Engine::Run()
 		if (ClientTravelInfo.URL.HasOption("load") || (packages->IsDeusEx() && ClientTravelInfo.URL.HasOption("loadgame")))
 		{
 			UnrealURL url(ClientTravelInfo.URL);
-			LoadFromSaveFile(url);
-			PossessSavedPlayer();
+			if (LoadFromSaveFile(url))
+			{
+				// The saved player logs in, as the original's load logs it in
+				// with the load's URL, the default player's options on it: the
+				// game's Login finds it unoccupied and keeps it -- Deus Ex's as
+				// saved, for the ?loadgame its Browse loads a slot with
+				// (?load?loadonly?loadgame) -- and its TravelPostAccept spawns
+				// the level's mission script, which no save holds.
+				UnrealURL loginURL = GetDefaultURL(LevelInfo->URL.Map);
+				if (packages->IsDeusEx())
+				{
+					loginURL.AddOrReplaceOption("load");
+					loginURL.AddOrReplaceOption("loadonly");
+					loginURL.AddOrReplaceOption("loadgame");
+				}
+				else
+				{
+					for (const std::string& option : url.Options)
+						loginURL.AddOrReplaceOption(option);
+				}
+				LoginPlayer(loginURL);
+			}
 		}
 
 		// Lost the server, or refused by it after the join: to the Entry
@@ -1248,7 +1268,7 @@ void Engine::CallPostPostBeginPlay()
 	for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], "PostPostBeginPlay"); }
 }
 
-void Engine::LoadFromSaveFile(const UnrealURL& url)
+bool Engine::LoadFromSaveFile(const UnrealURL& url)
 {
 	ClientTravelInfo.URL.Clear();
 
@@ -1256,7 +1276,7 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 		CallEvent(console, EventName::NotifyLevelChange);
 
 	if (url.HasOption("entry")) // Not sure what the purpose of this kind of travel is - do nothing for now.
-		return;
+		return false;
 
 	Package* savefilePackage = nullptr;
 	uint32_t slotNum = 0;
@@ -1292,7 +1312,7 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 	}
 
 	if (!savefilePackage)
-		return;
+		return false;
 
 	audiodev->StopSounds();
 	UnloadMap();
@@ -1333,6 +1353,7 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 	CallPostPostBeginPlay();
 
 	RequestGarbageCollection("saved level " + realMapName, true);
+	return true;
 }
 
 // Deus Ex's ShowMainMenu sets the travel variable bIgnoreNextShowMenu when
@@ -1381,40 +1402,6 @@ void Engine::EnsureFlagBase(UPlayerPawn* pawn)
 			pawnExt->FlagBase() = UObject::Cast<UFlagBase>(pawn->package->NewObject("FlagBase", flagBaseCls, ObjectFlags::NoFlags));
 		}
 	}
-}
-
-void Engine::PossessSavedPlayer()
-{
-	// Loading a save must not reuse LoginPlayer, because that always calls GameInfo.Login,
-	// which always spawns a brand new pawn. The save package already contains the actual saved
-	// pawn - deserialized with its real position, health and inventory - sitting in
-	// Level->Actors. Find and possess that one directly instead.
-	UPlayerPawn* pawn = nullptr;
-	for (UActor* actor : Level->Actors)
-	{
-		UPlayerPawn* p = UObject::TryCast<UPlayerPawn>(actor);
-		if (p && p->bIsPlayer())
-		{
-			pawn = p;
-			break;
-		}
-	}
-
-	if (!pawn)
-		Exception::Throw("Save file has no player pawn for " + LevelPackage->GetPackageName().ToString() + "!");
-
-	// A saved pawn brings its own flag base back with the level; only a save
-	// from before the base lived in the level lacks one.
-	EnsureFlagBase(pawn);
-
-	viewport->Actor() = pawn;
-	viewport->Actor()->Player() = viewport;
-	CallEvent(viewport->Actor(), EventName::Possess);
-
-	if (LaunchInfo.IsDeusEx())
-		ClearIgnoreNextShowMenu(pawn);
-
-	render->OnMapLoaded();
 }
 
 void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription) const
@@ -1766,7 +1753,11 @@ std::map<std::string, std::string> Engine::CreateTravelInfo(bool transferItems)
 
 void Engine::LoginPlayer()
 {
-	UnrealURL url = LevelInfo->URL;
+	LoginPlayer(LevelInfo->URL);
+}
+
+void Engine::LoginPlayer(const UnrealURL& url)
+{
 	std::map<std::string, std::string> travelInfo = Level->TravelInfo;
 
 	auto stringProp = GC::Alloc<UStringProperty>("", nullptr, ObjectFlags::NoFlags);

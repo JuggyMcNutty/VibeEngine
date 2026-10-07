@@ -40,15 +40,15 @@ level returned to keeps its game (`ReturnConsole`). A level's start
 runs each pass over its actors as the list grows, so a map's carcass holds
 its items hidden in `Idle2` and its search hands them over whole
 (`CarcassConsole`); every level loaded, a save's or one returned to, then
-calls `PostPostBeginPlay` (`LoadConsole`, `ReturnConsole`). Differs:
+calls `PostPostBeginPlay` (`LoadConsole`, `ReturnConsole`). A save's load
+logs the saved player in as the original's does, with `?loadgame`: the
+game's `Login` keeps it as saved, and its `TravelPostAccept` spawns the
+level's mission script, which no save holds -- an object of a transient
+class is not written (`LoadConsole` over either engine's saves and the
+original's hub save, `ReturnConsole`). Differs:
 
 - The pre-travel prune leaves a carried decoration, which the original's
   destroys with the augmentations and skills (`PruneTravelActors`).
-- **A save's load** possesses the saved player without logging it in: no
-  `TravelPostAccept`, which in the original spawns the level's mission
-  script. The fork saves the script, though its class is transient, so its
-  own saves come back with one; a save of the original's comes back without,
-  and its mission's events wait for the next level.
 
 ## Flags
 

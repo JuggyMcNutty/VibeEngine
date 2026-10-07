@@ -86,7 +86,8 @@ public:
 	// refused the player after the join, sends a client there.
 	void ReturnToEntry(bool failed);
 	void LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo = {}, bool asClient = false);
-	void LoadFromSaveFile(const UnrealURL& url);
+	// A save in place of the level; false when there is none to load.
+	bool LoadFromSaveFile(const UnrealURL& url);
 	void SaveGameToSlot(int32_t slotNum, const std::string& saveDescription) const;
 	// Deus Ex's save picture, taken when the save is asked for: of the frame
 	// the player last saw, where the save itself waits for the next one.
@@ -111,7 +112,9 @@ public:
 	int32_t DeusExMissionNumber(const std::string& mapName) const;
 	void UnloadMap();
 	void LoginPlayer();
-	void PossessSavedPlayer();
+	// The local player logged in with a URL's portal and options, as the
+	// original's SpawnPlayActor: the level's own URL, or a save load's.
+	void LoginPlayer(const UnrealURL& url);
 
 	// Joining a server (dx-reverse-info/network.md, joining): the handshake while the
 	// current level plays on, then the server's map loaded as a client, and

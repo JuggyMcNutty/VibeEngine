@@ -120,7 +120,7 @@ the run. *Either*: one engine on each side of a pair.
 | `DeleteConsole` | both | `CriticalDelete` as the game uses it: nano keys, the log, the history, a game directory; what `AllObjects` still finds | `DXDELETE:` | |
 | `SoundConsole` | both | a sound behind a wall, a reverb zone, beeps from three sides | `DXCAP:` | `sound.py <run>`, with `DXCAP_RECORD=1` |
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
-| `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load; a `LoadMarker`'s `PostPostBeginPlay` calls | `DXSAVE:` | |
+| `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load; the mission script, a `LoadMarker`'s `PostPostBeginPlay` calls | `DXSAVE:` | |
 | `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` | |
 | `ServeConsole` | either | a listen server; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py` |
 | `JoinConsole` | either | a client of `127.0.0.1:7790` | `DXNET:` | |
