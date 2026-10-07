@@ -2907,6 +2907,9 @@ void Engine::OnWindowMouseDown(const Point& pos, EInputKey key)
 
 void Engine::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 {
+	if (playingAvi)
+		return;
+
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseDoubleclick(pos, key))
 	{
 		ReleaseFireButtons();

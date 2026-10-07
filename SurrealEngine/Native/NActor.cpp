@@ -741,7 +741,7 @@ void NActor::TraceActors(UObject* Self, UObject* BaseClass, UObject*& Actor, vec
 	Frame::CreatedIterator = std::make_unique<TraceActorsIterator>(
 		SelfActor, BaseClass, &Actor, &HitLoc, &HitNorm, End,
 		Start ? *Start : SelfActor->Location(),
-		Extent ? *Extent : vec3(0, 0, 0)); // CHECK ME: is this correct?
+		Extent ? *Extent : vec3(0, 0, 0)); // a line by default, as the original's
 }
 
 void NActor::TweenAnim(UObject* Self, const NameString& Sequence, float Time)

@@ -140,9 +140,12 @@ Differs by choice: on a screen wider than 4:3 the view keeps the height a
 4:3 screen shows and sees more at the sides (Hor+), where the original keeps
 its field of view across the width and loses height. The game's scenes are
 framed for 4:3: at 16:9, with the original's angle, the intro's "Deus Ex"
-under the logo falls off the bottom; with the fork's it shows. At 4:3 and narrower the view is the
-original's. The scene, the coronas, what the HUD draws in 3D and the frob
-highlight's box all take the one angle (`HorPlusFovAngle`).
+under the logo falls off the bottom; with the fork's it shows. At 4:3 and
+narrower the view is the original's. The scene, the coronas, what the HUD
+draws in 3D, the frob highlight's box and the meshes' level of detail
+([mesh detail](#mesh-detail)) all take the one angle (`HorPlusFovAngle`), so
+on a wide screen a mesh keeps less detail than the original's at the same
+distance.
 
 ### Particles and lasers: render iterators
 
@@ -177,7 +180,8 @@ Matches the original ([a pawn's attachments](https://github.com/JuggyMcNutty/dx-
 
 Matches the original's vertex budget ([mesh detail](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-detail)),
 but for the morph: the fork slides linearly over the `LODMorph` zone, and
-the original's exact curve is unread.
+the original's exact curve is unread; and on a screen wider than 4:3 the
+budget takes the wider angle ([the view's width](#the-views-width)).
 
 ### Lighting
 
@@ -264,34 +268,35 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
 [drawing](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#drawing),
 [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)):
 `GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`, and
-`ChoiceConsole` for a conversation's choices. Differs:
+`ChoiceConsole` for a conversation's choices. The same, read from the
+original's code:
+
+- **Keys** go up from the focus window to the root, so Esc and F1 close a
+  screen; **mouse buttons**, only while a modal shows, to the window the
+  mouse acts on (the grab, else the one under the pointer in the topmost
+  modal, else that modal), then up its parents. A press grabs the mouse for
+  that window, so a drag's moves and its drop reach the item it started on,
+  and counts as a multiple click within 0.5 s and 10 units of the first.
+  `LootConsole` searches two carcasses alike in both engines; the keys and
+  the drags between the searches (`loot-drags.txt`) are a timeline's, so the
+  fork's alone.
+- **A GC's style** sets only how tiles draw: text stays masked, translucent
+  only by `EnableTranslucentText`, so the frob label over its modulated
+  backing reads as the original's (`FrobConsole`'s shots).
+- **The frob highlight's box** (`ConvertVectorToCoordinates`) is projected by
+  the main scene's view into the root window's coordinates: `FrobConsole`'s
+  boxes round two decorations, the crosshair on their middle and turned 5
+  degrees four ways, lie within 7 pixels of the original's at 1280x720 with
+  the original's [view width](#the-views-width).
+
+Differs:
 
 - **`GC.DrawActor` ignores `bConstrain`**: the vision augmentation's calls
   cover the whole view. Its render time: [out of sight](#out-of-sight).
-- **Keys** go up from the focus window to the root as the original's, so
-  Esc and F1 close a screen (a timeline's presses, checked in a fork run
-  only). Differs, read from both codes: the keyboard counts as grabbed while a
+- **Keys**, read from both codes: the keyboard counts as grabbed while a
   modal shows, where the original counts its grabs (every modal grabs while
   shown); the fork tries only the focus window's accelerator, and passes on
   a release of a key not down, which the original takes and drops.
-- **The frob highlight's box** (`ConvertVectorToCoordinates`) is projected
-  by the main scene's view into the root window's coordinates, so it hugs
-  the target as the original's does (`FrobConsole`: two decorations, the
-  crosshair on their middle and turned 5 degrees four ways, the box's edges
-  within 7 pixels of the original's at 1280x720 with the original's
-  [view width](#the-views-width)).
-- **A GC's style** sets only how tiles draw, as the original's
-  ([drawing](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#drawing)):
-  text stays masked, translucent only by `EnableTranslucentText`, so the
-  frob label over its modulated backing reads as the original's
-  (`FrobConsole`'s shots).
-- **Mouse buttons** go as the original's: only while a modal shows, to the
-  window the mouse acts on (the grab, else the one under the pointer in the
-  topmost modal, else that modal), then up its parents. A press grabs the
-  mouse for that window, so a drag's moves and its drop reach the item it
-  started on (`LootConsole`: two carcasses searched, the original and the
-  fork alike; the drags between them with `loot-drags.txt`, the fork only),
-  and counts as a multiple click within 0.5 s and 10 units of the first.
 - **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
   `MoveFocus`, `MoveTabGroup`, the focus moving off a window hidden, made
   unselectable or destroyed, and the windows ticking before the engine are
@@ -328,9 +333,12 @@ resampling and reverb, at `OutputRate`) into one OpenAL source.
 Every other native the scripted runs compare matches the original
 ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives),
 [`Engine.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md)):
-the traces (`TraceConsole`, `VisibleConsole`), sight (`SightConsole`), the
-reach tests (`ReachConsole`), falls coming to rest (`RestConsole`),
-`SetLocation`, and `Object.Mid` 127 at its edges, its end's clamp known from
+the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
+frob target, through decorations), sight (`SightConsole`), the reach tests
+(`ReachConsole`), falls coming to rest (`RestConsole`) and in water
+(`FloatConsole`: a buoyant crate rises and bobs at the surface at the
+original's speeds), `SetLocation`, the rotators' conversions (`RotatorConsole`,
+702 of them), and `Object.Mid` 127 at its edges, its end's clamp known from
 `MidConsole`'s ten probes of both. `LevelInfo`'s clock is the original's
 ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
 Differs:
@@ -345,32 +353,15 @@ Differs:
   carcass's bounce off a slope, a `bBounceVelocity` zone throwing again what
   is not a pawn, and a pawn with nothing under it fitted (`FindSpot`) and
   pushed on at random.
-- **Rotators** convert as the original's (`RotatorConsole`, 699 of 702
-  lines the same): `rotator(v)` scales by 65535 over a turn, truncates and
-  does not wrap; a rotator's string wraps each part to 0-65535; `vector(r)`,
-  `GetAxes` and `GetUnAxes` (`GetAxes` transposed) take the original's sine
-  table, 16384 steps round the turn. Differs: a part that is 0 to within
-  1e-7 can carry the other sign, seen looking straight down at a yaw of 180
-  degrees. The engine's own rotations (the view, movement) keep exact angles.
-- **`TraceActors`** runs over the multi-hit line check of Deus Ex's own
-  iterators, as the original's: the level first, the line cut to 5 units
-  past its hit (the `LevelInfo`'s); then the actors and movers along the cut
-  line, each given a thousandth of it short; every hit nearest first,
-  `BaseClass` not used. The player's frob target, `HighlightCenterObject`,
-  takes the first pawn or mover on it. A line that starts inside a cylinder
-  and heads in is stopped there with a level normal out from the axis.
-  `Trace` with nothing hit gives a location and normal of zero
-  (`TraceConsole`: lines through 10 decorations between whole units give
-  the same hits, distances and normals in both, but for a patrolling bot's).
-  Differs: a box started inside a cylinder keeps the least penetration's
-  normal.
-- **Falling in water** takes the original's step: gravity less the
-  buoyancy against the mass, the fluid friction, the mean velocity moved by
-  ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving));
-  a buoyant crate rises to the surface and bobs as the original's does
-  (`FloatConsole`: the crates by Liberty Island's pier rise at the same
-  speeds and bob between z −359 and −352). Out of water a fall keeps the
-  fork's own step.
+- **The engine's own rotations** (the view, movement) take exact angles;
+  the scripts' conversions take the original's sine table
+  ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
+- **A box started inside a cylinder** keeps the least penetration's normal;
+  the original's is level, out from the axis, as a line's is in both
+  ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
+- **Falling out of water** keeps the fork's own step, where the original's
+  moves by the step's mean velocity
+  ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the
   fork looks the rest up as one name and finds nothing. The game's scripts
   name no group.
@@ -467,8 +458,9 @@ engine's own objects are not deleted (the log says so).
 - **Input axes**: an axis a console command sets is used as it is; the
   original's input scales it (the harness's `StandConsole` and `JoinConsole`
   allow for it).
-- **The field of view** matches: the player's `DefaultFOV` is Deus Ex's own
-  config, 75 (`[Engine.PlayerPawn]` in `User.ini`). Upstream's own key,
+- **The field of view** is the original's setting: the player's
+  `DefaultFOV` is Deus Ex's own config, 75 (`[Engine.PlayerPawn]` in
+  `User.ini`), the angle across a 4:3 view ([the view's width](#the-views-width)). Upstream's own key,
   `MainFOV`, which the game's ini lacks (it would make the view 90), is
   neither read nor written for Deus Ex.
 

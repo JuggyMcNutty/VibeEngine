@@ -466,10 +466,11 @@ bool URootWindow::OnWindowMouseDown(const Point& pos, EInputKey key)
 	return HandleButton(key, true);
 }
 
+// Wayland and Win32 send a double click in place of the second press; the
+// presses count the clicks themselves.
 bool URootWindow::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 {
-	// Is this numClicks = 2?
-	return IsModalOpen();
+	return HandleButton(key, true);
 }
 
 bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)

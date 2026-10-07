@@ -121,8 +121,8 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
   stopped either way leaves it behind like any crash; a run by hand has none.
 - `--ini=<file>` and `--userini=<file>` name the inis to read and write back, as the original's
   `INI=` and `USERINI=`; the `shot` console command writes the next `ShotNNNN.bmp` into the
-  game's System folder; `--timeline=<file>` gives keys and console commands at set times.
-  [Scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines) use all three.
+  game's System folder; `--timeline=<file>` gives keys, the pointer and console commands at set
+  times. [Scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines) use all three.
 - **`--cmdline=<line>`** is the original's command line, which the recreated launcher
   (deusex-launcher's `main`) passes on: its start URL, `-server`, `INI=`, `USERINI=`, `EXEC=` and
   safe mode's flags, over the options above ([the command line](NATIVES.md#the-command-line)).

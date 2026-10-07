@@ -168,12 +168,13 @@ inline Coords Coords::Rotation(const Rotator& rotator)
 }
 
 // The rotation the original's script conversions take (vector(rotator),
-// GetAxes, GetUnAxes; RotatorConsole): its sine table's, 16384 steps round
-// the turn, so an angle's low 2 bits are dropped.
+// GetAxes, GetUnAxes; Core.dll FRotator::Vector): its sine table's, 16384
+// steps round the turn, so an angle's low 2 bits are dropped; a cosine is the
+// table a quarter turn on.
 inline Coords Coords::TableRotation(const Rotator& rotator)
 {
 	auto tsin = [](int angle) { return (float)std::sin(((angle >> 2) & 16383) * (2.0 * 3.14159265358979 / 16384.0)); };
-	auto tcos = [](int angle) { return (float)std::cos(((angle >> 2) & 16383) * (2.0 * 3.14159265358979 / 16384.0)); };
+	auto tcos = [&](int angle) { return tsin(angle + 0x4000); }; // the table a quarter turn on
 	float sy = tsin(rotator.Yaw), cy = tcos(rotator.Yaw);
 	float sp = tsin(rotator.Pitch), cp = tcos(rotator.Pitch);
 	float sr = tsin(rotator.Roll), cr = tcos(rotator.Roll);
