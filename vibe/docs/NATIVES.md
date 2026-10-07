@@ -338,11 +338,13 @@ with it. `GarbageConsole` and `DeleteConsole` run both engines. Differs:
 - **Code is never freed**, where the original's frees a script class nothing
   uses and loads it again when asked for.
 
-On linux-x86_64, Liberty Island and Battery Park loaded in turn
-(`reload-fresh.txt`), twenty loads: 381 MB at the end; each island load's collection leaves the same 43,055
-objects and frees some 130 textures and 20 sounds. Liberty Island and UNATCO
-HQ through `Current` (`reload-current.txt`): 378 MB at most throughout. A
-collection takes 25 to 45 ms there; on the Smart Pro 200 to 265 ms.
+On linux-x86_64, on the hidden display, Liberty Island and Battery Park loaded
+in turn (`reload-fresh.txt`), twenty loads: 522 MB at the end, 528 MB at most;
+each island load's collection leaves the same 43,054 objects and frees some
+130 textures and 20 sounds. Liberty Island and UNATCO HQ through `Current`
+(`reload-current.txt`): 522 MB at most throughout. A collection takes 28 to
+66 ms there; on the Smart Pro 200 to 265 ms, measured before names were
+collected.
 
 **Names** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
 a spawned actor and an AI event's object are named as the original names
@@ -355,7 +357,7 @@ name -- from a package, an ini, the script or C++, or a spawned actor's
 looked up by its spelling -- is kept for the session, where the original's
 deletes any name nothing reaches but the hard-coded ones. `ChurnConsole`
 (2,200 actors a second for two minutes) stays at 358 MB resident, where
-keeping every name grew it by 77 MB; the name walk adds some 5 ms to a
+keeping every name grew it by 77 MB; the name walk adds 5 to 8 ms to a
 collection on linux-x86_64.
 
 **Destroyed actors** are the original's
