@@ -567,10 +567,13 @@ server-only stubs are under
   two ticks' worth below 0, and an unreliable call goes only while that covers
   what waits to be sent, as in the original
   ([packets](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#packets)).
-  A fork listen server drawing some 1,000 frames a second (on the desktop here,
-  VSync on) has no room for one to an internet-speed client (2,600 bytes/s):
-  `ServeConsole`'s 8 beeps, the client recorded, reach it none; at some 100
-  frames (on the hidden display) 4, from the original's 6.
+  A fork listen server drawing some 1,000 frames a second (the harness's runs
+  on the desktop, VSync on) has no room for one to an internet-speed client
+  (2,600 bytes/s): `ServeConsole`'s 8 beeps, the client recorded, reach it
+  none; at some 100 frames (on the hidden display) 4, from the original's 6.
+- **A listen server's own URL** (`Level.GetLocalURL`) has no host: the
+  fork's reads `DXMP_Cathedral?...` where the original's reads
+  `0.0.0.0/DXMP_Cathedral?...` (`ServeConsole`'s `serving` line).
 - **Unchecked:** whether a live server corrects the client at a stop.
 
 As in the original:

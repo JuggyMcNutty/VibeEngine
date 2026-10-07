@@ -369,7 +369,9 @@ What else Deus Ex needs is gated as [above](#how-it-is-kept) and described by fe
   sounds as `Galaxy.dll` does (pan, fall-off, sliders, resampling, its reverb) and streams them
   through one OpenAL source at `OutputRate`; other games keep OpenAL's 3D sources. The fork's
   audio device adds `SpeechVolume` and `DopplerSpeed` to its ini section
-  ([sound](NATIVES.md#sound)).
+  ([sound](NATIVES.md#sound)). Who hears a sound an actor plays, a remote player through its
+  client, is `UActor::HearSound` and `CheckHearSound` (`UActor.cpp`), from Deus Ex's
+  `PlaySound`, `PlayOwnedSound` and `DemoPlaySound` natives (`NActor.cpp`).
 - **The network driver**: `SurrealEngine/Network/` is the fork's own, the original's protocol
   over UDP (`NetDriver`, channels, the package map, replication by the original's lists) with a
   client that joins the original's servers, a listen and a dedicated server, downloads and
