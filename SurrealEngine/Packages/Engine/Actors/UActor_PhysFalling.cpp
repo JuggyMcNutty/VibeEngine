@@ -66,6 +66,21 @@ void UActor::TickFalling(float elapsed)
 	}
 	velocity = newVelocity;
 
+	// In water Deus Ex's falls take the original's step (Engine.dll
+	// AActor::physFalling 0x103d0a50): gravity less the buoyancy against the
+	// mass, the zone's fluid friction twice over; the move takes the step's
+	// mean velocity, and the velocity after it is twice that less the old
+	// when it gained downward or was rising, the mean otherwise. A crate with
+	// more buoyancy than mass floats (FloatConsole).
+	if (engine->LaunchInfo.IsDeusEx() && zone->bWaterZone())
+	{
+		float netGravity = 1.0f - Buoyancy() / std::max(Mass(), 1.0f);
+		float friction = 1.0f - 2.0f * elapsed * zone->ZoneFluidFriction();
+		newVelocity = oldVelocity * friction + (zone->ZoneGravity() * netGravity + acceleration) * 0.5f * elapsed;
+		bool doubled = newVelocity.z < oldVelocity.z || oldVelocity.z >= 0.0f;
+		velocity = doubled ? newVelocity * 2.0f - oldVelocity : newVelocity;
+	}
+
 	// Deus Ex's falls move as the original's physFalling does, by
 	// ULevel::MoveActor, so an actor comes to rest held off its floor: 2
 	// units, and the box trace's backoff, a tenth of the last move + 2.

@@ -364,11 +364,13 @@ Differs:
   the same hits, distances and normals in both, but for a patrolling bot's).
   Differs: a box started inside a cylinder keeps the least penetration's
   normal.
-- **Decorations in water sink**: falling, the original's take their
-  `Buoyancy` against their `Mass` in a water zone and float (`FloatConsole`:
-  the crates in the water by Liberty Island's pier rise and bob at the
-  surface, about z −352); the fork's fall at full gravity to the bottom
-  (z −454). The physics is unread (`physFalling`).
+- **Falling in water** takes the original's step: gravity less the
+  buoyancy against the mass, the fluid friction, the mean velocity moved by
+  ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving));
+  a buoyant crate rises to the surface and bobs as the original's does
+  (`FloatConsole`: the crates by Liberty Island's pier rise at the same
+  speeds and bob between z −359 and −352). Out of water a fall keeps the
+  fork's own step.
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the
   fork looks the rest up as one name and finds nothing. The game's scripts
   name no group.
