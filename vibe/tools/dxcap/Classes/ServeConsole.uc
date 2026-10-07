@@ -6,8 +6,9 @@
 // serving, once another player is in, the host's own player stands in its
 // sight -- 300 units in front of it, or the nearest free spot round it --
 // turned across its view, and walks 2 s, stands 2 s and turns about, over
-// and over, for the client to watch; where each player stands is logged
-// every 2 s. Exits after 290 s.
+// and over, for the client to watch; where each player stands, and its
+// address (GetPlayerNetworkAddress), is logged every 2 s with the server's
+// own (GetNetworkNumber). Exits after 290 s.
 //=============================================================================
 class ServeConsole extends Console;
 
@@ -91,8 +92,9 @@ event Tick(float Delta)
 		if (CapTime - LogTime >= 2.0)
 		{
 			LogTime = CapTime;
+			Log("DXCAP: network number '" $ P.Level.Game.GetNetworkNumber() $ "'");
 			foreach P.AllActors(class'PlayerPawn', Other)
-				Log("DXCAP: " $ Other.PlayerReplicationInfo.PlayerName $ " at " $ Other.Location);
+				Log("DXCAP: " $ Other.PlayerReplicationInfo.PlayerName $ " at " $ Other.Location $ " address '" $ Other.GetPlayerNetworkAddress() $ "'");
 		}
 	}
 

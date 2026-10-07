@@ -28,12 +28,6 @@ namespace
 {
 	std::map<UObject*, NetConnection*> PlayerConnections;
 
-	std::string AddressString(const NetConnection* connection)
-	{
-		uint32_t a = connection->RemoteAddr;
-		return std::to_string(a >> 24) + "." + std::to_string((a >> 16) & 255) + "." + std::to_string((a >> 8) & 255) + "." + std::to_string(a & 255) + ":" + std::to_string(connection->RemotePort);
-	}
-
 	void Refuse(NetConnection* connection, const std::string& text)
 	{
 		connection->SendText(text);
@@ -337,7 +331,7 @@ void NetServerLevel::NotifyReceivedText(NetConnection* connection, const std::st
 		// The game may refuse: its message, and a code the client's menu
 		// acts on.
 		std::string error, failcode;
-		if (!engine->PreLogin(RequestURLs[connection].GetOptions(), AddressString(connection), error, failcode))
+		if (!engine->PreLogin(RequestURLs[connection].GetOptions(), connection->RemoteAddressString(), error, failcode))
 		{
 			connection->SendText("FAILURE " + error);
 			if (!failcode.empty())
@@ -537,7 +531,7 @@ int NetServerLevel::ServerTickClient(NetConnection* connection)
 
 void NetServerLevel::NotifyConnectionClosed(NetConnection* connection)
 {
-	LogMessage("Net: close " + AddressString(connection));
+	LogMessage("Net: close " + connection->RemoteAddressString());
 	RequestURLs.erase(connection);
 	if (connection->PlayerObject)
 		PlayerConnections.erase(connection->PlayerObject);

@@ -180,6 +180,7 @@ bool NetDriver::OpenSocket(int port, std::string& error)
 		error = "Could not bind port " + std::to_string(port);
 		return false;
 	}
+	LocalAddr = ntohl(local.sin_addr.s_addr);
 	return true;
 }
 

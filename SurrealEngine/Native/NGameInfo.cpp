@@ -3,6 +3,7 @@
 #include "NGameInfo.h"
 #include "VM/NativeFunc.h"
 #include "Engine.h"
+#include "Network/NetDriver.h"
 #include "Package/PackageManager.h"
 
 #include <sstream>
@@ -24,10 +25,11 @@ void NGameInfo::RegisterFunctions()
 	}
 }
 
+// The original's (Engine.dll 0x103e69d0): the address the level's net
+// driver is bound to, 0.0.0.0; "" with none.
 void NGameInfo::GetNetworkNumber(UObject* Self, std::string& ReturnValue)
 {
-	ReturnValue = "0";
-	LogUnimplemented("GetNetworkNumber");
+	ReturnValue = engine->LevelNetDriver ? NetAddressString(engine->LevelNetDriver->LocalAddr) : "";
 }
 
 void NGameInfo::ParseKillMessage(const std::string& KillerName, const std::string& VictimName, const std::string& WeaponName, const std::string& DeathMessage, std::string& ReturnValue)

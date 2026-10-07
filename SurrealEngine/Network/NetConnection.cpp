@@ -19,6 +19,14 @@ NetOutBunch::NetOutBunch(NetChannel* channel, bool close) :
 		Data = NetBitWriter(0);
 }
 
+std::string NetAddressString(uint32_t addr, int port)
+{
+	std::string text = std::to_string(addr >> 24) + "." + std::to_string((addr >> 16) & 255) + "." + std::to_string((addr >> 8) & 255) + "." + std::to_string(addr & 255);
+	if (port != 0)
+		text += ":" + std::to_string(port);
+	return text;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 NetConnection::NetConnection(NetDriver* driver, uint32_t remoteAddr, int remotePort, int netSpeed) :

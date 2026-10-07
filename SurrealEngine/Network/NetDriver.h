@@ -73,6 +73,10 @@ public:
 	void Mark(GCMarker& marker);
 
 	NetNotify* Notify = nullptr;
+	// The address the socket is bound to, in host order: every one of the
+	// machine's (0.0.0.0), as IpDrv's is but with MULTIHOME= or -PRIMARYNET,
+	// which the fork does not take.
+	uint32_t LocalAddr = 0;
 	std::unique_ptr<NetConnection> ServerConnection;
 	Array<std::unique_ptr<NetConnection>> ClientConnections;
 	double Time = 0.0;

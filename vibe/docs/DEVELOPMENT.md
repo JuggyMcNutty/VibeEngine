@@ -123,7 +123,7 @@ the run. *Either*: one engine on each side of a pair.
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
 | `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load; the mission script, a `LoadMarker`'s `PostPostBeginPlay` calls | `DXSAVE:` | |
 | `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` | |
-| `ServeConsole` | either | a listen server; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py` |
+| `ServeConsole` | either | a listen server: every 2 s each player's place and address and its own number; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py` |
 | `JoinConsole` | either | a client of `127.0.0.1:7790` | `DXNET:` | |
 | `RejoinConsole` | either | a client that joins twice | `DXREJOIN:` | |
 | `TravelServeConsole` | either | a server that travels; it exits after 150 s | `DXCAP:` | |

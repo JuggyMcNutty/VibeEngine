@@ -532,8 +532,10 @@ Matches the original's client and server ([the network](https://github.com/Juggy
 joining and playing, listen and dedicated servers, replication with the
 original's native lists, the server's calls, downloads both ways, server
 travel, the Entry level for a lost server, the login, merged bunches, the
-uplink and query answerer, and the scripts' sockets
-([the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)).
+uplink and query answerer, the scripts' sockets
+([the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)),
+and the addresses they ask for, a player's and the server's own
+([the scripts' addresses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#addresses)).
 Each runs against the original as client and as server: `ServeConsole`,
 `JoinConsole`, `RejoinConsole`, `TravelServeConsole`, `TravelJoinConsole`,
 `NetConsole`. Until its pawn arrives, a joining fork draws no world. The
@@ -580,11 +582,8 @@ Stubs a single-player game does without; the audit lists each:
   [`DebugInfo`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#debuginfo)),
   `SaveTimeDemo`, `Commandlet.Main`, and `Object`'s `clock`, `unclock` and
   `CyclesToSeconds` ([the timing natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#clock-unclock-and-cyclestoseconds)).
-- Two of the network's, both only a server's: `GameInfo.GetNetworkNumber`
-  answers "0" to `StatLog`'s server line, and
-  `PlayerPawn.GetPlayerNetworkAddress` answers "", so `KickBan` on a fork
-  server bans no address. `StatLog`'s and `StatLogFile`'s natives do
-  nothing, so a fork server logging world stats writes no log of them.
+- `StatLog`'s and `StatLogFile`'s natives, which do nothing, so a fork
+  server logging world stats writes no log of them.
 - `ComputerWindow`'s 22, which no script calls: the InfoLink's text window,
   its only user, calls only implemented ones.
 - `ClipWindow`'s unit sizes, `GC`'s `PushGC`, `PopGC`, `CopyGC` and

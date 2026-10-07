@@ -68,6 +68,10 @@ struct NetInBunch
 // One end of a game over UDP (Engine's UNetConnection, dx-reverse-info/network.md):
 // numbered packets of acks and bunches, up to 1,023 channels, reliable bunches
 // delivered in order and sent again when lost.
+// An address in host order as IpDrv writes one: a.b.c.d, then :port when
+// the port is not 0 (IpString).
+std::string NetAddressString(uint32_t addr, int port = 0);
+
 class NetConnection
 {
 public:
@@ -126,6 +130,8 @@ public:
 	NetDriver* Driver = nullptr;
 	uint32_t RemoteAddr = 0;
 	int RemotePort = 0;
+	// The other end, a.b.c.d:port (IpDrv's LowLevelGetRemoteAddress).
+	std::string RemoteAddressString() const { return NetAddressString(RemoteAddr, RemotePort); }
 	ConnectionState State = ConnectionState::Pending;
 	NetPackageMap PackageMap;
 

@@ -4,8 +4,10 @@
 #include "VM/NativeFunc.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
+#include "Packages/Engine/UPlayer.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Engine.h"
+#include "Network/NetServer.h"
 #include "Package/PackageManager.h"
 #include "VM/ScriptCall.h"
 
@@ -82,10 +84,13 @@ void NPlayerPawn::GetEntryLevel(UObject* Self, UObject*& ReturnValue)
 	ReturnValue = engine->EntryLevelInfo;
 }
 
+// The original's (Engine.dll 0x103df310): a pawn whose player is a net
+// connection -- a remote player's, on the server -- answers its address,
+// a.b.c.d:port; any other "".
 void NPlayerPawn::GetPlayerNetworkAddress(UObject* Self, std::string& ReturnValue)
 {
-	LogUnimplemented("PlayerPawn.GetPlayerNetworkAddress");
-	ReturnValue = "";
+	NetConnection* connection = NetConnectionOfPlayer(UObject::Cast<UPlayerPawn>(Self)->Player());
+	ReturnValue = connection ? connection->RemoteAddressString() : "";
 }
 
 void NPlayerPawn::IsPressing_U227(UObject* Self, uint8_t& KeyNum, BitfieldBool& ReturnValue)
