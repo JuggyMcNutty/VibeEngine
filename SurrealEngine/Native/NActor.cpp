@@ -5,6 +5,7 @@
 #include "VM/ScriptCall.h"
 #include "VM/Frame.h"
 #include "Packages/Core/UClass.h"
+#include "Packages/Core/UFunction.h"
 #include "Packages/Engine/UViewport.h"
 #include "Packages/Engine/Resources/USound.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
@@ -33,7 +34,10 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_2("Actor", "ChildActors", &NActor::ChildActors, 305);
 	RegisterVMNativeFunc_2("Actor", "ConsoleCommand", &NActor::ConsoleCommand, 0);
 	RegisterVMNativeFunc_3("Actor", "CycleActors", &NActor::CycleActors, 1002);
-	RegisterVMNativeFunc_6("Actor", "DemoPlaySound", &NActor::DemoPlaySound, 0);
+	if (!engine->LaunchInfo.IsDeusEx())
+		RegisterVMNativeFunc_6("Actor", "DemoPlaySound", &NActor::DemoPlaySound, 0);
+	else
+		RegisterVMNativeFunc_6("Actor", "DemoPlaySound", &NActor::DemoPlaySound_Deus, 0);
 	RegisterVMNativeFunc_1("Actor", "Destroy", &NActor::Destroy, 279);
 	RegisterVMNativeFunc_1("Actor", "Error", &NActor::Error, 233);
 	RegisterVMNativeFunc_3("Actor", "FastTrace", &NActor::FastTrace, 548);
@@ -62,7 +66,10 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_2("Actor", "Move", &NActor::Move, 266);
 	RegisterVMNativeFunc_3("Actor", "MoveCacheEntry", &NActor::MoveCacheEntry, 0);
 	RegisterVMNativeFunc_2("Actor", "MoveSmooth", &NActor::MoveSmooth, 3969);
-	RegisterVMNativeFunc_6("Actor", "PlayOwnedSound", &NActor::PlayOwnedSound, 0);
+	if (!engine->LaunchInfo.IsDeusEx())
+		RegisterVMNativeFunc_6("Actor", "PlayOwnedSound", &NActor::PlayOwnedSound, 0);
+	else
+		RegisterVMNativeFunc_6("Actor", "PlayOwnedSound", &NActor::PlayOwnedSound_Deus, 0);
 	if (!engine->LaunchInfo.IsDeusEx())
 		RegisterVMNativeFunc_6("Actor", "PlaySound", &NActor::PlaySound, 264);
 	else
@@ -593,22 +600,98 @@ void NActor::PlaySound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slo
 	}
 }
 
+// Whether the script function calling the native is marked simulated, as
+// Engine.dll's PlaySound asks of the frame it is called from: the native's
+// own frame is on top, its caller's under it. State code is no function.
+static bool CalledFromSimulated()
+{
+	if (Frame::Callstack.size() < 2)
+		return false;
+	UFunction* caller = UObject::TryCast<UFunction>(Frame::Callstack[Frame::Callstack.size() - 2]->Func);
+	return caller && AllFlags(caller->FuncFlags, FunctionFlags::Simulated);
+}
+
+// Deus Ex's sounds are heard as the original's are (dx-reverse-info
+// engine-dll.md, sounds): each hearer the native names is asked
+// (UActor::CheckHearSound), and the hearer's ClientHearSound plays it -- in a
+// net game on the remote player's client. The ID packs the fork's number for
+// the actor (USurrealAudioDevice::SoundId).
 void NActor::PlaySound_Deus(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch, int& ReturnValue)
 {
 	UActor* SelfActor = UObject::Cast<UActor>(Self);
 	USound* s = UObject::Cast<USound>(Sound);
-	if (s)
-	{
-		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = engine->audiodev->SoundId(SelfActor, slot);
-		if (bNoOverride && *bNoOverride) id |= 1;
-		engine->audiodev->PlaySound(SelfActor, id, s, SelfActor->Location(), Volume ? *Volume : SelfActor->TransientSoundVolume(), Radius ? (*Radius) : SelfActor->TransientSoundRadius(), Pitch ? *Pitch : 1.0f, slot == SLOT_Talk);
-		ReturnValue = id;
-	}
-	else
+	if (!s)
 	{
 		ReturnValue = 0;
+		return;
 	}
+	int slot = Slot ? *Slot : SLOT_Misc;
+	int id = engine->audiodev->SoundId(SelfActor, slot);
+	if (bNoOverride && *bNoOverride) id |= 1;
+	// A radius of 0 or less is 800.
+	float radius = Radius ? *Radius : SelfActor->TransientSoundRadius();
+	if (radius <= 0.0f)
+		radius = 800.0f;
+	vec3 parameters((Volume ? *Volume : SelfActor->TransientSoundVolume()) * 100.0f, radius, (Pitch ? *Pitch : 1.0f) * 100.0f);
+	// On a client, or from a simulated function, the viewports' players hear
+	// it; otherwise every player pawn.
+	bool viewportsOnly = SelfActor->Level()->NetMode() == NM_Client || CalledFromSimulated();
+	SelfActor->HearSound(id, s, parameters, radius * radius, viewportsOnly);
+	ReturnValue = id;
+}
+
+// No 800 here: a radius of 0 reaches 1,600. A client's viewports hear it;
+// off a client every player pawn but the actor's own remote player, who
+// played it already: the actor, a player pawn whose player is not a
+// viewport, else its owner the same.
+void NActor::PlayOwnedSound_Deus(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch)
+{
+	UActor* SelfActor = UObject::Cast<UActor>(Self);
+	USound* s = UObject::Cast<USound>(Sound);
+	if (!s)
+		return;
+	int slot = Slot ? *Slot : SLOT_Misc;
+	int id = engine->audiodev->SoundId(SelfActor, slot);
+	if (bNoOverride && *bNoOverride) id |= 1;
+	float radius = Radius ? *Radius : SelfActor->TransientSoundRadius();
+	float range = radius == 0.0f ? 1600.0f : radius;
+	vec3 parameters((Volume ? *Volume : SelfActor->TransientSoundVolume()) * 100.0f, radius, (Pitch ? *Pitch : 1.0f) * 100.0f);
+
+	uint8_t netMode = SelfActor->Level()->NetMode();
+	if (netMode == NM_Client)
+	{
+		SelfActor->HearSound(id, s, parameters, range * range, true);
+		return;
+	}
+	UPawn* skip = nullptr;
+	if (netMode != NM_Standalone)
+	{
+		auto remotePlayer = [](UActor* actor) -> UPawn* {
+			UPlayerPawn* player = UObject::TryCast<UPlayerPawn>(actor);
+			return player && player->Player() && !UObject::TryCast<UViewport>(player->Player()) ? player : nullptr;
+		};
+		if (UObject::TryCast<UPlayerPawn>(SelfActor))
+			skip = remotePlayer(SelfActor);
+		else if (SelfActor->Owner())
+			skip = remotePlayer(SelfActor->Owner());
+	}
+	SelfActor->HearSound(id, s, parameters, range * range, false, skip);
+}
+
+// The viewports' players; a radius of 0 reaches 1,600.
+void NActor::DemoPlaySound_Deus(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch)
+{
+	UActor* SelfActor = UObject::Cast<UActor>(Self);
+	USound* s = UObject::Cast<USound>(Sound);
+	if (!s)
+		return;
+	int slot = Slot ? *Slot : SLOT_Misc;
+	int id = engine->audiodev->SoundId(SelfActor, slot);
+	if (bNoOverride && *bNoOverride) id |= 1;
+	float radius = Radius ? *Radius : SelfActor->TransientSoundRadius();
+	float range = radius == 0.0f ? 1600.0f : radius;
+	vec3 parameters((Volume ? *Volume : SelfActor->TransientSoundVolume()) * 100.0f, radius, (Pitch ? *Pitch : 1.0f) * 100.0f);
+	SelfActor->HearSound(id, s, parameters, range * range, true);
 }
 
 

@@ -2,6 +2,7 @@
 """Reads a SoundConsole run: the recording against the moves in its log.
 
     sound.py <run dir>
+    sound.py --onsets <run dir>
 
 The run's audio.wav is laid against its log (engine.log or DeusEx.log) by
 each scenario's three beeps, half a second apart, which SoundConsole plays
@@ -10,12 +11,18 @@ the time a map takes to load, so each scenario is laid by its own beeps.
 
   wall:   the level and the brightness of the ambient sound heard from the
           open spot and from the spot behind a wall;
+  hear:   each probe of the hearing test, the wall's source playing a beep:
+          heard or not, and its peak against the first probe's (ref);
   reverb: for each shot in the reverb zone and outside it, its peak, how long
           it rings (until 60 dB under its peak), and its tail: the energy
           from 0.5 to 1.5 s after the peak against the first 0.45 s, the
           shot's own length -- what the zone adds;
   pan:    each channel's peak for beeps from a path node to the right, to
           the left and ahead.
+
+--onsets reads any recording alone: each sound that starts out of quiet,
+its time and peak, and the longest run of them a second apart -- a net
+test's client hearing the server's beeps (ServeConsole).
 
 Levels are dB of full scale. Brightness is the frequency of a sine with the
 same share of first-difference energy -- a low-pass filter lowers it.
@@ -181,6 +188,62 @@ def report_wall(rec, strength, evts):
     return offset
 
 
+def report_hear(rec, strength, evts, after):
+    """after: the wall scenario's offset; the hearing test follows it on the
+    same map, so its own beeps are looked for close to it."""
+    hear = scenario(evts, 'hear scenario', 'hear scenario ends')
+    if not hear:
+        print('hear: not in the log')
+        return
+    beeps = beeps_after(hear, hear[0][0])
+    offset, score = align(rec, strength, beeps, after - 1.0, after + 5.0)
+    print('hear: beeps found at %+.3f s from the log (onset %.1f dB)' % (offset, score))
+    ref = None
+    for t, what in hear:
+        if not what.startswith('hear ') or what.startswith('hear scenario') or what == 'hear wall':
+            continue
+        label = what[5:]
+        # The probe's peak against the quiet before it, the median of the
+        # half second before: heard when it stands 10 dB over that.
+        start = t + offset
+        before = sorted(rec.env[max(0, rec.frame(start - 0.6)):max(0, rec.frame(start - 0.1))])
+        floor = rec.db(before[len(before) // 2]) if before else None
+        peak = rec.db(max(rec.env[max(0, rec.frame(start - 0.05)):rec.frame(start + 0.5)], default=0.0))
+        heard = floor is not None and peak > floor + 10.0
+        if label == 'ref' and heard:
+            ref = peak
+        rel = '%+6.1f dB' % (peak - ref) if heard and ref is not None else ''
+        print('  %-24s %6.2f s  peak %6.1f dB  floor %6.1f dB  %-6s %s' % (
+            label, t, peak, floor if floor is not None else float('nan'), 'heard' if heard else 'silent', rel))
+
+
+def report_onsets(rec, strength):
+    """Each sound starting out of quiet (a rise of 15 dB within 50 ms), its
+    time and peak, and the longest run of them 0.9 to 1.1 s apart."""
+    found = []
+    f = 0
+    while f < len(strength):
+        if strength[f] >= 15.0:
+            top = max(range(f, min(len(strength), f + rec.frame(0.3))), key=lambda i: rec.env[i])
+            found.append((f * HOP, rec.db(rec.env[top])))
+            f += rec.frame(0.3)
+        else:
+            f += 1
+    print('onsets: %d' % len(found))
+    for t, peak in found:
+        print('  %7.2f s  peak %6.1f dB' % (t, peak))
+    best = []
+    for i in range(len(found)):
+        run = [found[i][0]]
+        for t, _ in found[i + 1:]:
+            if 0.9 <= t - run[-1] <= 1.1:
+                run.append(t)
+        if len(run) > len(best):
+            best = run
+    if best:
+        print('longest run a second apart: %d, from %.2f s' % (len(best), best[0]))
+
+
 def shot(rec, t):
     """Peak (dB), ring (s) and tail (dB) of a shot fired at recording time t."""
     env = rec.env
@@ -246,14 +309,22 @@ def report_pan(rec, offset, rest):
 
 
 def main():
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    only_onsets = bool(args) and args[0] == '--onsets'
+    if only_onsets:
+        args = args[1:]
+    if len(args) != 1:
         sys.exit(__doc__)
-    run = sys.argv[1]
+    run = args[0]
     rec = Recording(os.path.join(run, 'audio.wav'))
-    evts = events(read_log(run))
     strength = onsets(rec)
     print('%s: %.1f s of audio' % (run, rec.frames / rec.rate))
+    if only_onsets:
+        report_onsets(rec, strength)
+        return
+    evts = events(read_log(run))
     offset = report_wall(rec, strength, evts)
+    report_hear(rec, strength, evts, offset)
     offset, rest = report_reverb(rec, strength, evts, offset)
     report_pan(rec, offset, rest)
 

@@ -76,6 +76,9 @@ public:
 	bool ReachableWalking(UActor* anActor);
 
 	void ClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters);
+	// Deus Ex's native: a viewport's player plays the sound it hears
+	// (UActor::CheckHearSound).
+	void DeusExClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters);
 
 	// If the obstruction is jumpable, start jumping and keep the destination
 	// Otherwise try rotating destination 90 degrees to left and right

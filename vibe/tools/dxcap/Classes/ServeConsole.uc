@@ -8,12 +8,16 @@
 // turned across its view, and walks 2 s, stands 2 s and turns about, over
 // and over, for the client to watch; where each player stands, and its
 // address (GetPlayerNetworkAddress), is logged every 2 s with the server's
-// own (GetNetworkNumber). Exits after 290 s.
+// own (GetNetworkNumber). 12 s after it is placed the host stands still and
+// plays 8 beeps 1 s apart from this console's own function, which is not
+// simulated: a server's sound every player hears, the client through
+// Pawn.ClientHearSound (a client run with DXCAP_RECORD=1, read with
+// vibe/tools/dxcap/sound.py --onsets). Exits after 290 s.
 //=============================================================================
 class ServeConsole extends Console;
 
-var float CapTime, LogTime, WalkTime;
-var int Phase;
+var float CapTime, LogTime, WalkTime, PlacedTime;
+var int Phase, Beeps;
 var bool bPlaced;
 
 // The first free spot in the other player's line of sight: 300 units ahead
@@ -74,20 +78,35 @@ event Tick(float Delta)
 				{
 					Log("DXCAP: host placed at " $ P.Location $ " before " $ Other.Location);
 					bPlaced = true;
+					PlacedTime = CapTime;
 					WalkTime = 0.0;
 					break;
 				}
 			}
 		}
-		WalkTime += Delta;
-		if (WalkTime < 2.0)
-			P.aBaseY = 300.0;
-		else
-			P.aBaseY = 0.0;
-		if (WalkTime >= 4.0)
+		if (bPlaced && Beeps < 8 && CapTime - PlacedTime >= 12.0)
 		{
-			WalkTime = 0.0;
-			P.ViewRotation.Yaw += 32768;
+			// Still, so no footstep falls among the beeps.
+			P.aBaseY = 0.0;
+			if (CapTime - PlacedTime >= 12.0 + Beeps)
+			{
+				Log("DXCAP: beep " $ Beeps $ " at " $ CapTime);
+				P.PlaySound(Sound'DeusExSounds.Generic.Beep4', SLOT_None, 2.0, false, 4000, 1.0);
+				Beeps++;
+			}
+		}
+		else
+		{
+			WalkTime += Delta;
+			if (WalkTime < 2.0)
+				P.aBaseY = 300.0;
+			else
+				P.aBaseY = 0.0;
+			if (WalkTime >= 4.0)
+			{
+				WalkTime = 0.0;
+				P.ViewRotation.Yaw += 32768;
+			}
 		}
 		if (CapTime - LogTime >= 2.0)
 		{

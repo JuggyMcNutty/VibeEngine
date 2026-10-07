@@ -508,6 +508,16 @@ public:
 	void MakeNoise(float loudness);
 	bool PlayerCanSeeMe();
 
+	// Deus Ex: who hears a sound this actor plays, as the original's
+	// PlaySound asks (Engine.dll 0x103e1f60): the viewports' players, as on
+	// a client or from a simulated function; else every player pawn but
+	// skip. Each is asked with CheckHearSound.
+	void HearSound(int id, USound* sound, const vec3& parameters, float radiusSq, bool viewportsOnly, UPawn* skip = nullptr);
+	// Whether the hearer hears it, as the original's CheckHearSound
+	// (0x103e1b00): then its ClientHearSound event, with the sound's
+	// volume x 100, radius and pitch x 100 as parameters.
+	void CheckHearSound(UPawn* hearer, int id, USound* sound, vec3 parameters, float radiusSq);
+
 	// Harry Potter
 	void PlayAnim_HP(const NameString& Sequence, std::optional<float> Rate, std::optional<float> TweenTime, std::optional<EAnimType> Type, std::optional<NameString> RootBone);
 	void LoopAnim_HP(const NameString& Sequence, std::optional<float> Rate, std::optional<float> TweenTime, std::optional<float> MinRate, std::optional<EAnimType> Type, std::optional<NameString> RootBone);

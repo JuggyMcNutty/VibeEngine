@@ -88,6 +88,8 @@ public:
 	static void InStasis(UObject* Self, BitfieldBool& ReturnValue);
 	static void ParabolicTrace(UObject* Self, vec3& finalLocation, std::optional<vec3> startVelocity, std::optional<vec3> startLocation, std::optional<bool> bCheckActors, std::optional<vec3> Cylinder, std::optional<float> maxTime, std::optional<float> elasticity, std::optional<bool> bBounce, std::optional<float> landingSpeed, std::optional<float> granularity, float& ReturnValue);
 	static void PlaySound_Deus(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch, int& ReturnValue);
+	static void PlayOwnedSound_Deus(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch);
+	static void DemoPlaySound_Deus(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch);
 	static void RandomBiasedRotation(UObject* Self, int centralYaw, float yawDistribution, int centralPitch, float pitchDistribution, Rotator& ReturnValue);
 	static void SetInstantMusicVolume(UObject* Self, uint8_t newMusicVolume);
 	static void SetInstantSoundVolume(UObject* Self, uint8_t newSoundVolume);

@@ -1,10 +1,12 @@
 //=============================================================================
 // SoundConsole: the acceptance captures heard, not seen -- a sound in the
-// open and behind a wall, and a sound inside a reverb zone and outside it,
-// then beeps to the right, left and ahead. The game's
-// audio is recorded outside it; three beeps start each scenario, and each
-// move is logged with "DXCAP:" and the console's clock, by which a recording
-// is read (vibe/tools/dxcap/sound.py).
+// open and behind a wall; who hears a sound the wall's source plays
+// (Actor.PlaySound's hearing test: its range, and the wall's cut to the
+// volume and the range); a sound inside a reverb zone and outside it, then
+// beeps to the right, left and ahead. The game's audio is recorded outside
+// it; three beeps start each scenario, and each move is logged with "DXCAP:"
+// and the console's clock, by which a recording is read
+// (vibe/tools/dxcap/sound.py).
 //=============================================================================
 class SoundConsole extends Console;
 
@@ -163,6 +165,23 @@ function Shoot(PlayerPawn P)
 	P.PlaySound(Sound'DeusExSounds.Weapons.AssaultGunFire', SLOT_None, 2.0, false, 4000, 1.0);
 }
 
+// The hearing test's probes: the wall's source plays a beep at full volume,
+// its radius a multiple of its distance from the player (the hearer: its
+// location, not its eyes). Heard within the radius / sqrt(1.3) in the open;
+// behind the wall at 0.35 of the volume within 0.77 of that, but for the
+// source's instigator (dx-reverse-info engine-dll.md, sounds).
+function HearProbe(PlayerPawn P, string Label, float Times, bool bInstigator)
+{
+	local float D;
+
+	D = VSize(Source.Location - P.Location);
+	if (bInstigator)
+		Source.Instigator = P;
+	Log("DXCAP: hear " $ Label $ " at " $ CapTime $ " (radius " $ Times * D $ ", " $ D $ " away, line clear " $ P.FastTrace(P.Location, Source.Location) $ ")");
+	Source.PlaySound(Sound'DeusExSounds.Generic.Beep4', SLOT_None, 1.0, false, Times * D, 1.0);
+	Source.Instigator = None;
+}
+
 event Tick(float Delta)
 {
 	local PlayerPawn P;
@@ -260,6 +279,58 @@ event Tick(float Delta)
 		else if (Step >= 7 && StepTime > SETTLE + 23.0)
 		{
 			Log("DXCAP: wall scenario ends at " $ CapTime);
+			// The hearing test, at the same spots, the source quiet.
+			Source.AmbientSound = None;
+			Stand(P, SpotOpen, Source.Location, "hear scenario: open");
+			Step = 0;
+			StepTime = 0;
+			Phase = 7;
+		}
+	}
+	else if (Phase == 7)
+	{
+		Silence(P);
+		// After SETTLE, beeps 0.5 s apart; then the probes 2.5 s apart,
+		// two in the open and three behind the wall.
+		if (Step < 3 && StepTime > SETTLE + 0.5 * Step)
+		{
+			Log("DXCAP: beep at " $ CapTime);
+			Beep(P);
+			Step++;
+		}
+		else if (Step == 3 && StepTime > SETTLE + 3.0)
+		{
+			HearProbe(P, "ref", 4000.0 / VSize(Source.Location - P.Location), false);
+			Step++;
+		}
+		else if (Step == 4 && StepTime > SETTLE + 5.5)
+		{
+			HearProbe(P, "far-open", 1.07, false);
+			Step++;
+		}
+		else if (Step == 5 && StepTime > SETTLE + 8.0)
+		{
+			Stand(P, SpotWall, Source.Location, "hear wall");
+			Step++;
+		}
+		else if (Step == 6 && StepTime > SETTLE + 10.0)
+		{
+			HearProbe(P, "quiet", 1.91, false);
+			Step++;
+		}
+		else if (Step == 7 && StepTime > SETTLE + 12.5)
+		{
+			HearProbe(P, "far-blocked", 1.28, false);
+			Step++;
+		}
+		else if (Step == 8 && StepTime > SETTLE + 15.0)
+		{
+			HearProbe(P, "far-blocked-instigator", 1.28, true);
+			Step++;
+		}
+		else if (Step == 9 && StepTime > SETTLE + 17.5)
+		{
+			Log("DXCAP: hear scenario ends at " $ CapTime);
 			P.SetPhysics(PHYS_Walking);
 			Travel(P, "02_NYC_BatteryPark");
 			Phase = 3;

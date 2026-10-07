@@ -552,6 +552,58 @@ bool UActor::PlayerCanSeeMe()
 	return false;
 }
 
+void UActor::HearSound(int id, USound* sound, const vec3& parameters, float radiusSq, bool viewportsOnly, UPawn* skip)
+{
+	if (viewportsOnly)
+	{
+		UPlayerPawn* player = engine->viewport ? engine->viewport->Actor() : nullptr;
+		if (player && player->XLevel() == XLevel())
+			CheckHearSound(player, id, sound, parameters, radiusSq);
+		return;
+	}
+	for (UPawn* pawn = Level()->PawnList(); pawn != nullptr; pawn = pawn->nextPawn())
+	{
+		if (pawn->bIsPlayer() && pawn != skip)
+			CheckHearSound(pawn, id, sound, parameters, radiusSq);
+	}
+}
+
+void UActor::CheckHearSound(UPawn* hearer, int id, USound* sound, vec3 parameters, float radiusSq)
+{
+	// The listener: a player's view target if it has one, else the hearer,
+	// at its location, not its eyes. It hears within the radius / sqrt(1.3).
+	UActor* listener = hearer;
+	if (UPlayerPawn* player = UObject::TryCast<UPlayerPawn>(hearer))
+	{
+		if (player->ViewTarget())
+			listener = player->ViewTarget();
+	}
+	vec3 d = listener->Location() - Location();
+	float distSq = dot(d, d);
+	float range = radiusSq * (1.0f / 1.3f);
+	if (!(distSq < range))
+		return;
+
+	// Behind the level's BSP (FastTrace's line), at 0.35 of the volume, and
+	// within 0.6 of the squared range but for the actor's instigator, the
+	// range's edge included.
+	if (!FastTrace(listener->Location(), Location()))
+	{
+		parameters.x *= 0.35f;
+		if (Instigator() != hearer)
+			range *= 0.6f;
+		if (!(distSq <= range))
+			return;
+	}
+
+	// An event: it waits for the level to begin play, as the original's, and
+	// a remote player's goes to its client (Pawn.ClientHearSound is
+	// replicated), where its native plays it.
+	CallEvent(hearer, "ClientHearSound", {
+		ExpressionValue::ObjectValue(this), ExpressionValue::IntValue(id), ExpressionValue::ObjectValue(sound),
+		ExpressionValue::VectorValue(Location()), ExpressionValue::VectorValue(parameters) });
+}
+
 UTexture* UActor::CreateTextureFromScreenShot(UViewport* vport)
 {
 	LogUnimplemented("Actor.CreateTextureFromScreenShot");

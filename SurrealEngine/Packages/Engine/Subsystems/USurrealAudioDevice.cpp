@@ -653,7 +653,7 @@ void USurrealAudioDevice::UpdateReverb()
 bool USurrealAudioDevice::PlaySound(UActor* Actor, int Id, USound* Sound, vec3 Location, float Volume, float Radius, float Pitch, bool isTalk)
 {
 	// A radius of 0 or less is 800 in Deus Ex's Actor.PlaySound (Engine.dll
-	// 0x103e1f60, engine-dll.md#small): a script that plays a sound with no
+	// 0x103e1f60, engine-dll.md#sounds): a script that plays a sound with no
 	// radius of its own is heard 800 units out, not the 1,500 the fork let
 	// through -- and its priority, (1 - distance / radius) * volume, is worked
 	// out on that. Other games keep the fork's 1,500.
@@ -740,7 +740,7 @@ void USurrealAudioDevice::ActorDestroyed(UActor* Actor)
 
 // A sound's ID packs the object that plays it with its slot -- the object's
 // number times 16, plus the slot times 2, plus 1 with bNoOverride -- as the
-// original packs the actor's object index (engine-dll.md#small). The ID is
+// original packs the actor's object index (engine-dll.md#sounds). The ID is
 // load-bearing: a sound replaces the one playing with the same ID, and
 // StopSound stops by the ID alone. The fork's objects have no index, so each
 // gets a number of its own the first time it plays a sound, dropped when the
@@ -760,7 +760,7 @@ void USurrealAudioDevice::StopSound(UActor* Actor, int Id)
 {
 	// The original stops by ID alone: Actor.StopSound hands the ID to the
 	// audio subsystem, which stops the channel with that ID (Galaxy's
-	// StopSoundId, engine-dll.md#small). The ID encodes the actor that played
+	// StopSoundId, engine-dll.md#sounds). The ID encodes the actor that played
 	// it, but the caller need not be that actor -- ConPlay's StopSpeech calls
 	// the *player's* StopSound with the *speaker's* ID to cut a line short,
 	// which the old actor match never found, so skipped speech played on.

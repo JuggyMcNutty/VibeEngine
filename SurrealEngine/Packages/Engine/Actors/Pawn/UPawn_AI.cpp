@@ -13,6 +13,8 @@
 #include <climits>
 #include "Utils/Logger.h"
 #include "Utils/Random.h"
+#include "Packages/Engine/UViewport.h"
+#include "Packages/Engine/Subsystems/USurrealAudioDevice.h"
 #include "Engine.h"
 
 // The original's APawn::LineOfSightTo (dx-reverse-info/engine-dll.md, the
@@ -257,6 +259,20 @@ bool UPawn::CanHearNoise(UActor* source, float loudness)
 void UPawn::ClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters)
 {
 	LogUnimplemented("Pawn.ClientHearSound");
+}
+
+// The original's native (Engine.dll 0x103dfc40): only a player pawn whose
+// player is a viewport, with audio, plays it -- the volume and pitch over
+// 100, a radius of 0 as 1,600, an actor being destroyed as None.
+void UPawn::DeusExClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters)
+{
+	UPlayerPawn* player = UObject::TryCast<UPlayerPawn>(this);
+	if (!player || !UObject::TryCast<UViewport>(player->Player()) || !engine->audiodev)
+		return;
+	if (actor && actor->bDeleteMe())
+		actor = nullptr;
+	float radius = parameters.y != 0.0f ? parameters.y : 1600.0f;
+	engine->audiodev->PlaySound(actor, id, sound, soundLocation, parameters.x * 0.01f, radius, parameters.z * 0.01f, (id & 14) == SLOT_Talk * 2);
 }
 
 UActor* UPawn::PickAnyTarget(float& bestAim, float& bestDist, const vec3& FireDir, const vec3& projStart)

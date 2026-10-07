@@ -21,7 +21,10 @@ void NPawn::RegisterFunctions()
 	RegisterVMNativeFunc_2("Pawn", "CanSee", &NPawn::CanSee, 533);
 	RegisterVMNativeFunc_3("Pawn", "CheckValidSkinPackage", &NPawn::CheckValidSkinPackage, 0);
 	RegisterVMNativeFunc_0("Pawn", "ClearPaths", &NPawn::ClearPaths, 522);
-	RegisterVMNativeFunc_5("Pawn", "ClientHearSound", &NPawn::ClientHearSound, 0);
+	if (!engine->LaunchInfo.IsDeusEx())
+		RegisterVMNativeFunc_5("Pawn", "ClientHearSound", &NPawn::ClientHearSound, 0);
+	else
+		RegisterVMNativeFunc_5("Pawn", "ClientHearSound", &NPawn::ClientHearSound_Deus, 0);
 	RegisterVMNativeFunc_1("Pawn", "EAdjustJump", &NPawn::EAdjustJump, 523);
 	RegisterVMNativeFunc_3("Pawn", "FindBestInventoryPath", &NPawn::FindBestInventoryPath, 540);
 	RegisterVMNativeFunc_4("Pawn", "FindPathTo", &NPawn::FindPathTo, 518);
@@ -104,6 +107,11 @@ void NPawn::ClientHearSound(UObject* Self, UObject* Actor, int Id, UObject* S, c
 	USound* Sound = UObject::Cast<USound>(S);
 
 	SelfPawn->ClientHearSound(AActor, Id, Sound, SoundLocation, Parameters);
+}
+
+void NPawn::ClientHearSound_Deus(UObject* Self, UObject* Actor, int Id, UObject* S, const vec3& SoundLocation, const vec3& Parameters)
+{
+	UObject::Cast<UPawn>(Self)->DeusExClientHearSound(UObject::Cast<UActor>(Actor), Id, UObject::Cast<USound>(S), SoundLocation, Parameters);
 }
 
 void NPawn::EAdjustJump(UObject* Self, vec3& ReturnValue)

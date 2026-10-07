@@ -319,8 +319,13 @@ Differs:
 
 Matches `Galaxy.dll` ([`galaxy-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md)):
 Deus Ex's sounds are mixed as its mixer mixes them (pan, volumes,
-resampling and reverb, at `OutputRate`) into one OpenAL source.
-`SoundConsole` and `SkipConsole` record both engines. Differs:
+resampling and reverb, at `OutputRate`) into one OpenAL source. Who hears a
+sound an actor plays is the original's too
+([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds)):
+the player within the radius ÷ √1.3, and with the level's BSP between, at
+0.35 of the volume within 0.77 of that, but for the actor's instigator.
+`SoundConsole` (its hearing test) and `SkipConsole` record both engines.
+Differs:
 
 - The music plays on an OpenAL source of its own.
 - Not carried: Galaxy's quirk with the Sound and Speech sliders equal, both
@@ -330,7 +335,7 @@ resampling and reverb, at `OutputRate`) into one OpenAL source.
   timing ([lighting](#lighting)).
 - A sound's ID packs a number the fork gives each object that plays one,
   never given out twice, where the original packs the object's index
-  ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small));
+  ([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds));
   the slot and `bNoOverride` are packed alike.
 
 ## Implemented, not as the original
@@ -534,8 +539,12 @@ original's native lists, the server's calls, downloads both ways, server
 travel, the Entry level for a lost server, the login, merged bunches, the
 uplink and query answerer, the scripts' sockets
 ([the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)),
-and the addresses they ask for, a player's and the server's own
-([the scripts' addresses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#addresses)).
+the addresses they ask for, a player's and the server's own
+([the scripts' addresses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#addresses)),
+and the sounds the server plays, which a remote player's client plays
+through `Pawn.ClientHearSound`
+([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds);
+`ServeConsole`'s beeps, the client recorded).
 Each runs against the original as client and as server: `ServeConsole`,
 `JoinConsole`, `RejoinConsole`, `TravelServeConsole`, `TravelJoinConsole`,
 `NetConsole`. Until its pawn arrives, a joining fork draws no world. The
@@ -551,15 +560,14 @@ server-only stubs are under
   the next map load that does not use it, and that load's collection frees
   what nothing uses of it but its code, which stays loaded, where the
   original's collects it all ([housekeeping](#housekeeping-not-seen-directly)).
-- **Sounds a server plays.** The original's `PlaySound` has every player pawn
-  hear the sound (`CheckHearSound`,
-  [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),
-  a remote player's through `Pawn.ClientHearSound`, which the server sends to
-  that player's client, where its native plays the sound. The fork's
-  `PlaySound` plays a sound only where it is called and sends nothing, and its
-  `ClientHearSound` is a stub. So a fork client hears none of the sounds an
-  original server plays, and an original client none of a fork server's: each
-  hears only what it plays itself.
+- **A fast listen server's unreliable calls.** A connection's queue drains to
+  two ticks' worth below 0, and an unreliable call goes only while that covers
+  what waits to be sent, as in the original
+  ([packets](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#packets)).
+  A fork listen server drawing some 1,000 frames a second (on the desktop here,
+  VSync on) has no room for one to an internet-speed client (2,600 bytes/s):
+  `ServeConsole`'s 8 beeps, the client recorded, reach it none; at some 100
+  frames (on the hidden display) 4, from the original's 6.
 - **Unchecked:** whether a live server corrects the client at a stop.
 
 As in the original:
