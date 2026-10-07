@@ -1196,9 +1196,6 @@ void Engine::BeginPlay(const UnrealURL& url)
 		auto stringProp = GC::Alloc<UStringProperty>("", nullptr, ObjectFlags::NoFlags);
 		std::string error;
 
-		// Only call PreBegin/Begin/PostBegin/SetInitialState for loaded objects. Spawned objects are added at the end of the Actors array.
-		size_t loadActorCount = Level->Actors.size();
-
 		LevelInfo->bStartup() = true;
 		if (GameInfo)
 		{
@@ -1207,9 +1204,15 @@ void Engine::BeginPlay(const UnrealURL& url)
 				Exception::Throw("InitGame failed: " + error);
 		}
 
-		// Note: the events may spawn actors. We can't use iterators here.
-		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PreBeginPlay); }
-		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::BeginPlay); }
+		// Each pass runs over the list as it grows, as the original's level
+		// start does: an actor spawned during the start takes the later
+		// passes too, after the same events from its spawn. A map's carcass
+		// spawns its items in PostBeginPlay, and only the start's
+		// SetInitialState sends them to the Idle2 it names: left in Pickup,
+		// they lie shown at the carcass. Indexes, not iterators: the events
+		// spawn.
+		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PreBeginPlay); }
+		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::BeginPlay); }
 
 		// The original's level start has every actor 10 s undrawn, whatever
 		// the map file kept, before PostBeginPlay: a ScriptedPawn out of
@@ -1221,20 +1224,28 @@ void Engine::BeginPlay(const UnrealURL& url)
 			for (UActor* actor : Level->Actors) { if (actor) actor->LastRenderTime() = -10.0f; }
 		}
 
-		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PostBeginPlay); }
-		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::SetInitialState); }
-
-		if (engine->LaunchInfo.IsDeusEx())
-		{
-			for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], "PostPostBeginPlay"); }
-		}
-
-		for (size_t i = 0; i < loadActorCount; i++) { if (Level->Actors[i]) Level->Actors[i]->InitBase(); }
+		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PostBeginPlay); }
+		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::SetInitialState); }
+		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) Level->Actors[i]->InitBase(); }
 		LevelInfo->bStartup() = false;
 	}
 
+	CallPostPostBeginPlay();
+
 	if (LevelInfo->Game())
 		CallEvent(LevelInfo->Game(), "DetailChange", {});
+}
+
+// Deus Ex: PostPostBeginPlay for every actor of every level loaded -- begun
+// here, from a save or returned to from Current -- as the original's map
+// load ends, before the player logs in: the pawns and the player bind their
+// conversation events again, and the player takes back the themes the user
+// chose over the save's.
+void Engine::CallPostPostBeginPlay()
+{
+	if (!LaunchInfo.IsDeusEx())
+		return;
+	for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], "PostPostBeginPlay"); }
 }
 
 void Engine::LoadFromSaveFile(const UnrealURL& url)
@@ -1318,6 +1329,8 @@ void Engine::LoadFromSaveFile(const UnrealURL& url)
 	GameInfo = UObject::Cast<UGameInfo>(LevelInfo->Game());
 	if (!GameInfo)
 		Exception::Throw("Save file has no GameInfo actor for " + LevelPackage->GetPackageName().ToString() + "!");
+
+	CallPostPostBeginPlay();
 
 	RequestGarbageCollection("saved level " + realMapName, true);
 }

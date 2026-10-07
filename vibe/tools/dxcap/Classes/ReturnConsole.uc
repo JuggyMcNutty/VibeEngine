@@ -5,7 +5,9 @@
 // (Level.Game), its BaseMutator, and whether the player holds its
 // augmentation and skill systems and its key ring; it exits 6 s into the
 // third. The original keeps a returned level's game (dx-reverse-info
-// engine-dll.md, a level's tick), so all are there each time.
+// engine-dll.md, a level's tick), so all are there each time. A LoadMarker
+// spawned on the first visit to Liberty Island logs its PostPostBeginPlay
+// calls each time there: one, then two on the return.
 //=============================================================================
 class ReturnConsole extends Console;
 
@@ -36,8 +38,12 @@ function string MapOf(PlayerPawn P)
 
 function Report(DeusExPlayer P, string Map)
 {
+	local LoadMarker M;
+
 	Log("DXRETURN: in " $ Map $ " game " $ P.Level.Game $ " BaseMutator " $ P.Level.Game.BaseMutator
 		$ " augs " $ (P.AugmentationSystem != None) $ " skills " $ (P.SkillSystem != None) $ " keys " $ (P.KeyRing != None));
+	foreach P.AllActors(class'LoadMarker', M)
+		Log("DXRETURN: in " $ Map $ " " $ M.Name $ " PostPostBeginPlay " $ M.Begun $ " times");
 }
 
 event Tick(float Delta)
@@ -64,6 +70,8 @@ event Tick(float Delta)
 		Next = "01_NYC_UNATCOIsland";
 	else
 	{
+		if (Step == 0)
+			P.Spawn(class'LoadMarker');
 		if (DeusExPlayer(P) != None)
 			Report(DeusExPlayer(P), Map);
 		Step++;

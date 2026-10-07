@@ -104,11 +104,12 @@ the run. *Either*: one engine on each side of a pair.
 | `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |
 | `RestConsole` | both | where a falling decoration rests | `DXREST:` | |
 | `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |
-| `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys | `DXRETURN:` | |
+| `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |
 | `FrobConsole` | both | the frob highlight round two decorations, the view turned about them | `DXFROB:` | |
 | `LootConsole` | both | two carcasses searched, the inventory grid against its items | `DXLOOT:` | with `vibe/tools/dxcap/timelines/loot-drags.txt` on the fork |
+| `CarcassConsole` | both | what the map's carcasses and a killed NPC's hold, their search, the looted weapon in hand and away | `DXCARC:` | |
 | `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` | |
 | `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` | |
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
@@ -119,7 +120,7 @@ the run. *Either*: one engine on each side of a pair.
 | `DeleteConsole` | both | `CriticalDelete` as the game uses it: nano keys, the log, the history, a game directory; what `AllObjects` still finds | `DXDELETE:` | |
 | `SoundConsole` | both | a sound behind a wall, a reverb zone, beeps from three sides | `DXCAP:` | `sound.py <run>`, with `DXCAP_RECORD=1` |
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
-| `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load | `DXSAVE:` | |
+| `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load; a `LoadMarker`'s `PostPostBeginPlay` calls | `DXSAVE:` | |
 | `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` | |
 | `ServeConsole` | either | a listen server; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py` |
 | `JoinConsole` | either | a client of `127.0.0.1:7790` | `DXNET:` | |

@@ -1,10 +1,11 @@
 //=============================================================================
 // SaveConsole: a save for the other engine to load -- Liberty Island opened
-// from wherever the run starts; 8 s in, what the level holds is logged (the
-// player, its place and inventory, the game, and how many actors, pawns and
-// inventory items), then the game is saved to slot 9 (by a SaveHelper, on
-// the next actors' tick) and the run exits 3 s later. LoadConsole loads that
-// slot and logs the same.
+// from wherever the run starts; 8 s in, a LoadMarker is spawned and what the
+// level holds is logged (the player, its place and inventory, the game, how
+// many actors, pawns and inventory items, and the marker's PostPostBeginPlay
+// calls), then the game is saved to slot 9 (by a SaveHelper, on the next
+// actors' tick) and the run exits 3 s later. LoadConsole loads that slot and
+// logs the same.
 //=============================================================================
 class SaveConsole extends Console;
 
@@ -38,6 +39,7 @@ function Census(PlayerPawn P, string Label)
 {
 	local Actor A;
 	local Inventory Inv;
+	local LoadMarker M;
 	local int Actors, Pawns, Items;
 	local string Carried;
 
@@ -54,6 +56,8 @@ function Census(PlayerPawn P, string Label)
 	Log("DXSAVE: " $ Label $ " in " $ MapOf(P) $ ": player " $ P.Class.Name $ " at " $ P.Location $ " health " $ P.Health);
 	Log("DXSAVE: " $ Label $ " carries" $ Carried);
 	Log("DXSAVE: " $ Label $ " game " $ P.Level.Game $ ", " $ Actors $ " actors, " $ Pawns $ " pawns, " $ Items $ " inventory items");
+	foreach P.AllActors(class'LoadMarker', M)
+		Log("DXSAVE: " $ Label $ " " $ M.Name $ " PostPostBeginPlay " $ M.Begun $ " times");
 }
 
 event Tick(float Delta)
@@ -88,6 +92,7 @@ event Tick(float Delta)
 
 	if (Step == 0 && MapTime > 8.0)
 	{
+		P.Spawn(class'LoadMarker');
 		Census(P, "saved");
 		S = P.Spawn(class'SaveHelper', P);
 		S.Slot = 9;
