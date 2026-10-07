@@ -527,58 +527,22 @@ void UGC::SetNormalFont(UObject* newNormalFont)
 	normalFont() = UObject::Cast<UFont>(newNormalFont);
 }
 
+// The original's (Extension.dll XGC::SetStyle 0x10027170): DSTY_None stops
+// drawing and leaves the rest; any other style draws, masked, translucent or
+// modulated or none of them. Text keeps its own flags, which only
+// EnableTranslucentText sets: text is never modulated.
 void UGC::SetStyle(EDrawStyle NewStyle)
 {
 	Style() = (uint8_t)NewStyle;
-
-	// Is this what it is doing? So stupid to have the same states 3 times!
-	switch (NewStyle)
+	if (NewStyle == EDrawStyle::None)
 	{
-	case EDrawStyle::None:
 		bDrawEnabled() = false;
-		PolyFlags() = 0;
-		textPolyFlags() = 0;
-		break;
-	case EDrawStyle::Normal:
-		PolyFlags() = 0;
-		textPolyFlags() = 0;
-		bDrawEnabled() = true;
-		bMasked() = false;
-		bTranslucent() = false;
-		bModulated() = false;
-		bTextTranslucent() = false;
-		break;
-	case EDrawStyle::Masked:
-		PolyFlags() = 0;
-		textPolyFlags() = 0;
-		bDrawEnabled() = true;
-		bMasked() = true;
-		bTranslucent() = false;
-		bModulated() = false;
-		bTextTranslucent() = false;
-		break;
-	case EDrawStyle::Translucent:
-		PolyFlags() = 0;
-		textPolyFlags() = 0;
-		bDrawEnabled() = true;
-		bMasked() = false;
-		bTranslucent() = true;
-		bModulated() = false;
-		bTextTranslucent() = true;
-		break;
-	case EDrawStyle::Modulated:
-		// Text is never modulated: the GC keeps a translucent flag for text
-		// and no modulated one, and the original draws the frob label, set
-		// out after its modulated backing, in its colour (FrobConsole)
-		PolyFlags() = 0;
-		textPolyFlags() = 0;
-		bDrawEnabled() = true;
-		bMasked() = false;
-		bTranslucent() = false;
-		bModulated() = true;
-		bTextTranslucent() = false;
-		break;
+		return;
 	}
+	bDrawEnabled() = true;
+	bMasked() = NewStyle == EDrawStyle::Masked;
+	bTranslucent() = NewStyle == EDrawStyle::Translucent;
+	bModulated() = NewStyle == EDrawStyle::Modulated;
 }
 
 void UGC::SetTextColor(const Color& newTextColor)
