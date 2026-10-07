@@ -285,13 +285,13 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
   text stays masked, translucent only by `EnableTranslucentText`, so the
   frob label over its modulated backing reads as the original's
   (`FrobConsole`'s shots).
-- **Mouse buttons**: a press grabs the mouse for the window pressed until the
-  button comes up, as the original's, so a drag's moves and its drop reach
-  the item it started on (`LootConsole`: two carcasses searched, the original
-  and the fork alike; the drags between them with `loot-drags.txt`, the fork
-  only). Differs, from the RE's notes, the code unread: the grab is let go
-  at that button's release whoever holds it then; a press is no click
-  count: every one is 1.
+- **Mouse buttons** go as the original's: only while a modal shows, to the
+  window the mouse acts on (the grab, else the one under the pointer in the
+  topmost modal, else that modal), then up its parents. A press grabs the
+  mouse for that window, so a drag's moves and its drop reach the item it
+  started on (`LootConsole`: two carcasses searched, the original and the
+  fork alike; the drags between them with `loot-drags.txt`, the fork only),
+  and counts as a multiple click within 0.5 s and 10 units of the first.
 - **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
   `MoveFocus`, `MoveTabGroup`, the focus moving off a window hidden, made
   unselectable or destroyed, and the windows ticking before the engine are

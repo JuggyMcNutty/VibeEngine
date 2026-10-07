@@ -1,5 +1,6 @@
 
 #include "Precomp.h"
+#include <chrono>
 #include "URootWindow.h"
 #include "Utils/Logger.h"
 #include "Packages/Engine/UViewport.h"
@@ -221,6 +222,9 @@ void URootWindow::StretchRawBackground(std::optional<bool> bStretch)
 void URootWindow::WindowReady()
 {
 	SetRootCursorPos(GetVirtualWidth() * 0.5f, GetVirtualHeight() * 0.5f);
+	// Multiple clicks: within half a second and 10 units (XRootWindow::Init)
+	multiClickTimeout() = 0.5f;
+	maxMouseDist() = 10.0f;
 	UModalWindow::WindowReady();
 }
 
@@ -398,19 +402,53 @@ void URootWindow::SetRootCursorPos(float newMouseX, float newMouseY)
 	focus->MouseMoved(relativeX, relativeY);
 }
 
+// The window under a point (Extension.dll XWindow::FindWindowByPoint
+// 0x1004f740): one that shows, is sensitive and holds the point, its
+// deepest such child that is no modal, topmost first.
+static UWindow* FindWindowByPoint(UWindow* window, float x, float y, float& relativeX, float& relativeY)
+{
+	if (!window->bIsVisible() || !window->bIsSensitive() || x < 0.0f || y < 0.0f || x >= window->Width() || y >= window->Height())
+		return nullptr;
+	for (UWindow* child = window->lastChild(); child; child = child->prevSibling())
+	{
+		if (child->windowType() < 2)
+		{
+			if (UWindow* found = FindWindowByPoint(child, x - child->UsedX, y - child->UsedY, relativeX, relativeY))
+				return found;
+		}
+	}
+	relativeX = x;
+	relativeY = y;
+	return window;
+}
+
+// The window the mouse acts on (Extension.dll XRootWindow::GetMouseWindow
+// 0x1003b0d0): the one that grabbed it, else the one under the pointer in
+// the topmost modal, else that modal (or the root, with none up).
 UWindow* URootWindow::GetCursorFocus(float& relativeX, float& relativeY)
 {
-	if (UWindow* grab = grabbedWindow())
+	UWindow* window = grabbedWindow();
+	if (!window)
 	{
-		ConvertCoordinates(this, MouseX(), MouseY(), grab, relativeX, relativeY);
-		return grab;
+		UWindow* holder = MouseHolder();
+		float x = 0.0f, y = 0.0f;
+		ConvertCoordinates(this, MouseX(), MouseY(), holder, x, y);
+		window = FindWindowByPoint(holder, x, y, relativeX, relativeY);
+		if (!window)
+			window = holder;
 	}
+	ConvertCoordinates(this, MouseX(), MouseY(), window, relativeX, relativeY);
+	return window;
+}
 
-	if (UWindow* cursor = FindWindow(MouseX(), MouseY(), relativeX, relativeY))
-		return cursor;
-
-	relativeX = MouseX();
-	relativeY = MouseY();
+// The topmost modal that shows, else the root.
+UWindow* URootWindow::MouseHolder()
+{
+	for (UWindow* child = lastChild(); child; child = child->prevSibling())
+	{
+		if (child->bIsVisible() && child->windowType() >= 2)
+			return child;
+	}
 	return this;
 }
 
@@ -425,39 +463,7 @@ bool URootWindow::OnWindowMouseMove(const Point& pos)
 
 bool URootWindow::OnWindowMouseDown(const Point& pos, EInputKey key)
 {
-	if (bMouseButtonLocked())
-		return true;
-
-	float relativeX = 0.0f, relativeY = 0.0f;
-	UWindow* focus = GetCursorFocus(relativeX, relativeY);
-
-	if (!focus->bIsSensitive())
-		return IsModalOpen();
-
-	// The original's HandleButtons (dx-reverse-info/extension-dll.md, the
-	// root window): a press grabs the mouse for the window pressed until the
-	// button comes up, so a drag's moves and its release reach the window it
-	// started on wherever the pointer goes.
-	if (IsModalOpen() && !grabbedWindow())
-	{
-		grabbedWindow() = focus;
-		pressGrabButton = key;
-	}
-
-	if (focus->RawMouseButtonPressed(relativeX, relativeY, key, EInputType::IST_Press))
-		return true;
-
-	if (focus->bIsSelectable())
-		SetRootFocusWindow(focus);
-
-	int numClicks = 1; // What is this?
-	for (UWindow* cur = focus; cur; cur = cur->parentOwner())
-	{
-		if (cur->MouseButtonPressed(relativeX, relativeY, key, numClicks))
-			return true;
-	}
-
-	return IsModalOpen();
+	return HandleButton(key, true);
 }
 
 bool URootWindow::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
@@ -468,36 +474,97 @@ bool URootWindow::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 
 bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)
 {
+	return HandleButton(key, false);
+}
+
+// The original's (dx-reverse-info/extension-dll.md, the root window): the
+// UI takes the buttons only while a window holds the mouse, as every shown
+// modal does. Each goes to the window the mouse acts on, then up its
+// parents, each asked RawMouseButtonPressed then MouseButtonPressed or
+// Released until one handles it (XRootWindow::HandleButtons 0x1003b960). A
+// press grabs the mouse for that window, and gives it focus when the modal
+// sets a focusMode; a release of any button lets the grab go. Presses of
+// one button on one window, each within multiClickTimeout of the last and
+// maxMouseDist of the first, count up, wrapped at the window's maxClicks.
+bool URootWindow::HandleButton(EInputKey key, bool press)
+{
+	if (!IsModalOpen())
+		return false;
 	if (bMouseButtonLocked())
 		return true;
 
-	bool handled = ReleaseMouseButton(key);
-	if (key == pressGrabButton)
-	{
-		pressGrabButton = IK_None;
-		grabbedWindow() = nullptr;
-	}
-	return handled || IsModalOpen();
-}
-
-bool URootWindow::ReleaseMouseButton(EInputKey key)
-{
+	UWindow* holder = MouseHolder();
 	float relativeX = 0.0f, relativeY = 0.0f;
-	UWindow* focus = GetCursorFocus(relativeX, relativeY);
+	UWindow* window = GetCursorFocus(relativeX, relativeY);
 
-	if (focus->RawMouseButtonPressed(relativeX, relativeY, key, EInputType::IST_Release))
-		return true;
-
-	if (!focus->bIsSensitive())
-		return false;
-
-	int numClicks = 1; // What is this?
-	for (UWindow* cur = focus; cur; cur = cur->parentOwner())
+	if (press)
 	{
-		if (cur->MouseButtonReleased(relativeX, relativeY, key, numClicks))
+		window->GrabMouse();
+		UModalWindow* modal = UObject::TryCast<UModalWindow>(holder);
+		if (modal && modal->focusMode() != 0)
+		{
+			// SetFocusWindow takes the nearest selectable window up from it
+			UWindow* selectable = window;
+			while (selectable && !selectable->bIsSelectable())
+				selectable = selectable->parentOwner();
+			if (selectable && selectable->IsTraversable(true))
+			{
+				for (UWindow* w = selectable; w; w = w->parentOwner())
+				{
+					if (UModalWindow* owner = UObject::TryCast<UModalWindow>(w))
+					{
+						owner->preferredFocus() = selectable;
+						break;
+					}
+				}
+				SetRootFocusWindow(selectable);
+			}
+		}
+	}
+	else
+	{
+		window->UngrabMouse();
+	}
+
+	// The windows' clock: real seconds (XRootWindow::GetWindowsTickOffset)
+	static const auto clockStart = std::chrono::steady_clock::now();
+	float now = std::chrono::duration<float>(std::chrono::steady_clock::now() - clockStart).count();
+	float dx = std::abs(MouseX() - firstButtonMouseX());
+	float dy = std::abs(MouseY() - firstButtonMouseY());
+	float left = lastButtonPress() - now;
+	if (left <= 0.0f || window != lastButtonWindow() || dx > maxMouseDist() || dy > maxMouseDist() || (int)key != lastButtonType())
+	{
+		left = 0.0f;
+		lastButtonPress() = 0.0f;
+		lastButtonType() = (int)key;
+		lastButtonWindow() = window;
+		clickCount() = 0;
+	}
+	if (press)
+	{
+		if (left > 0.0f)
+			clickCount()++;
+		lastButtonPress() = now + multiClickTimeout();
+		if (clickCount() < 1)
+		{
+			firstButtonMouseX() = MouseX();
+			firstButtonMouseY() = MouseY();
+		}
+	}
+
+	for (UWindow* cur = window; cur; cur = cur->parentOwner())
+	{
+		ConvertCoordinates(this, MouseX(), MouseY(), cur, relativeX, relativeY);
+		if (cur->RawMouseButtonPressed(relativeX, relativeY, key, press ? EInputType::IST_Press : EInputType::IST_Release))
+			return true;
+		int numClicks = clickCount();
+		if (cur->maxClicks() > 0)
+			numClicks %= cur->maxClicks();
+		numClicks++;
+		if (press ? cur->MouseButtonPressed(relativeX, relativeY, key, numClicks) : cur->MouseButtonReleased(relativeX, relativeY, key, numClicks))
 			return true;
 	}
-	return false;
+	return true;
 }
 
 bool URootWindow::OnWindowMouseWheel(const Point& pos, EInputKey key)
