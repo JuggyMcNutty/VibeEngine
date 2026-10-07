@@ -8,6 +8,7 @@
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/UViewport.h"
+#include "Packages/Extension/Windows/TabGroup/URootWindow.h"
 #include "Utils/File.h"
 #include "Utils/Logger.h"
 #include "Utils/StrTools.h"
@@ -102,14 +103,28 @@ void Timeline::Run(Action& action)
 			if (Engine::keynames[i] && StrTools::equals_ignore_case(Engine::keynames[i], action.Arg))
 			{
 				LogMessage("DXLIVE: " + action.Verb + " " + action.Arg);
+				EInputKey key = (EInputKey)i;
+				bool mouse = key == IK_LeftMouse || key == IK_RightMouse || key == IK_MiddleMouse;
 				if (action.Verb == "press")
-					engine->OnWindowKeyDown((EInputKey)i);
+					mouse ? engine->OnWindowMouseDown(Point(), key) : engine->OnWindowKeyDown(key);
 				else
-					engine->OnWindowKeyUp((EInputKey)i);
+					mouse ? engine->OnWindowMouseUp(Point(), key) : engine->OnWindowKeyUp(key);
 				return;
 			}
 		}
 		LogMessage("Timeline: no key '" + action.Arg + "'");
+		return;
+	}
+
+	if (action.Verb == "pointer")
+	{
+		std::istringstream xy(action.Arg);
+		float x = 0.0f, y = 0.0f;
+		if (engine->dxRootWindow && (xy >> x >> y))
+		{
+			LogMessage("DXLIVE: pointer " + action.Arg);
+			engine->dxRootWindow->SetRootCursorPos(x, y);
+		}
 		return;
 	}
 

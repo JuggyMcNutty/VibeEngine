@@ -1,0 +1,45 @@
+# LootConsole's drags in the inventory screen between its two searches, in
+# the root window's coordinates at 1280x720: the crossbow from cell 0,0 to
+# 2,3, the crowbar released outside the screen's window, the crossbow onto
+# the belt; each drag ends in small moves, as a hand's would. Shots of each.
+# DXCAP_TIMELINE=<this> vibe/tools/dxcap.sh fork LootConsole 01_NYC_UNATCOIsland
+start 22 press F1
+start 22.1 release F1
+start 24 shot
+start 24.5 pointer 228 208
+start 25 press LeftMouse
+start 25.2 pointer 240 220
+start 25.4 pointer 270 260
+start 25.6 pointer 300 320
+start 25.8 pointer 334 367
+start 25.85 pointer 336 368
+start 25.92 pointer 335 369
+start 26 release LeftMouse
+start 27 shot
+start 27.5 pointer 307 208
+start 28 press LeftMouse
+start 28.2 pointer 330 230
+start 28.4 pointer 600 400
+start 28.6 pointer 880 650
+start 28.65 pointer 882 651
+start 28.72 pointer 881 652
+start 28.8 release LeftMouse
+start 29.5 shot
+start 30 pointer 334 367
+start 30.5 press LeftMouse
+start 30.7 pointer 360 400
+start 30.9 pointer 450 500
+start 31.1 pointer 548 565
+start 31.15 pointer 550 566
+start 31.22 pointer 549 567
+start 31.3 release LeftMouse
+start 32 shot
+start 33 press F1
+start 33.1 release F1
+start 34 shot
+start 50 press F1
+start 50.1 release F1
+start 52 shot
+start 53 press F1
+start 53.1 release F1
+start 54 shot

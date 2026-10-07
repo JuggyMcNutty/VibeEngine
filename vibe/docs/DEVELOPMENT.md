@@ -106,6 +106,7 @@ the run. *Either*: one engine on each side of a pair.
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |
+| `LootConsole` | both | two carcasses searched, the inventory grid against its items | `DXLOOT:` | with `vibe/tools/dxcap/timelines/loot-drags.txt` on the fork |
 | `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` | |
 | `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` | |
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
@@ -133,15 +134,18 @@ the run. *Either*: one engine on each side of a pair.
 
 ### Timelines
 
-A fork run with `-` for its console keeps the stock one and does what `DXCAP_TIMELINE`'s file
-says, in [the live mode's format](#live-servers). `vibe/tools/dxcap/timelines` has the map
-loads that show what a session keeps of the levels it left, both from Liberty Island, ten
-loads of each map 25 s apart, then an exit:
+A fork run does what `DXCAP_TIMELINE`'s file says, in [the live mode's format](#live-servers),
+beside its console's own script; with `-` for its console it keeps the stock one. Keys reach the
+game as the window's do, so a timeline drives the UI, which no console can.
+`vibe/tools/dxcap/timelines` has the map loads that show what a session keeps of the levels it
+left, both from Liberty Island, ten loads of each map 25 s apart, then an exit:
 
 | Timeline | Between | So each load |
 |---|---|---|
 | `reload-fresh.txt` | the island and Battery Park | crosses a mission: `Current` emptied, the map from `Maps` |
 | `reload-current.txt` | the island and UNATCO HQ | stays in mission 1: the map left saved into `Current`, the next one from there |
+
+and `loot-drags.txt`, `LootConsole`'s drags in the inventory screen.
 
 ```sh
 DXCAP_HIDDEN=1 DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \
@@ -169,8 +173,9 @@ Every server's game disconnects a player whose console is not the stock one
 So `live <address> [<secs>]` keeps the stock console, and the engine drives the run from a
 timeline (`--timeline=<file>`, `SurrealEngine/Timeline.h`). Each line is
 `<clock> <seconds> <action>`: the clock `start` (from the engine's start) or `game` (seconds of
-the net game); the action `press <key>` or `release <key>` as the key in the window, or a console
-command (`shot`, `exit`, ...). The timeline is `DXCAP_TIMELINE`'s file, or `JoinConsole`'s walk:
+the net game); the action `press <key>` or `release <key>` as the key in the window (a mouse button
+pressed where the pointer is), `pointer <x> <y>` the pointer moved there in the root window's
+coordinates, or a console command (`shot`, `exit`, ...). The timeline is `DXCAP_TIMELINE`'s file, or `JoinConsole`'s walk:
 stand 5 s, walk forward 5 s (`W`), stand, shots at the stops, out at 25 s. Each second of the
 game the player's place and every other pawn's are logged (`DXLIVE:`); a run dropped to the menu
 exits. A join downloads what the fork lacks into the game's `Cache`. Which servers are up, and

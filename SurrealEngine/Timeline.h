@@ -9,8 +9,9 @@
 // this presses keys and runs console commands at set times instead. Each
 // line of the file is "<clock> <seconds> <action>": the clock "start" counts
 // from the engine's start, "game" the seconds of a net game this client is
-// in; the action "press <key>" or "release <key>" as the key in the window,
-// else a console command (shot, exit, ...). Each second of the game where
+// in; the action "press <key>" or "release <key>" as the key in the window
+// (a mouse button as pressed at the pointer), "pointer <x> <y>" the root
+// window's pointer moved there, else a console command (shot, exit, ...). Each second of the game where
 // the player stands is logged, and every other pawn's place and animation,
 // as JoinConsole logs them; dropped back to the menu, the run exits.
 class Timeline
