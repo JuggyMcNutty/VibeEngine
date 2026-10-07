@@ -502,6 +502,14 @@ UObject* UActor::Trace(vec3& hitLocation, vec3& hitNormal, const vec3& traceEnd,
 	}
 
 	CollisionHit hit = XLevel()->Collision.TraceFirstHit(traceStart, traceEnd, this, extent, flags);
+	if (!hit.Actor)
+	{
+		// With nothing hit the original gives a location and normal of zero
+		// (TraceConsole), not the line's end
+		hitNormal = vec3(0.0f);
+		hitLocation = vec3(0.0f);
+		return nullptr;
+	}
 	hitNormal = hit.Normal;
 	hitLocation = traceStart + (traceEnd - traceStart) * hit.Fraction;
 	return hit.Actor;

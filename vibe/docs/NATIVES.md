@@ -353,14 +353,22 @@ Differs:
   1e-7 can carry the other sign, seen looking straight down at a yaw of 180
   degrees. The engine's own rotations (the view, movement) keep exact angles.
 - **`TraceActors`** runs over the multi-hit line check of Deus Ex's own
-  iterators, as the original's: every hit nearest first, the level's as the
-  `LevelInfo`, nothing past the first wall, `BaseClass` not used
-  (`TraceConsole`: lines through 10 decorations list the same actors in the
-  same order). The player's frob target, `HighlightCenterObject`, takes the
-  first pawn or mover on it. Differs: an actor's hit is up to 4 units nearer;
-  the lines to 2 of the decorations, crates under the pier, meet the floor
-  some 490 units before the original's do, in the level check `TraceTexture`
-  shares.
+  iterators, as the original's: the level first, the line cut to 5 units
+  past its hit (the `LevelInfo`'s); then the actors and movers along the cut
+  line, each given a thousandth of it short; every hit nearest first,
+  `BaseClass` not used. The player's frob target, `HighlightCenterObject`,
+  takes the first pawn or mover on it. A line that starts inside a cylinder
+  and heads in is stopped there with a level normal out from the axis.
+  `Trace` with nothing hit gives a location and normal of zero
+  (`TraceConsole`: lines through 10 decorations between whole units give
+  the same hits, distances and normals in both, but for a patrolling bot's).
+  Differs: a box started inside a cylinder keeps the least penetration's
+  normal.
+- **Decorations in water sink**: falling, the original's take their
+  `Buoyancy` against their `Mass` in a water zone and float (`FloatConsole`:
+  the crates in the water by Liberty Island's pier rise and bob at the
+  surface, about z −352); the fork's fall at full gravity to the bottom
+  (z −454). The physics is unread (`physFalling`).
 - **`Object.DynamicLoadObject`** with a group (`Package.Group.Name`): the
   fork looks the rest up as one name and finds nothing. The game's scripts
   name no group.

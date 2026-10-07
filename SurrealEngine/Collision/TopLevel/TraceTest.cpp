@@ -365,7 +365,18 @@ void TraceTester::TraceActor(UActor* actor, const dvec3& origin, double tmin, co
 		if (t < tmax)
 		{
 			dvec3 hitpos = origin + dirNormalized * t;
-			hits.push_back({ (float)t, CylinderHitNormal(hitpos, actor, height, radius), actor, nullptr, nullptr });
+			vec3 normal = CylinderHitNormal(hitpos, actor, height, radius);
+
+			// A line stopped at its start inside the cylinder takes the
+			// original's normal there: out from the axis, level (TraceConsole).
+			// A box keeps the least penetration's.
+			dvec3 offset(origin.x - actor->Location().x, origin.y - actor->Location().y, 0.0);
+			if (t == 0.0 && height == 0.0 && radius == 0.0 && engine->LaunchInfo.IsDeusEx() && dot(offset, offset) > 0.0)
+			{
+				offset /= std::sqrt(dot(offset, offset));
+				normal = vec3((float)offset.x, (float)offset.y, 0.0f);
+			}
+			hits.push_back({ (float)t, normal, actor, nullptr, nullptr });
 		}
 	}
 }

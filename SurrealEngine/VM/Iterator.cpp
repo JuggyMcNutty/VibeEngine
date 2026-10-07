@@ -526,53 +526,51 @@ bool ZoneActorsIterator::Next()
 
 // The original's MultiLineCheck under the two Deus Ex trace iterators:
 // the level's BSP first -- its hit's actor the LevelInfo -- with the line
-// shortened to 5 units past the wall; then the actors along what is left,
+// cut to 5 units past the wall; then the actors along what is left, movers
+// among them, each given short by a thousandth of the cut line (TraceConsole);
 // up to 64 hits in all, nearest first. Nothing beyond the first wall.
 static CollisionHitList DeusExMultiLineCheck(const vec3& start, const vec3& end, const vec3& extent, bool visibilityOnly)
 {
 	float radius = length(extent.xy());
 	float height = std::abs(extent.z);
-	CollisionHitList all = engine->Level->Collision.Trace(start, end, height, radius, true, true, visibilityOnly);
-
-	CollisionHit wall;
-	bool haveWall = false;
-	for (const CollisionHit& hit : all)
-	{
-		if (hit.Node)
-		{
-			wall = hit;
-			haveWall = true;
-			break;
-		}
-	}
-	float limit = 1.0f;
-	if (haveWall)
-	{
-		float lineLength = length(end - start);
-		limit = lineLength > 0.0f ? std::min(1.0f, wall.Fraction + 5.0f / lineLength) : wall.Fraction;
-	}
 
 	CollisionHitList result;
-	int count = 0;
-	for (const CollisionHit& hit : all)
+	float limit = 1.0f;
+	for (const CollisionHit& hit : engine->Level->Collision.Trace(start, end, height, radius, false, true, visibilityOnly))
 	{
-		if (count >= 64 || hit.Fraction > limit)
-			break;
-		if (hit.Node)
+		if (hit.Node && !hit.Actor)
 		{
-			if (haveWall && hit.Node == wall.Node && hit.Fraction == wall.Fraction)
-			{
-				CollisionHit levelHit = hit;
-				levelHit.Actor = engine->LevelInfo;
-				result.push_back(levelHit);
-				count++;
-			}
-			continue;
+			CollisionHit levelHit = hit;
+			levelHit.Actor = engine->LevelInfo;
+			result.push_back(levelHit);
+			float lineLength = length(end - start);
+			limit = lineLength > 0.0f ? std::min(1.0f, hit.Fraction + 5.0f / lineLength) : hit.Fraction;
+			break;
 		}
-		result.push_back(hit);
-		count++;
 	}
-	return result;
+
+	vec3 cutEnd = mix(start, end, limit);
+	if (cutEnd != start)
+	{
+		for (CollisionHit hit : engine->Level->Collision.Trace(start, cutEnd, height, radius, true, true, visibilityOnly))
+		{
+			if (hit.Node && !hit.Actor)
+				continue;
+			hit.Fraction *= limit;
+			result.push_back(hit);
+		}
+	}
+	result.SortByFraction();
+
+	CollisionHitList capped;
+	int count = 0;
+	for (const CollisionHit& hit : result)
+	{
+		if (count++ >= 64)
+			break;
+		capped.push_back(hit);
+	}
+	return capped;
 }
 
 TraceTextureIterator::TraceTextureIterator(UObject* BaseClass, UObject** OutActor, NameString* TexName, NameString* TexGroup, int* Flags, vec3* HitLoc, vec3* HitNorm, const vec3& End, const vec3& Start, const vec3& Extent)
