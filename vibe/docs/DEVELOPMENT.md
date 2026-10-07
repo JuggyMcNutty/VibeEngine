@@ -131,7 +131,8 @@ the run. *Either*: one engine on each side of a pair.
 - `SaveConsole` and `LoadConsole` use the game's own `Save\Save0009` and `Save\Current`: delete
   them after. The original's own saves are in `reference/original-saves/`: Liberty Island's start
   (no cheats), and a quick save, a hub save (`bCheatsEnabled`) and the `Current` folder from a
-  travel to UNATCO HQ and back.
+  travel to UNATCO HQ and back. Copied into `Save0009`, the hub save loads in both engines; with
+  the quick save there the original never finishes its run.
 - In `VisibleConsole`'s logs the original numbers the player and its shadow one higher: its menu
   map made the first.
 - A sweep runs `MissionConsole` over every mission map; no driver for it is committed.

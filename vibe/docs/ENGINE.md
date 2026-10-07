@@ -332,7 +332,8 @@ references it made None by holder, and gives the freed memory back to the system
   its own (the mixer's 16-bit one, OpenAL's buffer); the sound keeps only its length, channels,
   rate and loop. Its lip-sync shapes decode it again once, into a buffer let go after.
 - **Saving a level** writes what the level reaches (`PackageWriter`), never the rest of its
-  file: an export the collector freed is not loaded back to be saved.
+  file: an export the collector freed is not loaded back to be saved. An object of a transient
+  class is not written either ([as the original's](NATIVES.md#saving-loading-and-travel)).
 - **Elimination**: a reference to an object flagged `EliminateObject` is made None where the
   marker finds it (`GCMarker::Mark`), as the original's. One held where it may not be written
   (`MarkConst`: the subsystems, the net layer, what code names) keeps it, and the log says so.

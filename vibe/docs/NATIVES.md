@@ -580,7 +580,8 @@ As in the original:
 Stubs a single-player game does without; the audit lists each:
 
 - `DumpLocation`'s 21: Ion Storm's bug-location tool, though
-  `DeusExGameInfo.Login` calls `HasLocationBeenSaved` on every map.
+  `DeusExGameInfo.Login` calls `HasLocationBeenSaved` on every map but a
+  save's.
 - `DebugInfo` (compiled out in the original too:
   [`DebugInfo`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#debuginfo)),
   `SaveTimeDemo`, `Commandlet.Main`, and `Object`'s `clock`, `unclock` and
