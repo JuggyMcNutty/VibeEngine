@@ -134,6 +134,16 @@ fork keeps Distant AI's own `LastVisibleFrame`
 
 ## On screen
 
+### The view's width
+
+Differs by choice: on a screen wider than 4:3 the view keeps the height a
+4:3 screen shows and sees more at the sides (Hor+), where the original keeps
+its field of view across the width and loses height. The game's scenes are
+framed for 4:3: at 16:9, with the original's angle, the intro's "Deus Ex"
+under the logo falls off the bottom; with the fork's it shows. At 4:3 and narrower the view is the
+original's. The scene, the coronas, what the HUD draws in 3D and the frob
+highlight's box all take the one angle (`HorPlusFovAngle`).
+
 ### Particles and lasers: render iterators
 
 Matches the original ([render iterators](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-iterators),
@@ -268,7 +278,8 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
   by the main scene's view into the root window's coordinates, so it hugs
   the target as the original's does (`FrobConsole`: two decorations, the
   crosshair on their middle and turned 5 degrees four ways, the box's edges
-  within 7 pixels of the original's at 1280x720).
+  within 7 pixels of the original's at 1280x720 with the original's
+  [view width](#the-views-width)).
 - **Mouse buttons**: a press grabs the mouse for the window pressed until the
   button comes up, as the original's, so a drag's moves and its drop reach
   the item it started on (`LootConsole`: two carcasses searched, the original

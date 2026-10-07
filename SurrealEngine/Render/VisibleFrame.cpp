@@ -461,7 +461,7 @@ void VisibleFrame::SetupSceneFrame(const mat4& worldToView)
 	Frame.FY2 = Frame.FY * 0.5f;
 	Frame.ObjectToWorld = mat4::identity();
 	Frame.WorldToView = worldToView;
-	Frame.FovAngle = engine->CameraFovAngle;
+	Frame.FovAngle = HorPlusFovAngle(engine->CameraFovAngle, Frame.FX, Frame.FY);
 	float Aspect = Frame.FY / Frame.FX;
 	float RProjZ = (float)std::tan(radians(Frame.FovAngle) * 0.5f);
 	float RFX2 = 2.0f * RProjZ / Frame.FX;

@@ -31,6 +31,16 @@ struct SceneNode
 	float Zoom = 1.0f;
 };
 
+// Hor+: a view wider than 4:3 keeps the height a 4:3 view of the angle
+// given would have and sees more at the sides, where the original keeps the
+// angle across the width whatever the screen (vibe/docs/NATIVES.md, the
+// view's width). The angle the view's frame takes.
+inline float HorPlusFovAngle(float fovAngle, float width, float height)
+{
+	float widen = std::max(1.0f, (width / height) / (4.0f / 3.0f));
+	return degrees(2.0f * std::atan(std::tan(radians(fovAngle) * 0.5f) * widen));
+}
+
 struct GouraudVertex
 {
 	vec3 Point;

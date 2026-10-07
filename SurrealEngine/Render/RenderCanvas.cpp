@@ -33,7 +33,7 @@ void RenderSubsystem::ResetCanvas()
 	Canvas.Frame.FY2 = Canvas.Frame.FY * 0.5f;
 	Canvas.Frame.ObjectToWorld = mat4::identity();
 	Canvas.Frame.WorldToView = mat4::identity();
-	Canvas.Frame.FovAngle = engine->CameraFovAngle;
+	Canvas.Frame.FovAngle = HorPlusFovAngle(engine->CameraFovAngle, Canvas.Frame.FX, Canvas.Frame.FY);
 	float Aspect = Canvas.Frame.FY / Canvas.Frame.FX;
 	float RProjZ = (float)std::tan(radians(Canvas.Frame.FovAngle) * 0.5f);
 	float RFX2 = 2.0f * RProjZ / Canvas.Frame.FX;
@@ -146,7 +146,7 @@ void RenderSubsystem::DrawClippedActor(UActor* actor, bool WireFrame, int X, int
 	frame.FY2 = frame.FY * 0.5f;
 	frame.ObjectToWorld = Coords::ViewToRenderDev().ToMatrix();
 	frame.WorldToView = mat4::identity();
-	frame.FovAngle = engine->CameraFovAngle;
+	frame.FovAngle = HorPlusFovAngle(engine->CameraFovAngle, frame.FX, frame.FY);
 	float Aspect = frame.FY / frame.FX;
 	float RProjZ = (float)std::tan(radians(frame.FovAngle) * 0.5f);
 	float RFX2 = 2.0f * RProjZ / frame.FX;
