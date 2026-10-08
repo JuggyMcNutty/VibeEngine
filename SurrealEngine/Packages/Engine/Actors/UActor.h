@@ -426,6 +426,11 @@ public:
 	UPawn* PreparePawnMovementTick();
 	// Fires the HitWall event with the actor/level that was hit - used by every movement tick function.
 	void FireHitWall(const CollisionHit& hit);
+	// Deus Ex's: the original's processHitWall, which gives a pawn HitWall
+	// only when it heads into the wall, and TwoWallAdjust, a move's slide
+	// along a second wall.
+	void ProcessHitWall(vec3 hitNormal, UActor* hitActor);
+	static void TwoWallAdjust(const vec3& desiredDir, vec3& delta, const vec3& hitNormal, const vec3& oldHitNormal, float hitTime);
 	// Steps onto the ground if able, if not (would be falling) retuns false without moving
 	bool TryStepToGround(vec3 stepDownDelta);
 

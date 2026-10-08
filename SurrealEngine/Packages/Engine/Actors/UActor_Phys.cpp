@@ -432,6 +432,65 @@ void UActor::FireHitWall(const CollisionHit& hit)
 	CallEvent(this, EventName::HitWall, { ExpressionValue::VectorValue(hit.Normal), ExpressionValue::ObjectValue(hit.Actor ? hit.Actor : Level()) });
 }
 
+// AActor::processHitWall (Engine.dll 0x103cecc0, dx-reverse-info/
+// engine-dll.md, moving): nothing when a pawn was hit. Any other actor gets
+// HitWall if its state probes it. A pawn only with an acceleration, heading
+// into the wall -- the direction to its Destination MinHitWall or less along
+// the normal, both level when it walks -- and then, not probing HitWall and
+// not falling, it gives up its move (MoveTimer -1, bFromWall) instead.
+void UActor::ProcessHitWall(vec3 hitNormal, UActor* hitActor)
+{
+	if (UObject::TryCast<UPawn>(hitActor))
+		return;
+	if (UPawn* pawn = UObject::TryCast<UPawn>(this))
+	{
+		if (Acceleration() == vec3(0.0f))
+			return;
+		vec3 dir = pawn->Destination() - Location();
+		float len = length(dir);
+		dir = len > 0.0f ? dir / len : vec3(0.0f);
+		if (Physics() == PHYS_Walking)
+		{
+			hitNormal.z = 0.0f;
+			dir.z = 0.0f;
+		}
+		if (dot(dir, hitNormal) > pawn->MinHitWall())
+			return;
+		if (!IsEventEnabled(EventName::HitWall) && Physics() != PHYS_Falling)
+		{
+			pawn->MoveTimer() = -1.0f;
+			pawn->bFromWall() = true;
+			return;
+		}
+	}
+	else if (!IsEventEnabled(EventName::HitWall))
+	{
+		return;
+	}
+	CallEvent(this, EventName::HitWall, { ExpressionValue::VectorValue(hitNormal), ExpressionValue::ObjectValue(hitActor ? hitActor : Level()) });
+}
+
+// AActor::TwoWallAdjust (Engine.dll 0x10323770): a move stopped by a second
+// wall slides along the corner where the two meet, or along the second.
+void UActor::TwoWallAdjust(const vec3& desiredDir, vec3& delta, const vec3& hitNormal, const vec3& oldHitNormal, float hitTime)
+{
+	if (dot(oldHitNormal, hitNormal) <= 0.0f)
+	{
+		vec3 newDir = cross(hitNormal, oldHitNormal);
+		float len = length(newDir);
+		newDir = len > 0.0f ? newDir / len : vec3(0.0f);
+		delta = newDir * (dot(delta, newDir) * (1.0f - hitTime));
+		if (dot(desiredDir, delta) < 0.0f)
+			delta = -delta;
+	}
+	else
+	{
+		delta = (delta - hitNormal * dot(delta, hitNormal)) * (1.0f - hitTime);
+		if (dot(delta, desiredDir) <= 0.0f)
+			delta = vec3(0.0f);
+	}
+}
+
 bool UActor::TryStepToGround(vec3 stepDownDelta)
 {
 	CollisionHitList hits;

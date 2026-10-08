@@ -363,7 +363,11 @@ which the scripts' `SupportActor` bounces off 50 up and 25 to 50 sideways at
 random, again until it slips off, and the one under it stomped but for a
 human NPC not hostile to the player (`StompConsole`: the player and Paul
 Denton on each other, crates), falls in water (`FloatConsole`: a buoyant
-crate rises and bobs at the surface at the original's speeds),
+crate rises and bobs at the surface at the original's speeds), swimming
+(`SwimConsole`: the player and a troop falling or thrown into water are put
+back at the water line and swim on, the player stopped as its head goes
+under and held to 0.3 of `WaterSpeed`, as it walks whenever it swims; up out
+of the water it hops and falls back in, bobbing),
 `SetLocation`, the rotators' conversions (`RotatorConsole`,
 702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
 `MidConsole`'s ten probes of both, and `Object.DynamicLoadObject` with a
@@ -381,9 +385,6 @@ Differs:
 - **A box started inside a cylinder** keeps the least penetration's normal;
   the original's is level, out from the axis, as a line's is in both
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
-- **A pawn falling into water** goes deeper: the player pushed off the pier
-  (`RestConsole`) stops at z −373 in the original's and rises again, and
-  sinks to −486 first in the fork's. Swimming's own physics are unread.
 - **Falling out of water** keeps the fork's own step, where the original's
   moves by the step's mean velocity
   ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).

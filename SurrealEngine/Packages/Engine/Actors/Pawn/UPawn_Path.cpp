@@ -582,27 +582,6 @@ namespace
 		}
 		node->previousPath() = reversed;
 	}
-
-	// TwoWallAdjust (UE1's AActor::TwoWallAdjust): a move stopped by a second
-	// wall slides along the corner where the two meet, or along the second.
-	void TwoWallAdjust(const vec3& desiredDir, vec3& delta, const vec3& hitNormal, const vec3& oldHitNormal, float hitTime)
-	{
-		if (dot(oldHitNormal, hitNormal) <= 0.0f)
-		{
-			vec3 newDir = cross(hitNormal, oldHitNormal);
-			float len = length(newDir);
-			newDir = len > 0.0f ? newDir / len : vec3(0.0f);
-			delta = newDir * (dot(delta, newDir) * (1.0f - hitTime));
-			if (dot(desiredDir, delta) < 0.0f)
-				delta = -delta;
-		}
-		else
-		{
-			delta = (delta - hitNormal * dot(delta, hitNormal)) * (1.0f - hitTime);
-			if (dot(delta, desiredDir) <= 0.0f)
-				delta = vec3(0.0f);
-		}
-	}
 }
 
 // The original's ULevel::FarMoveActor as a test (engine-dll.md, teleporting an

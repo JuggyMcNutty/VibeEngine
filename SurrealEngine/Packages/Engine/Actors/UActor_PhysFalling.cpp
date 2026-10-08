@@ -113,6 +113,16 @@ void UActor::TickFalling(float elapsed)
 		float stepTime = timeLeft;
 
 		CollisionHit hit = move(moveDelta);
+
+		// Deus Ex: a pawn the move took into water, which its script made
+		// swim (ZoneChange), swims the rest of the step with the step's old
+		// velocity (APawn::startSwimming, from physFalling).
+		if (deusEx && pawn && Physics() == PHYS_Swimming)
+		{
+			pawn->DeusExStartSwimming(oldVelocity, stepTime, stepTime * (1.0f - hit.Fraction));
+			return;
+		}
+
 		timeLeft -= timeLeft * hit.Fraction;
 
 		if (hit.Fraction < 1.0f)

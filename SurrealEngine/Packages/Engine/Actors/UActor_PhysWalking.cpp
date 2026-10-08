@@ -59,6 +59,17 @@ void UActor::TickWalking(float elapsed)
 
 	Velocity().z = 0.0f;
 
+	// Deus Ex: a pawn its walk took into water, which its script made swim
+	// (ZoneChange), swims the rest of the tick with its velocity as the old,
+	// as the original's physWalking hands over to startSwimming after its
+	// moves.
+	auto intoWater = [&]() {
+		if (!engine->LaunchInfo.IsDeusEx() || Physics() != PHYS_Swimming)
+			return false;
+		pawn->DeusExStartSwimming(Velocity(), elapsed, 0.0f);
+		return true;
+	};
+
 	// The classic step up, move and step down algorithm:
 
 	float gravityDirection = zone->ZoneGravity().z > 0.0f ? 1.0f : -1.0f;
@@ -90,11 +101,13 @@ void UActor::TickWalking(float elapsed)
 
 			// try move forward
 			CollisionHit hit = TryMove(moveDelta);
+			if (intoWater())
+				return;
 			timeLeft -= timeLeft * hit.Fraction;
 			moveDelta = vel * timeLeft;
 
 			//check for fall and backtrack
-			if (ShouldAbortJumping(pawn, oldPosition, stepDownDelta))
+			if (ShouldAbortJumping(pawn, oldPosition, stepDownDelta) || intoWater())
 				return;
 
 			// if hit, step up and try again - maybe there was a ledge to get over
@@ -103,6 +116,8 @@ void UActor::TickWalking(float elapsed)
 				TryMove(stepUpDelta);
 				oldPosition = Location();
 				hit = TryMove(moveDelta);
+				if (intoWater())
+					return;
 				timeLeft -= timeLeft * hit.Fraction;
 
 				//check for fall and backtrack
@@ -111,9 +126,13 @@ void UActor::TickWalking(float elapsed)
 					TryMove(-stepUpDelta);
 					return;
 				}
+				if (intoWater())
+					return;
 
 				// move back down to original vertical position
 				TryMove(-stepUpDelta);
+				if (intoWater())
+					return;
 			}
 
 			oldPosition = Location();
@@ -147,6 +166,8 @@ void UActor::TickWalking(float elapsed)
 					if (dot(moveDelta, alignedDelta) >= 0.0f) // Don't end up going backwards
 					{
 						hit = TryMove(alignedDelta);
+						if (intoWater())
+							return;
 						timeLeft -= timeLeft * hit.Fraction;
 						if (hit.Fraction < 1.0f)
 						{
@@ -161,7 +182,7 @@ void UActor::TickWalking(float elapsed)
 			}
 
 			//check for fall and backtrack
-			if (ShouldAbortJumping(pawn, oldPosition, stepDownDelta))
+			if (ShouldAbortJumping(pawn, oldPosition, stepDownDelta) || intoWater())
 				return;
 		}
 	}
@@ -172,6 +193,10 @@ void UActor::TickWalking(float elapsed)
 		{
 			SetPhysics(PHYS_Falling);
 			SetBase(nullptr, true);
+		}
+		else if (intoWater())
+		{
+			return;
 		}
 	}
 
