@@ -47,6 +47,7 @@ scripts/engine.sh build <port>              # build/<port>/engine, from the port
 
 ```sh
 vibe/tools/perf/perf.sh on|off|save         # the profiling hooks (below)
+vibe/tools/perf/frame-report.py <run>...    # a PerfConsole run's frame by area and function (DEVELOPMENT.md)
 vibe/tools/host-tools.sh                    # perf and the validation layer, into the repositories' deps/
 vibe/tools/natives_audit.py                 # the original's natives against the fork's (NATIVES.md)
 vibe/tools/dxcap.sh                         # scripted runs of both engines (DEVELOPMENT.md)
@@ -158,7 +159,8 @@ VK_KHRONOS_VALIDATION_VALIDATE_SYNC=true \
 ```
 
 `--call-graph dwarf` on `perf record` gives callers (the desktop build has no frame pointers
-unless the hooks are on).
+unless the hooks are on). Against the original, the harness measures both engines' frames the
+same way ([measuring both engines](DEVELOPMENT.md#measuring-both-engines)).
 
 ## Settings and environment
 

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Keeps the marked frames of a screen grab.
+"""Keeps the marked frames of a window's grabs.
 
-Reads an X display's screen five times a second (ImageMagick's import) until
-killed. A frame whose view carries CaptureConsole's mark -- a magenta block,
-then the shot's number in eight black or white blocks of 12 pixels -- is
-written as ShotNNNN.ppm to the output folder, cropped to the view from the
-mark's corner; the last one of each number wins, the steadiest.
+Reads the window of that name on an X display five times a second
+(xdotool's search, ImageMagick's import) until killed. A frame whose view
+carries CaptureConsole's mark -- a magenta block, then the shot's number in
+eight black or white blocks of 12 pixels -- is written as ShotNNNN.ppm to the
+output folder, cropped to the view from the mark's corner; the last one of
+each number wins, the steadiest.
 
-    grab.py <out dir> <display> <width> <height> <view width> <view height>
+    grab.py <out dir> <display> <window name pattern> <view width> <view height>
 """
 import os
 import subprocess
@@ -47,20 +48,52 @@ def read_number(frame, width, x, y):
     return number
 
 
+def parse_ppm(data):
+    """Width, height and pixels of a binary PPM (import's, no comments)."""
+    if not data.startswith(b'P6'):
+        return None
+    fields, i = [], 2
+    while len(fields) < 3:
+        while i < len(data) and data[i:i + 1].isspace():
+            i += 1
+        j = i
+        while j < len(data) and not data[j:j + 1].isspace():
+            j += 1
+        if j == i:
+            return None
+        fields.append(int(data[i:j]))
+        i = j
+    width, height, _ = fields
+    pixels = data[i + 1:i + 1 + width * height * 3]
+    if len(pixels) < width * height * 3:
+        return None
+    return width, height, pixels
+
+
+def grab(env, name):
+    found = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', name],
+                           env=env, capture_output=True, text=True)
+    ids = found.stdout.split()
+    if not ids:
+        return None
+    shot = subprocess.run(['import', '-window', ids[0], '-depth', '8', 'ppm:-'],
+                          env=env, capture_output=True)
+    return parse_ppm(shot.stdout)
+
+
 def main():
-    out, display = sys.argv[1], sys.argv[2]
-    width, height, vw, vh = (int(a) for a in sys.argv[3:7])
+    out, display, name = sys.argv[1], sys.argv[2], sys.argv[3]
+    vw, vh = int(sys.argv[4]), int(sys.argv[5])
     os.makedirs(out, exist_ok=True)
-    size = width * height * 3
     env = dict(os.environ, DISPLAY=display)
+    env.pop('WAYLAND_DISPLAY', None)
     while True:
         started = time.monotonic()
-        grab = subprocess.run(['import', '-window', 'root', '-depth', '8', 'rgb:-'],
-                              env=env, capture_output=True)
-        frame = grab.stdout
+        image = grab(env, name)
         time.sleep(max(0.0, 0.2 - (time.monotonic() - started)))
-        if len(frame) < size:
+        if not image:
             continue
+        width, height, frame = image
         mark = find_mark(frame, width, height)
         if not mark:
             continue

@@ -54,22 +54,25 @@ are gone.
   engines take the game's settings from it; the game's inis are never written.
 - **`Settings.json`.** The fork's renderer, MSAA, VSync, gamma mode, `GammaCorrectScreenshots`,
   HDR and bloom, AI level of detail and render scale come from
-  `~/.config/SurrealEngine/Settings.json`, an input of every fork run that no run's ini changes.
-  Without it the fork runs on Vulkan with 4x MSAA; a hidden run needs it to name OpenGL
-  ([dependencies](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#dependencies)).
+  `~/.config/SurrealEngine/Settings.json`, an input of every fork run that no run's ini changes,
+  or from the file `DXCAP_SETTINGS` names. Without one the fork runs on Vulkan with 4x MSAA.
 - **Results.** A run's log (`engine.log` or `DeusEx.log`), shots and recording land in
   `build/dxcap/runs/<engine>-<console>-<time>/`.
 
 | Variable | Effect |
 |---|---|
 | `DX_ROOT=<dir>` | the parent folder, if not the one this clone is in |
-| `DXCAP_HIDDEN=1` | the fork on a [hidden display](#the-hidden-display) of its own |
+| `DXCAP_DISPLAY=<display>` | another X display than `$DISPLAY`, the desktop's ([the display](#the-display)) |
 | `DXCAP_AUDIO=1` | the fork with real audio; it is silent otherwise |
 | `DXCAP_RECORD=1` | either engine's sound recorded into the run's `audio.wav` (a private null sink, `PULSE_SINK`, and `parecord`); the music off |
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
-| `DXCAP_MISSION_MAP=<map>` | the map an original run's `MissionConsole` travels to |
+| `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to (`MissionConsole`'s, `PerfConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
+| `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
+| `DXCAP_NOVSYNC=1` | Mesa's GL draws either engine without waiting for the display (`vblank_mode=0`): the original's `OpenGLDrv` asks for no swap interval and gets the driver's vsync |
+| `DXCAP_FPS=<n>` | either engine held to n frames a second: MangoHud's limiter, its display off (`mangohud`, and `lib32-mangohud` for the original's 32-bit process) |
+| `DXCAP_PERF=1` | the engine's main thread sampled by perf into the run's `perf.data`, on the wall clock, with the process's `maps.txt` ([measuring both engines](#measuring-both-engines)) |
 | `DXCAP_TIMELINE=<file>` | a `live` run's timeline, not `JoinConsole`'s walk; a `fork` run's [timeline](#timelines) |
 | `DXCAP_ENGINE=<binary>` | a fork run on that build, not linux-x86_64's (an [ASan build](#crashes)) |
 | `DXCAP_MEMLOG=1` | a fork run's resident memory each second in its `memlog.txt`: seconds, MB |
@@ -112,6 +115,8 @@ the run. *Either*: one engine on each side of a pair.
 | `PortalConsole` | both | a map opened at a portal (`open <map>#<portal>`): the level's URL, where the player lands | `DXPORTAL:` | |
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
+| `PerfConsole` | both | what a frame costs: the map (`TargetMap`, Liberty Island by default) from its start, the player idle, the view held; from 15 s in, sixty one-second windows on the wall clock; the original's own cycle counters | `DXPERF:` | `vibe/tools/perf/frame-report.py`, with `DXCAP_PERF=1` ([measuring both engines](#measuring-both-engines)) |
+| `PerfTurnConsole` | both | `PerfConsole` with the view turning 45 degrees a second | `DXPERF:` | the same |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |
 | `FrobConsole` | both | the frob highlight round two decorations, the view turned about them | `DXFROB:` | |
 | `LootConsole` | both | two carcasses searched, the inventory grid against its items | `DXLOOT:` | with `vibe/tools/dxcap/timelines/loot-drags.txt` on the fork |
@@ -162,7 +167,7 @@ and two more: `loot-drags.txt`, `LootConsole`'s drags in the inventory screen;
 `stray-release.txt`, `KeypadConsole`'s release of a key no press came before.
 
 ```sh
-DXCAP_HIDDEN=1 DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \
+DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \
     vibe/tools/dxcap.sh fork - 01_NYC_UNATCOIsland 580
 ```
 
@@ -202,9 +207,9 @@ how full: `https://master.333networks.com/json/deusex`. Pick an empty server.
 ### Shots
 
 - The original's own `shot` gives noise under `D3DDrv` and black under the others in Proton. Its
-  run draws through `OpenGLDrv` on a hidden X display (Xvfb on `:99`), which
-  `vibe/tools/dxcap/grab.py` reads five times a second, keeping each frame whose corner carries
-  the console's mark (a magenta block, then the shot's number in eight black or white blocks).
+  window, drawn through `OpenGLDrv`, is read five times a second by `vibe/tools/dxcap/grab.py`
+  (the window found by its name), keeping each frame whose corner carries the console's mark (a
+  magenta block, then the shot's number in eight black or white blocks).
 - **Gamma.** The original's frames carry its gamma ramp, 1.5 at the runs' Brightness of 0.6, the
   same through `D3DDrv` (`DXCAP_RENDERER=D3D`). The fork's `shot` reads the frame before the
   present pass applies gamma (`GammaCorrectScreenshots` off), so a fork shot takes that gamma
@@ -238,29 +243,56 @@ how full: `https://master.333networks.com/json/deusex`. Pick an empty server.
   `DeusEx` package there. The run's log, `Running.ini` (a stale one opens the recovery wizard,
   which waits for a click) and shots stay in the view, never in the game's folder.
 - `dxcap.sh`'s comments document the rest of its set-up: vkd3d's libraries in the prefix for
-  `D3DDrv`, no Wine desktop (`explorer /desktop` fails on Xvfb), the window moved to the
-  display's corner, and only the game's own process killed at the end, never the wineserver.
+  `D3DDrv`, no Wine desktop, and only the game's own process killed at the end, never the
+  wineserver.
 
-### The hidden display
+### The display
 
-The original's window is on the hidden display (`:99`), the fork's on the desktop.
-`DXCAP_HIDDEN=1` puts a fork run on a hidden display of its own (Xvfb on `:98`, so a net test can
-run both) through the window's X11 backend (`SURREALWIDGETS_DISPLAY_BACKEND=X11`, `WAYLAND_DISPLAY`
-unset, and `SDL_VIDEODRIVER=x11` for SDL's own use). It renders
-there and its `shot` is right, but a grab of that display shows its window black.
+Both engines draw on the desktop's X display, Xwayland (`$DISPLAY`; `DXCAP_DISPLAY` names
+another), each in a 1280x720 window: the original through Wine's X11 driver, the fork through
+its window's X11 backend (`SURREALWIDGETS_DISPLAY_BACKEND=X11`, `WAYLAND_DISPLAY` unset,
+`SDL_VIDEODRIVER=x11`). One X server and the GPU serve both, so their runs compare; no run uses a
+hidden display, as runs on different displays do not compare. The development machine is given
+over to it: windows come and go on its desktop.
+
+### Measuring both engines
+
+`PerfConsole` times either engine's frames the same way, and `DXCAP_PERF=1` samples its main
+thread meanwhile. Both draw through OpenGL with no vsync, at 1280x720, the fork without MSAA:
+
+```sh
+DXCAP_NOVSYNC=1 DXCAP_PERF=1 vibe/tools/dxcap.sh original PerfConsole 150
+DXCAP_NOVSYNC=1 DXCAP_PERF=1 DXCAP_SETTINGS=vibe/tools/dxcap/perf-settings.json \
+    vibe/tools/dxcap.sh fork PerfConsole DX.dx 150
+vibe/tools/perf/frame-report.py <original run> <fork run>
+```
+
+- **The windows** are the wall clock's, the level's `Hour` to `Millisecond`, which both engines
+  set from the local time each tick: each `DXPERF:` line gives a window's span in milliseconds of
+  the day and the frames in it. The total line gives frames a second, the mean, p50, p99 and the
+  worst frame. Started at `DX.dx`, the fork travels to the map as the original does.
+- **The original's own split**: its `Engine` object's `GameCycles` (the game's tick) and
+  `ClientCycles` (the frame drawn), read each frame where they are not 0 (the fork keeps neither
+  and has no `CyclesToSeconds`), are each line's `game` and `client`.
+- **`frame-report.py`** keeps the samples inside the windows and gives the main thread's time a
+  frame by area and by function. The original's functions are each DLL's nearest export below
+  the sample (its base from `maps.txt`): `Core.dll` and `Engine.dll` export most of theirs,
+  `Render.dll` 97 of them, so names in it are only near. The fork's are perf's own symbols.
+- **One run at a time**, nothing else running; three of each, alternating, before a number is
+  taken.
 
 ### Crashes
 
-An original run that crashes shows a "Critical Error" dialog on the hidden display and hangs
+An original run that crashes shows a "Critical Error" dialog on the desktop and hangs
 until the harness kills it, its log cut short: the game writes the log only as it exits.
 Dismissed, the dialog lets the game log the error and the calls under it, and exit. A fork run
 that crashes leaves a core, which systemd keeps.
 
 ```sh
-# The original's dialog, dismissed: with no window manager there, windowactivate fails
-DISPLAY=:99 xdotool search --name 'Critical Error'    # its <window>
-DISPLAY=:99 xdotool windowfocus --sync <window>
-DISPLAY=:99 xdotool key Return
+# The original's dialog, dismissed
+xdotool search --name 'Critical Error'    # its <window>
+xdotool windowfocus --sync <window>
+xdotool key Return
 # The fork's core: the functions on the stack (the Release build has no lines)
 coredumpctl dump <pid> --output=<scratchpad>/core
 gdb -batch -ex bt <parent>/build/linux-x86_64/engine/SurrealEngine <scratchpad>/core

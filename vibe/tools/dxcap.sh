@@ -27,9 +27,9 @@
 # on the desktop's, where the game's first window fails with BadWindow.
 # DXCAP_PREFIX and DXCAP_PROTON (default "Proton-CachyOS Latest") pick another
 # prefix and the Proton under ~/.local/share/Steam/compatibilitytools.d.
-# DXCAP_HIDDEN=1 runs
-# the fork on a hidden display of its own (Xvfb on :98) instead of the
-# desktop; its own shots are still right. DXCAP_RENDERER=D3D draws the
+# Both engines draw on the desktop's X display, Xwayland ($DISPLAY, or
+# DXCAP_DISPLAY), each in a 1280x720 window, the fork through its window's
+# X11 backend: one X server and the GPU for both. DXCAP_RENDERER=D3D draws the
 # original through D3DDrv, the game's own renderer, instead of OpenGLDrv:
 # the same frames, gamma ramp and all. DXCAP_AUDIO=1 gives
 # the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
@@ -45,11 +45,23 @@
 # checksum (the server logs the login's URL). DXCAP_SERVERPKGS=<dir> has a
 # run's server find packages in <dir> too, each named in its ServerPackages,
 # so that a client, whose paths lack <dir>, downloads them.
-# DXCAP_MISSION_MAP=<map> names, through the run's ini, the map an original
-# run's console travels to (MissionConsole's TargetMap): it starts at its menu map.
+# DXCAP_MISSION_MAP=<map> names, through the run's ini, the map a run's
+# console travels to (MissionConsole's and PerfConsole's TargetMap): an
+# original run starts at its menu map, a fork run at the map it is given.
 # DXCAP_ENGINE=<binary> runs another build of the fork than linux-x86_64's
 # (an ASan build). DXCAP_MEMLOG=1 logs a fork run's resident memory each
 # second into the run's memlog.txt: seconds since the start, then MB.
+# DXCAP_SETTINGS=<file> gives a fork run that Settings.json in place of
+# ~/.config/SurrealEngine's, through a HOME of the run's own (the caches stay
+# the usual ones). DXCAP_NOVSYNC=1 has Mesa's GL draw either engine without
+# waiting for the display (vblank_mode=0), whatever the engine asks: the
+# original's OpenGLDrv asks nothing and gets the driver's vsync.
+# DXCAP_FPS=<n> holds either engine to n frames a second:
+# MangoHud's limiter, its display off (mangohud, and lib32-mangohud for the
+# original's 32-bit process). DXCAP_PERF=1 samples the engine's main thread
+# with the parent folder's deps/perf (vibe/tools/host-tools.sh) into the
+# run's perf.data, on the wall clock, with the process's maps.txt;
+# vibe/tools/perf/frame-report.py reads them against PerfConsole's windows.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DX_ROOT="${DX_ROOT:-$(cd "$HERE/../../.." && pwd)}"
@@ -86,17 +98,51 @@ rec_stop() {
     fi
 }
 
+# DXCAP_NOVSYNC: Mesa's vblank_mode. DXCAP_FPS: MangoHud preloaded into the
+# engine's process, its limiter on and its display off; the dynamic linker
+# takes lib32's copy for the original's 32-bit wine process ($LIB).
+fps_env() {
+    [ "${DXCAP_NOVSYNC:-0}" != 1 ] || export vblank_mode=0
+    [ -n "${DXCAP_FPS:-}" ] || return 0
+    [ -f /usr/lib/mangohud/libMangoHud_shim.so ] || die "DXCAP_FPS needs MangoHud (mangohud, and lib32-mangohud for the original)"
+    export MANGOHUD=1 MANGOHUD_CONFIG="no_display,fps_limit=$DXCAP_FPS"
+    export LD_PRELOAD="${LD_PRELOAD:+$LD_PRELOAD:}/usr/\$LIB/mangohud/libMangoHud_shim.so"
+}
+
+# DXCAP_PERF: the engine's main thread (its process's first) sampled until it
+# exits, its samples stamped with the wall clock (-k realtime) so that they
+# can be cut to PerfConsole's windows; the process's maps once its libraries
+# are in, for the original's DLLs. Prints perf's pid, for a wait.
+PERF="$DX_ROOT/deps/perf/usr/bin/perf"
+perf_attach() {
+    local pid="$1" dir="$2"
+    [ -n "$pid" ] || { say "perf: no engine process to record"; return 0; }
+    LD_LIBRARY_PATH="$DX_ROOT/deps/perf/usr/lib" "$PERF" record -q -e cpu-clock -t "$pid" -k realtime -F 999 \
+        -o "$dir/perf.data" > "$dir/perf.log" 2>&1 &
+    local ppid=$!
+    ( sleep 20; cp "/proc/$pid/maps" "$dir/maps.txt" 2>/dev/null || true ) &
+    printf '%s\n' "$ppid"
+}
+need_perf() {
+    [ "${DXCAP_PERF:-0}" != 1 ] || [ -x "$PERF" ] || die "DXCAP_PERF needs perf in $DX_ROOT/deps -- vibe/tools/host-tools.sh"
+}
+
 # The prefix's Windows programs -- the original and the SDK's UCC -- run
 # here with the Proton build's own wine, as dx-reverse-info's tools/ida/idalib-mcp.sh runs IDA.
 WINE="$HOME/.local/share/Steam/compatibilitytools.d/${DXCAP_PROTON:-Proton-CachyOS Latest}/files/bin/wine"
 PREFIX="${DXCAP_PREFIX:-$CAP/prefix}"
+XDISPLAY="${DXCAP_DISPLAY:-${DISPLAY:-:0}}"
+need_display() {
+    DISPLAY="$XDISPLAY" xdotool getdisplaygeometry > /dev/null 2>&1 ||
+        die "no X display at $XDISPLAY (the desktop's Xwayland; xdotool is needed too)"
+}
 wine_run() {
     env WINEPREFIX="$PREFIX" WINEDEBUG=-all \
         WINEDLLOVERRIDES="winemenubuilder.exe=d" "$WINE" "$@"
 }
 
-# The prefix is made on first use, by the same wine's wineboot on the hidden
-# display (none of it shows on the desktop), without Mono and Gecko, which
+# The prefix is made on first use, by the same wine's wineboot on the
+# desktop's X display, without Mono and Gecko, which
 # the game and UCC do not need. Wine's wined3d, which D3DDrv's DirectDraw
 # runs on, imports vkd3d's libraries, which Proton's own prefix has and a
 # bare wineboot's lacks: without them ddraw.dll does not load, and the game
@@ -115,21 +161,12 @@ ensure_prefix() {
 }
 
 make_prefix() {
-    command -v Xvfb >/dev/null || die "Xvfb is needed to make the Wine prefix"
+    need_display
     say "making the Wine prefix $PREFIX"
     mkdir -p "$(dirname "$PREFIX")"
-    local xpid=""
-    if [ ! -S "/tmp/.X11-unix/X${XDISPLAY#:}" ]; then
-        Xvfb "$XDISPLAY" -screen 0 "${XSIZE}x24" -ac -nolisten tcp > /dev/null 2>&1 &
-        xpid=$!
-        sleep 2
-    fi
     env -u WAYLAND_DISPLAY DISPLAY="$XDISPLAY" WINEPREFIX="$PREFIX" WINEDEBUG=-all \
         WINEDLLOVERRIDES="winemenubuilder.exe=d;mscoree,mshtml=" "$WINE" wineboot -i > /dev/null 2>&1 || true
     env WINEPREFIX="$PREFIX" "${WINE%/wine}/wineserver" -w || true
-    if [ -n "$xpid" ]; then
-        kill "$xpid" 2>/dev/null || true
-    fi
     [ -f "$PREFIX/system.reg" ] || die "wineboot made no prefix at $PREFIX"
 }
 
@@ -138,8 +175,8 @@ winpath() { printf 'Z:%s' "${1//\//\\}"; }
 
 # make_ini <original|fork> <console> <out>: the game's DeusEx.ini with the
 # console class, the package's path, a 1280x720 window, the music off when
-# recording, and for the original the OpenGL renderer, which draws on the
-# hidden display its frames are grabbed from.
+# recording, and for the original the OpenGL renderer (DXCAP_RENDERER=D3D:
+# D3DDrv), whose window its frames are grabbed from.
 make_ini() {
     local engine="$1" console="$2" out="$3" path
     if [ "$engine" = original ]; then
@@ -305,15 +342,9 @@ collect() {
     done
 }
 
-# The original draws on a private X display (Xvfb, here; its socket in the
-# shared /tmp): nothing on the desktop, and a screen that can be read -- its
-# own SHOT reads back nothing under Proton, so the screen is grabbed instead
-# and the frames the console class marks kept (vibe/tools/dxcap/grab.py).
-XDISPLAY=:99
-XSIZE=1344x800
-# A hidden fork run's own display, apart from the original's: a net test
-# runs both at once, and each stops the Xvfb it started.
-FORK_XDISPLAY=:98
+# The original's own SHOT reads back nothing under Proton, so its window
+# is grabbed instead and the frames the console class marks kept
+# (vibe/tools/dxcap/grab.py).
 
 # The original runs in a view of the game, build/dxcap/game, made afresh for
 # each run: the game's folders linked, and its System folder's files, but for
@@ -347,9 +378,9 @@ make_view() {
 cmd_original() {
     local console="${1:?console class}" secs="${2:-120}"
     [ -f "$CAP/System/DXCapture.u" ] || die "vibe/tools/dxcap.sh compile first"
-    command -v Xvfb >/dev/null || die "Xvfb is needed for the original's display"
-    command -v import >/dev/null || die "ImageMagick's import is needed to grab the original's display"
-    command -v xdotool >/dev/null || die "xdotool is needed to place the original's window"
+    command -v import >/dev/null || die "ImageMagick's import is needed to grab the original's window"
+    need_display
+    need_perf
     ensure_prefix
     local ini="$CAP/System/Original.ini" userini="$CAP/System/OriginalUser.ini"
     local dir="$CAP/runs/original-$console-$(date +%H%M%S)"
@@ -363,33 +394,26 @@ cmd_original() {
     make_view
     mkdir -p "$dir"
 
-    local xpid="" gpid=""
-    if [ ! -S "/tmp/.X11-unix/X${XDISPLAY#:}" ]; then
-        Xvfb "$XDISPLAY" -screen 0 "${XSIZE}x24" -ac -nolisten tcp > "$dir/xvfb.log" 2>&1 &
-        xpid=$!
-        sleep 2
-    fi
-    python3 "$HERE/dxcap/grab.py" "$dir" "$XDISPLAY" "${XSIZE%x*}" "${XSIZE#*x}" 1280 720 2> "$dir/grab.log" &
+    local gpid=""
+    python3 "$HERE/dxcap/grab.py" "$dir" "$XDISPLAY" '^Deus Ex$' 1280 720 2> "$dir/grab.log" &
     gpid=$!
 
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_start "$dir/audio.wav"
-    # Started straight on the hidden display -- a Wine desktop fails to set
-    # its display up on Xvfb here --, its command line's first word taken for
-    # the start URL, so the menu map goes first; waited for until it exits
+    # Started straight on the desktop's X display (no Wine desktop), its
+    # command line's first word taken for the start URL, so the menu map
+    # goes first; waited for until it exits
     # (each console class ends its run with EXIT) or the time runs out; then
     # only its own process is stopped.
     (
+        unset WAYLAND_DISPLAY
         export DISPLAY="$XDISPLAY"
         [ "${DXCAP_RECORD:-0}" != 1 ] || export PULSE_SINK=dxcap
         cd "$CAP/game/System"
-        wine_run DeusEx.exe DX.dx "INI=$(winpath "$ini")" "USERINI=$(winpath "$userini")" > "$dir/wine.log" 2>&1 &
+        (fps_env; wine_run DeusEx.exe DX.dx "INI=$(winpath "$ini")" "USERINI=$(winpath "$userini")" > "$dir/wine.log" 2>&1) &
         i=0
         while [ $i -lt 60 ] && ! pgrep -f "^DeusEx.exe" > /dev/null; do sleep 1; i=$((i+1)); done
-        # Wine places a new window a step further on each time while its
-        # server stays up, and the grabber reads the view from the display's
-        # corner: the window goes there once it is up.
-        i=0
-        while [ $i -lt 30 ] && ! xdotool search --onlyvisible --name '^Deus Ex$' windowmove 0 0 > /dev/null 2>&1; do sleep 1; i=$((i+1)); done
+        perfpid=""
+        [ "${DXCAP_PERF:-0}" != 1 ] || perfpid="$(perf_attach "$(pgrep -f "^DeusEx.exe" | head -1)" "$dir")"
         i=0
         while [ $i -lt "$secs" ] && pgrep -f "^DeusEx.exe" > /dev/null; do sleep 1; i=$((i+1)); done
         if pgrep -f "^DeusEx.exe" > /dev/null; then
@@ -399,12 +423,12 @@ cmd_original() {
             echo "exited after $i s"
         fi
         sleep 3
+        [ -z "$perfpid" ] || wait "$perfpid" 2>/dev/null || true
     ) || true
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_stop
 
     kill "$gpid" 2>/dev/null || true
     wait "$gpid" 2>/dev/null || true
-    [ -n "$xpid" ] && kill "$xpid" 2>/dev/null
     # The game's own shots, black here, stay in the view; the grabbed frames
     # stand for them.
     local f
@@ -445,25 +469,21 @@ run_fork() {
     shift 5
     local before; before="$(shots_before)"
     mkdir -p "$dir"
-    # A hidden run draws on an Xvfb display of its own, through the window's
-    # X11 backend: the engine renders there, and its shots are right.
-    local xpid=""
-    if [ "${DXCAP_HIDDEN:-0}" = 1 ]; then
-        command -v Xvfb >/dev/null || die "Xvfb is needed for a hidden run"
-        if [ ! -S "/tmp/.X11-unix/X${FORK_XDISPLAY#:}" ]; then
-            Xvfb "$FORK_XDISPLAY" -screen 0 1280x800x24 -ac -nolisten tcp > "$dir/xvfb.log" 2>&1 &
-            xpid=$!
-            sleep 2
-        fi
+    need_perf
+    local settings=""
+    if [ -n "${DXCAP_SETTINGS:-}" ]; then
+        settings="$(realpath "$DXCAP_SETTINGS")"
+        [ -f "$settings" ] || die "no settings file $DXCAP_SETTINGS"
     fi
+    need_display
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_start "$dir/audio.wav"
     local rc=0
     (
         cd "$GAME"
-        if [ "${DXCAP_HIDDEN:-0}" = 1 ]; then
-            unset WAYLAND_DISPLAY
-            export DISPLAY="$FORK_XDISPLAY" SURREALWIDGETS_DISPLAY_BACKEND=X11 SDL_VIDEODRIVER=x11
-        fi
+        # The desktop's X display through the window's X11 backend, where
+        # the original draws through Wine's.
+        unset WAYLAND_DISPLAY
+        export DISPLAY="$XDISPLAY" SURREALWIDGETS_DISPLAY_BACKEND=X11 SDL_VIDEODRIVER=x11
         if [ "${DXCAP_RECORD:-0}" = 1 ]; then
             printf '[general]\ndrivers = pulse\n' > "$CAP/alsoft-pulse.conf"
             export ALSOFT_CONF="$CAP/alsoft-pulse.conf" PULSE_SINK=dxcap
@@ -471,21 +491,36 @@ run_fork() {
             printf '[general]\ndrivers = null\n' > "$CAP/alsoft-null.conf"
             export ALSOFT_CONF="$CAP/alsoft-null.conf"
         fi
+        # The run's own Settings.json, where the engine looks for it
+        # ($HOME/.config/SurrealEngine); the caches stay where they are.
+        if [ -n "$settings" ]; then
+            mkdir -p "$dir/home/.config/SurrealEngine"
+            cp "$settings" "$dir/home/.config/SurrealEngine/Settings.json"
+            export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+            export HOME="$dir/home"
+        fi
+        fps_env
         timeout -s KILL "$secs" "$ENGINE_BIN" --no-launcher "$GAME" --ini="$ini" --userini="$userini" --url="$map" "$@" > "$dir/engine.log" 2>&1 &
-        local tpid=$! mpid=""
+        local tpid=$! mpid="" perfpid="" epid="" i=0
         if [ "${DXCAP_MEMLOG:-0}" = 1 ]; then
             memlog "$tpid" "$dir/memlog.txt" &
             mpid=$!
         fi
+        if [ "${DXCAP_PERF:-0}" = 1 ]; then
+            while [ $i -lt 50 ] && [ -z "$epid" ]; do
+                epid="$(pgrep -P "$tpid" | head -1)" || true
+                [ -n "$epid" ] || sleep 0.1
+                i=$((i + 1))
+            done
+            perfpid="$(perf_attach "$epid" "$dir")"
+        fi
         local erc=0
         wait "$tpid" || erc=$?
         [ -z "$mpid" ] || kill "$mpid" 2>/dev/null || true
+        [ -z "$perfpid" ] || wait "$perfpid" 2>/dev/null || true
         exit "$erc"
     ) || rc=$?
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_stop
-    if [ -n "$xpid" ]; then
-        kill "$xpid" 2>/dev/null || true
-    fi
     collect "$dir" "$before"
     printf '%s\n' "$rc" > "$dir/exit"
     say "fork: $dir (exit $rc)"
@@ -502,6 +537,9 @@ cmd_fork() {
     local dir="$CAP/runs/fork-$name-$(date +%H%M%S)"
     make_ini fork "$console" "$ini"
     user_ini "$userini"
+    if [ -n "${DXCAP_MISSION_MAP:-}" ] && [ -n "$console" ]; then
+        printf '[DXCapture.%s]\nTargetMap=%s\n' "$console" "$DXCAP_MISSION_MAP" >> "$ini"
+    fi
     local args=()
     if [ -n "${DXCAP_TIMELINE:-}" ]; then
         mkdir -p "$dir"

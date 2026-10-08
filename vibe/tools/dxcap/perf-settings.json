@@ -1,0 +1,32 @@
+{
+  "Gamepad": {
+    "CursorSpeed": 1,
+    "DeadZone": 0.2,
+    "Enabled": false,
+    "InvertY": false,
+    "Layout": "modern",
+    "LookSensitivityX": 1,
+    "LookSensitivityY": 1
+  },
+  "Games": {
+    "LastSelected": 0,
+    "SearchList": []
+  },
+  "Performance": {
+    "AiLevelOfDetail": false,
+    "RenderScale": 1
+  },
+  "RenderDevice": {
+    "Antialias": "Off",
+    "Bloom": false,
+    "BloomAmount": 128,
+    "Gamma": "D3D9",
+    "GammaCorrectScreenshots": false,
+    "Hdr": false,
+    "HdrScale": 128,
+    "Light": "Normal",
+    "Type": "OpenGL",
+    "UseDebugLayer": false,
+    "UseVSync": false
+  }
+}
