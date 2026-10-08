@@ -8,7 +8,8 @@
 // turned across its view, and walks 2 s, stands 2 s and turns about, over
 // and over, for the client to watch; where each player stands, and its
 // address (GetPlayerNetworkAddress), is logged every 2 s with the server's
-// own (GetNetworkNumber); its own URL and address (GetLocalURL,
+// own (GetNetworkNumber) and the frames it drew in those 2 s; its own URL
+// and address (GetLocalURL,
 // GetAddressURL) as it starts serving. 12 s after it is placed the host
 // stands still and plays 8 beeps 1 s apart from this console's own
 // function, which is not simulated: a server's sound every player hears,
@@ -19,7 +20,7 @@
 class ServeConsole extends Console;
 
 var float CapTime, LogTime, WalkTime, PlacedTime;
-var int Phase, Beeps;
+var int Phase, Beeps, Frames;
 var bool bPlaced;
 
 // The first free spot in the other player's line of sight: 300 units ahead
@@ -58,6 +59,7 @@ event Tick(float Delta)
 		return;
 	P = Viewport.Actor;
 	CapTime += Delta;
+	Frames++;
 
 	if (Phase == 0 && CapTime > 3.0)
 	{
@@ -113,7 +115,8 @@ event Tick(float Delta)
 		if (CapTime - LogTime >= 2.0)
 		{
 			LogTime = CapTime;
-			Log("DXCAP: network number '" $ P.Level.Game.GetNetworkNumber() $ "'");
+			Log("DXCAP: network number '" $ P.Level.Game.GetNetworkNumber() $ "', " $ Frames $ " frames");
+			Frames = 0;
 			foreach P.AllActors(class'PlayerPawn', Other)
 				Log("DXCAP: " $ Other.PlayerReplicationInfo.PlayerName $ " at " $ Other.Location $ " address '" $ Other.GetPlayerNetworkAddress() $ "'");
 		}

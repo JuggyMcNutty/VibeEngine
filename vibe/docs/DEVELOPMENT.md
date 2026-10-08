@@ -74,6 +74,7 @@ are gone.
 | `DXCAP_ENGINE=<binary>` | a fork run on that build, not linux-x86_64's (an [ASan build](#crashes)) |
 | `DXCAP_MEMLOG=1` | a fork run's resident memory each second in its `memlog.txt`: seconds, MB |
 | `DXCAP_UPLINK=<host>:<port>` | the server announces itself to that master (`DoUplink`); otherwise to none |
+| `DXCAP_PORT=<port>` | the server listens there (`[URL] Port`), not on 7790: for `netrelay.py` between it and a client ([net tests](#net-tests)) |
 | `DXCAP_STATS=<password>` | on both runs: the server logs world stats (`bWorldLog`); the player holds that world stats password, so its login carries the checksum (a fork server logs the login's URL: `login request`) |
 | `DXCAP_SERVERPKGS=<dir>` | the server offers the packages in `<dir>` (`ServerPackages`) for a client to download |
 
@@ -128,7 +129,7 @@ the run. *Either*: one engine on each side of a pair.
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
 | `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load; the mission script, a `LoadMarker`'s `PostPostBeginPlay` calls | `DXSAVE:` | |
 | `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` | |
-| `ServeConsole` | either | a listen server: its own URL and address as it starts; every 2 s each player's place and address and its own number; 8 beeps 1 s apart, 12 s after the other player is in; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py` |
+| `ServeConsole` | either | a listen server: its own URL and address as it starts; every 2 s each player's place and address, its own number and the frames it drew; 8 beeps 1 s apart, 12 s after the other player is in; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py`, `netrelay.py` |
 | `JoinConsole` | either | a client of `127.0.0.1:7790` | `DXNET:` | `sound.py --onsets <run>`, the client alone with `DXCAP_RECORD=1`: the server's beeps |
 | `RejoinConsole` | either | a client that joins twice | `DXREJOIN:` | |
 | `TravelServeConsole` | either | a server that travels; it exits after 150 s | `DXCAP:` | |
@@ -171,9 +172,11 @@ background, or `fork ServeConsole DX.dx 300`: the default 120 s would end it bef
 wait until its game port is bound (`ss -uln | grep :7790`; an original server answers some 13 s
 after it starts), then run the client (`fork JoinConsole DX.dx`, or `original JoinConsole`).
 Never start a second server before the first has exited: it cannot bind the port ("Net: cannot
-listen" in its log), and the client joins the old one. A fork server on the desktop draws some
-1,000 frames a second, too fast for its unreliable calls to have room
-([multiplayer](NATIVES.md#multiplayer)); with `DXCAP_HIDDEN=1` it draws some 100. The server's game is the package's
+listen" in its log), and the client joins the old one. To read what passes between them, start
+the server with `DXCAP_PORT=7792`, wait for that port, start `vibe/tools/dxcap/netrelay.py` (it
+listens on 7790 and forwards to `127.0.0.1:7792`), then the client: each second a row each way
+-- packets, bytes, acks, bunches by channel and reliability -- and with `--log <file>` a line
+for every datagram, each bunch's header decoded. The server's game is the package's
 `CapDeathMatch`, without the game's check that a joining player's console is the stock one.
 `vibe/tools/dxcap/netquery.py` asks a server's LAN beacon and GameSpy query answerer, and
 `vibe/tools/dxcap/fakemaster.py` acts as a master on UDP 27900 (`DXCAP_UPLINK=127.0.0.1:27900`):

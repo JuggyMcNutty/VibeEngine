@@ -356,6 +356,16 @@ void NetConnection::Tick()
 
 	UpdateStats();
 
+	// The rate: what has gone out drains at the connection's speed, before
+	// this tick's packet goes, down to two ticks' worth below 0 -- each
+	// rounded toward 0, as the original's (UNetConnection::Tick 0x10404a40).
+	double deltaBytes = CurrentNetSpeed * (Driver->Time - LastTickTime);
+	QueuedBytes -= (int)deltaBytes;
+	double allowedLag = 2.0 * deltaBytes;
+	if (QueuedBytes < -allowedLag)
+		QueuedBytes = (int)(-allowedLag);
+	LastTickTime = Driver->Time;
+
 	// The long wait lasts until the connection has its player.
 	float timeout = (State != ConnectionState::Pending && Actor) ? Driver->ConnectionTimeout : Driver->InitialConnectTimeout;
 	if (State != ConnectionState::Closed && Driver->Time - LastReceiveTime > timeout)
@@ -378,14 +388,6 @@ void NetConnection::Tick()
 	PurgeAcks();
 	if (TimeSensitive || Driver->Time - LastSendTime > Driver->KeepAliveTime)
 		FlushNet();
-
-	// The rate: what has gone out drains at the connection's speed.
-	double deltaBytes = CurrentNetSpeed * (Driver->Time - LastTickTime);
-	QueuedBytes -= (int)std::floor(deltaBytes);
-	double allowedLag = 2.0 * deltaBytes;
-	if (QueuedBytes < -allowedLag)
-		QueuedBytes = (int)std::floor(-allowedLag);
-	LastTickTime = Driver->Time;
 }
 
 void NetConnection::UpdateStats()

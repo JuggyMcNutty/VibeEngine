@@ -588,14 +588,15 @@ server-only stubs are under
   the next map load that does not use it, and that load's collection frees
   what nothing uses of it but its code, which stays loaded, where the
   original's collects it all ([housekeeping](#housekeeping-not-seen-directly)).
-- **A fast listen server's unreliable calls.** A connection's queue drains to
-  two ticks' worth below 0, and an unreliable call goes only while that covers
-  what waits to be sent, as in the original
-  ([packets](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#packets)).
-  A fork listen server drawing some 1,000 frames a second (the harness's runs
-  on the desktop, VSync on) has no room for one to an internet-speed client
-  (2,600 bytes/s): `ServeConsole`'s 8 beeps, the client recorded, reach it
-  none; at some 100 frames (on the hidden display) 4, from the original's 6.
+- **Unchecked:** a listen server at some 1,000 frames a second (a fork server
+  on the desktop, VSync on; the original's runs at most 200, its tick floor).
+  Its queue drains 2.6 bytes a tick for an internet-speed client (2,600
+  bytes/s), so an unreliable call has no room for a dozen ticks after any
+  packet ([packets](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#packets)).
+  At some 100 frames (the hidden display) `ServeConsole`'s 8 beeps reach the
+  original's client, 7 or 8 of them, as the original server's reach the
+  fork's, 6 to 8: the first goes as the host stops, its last step's packet
+  just sent.
 - **Unchecked:** whether a live server corrects the client at a stop.
 
 As in the original:

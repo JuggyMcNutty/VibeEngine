@@ -38,6 +38,8 @@
 # DXCAP_UPLINK=<host>:<port> has a run's server announce itself there -- a
 # master on this machine (vibe/tools/dxcap/fakemaster.py), its uplink's
 # DoUplink set --, where it otherwise announces itself nowhere.
+# DXCAP_PORT=<port> has a run's server listen there ([URL] Port), as for
+# vibe/tools/dxcap/netrelay.py between it and a client opening 7790.
 # DXCAP_STATS=<password> has a run's server log world stats (bWorldLog) and
 # its player hold that world stats password, so a join carries the player's
 # checksum (the server logs the login's URL). DXCAP_SERVERPKGS=<dir> has a
@@ -179,6 +181,9 @@ def one_uplink(m):
 s, n = re.subn(r'^ServerActors=IpServer\.UdpServerUplink.*\r?\n', one_uplink, s, flags=re.M)
 if n == 0:
     sys.exit('no ServerActors=IpServer.UdpServerUplink in ' + src)
+# A run's server listens on DXCAP_PORT's port.
+if os.environ.get('DXCAP_PORT'):
+    put('Port', os.environ['DXCAP_PORT'])
 # A run's server offers the packages of DXCAP_SERVERPKGS's folder, found
 # there by its paths.
 serverpkgs = os.environ.get('DXCAP_SERVERPKGS', '')
