@@ -229,7 +229,8 @@ the UI see the render size.
 ### Rendering
 
 For every game, the renderer's CPU work is lighter: lightmaps lit only where a light reaches
-(0005); the light tree and each surface's lights kept while no light changes (0023); the
+(0005); the light tree and each surface's lights kept while no light changes (0023), the level's
+surfaces' apart from each mover's; the
 clipper's occlusion grid one row per image row (0010), its non-SSE (ARM) build skipping the clip
 for triangles inside the view (0020, an upstream bug), a surface clipped once and filled into the
 grid as one polygon, a span to a row (`BspClipper::DrawPolygon`); one-sided surfaces seen from behind

@@ -82,18 +82,16 @@ TextureInfo LightSystem::GetLevelLightmap(BspSurface& surface, UZoneInfo* zoneAc
 
 // The tree's lights for a lightmap's surface. Every visible surface asked
 // the tree again every frame (~6 ms a frame on the handheld); its answer is
-// now kept until the tree is rebuilt, or the surface's sphere differs.
+// now kept until the tree is rebuilt, or the surface's sphere differs. Each
+// model keeps its own: a mover's surfaces, drawn among the level's, emptied
+// a cache kept for one model at a time every frame.
 const Array<UActor*>& LightSystem::CollectSurfaceLights(UModel* model, int lightmapIndex, const vec3& center, float radius)
 {
-	if (SurfaceLightCacheModel != model)
-	{
-		SurfaceLightCache.clear();
-		SurfaceLightCacheModel = model;
-	}
-	if (SurfaceLightCache.size() <= (size_t)lightmapIndex)
-		SurfaceLightCache.resize(std::max(model->LightMap.size(), (size_t)lightmapIndex + 1));
+	Array<SurfaceLights>& cache = SurfaceLightCaches[model];
+	if (cache.size() <= (size_t)lightmapIndex)
+		cache.resize(std::max(model->LightMap.size(), (size_t)lightmapIndex + 1));
 
-	SurfaceLights& entry = SurfaceLightCache[lightmapIndex];
+	SurfaceLights& entry = cache[lightmapIndex];
 	if (entry.Version != LightTreeVersion || entry.Center != center || entry.Radius != radius)
 	{
 		LightTree.CollectLights(center, radius);

@@ -314,7 +314,9 @@ private:
 	Array<TreeLight> TreeLights;
 	uint64_t LightTreeVersion = 0;
 
-	// Each lightmap's lights from the tree, as of the version they were found in
+	// Each lightmap's lights from the tree, as of the version they were found
+	// in, for each model: the level's and every mover's brush, drawn in turn
+	// every frame.
 	struct SurfaceLights
 	{
 		uint64_t Version = 0;
@@ -322,6 +324,5 @@ private:
 		float Radius = 0.0f;
 		Array<UActor*> Lights;
 	};
-	Array<SurfaceLights> SurfaceLightCache;
-	UModel* SurfaceLightCacheModel = nullptr;
+	std::unordered_map<UModel*, Array<SurfaceLights>> SurfaceLightCaches;
 };

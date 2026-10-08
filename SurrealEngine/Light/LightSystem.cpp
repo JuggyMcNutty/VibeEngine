@@ -190,10 +190,12 @@ void LightSystem::PurgeDying()
 	bool stale = false;
 	for (const TreeLight& light : TreeLights)
 		stale = stale || GC::IsDying(light.Actor);
+	for (auto it = SurfaceLightCaches.begin(); it != SurfaceLightCaches.end();)
+		it = GC::IsDying(it->first) ? SurfaceLightCaches.erase(it) : std::next(it);
 	if (stale)
 	{
 		TreeLights.clear();
-		SurfaceLightCache.clear();
+		SurfaceLightCaches.clear();
 		LightTree.Lights.clear();
 		LightTree.CollectedLights.clear();
 		LightTreeVersion++;
