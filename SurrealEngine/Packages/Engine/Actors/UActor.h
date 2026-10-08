@@ -670,6 +670,13 @@ public:
 	// whether this actor carries Deus Ex's bTransient, a script property
 	// (its offset found once), so stasis destroys it.
 	bool InStasis();
+
+	// Deus Ex: the start of the original's AActor::Tick -- in stasis nothing
+	// else, a transient actor destroyed; an actor whose owner has not ticked
+	// this frame waits for it; then the level's mark (ULevel::TickStarted).
+	// Whether the rest of the tick runs. A ScriptedPawn's native work comes
+	// before it, as the original's AScriptedPawn::Tick ends in AActor::Tick.
+	bool StartTick();
 	bool IsTransient();
 
 	// The original's RandomBiasedRotation: a random rotation about the

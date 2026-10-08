@@ -1256,6 +1256,8 @@ void Engine::BeginPlay(const UnrealURL& url)
 	}
 
 	CallPostPostBeginPlay();
+	if (LaunchInfo.IsDeusEx())
+		Level->SortActors();
 
 	if (LevelInfo->Game())
 		CallEvent(LevelInfo->Game(), "DetailChange", {});
@@ -1357,6 +1359,8 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 		Exception::Throw("Save file has no GameInfo actor for " + LevelPackage->GetPackageName().ToString() + "!");
 
 	CallPostPostBeginPlay();
+	if (LaunchInfo.IsDeusEx())
+		Level->SortActors();
 
 	RequestGarbageCollection("saved level " + realMapName, true);
 	return true;

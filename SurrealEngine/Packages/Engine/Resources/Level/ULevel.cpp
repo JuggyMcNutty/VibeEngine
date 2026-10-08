@@ -8,6 +8,7 @@
 #include "Packages/Engine/Actors/NavigationPoint/UNavigationPoint.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Packages/Engine/UEventManager.h"
+#include "Packages/Engine/UViewport.h"
 #include "Engine.h"
 #include "VM/ScriptCall.h"
 
@@ -109,21 +110,29 @@ void ULevel::TickActor(float elapsed, UActor* actor)
 
 void ULevel::Tick(float elapsed, bool gamePaused)
 {
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
+
 	// Each tick marks what it ticks with a fresh value, so the first tick of
-	// a level ticks every actor loaded with it (their bTicked false), as the
-	// original's first tick does -- marked with the old value, the first
-	// tick after a load passed over them all and the first frame was drawn
-	// before any had ticked.
-	ticked = !ticked;
+	// a level ticks every actor loaded with it (their bTicked false) --
+	// marked with the old value, the first tick after a load passed over
+	// them all and the first frame was drawn before any had ticked. Deus
+	// Ex's flips the mark after its tick, as the original's: its pass skips
+	// no actor for its own mark (TickDeusEx).
+	if (!deusEx)
+		ticked = !ticked;
 
 	// The actors' step is at most 0.4 s, as the original's level tick holds
 	// it, the level's clock taking the whole time: a long frame -- a load, a
 	// hitch -- moves nothing further. Its floor of 5 ms is not carried: above
 	// 200 frames a second it would run the game fast.
-	if (engine->LaunchInfo.IsDeusEx())
+	if (deusEx)
 		elapsed = std::min(elapsed, 0.4f);
 
-	if (gamePaused)
+	if (deusEx)
+	{
+		TickDeusEx(elapsed, gamePaused);
+	}
+	else if (gamePaused)
 	{
 		for (size_t i = 0; i < Actors.size(); i++)
 		{
@@ -137,7 +146,7 @@ void ULevel::Tick(float elapsed, bool gamePaused)
 	{
 		for (size_t i = 0; i < Actors.size(); i++)
 		{
-			if (UObject::TryCast<UPlayerPawn>(Actors[i]) || Actors[i]->bAlwaysTick())
+			if (Actors[i] && (UObject::TryCast<UPlayerPawn>(Actors[i]) || Actors[i]->bAlwaysTick()))
 				TickActor(elapsed, Actors[i]);
 		}
 	}
@@ -148,36 +157,186 @@ void ULevel::Tick(float elapsed, bool gamePaused)
 			if (Actors[i])
 				TickActor(elapsed, Actors[i]);
 		}
-
-		// The AI event manager is ticked after the actors, on a full tick
-		// with the game not paused, as the original's ULevel::Tick does.
-		if (engine->LaunchInfo.IsDeusEx() && this == engine->Level && engine->LevelInfo && engine->LevelInfo->Pauser().empty())
-		{
-			if (UEventManager* manager = UEventManager::Get())
-				manager->Tick();
-		}
 	}
 
-	// Without a nulled slot the compacted list is the same list
+	// Without a nulled slot the compacted list is the same list; the first
+	// dynamic actor moves down by the static slots emptied before it.
 	if (ActorsHaveHoles)
 	{
 		Array<UActor*> newActorList;
 		newActorList.reserve(Actors.size());
-		for (UActor* actor : Actors)
+		size_t firstDynamic = 0;
+		for (size_t i = 0; i < Actors.size(); i++)
 		{
-			if (actor)
+			if (i == FirstDynamicActor)
+				firstDynamic = newActorList.size();
+			if (UActor* actor = Actors[i])
 			{
 				actor->Index = (int)newActorList.size();
 				newActorList.push_back(actor);
 			}
 		}
+		FirstDynamicActor = FirstDynamicActor < Actors.size() ? firstDynamic : newActorList.size();
 		Actors.swap(newActorList);
 		ActorsHaveHoles = false;
 		ActorsVersion++;
 	}
 
+	// The original's mark flips after the actors' tick.
+	if (deusEx)
+		ticked = !ticked;
+
 	// The original's last step of a level tick.
 	CleanupDestroyed(false);
+}
+
+// Deus Ex's tick of the level's actors, as the original's ULevel::Tick
+// (dx-reverse-info engine-dll.md, a level's tick): every pass from the first
+// dynamic actor, the static ones never ticked.
+void ULevel::TickDeusEx(float elapsed, bool gamePaused)
+{
+	ownerWait.clear();
+
+	// Paused: the players' input, and the actors with bAlwaysTick.
+	if (gamePaused)
+	{
+		for (size_t i = FirstDynamicActor; i < Actors.size(); i++)
+		{
+			UActor* actor = Actors[i];
+			if (auto playerPawn = UObject::TryCast<UPlayerPawn>(actor))
+				playerPawn->PausedInput(elapsed);
+			else if (actor && actor->bAlwaysTick())
+				TickActorDeusEx(elapsed, actor);
+		}
+		ownerWait.clear();
+		return;
+	}
+
+	// The fork's own: with bPlayersOnly, the players and the actors with
+	// bAlwaysTick.
+	if (engine->LevelInfo->bPlayersOnly())
+	{
+		for (size_t i = FirstDynamicActor; i < Actors.size(); i++)
+		{
+			UActor* actor = Actors[i];
+			if (actor && (UObject::TryCast<UPlayerPawn>(actor) || actor->bAlwaysTick()))
+				TickActorDeusEx(elapsed, actor);
+		}
+		ownerWait.clear();
+		return;
+	}
+
+	// Each dynamic actor's distance to the local player, before any ticks, in
+	// single player.
+	if (engine->LevelInfo->NetMode() == NM_Standalone)
+	{
+		UPlayerPawn* player = engine->viewport ? UObject::TryCast<UPlayerPawn>(engine->viewport->Actor()) : nullptr;
+		if (player && player->Player())
+		{
+			vec3 at = player->Location();
+			for (size_t i = FirstDynamicActor; i < Actors.size(); i++)
+			{
+				if (UActor* actor = Actors[i])
+					actor->DistanceFromPlayer() = length(actor->Location() - at);
+			}
+		}
+	}
+
+	// Each dynamic actor's tick, in the list's order as it grows: one spawned
+	// in the pass is ticked in it. One whose owner has not ticked waits; the
+	// waiting are ticked after the pass, the last to wait first, again until
+	// a round ticks none.
+	bool progress = false;
+	for (size_t i = FirstDynamicActor; i < Actors.size(); i++)
+	{
+		if (UActor* actor = Actors[i])
+			progress = TickActorDeusEx(elapsed, actor) || progress;
+	}
+	while (!ownerWait.empty() && progress)
+	{
+		Array<UActor*> waiting;
+		waiting.swap(ownerWait);
+		progress = false;
+		for (size_t i = waiting.size(); i-- > 0;)
+		{
+			if (waiting[i]->bTicked() != ticked)
+				progress = TickActorDeusEx(elapsed, waiting[i]) || progress;
+		}
+	}
+	ownerWait.clear();
+
+	// The AI event manager is ticked after the actors, on a full tick with
+	// the game not paused, as the original's ULevel::Tick does.
+	if (this == engine->Level && engine->LevelInfo && engine->LevelInfo->Pauser().empty())
+	{
+		if (UEventManager* manager = UEventManager::Get())
+			manager->Tick();
+	}
+}
+
+// One actor's tick in Deus Ex's level tick: whether it counted as ticked (in
+// stasis too), not waiting for its owner. Its class's tick starts with
+// UActor::StartTick, which says how it went (TickStarted).
+bool ULevel::TickActorDeusEx(float elapsed, UActor* actor)
+{
+	if (actor->bDeleteMe())
+		return false;
+
+	lastStart = TickStart::Ticked;
+	actor->Tick(elapsed);
+	if (lastStart == TickStart::Waiting)
+		return false;
+	if (lastStart == TickStart::Stasis || actor->bDeleteMe())
+		return true;
+
+	// Destroy the actor if its time
+	if (actor->Role() >= ROLE_SimulatedProxy && actor->LifeSpan() != 0.0f)
+	{
+		actor->LifeSpan() = std::max(actor->LifeSpan() - elapsed, 0.0f);
+		if (actor->LifeSpan() == 0.0f)
+		{
+			CallEvent(actor, EventName::Expired);
+			actor->Destroy();
+		}
+	}
+	return true;
+}
+
+void ULevel::TickStarted(UActor* actor, TickStart start)
+{
+	lastStart = start;
+	if (start == TickStart::Waiting)
+		ownerWait.push_back(actor);
+}
+
+void ULevel::SortActors()
+{
+	Array<UActor*> sorted;
+	sorted.reserve(Actors.size());
+	for (size_t i = 0; i < Actors.size() && i < 2; i++)
+		sorted.push_back(Actors[i]);
+	for (size_t i = 2; i < Actors.size(); i++)
+	{
+		if (Actors[i] && Actors[i]->bStatic())
+			sorted.push_back(Actors[i]);
+	}
+	FirstDynamicActor = sorted.size();
+	for (size_t i = 2; i < Actors.size(); i++)
+	{
+		if (Actors[i] && !Actors[i]->bStatic())
+			sorted.push_back(Actors[i]);
+	}
+
+	ActorsHaveHoles = false;
+	for (size_t i = 0; i < sorted.size(); i++)
+	{
+		if (sorted[i])
+			sorted[i]->Index = (int)i;
+		else
+			ActorsHaveHoles = true;
+	}
+	Actors.swap(sorted);
+	ActorsVersion++;
 }
 
 void ULevel::Mark(GCMarker& marker)

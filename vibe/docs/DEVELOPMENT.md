@@ -99,6 +99,7 @@ the run. *Either*: one engine on each side of a pair.
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` | |
 | `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` | |
 | `AIConsole` | both | every NPC's state, orders, enemy, time since drawn | `DXAI:`, `DXAISTATE:` | |
+| `StaticConsole` | both | the map's (`TargetMap`) static actors that animate or keep a timer, a life span, physics or a state, at 5 s and at 15 s, and a count by class: an engine that ticks them shows them moving on | `DXSTATIC:` | |
 | `MoveConsole` | both | every pawn's moves, every 2 s for 120 s | `DXMOVE:` | `move.py <original run> <fork run>` |
 | `ReachConsole` | both | `AIDirectionReachable`, `PointReachable`, `ActorReachable` | `DXREACH:` | |
 | `TraceConsole` | both | `TraceTexture`'s hits; toward decorations, `TraceActors`, `TraceTexture`, `Trace` and `FastTrace` | `DXTRACE:` | |

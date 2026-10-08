@@ -292,6 +292,9 @@ an optional struct or array argument does not copy it, where upstream crashes (0
 
 ### Game tick
 
+Deus Ex's level tick is the original's: the actor list in the original's order, static actors
+first and never ticked, an actor waiting for its owner's tick (`ULevel::SortActors`,
+`ULevel::TickDeusEx`, `UActor::StartTick`; [housekeeping](NATIVES.md#housekeeping-not-seen-directly)).
 The actor iterators find a class's actors from an index, not a scan of the level (0013).
 Collision, for every game: a ray trace hands each BSP child only its part of the segment (0025)
 and tests a polygon's plane before its vertex count and surface (0030); sight lines test the

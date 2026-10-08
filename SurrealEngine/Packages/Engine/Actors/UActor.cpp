@@ -28,6 +28,19 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 		return nullptr;
 	}
 
+	// Deus Ex's SpawnActor refuses a class whose defaults are static or not
+	// to be deleted, as the original's does out of the editor: a static
+	// actor would never be ticked (ULevel::SortActors).
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		UActor* defaults = SpawnClass->GetDefaultObject<UActor>();
+		if (defaults->bStatic() || defaults->bNoDelete())
+		{
+			LogMessage("SpawnActor failed because class " + SpawnClass->Name.ToString() + " has bStatic or bNoDelete");
+			return nullptr;
+		}
+	}
+
 	vec3 location = SpawnLocation ? *SpawnLocation : Location();
 	Rotator rotation = SpawnRotation ? *SpawnRotation : Rotation();
 
@@ -68,7 +81,10 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	actor->XLevel() = XLevel();
 	actor->Level() = Level();
 	actor->Tag() = (SpawnTag && !SpawnTag->IsNone()) ? *SpawnTag : SpawnClass->Name;
-	actor->bTicked() = bTicked(); // To do: should it tick in the same world tick it was spawned in or wait until the next one?
+	// Deus Ex's is not yet ticked, the opposite of the level's mark, as the
+	// original's: the level's pass reaches it at the list's end and ticks it
+	// the same frame. Another game's takes its spawner's.
+	actor->bTicked() = engine->LaunchInfo.IsDeusEx() ? !XLevel()->TickMark() : bTicked();
 	actor->Instigator() = Instigator();
 	actor->Brush() = nullptr;
 	actor->Location() = location;
@@ -236,8 +252,8 @@ bool UActor::InStasis()
 	// The original's InStasis, all of which must hold: bStasis;
 	// bForceStasis, or physics none or rotating; not drawn for 5 s; its
 	// zone not drawn for 5 s, or more than 1,200 units from the player;
-	// single player, which the fork always is.
-	if (!bStasis())
+	// single player.
+	if (!bStasis() || Level()->NetMode() != NM_Standalone)
 		return false;
 	if (!bForceStasis() && Physics() != PHYS_None && Physics() != PHYS_Rotating)
 		return false;
@@ -270,24 +286,38 @@ bool UActor::IsTransient()
 	return TransientPropOffset.DataOffset != ~(size_t)0 && BoolValue(TransientPropOffset);
 }
 
+bool UActor::StartTick()
+{
+	ULevel* level = XLevel();
+
+	// Nothing else for an actor in stasis -- no script tick, physics,
+	// animation or timers -- and a transient one (the rats a container lets
+	// out) destroyed. It counts as ticked, its mark left as it was.
+	if (InStasis())
+	{
+		if (IsTransient())
+			Destroy();
+		level->TickStarted(this, ULevel::TickStart::Stasis);
+		return false;
+	}
+
+	if (Owner() && Owner()->bTicked() != level->TickMark())
+	{
+		level->TickStarted(this, ULevel::TickStart::Waiting);
+		return false;
+	}
+
+	bTicked() = level->TickMark();
+	level->TickStarted(this, ULevel::TickStart::Ticked);
+	return true;
+}
+
 void UActor::Tick(float elapsed)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		// A joining client has no player until the server's arrives.
-		if (UActor* player = engine->viewport->Actor())
-			DistanceFromPlayer() = length(player->Location() - Location());
-
-		// The original's tick does nothing else for an actor in stasis --
-		// no script tick, physics, animation or timers -- and destroys a
-		// transient one (the rats a container lets out).
-		if (InStasis())
-		{
-			if (IsTransient())
-				Destroy();
-			return;
-		}
-	}
+	// Deus Ex's tick starts as the original's AActor::Tick does; a pawn's
+	// starts in UPawn::Tick, before its own work.
+	if (engine->LaunchInfo.IsDeusEx() && !bIsPawn() && !StartTick())
+		return;
 
 	// The slots move only while the main animation plays or tweens
 	bool mainAnimMoving = IsAnimating() || (AnimFrame() < 0.0f && TweenRate() != 0.0f);

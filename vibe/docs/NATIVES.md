@@ -87,9 +87,9 @@ run before the actor tick, in the original's order.
 ### Starting up
 
 Matches the original ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)):
-every actor starts a level 10 s undrawn and ticks in its first tick, so a
-pawn out of sight starts from its state code (`AIConsole`). A few pawns far
-off count as drawn: [out of sight](#out-of-sight).
+every actor starts a level 10 s undrawn and every dynamic one ticks in its
+first tick, so a pawn out of sight starts from its state code (`AIConsole`).
+A few pawns far off count as drawn: [out of sight](#out-of-sight).
 
 ### Hearing: the AI event system
 
@@ -395,6 +395,17 @@ Differs:
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
 
 ## Housekeeping, not seen directly
+
+**The level's tick** is the original's
+([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)):
+at every load the actor list is put in the original's order, static actors
+first, and every pass of the tick starts after them, so a static actor never
+ticks -- on Liberty Island 1,833 of some 2,600, none of which animates or
+keeps a timer (`StaticConsole`). Each dynamic actor's distance to the player
+comes first, in single player; an actor whose owner has not ticked that frame
+waits for it; one spawned during the pass is ticked in it; a class whose
+defaults are static or not to be deleted is not spawned; and stasis is for
+single player only.
 
 **Garbage** is collected as the original's map load collects it
 ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-map-loads-collection);

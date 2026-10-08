@@ -42,6 +42,25 @@ public:
 
 	void Tick(float elapsed, bool gamePaused);
 
+	// Deus Ex: the actor list in the original's order, at every load after
+	// PostPostBeginPlay -- its first two slots, then the static actors, then
+	// the rest, empty slots dropped -- and its tick from the first dynamic
+	// actor: a static actor is never ticked (dx-reverse-info engine-dll.md,
+	// the actor list's order). 0 for a level never sorted.
+	void SortActors();
+	size_t FirstDynamicActor = 0;
+
+	// Deus Ex: the mark an actor ticked this frame carries (bTicked), which
+	// flips after each tick; a spawned actor takes its opposite, not yet
+	// ticked.
+	bool TickMark() const { return ticked; }
+
+	// Deus Ex: the start of an actor's tick (UActor::StartTick) tells the
+	// level how it went: an actor whose owner has not ticked this frame
+	// waits, and is ticked after the pass once its owner has.
+	enum class TickStart { Ticked, Stasis, Waiting };
+	void TickStarted(UActor* actor, TickStart start);
+
 	// The reach specs' ends, the BSP model and the destroyed actors' chain.
 	// The collision hash and the light caches hold only actors of Actors,
 	// kept there.
@@ -66,6 +85,11 @@ public:
 
 private:
 	void TickActor(float elapsed, UActor* actor);
+	void TickDeusEx(float elapsed, bool gamePaused);
+	bool TickActorDeusEx(float elapsed, UActor* actor);
 
 	bool ticked = false;
+	TickStart lastStart = TickStart::Ticked;
+	// The actors waiting for their owners' ticks, the last to wait last.
+	Array<UActor*> ownerWait;
 };

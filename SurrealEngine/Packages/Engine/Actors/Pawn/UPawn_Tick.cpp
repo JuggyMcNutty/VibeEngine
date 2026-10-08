@@ -12,11 +12,16 @@
 
 void UPawn::Tick(float elapsed)
 {
+	// Deus Ex's tick starts as the original's AActor::Tick does: a pawn in
+	// stasis, or waiting for its owner, does nothing more here.
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
+	if (deusEx && !StartTick())
+		return;
+
 	MoveTimer() -= elapsed;
 
 	// The original's pawn physics keep a running average of the tick,
 	// which moveToward reads (APawn::performPhysics).
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
 	if (deusEx)
 		AvgPhysicsTime() = 0.8f * AvgPhysicsTime() + 0.2f * elapsed;
 
