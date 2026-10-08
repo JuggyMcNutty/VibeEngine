@@ -162,6 +162,30 @@ VK_KHRONOS_VALIDATION_VALIDATE_SYNC=true \
 unless the hooks are on). Against the original, the harness measures both engines' frames the
 same way ([measuring both engines](DEVELOPMENT.md#measuring-both-engines)).
 
+### Against the original
+
+Liberty Island's level start, the player idle, both engines on the desktop's Xwayland through
+OpenGL, no vsync, 1280x720 (`PerfConsole`, `DXCAP_PERF=1`), three alternating runs of each, at
+engine `e875e00` on the development machine (Ryzen 9 7940HS, Radeon 780M). Milliseconds a frame
+of the main thread, by area (`frame-report.py --mean`):
+
+| | Original | Fork |
+|---|---|---|
+| Frame (frames a second) | 4.22 (237) | 5.13 (195) |
+| Main thread on the CPU | 3.98 | 4.63 |
+| Cycles, instructions a frame | 21.4 M, 28.8 M | 25.2 M, 41.5 M |
+| Scene render | 1.40 (`Render.dll`), 0.10 fractal textures (`Fire.dll`) | 2.64 |
+| Script VM and objects | 0.40 (`Core.dll`) | 0.50 |
+| Game tick, AI, physics, collision | 0.36 (`Engine.dll`, `DeusEx.dll`) | 0.36 |
+| Render device, GL driver | 0.32, 0.39 | 0.12, 0.37 |
+| C runtime | 0.96 | 0.35 |
+
+The original's own counters at the same runs: its game 0.45 ms a frame, its client 3.75. The
+fork's render is the gap: the visibility walk (`ProcessNodeSurface`, `DrawPolygon`,
+`ProcessNode`, the box tests, about 1.2), meshes (`DrawLodMeshFaceDX`, about 0.47), light maps
+(`GetLightmap`, about 0.24, most of it the barrel fire's six maps rebuilt and uploaded whole each
+frame).
+
 ## Settings and environment
 
 The engine reads `~/.config/SurrealEngine/Settings.json`, which the ports' launcher writes
