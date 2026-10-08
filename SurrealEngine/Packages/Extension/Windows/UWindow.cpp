@@ -767,8 +767,9 @@ UObject* UWindow::MoveFocusUp()
 // Whether focus may sit on this window (Extension.dll XWindow::IsTraversable
 // 0x1004c460): the window itself must be selectable, and it and every
 // ancestor visible and sensitive. With the topmost check, the nearest
-// ancestor that is a modal (or the root) must also be the topmost such
-// child of the root: a window under a buried modal cannot take focus.
+// ancestor that is a modal (or the root) must also be the topmost modal: the
+// root's topmost child that shows and is a modal, else the root. A window
+// under a buried modal cannot take focus.
 bool UWindow::IsTraversable(bool checkTopmost)
 {
 	if (!bIsSelectable())
@@ -787,7 +788,7 @@ bool UWindow::IsTraversable(bool checkTopmost)
 				UWindow* top = nullptr;
 				for (UWindow* c = i->lastChild(); c; c = c->prevSibling())
 				{
-					if (c->windowType() >= 2)
+					if (c->bIsVisible() && c->windowType() >= 2)
 					{
 						top = c;
 						break;
@@ -1919,32 +1920,24 @@ void UWindow::DescendantRemoved(UWindow* descendant)
 void UWindow::Tick(float timeElapsed)
 {
 	// The root's own tick (Extension.dll XRootWindow::Tick 0x1003a540):
-	// while nothing has the focus and a modal is up, the focus is seeded --
-	// the modal's preferred window if it has one (SetFocusWindow keeps the
-	// last focus there), else as a move to the next tab group gives it
-	// (MoveFocus with no focus). This is how a conversation's choices light up as they
-	// appear, and a menu's first button too. The original then ticks its
-	// modal half (an accelerator-table rebuild the fork has no table for).
+	// while nothing has the focus, the topmost modal -- the root itself with
+	// none up -- seeds it, unless its focusMode is MFOCUS_EnterLeave (the
+	// keypad's): its preferred window if that can take the focus
+	// (SetFocusWindow keeps the last focus there), else as a move to the next
+	// tab group gives it, from the table's first. This is how a
+	// conversation's choices light up as they appear, and a menu's first
+	// button too. The original then ticks its modal half (an
+	// accelerator-table rebuild the fork has no table for).
 	if (engine->dxRootWindow == this && !GetRootWindow()->FocusWindow())
 	{
-		UWindow* holder = nullptr;
-		for (UWindow* c = lastChild(); c; c = c->prevSibling())
+		URootWindow* root = GetRootWindow();
+		UModalWindow* holder = UObject::TryCast<UModalWindow>(TopmostModal(root));
+		if (holder && holder->focusMode() != (uint8_t)EMouseFocusMode::EnterLeave)
 		{
-			if (c->windowType() >= 2)
-			{
-				holder = c;
-				break;
-			}
-		}
-		if (holder && holder->windowType() < 3)
-		{
-			if (UModalWindow* modal = UObject::TryCast<UModalWindow>(holder))
-			{
-				if (modal->preferredFocus() && modal->preferredFocus()->IsTraversable(true))
-					GetRootWindow()->SetRootFocusWindow(modal->preferredFocus());
-			}
-			if (!GetRootWindow()->FocusWindow())
-				MoveFocus(3);
+			if (holder->preferredFocus() && holder->preferredFocus()->IsTraversable(true))
+				root->SetRootFocusWindow(holder->preferredFocus());
+			if (!root->FocusWindow())
+				MoveTabGroup(true);
 		}
 	}
 

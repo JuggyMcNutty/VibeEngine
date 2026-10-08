@@ -286,6 +286,10 @@ original's code:
   modal, else that modal), then up its parents. A press grabs the mouse for
   that window, so a drag's moves and its drop reach the item it started on,
   and counts as a multiple click within 0.5 s and 10 units of the first.
+  The root marks every press and release: a press of a key already down is
+  a repeat, and a release of a key or button not down is taken while a
+  modal shows and goes to no window (`KeypadConsole` with
+  `stray-release.txt`, the fork's alone; with no modal up the game gets it).
   `LootConsole` searches two carcasses alike in both engines; the keys and
   the drags between the searches (`loot-drags.txt`) are a timeline's, so the
   fork's alone.
@@ -304,20 +308,15 @@ Differs:
   cover the whole view. Its render time: [out of sight](#out-of-sight).
 - **Keys**, read from both codes: the keyboard counts as grabbed while a
   modal shows, where the original counts its grabs (every modal grabs while
-  shown); the fork tries only the focus window's accelerator, and passes on
-  a release of a key not down, which the original takes and drops.
+  shown); the fork tries only the focus window's accelerator.
 - **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
   `MoveFocus`, `MoveTabGroup`, the focus moving off a window hidden, made
-  unselectable or destroyed, and the windows ticking before the engine are
-  the original's (`ChoiceConsole`). Differs, read from both codes, unchecked
-  in a run:
-  - The tab groups' table passes no window over as clipped away: the fork
-    keeps no clip rectangles.
-  - The root's tick seeds the focus whatever the topmost modal's
-    `focusMode`, so the keypad (`MFOCUS_EnterLeave`) gets a focused key as
-    it opens, and seeds nothing with no modal up. The original's leaves an
-    `MFOCUS_EnterLeave` modal alone and, with no modal up, seeds through the
-    root.
+  unselectable or destroyed, the windows ticking before the engine
+  (`ChoiceConsole`), and the root's tick seeding the focus -- none while the
+  keypad (`MFOCUS_EnterLeave`) is up, none with no modal up
+  (`KeypadConsole`) -- are the original's. Differs, read from both codes,
+  unchecked in a run: the tab groups' table passes no window over as
+  clipped away, the fork keeping no clip rectangles.
 
 ## Sound
 

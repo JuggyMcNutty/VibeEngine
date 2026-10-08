@@ -1,0 +1,11 @@
+# KeypadConsole's stray releases on the fork: E released with no press
+# before it, while W is held -- first in the walk, with no modal up, then
+# with the package's logging window up (vibe/tools/dxcap/Classes/KeyLogWindow.uc).
+# DXCAP_TIMELINE=<this> vibe/tools/dxcap.sh fork KeypadConsole 01_NYC_UNATCOIsland 100
+start 30 press W
+start 33 release E
+start 36 release W
+start 70 press W
+start 73 release E
+start 76 release W
+start 85 exit

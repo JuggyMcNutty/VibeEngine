@@ -111,6 +111,7 @@ the run. *Either*: one engine on each side of a pair.
 | `LootConsole` | both | two carcasses searched, the inventory grid against its items | `DXLOOT:` | with `vibe/tools/dxcap/timelines/loot-drags.txt` on the fork |
 | `CarcassConsole` | both | what the map's carcasses and a killed NPC's hold, their search, the looted weapon in hand and away | `DXCARC:` | |
 | `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` | |
+| `KeypadConsole` | both | the root's focus with no modal up and round the keypad; the player walking; the keys a modal of the package's own is handed | `DXKEYPAD:` | with `vibe/tools/dxcap/timelines/stray-release.txt` on the fork |
 | `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` | |
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
 | `RotatorConsole` | both | `rotator(v)`, a rotator's string, `vector(r)`, `GetAxes`, `GetUnAxes` | `DXROT:` | |
@@ -151,7 +152,8 @@ left, both from Liberty Island, ten loads of each map 25 s apart, then an exit:
 | `reload-fresh.txt` | the island and Battery Park | crosses a mission: `Current` emptied, the map from `Maps` |
 | `reload-current.txt` | the island and UNATCO HQ | stays in mission 1: the map left saved into `Current`, the next one from there |
 
-and `loot-drags.txt`, `LootConsole`'s drags in the inventory screen.
+and two more: `loot-drags.txt`, `LootConsole`'s drags in the inventory screen;
+`stray-release.txt`, `KeypadConsole`'s release of a key no press came before.
 
 ```sh
 DXCAP_HIDDEN=1 DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \

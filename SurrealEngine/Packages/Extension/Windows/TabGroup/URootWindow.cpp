@@ -478,6 +478,21 @@ bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)
 	return HandleButton(key, false);
 }
 
+// The root's mark of a key or button (keyDownMap; Extension.dll
+// XRootWindow::Process 0x1003b3e0): every press sets it and every release
+// clears it, whether the UI takes them or not. Whether it was down before:
+// a press while down is a repeat, and a release while up comes from no
+// press the root saw.
+bool URootWindow::MarkKey(EInputKey key, bool down)
+{
+	if ((int)key >= 255)
+		return false;
+	uint8_t& mark = (&keyDownMap())[(int)key];
+	bool wasDown = mark != 0;
+	mark = down ? 1 : 0;
+	return wasDown;
+}
+
 // The original's (dx-reverse-info/extension-dll.md, the root window): the
 // UI takes the buttons only while a window holds the mouse, as every shown
 // modal does. Each goes to the window the mouse acts on, then up its
@@ -489,8 +504,12 @@ bool URootWindow::OnWindowMouseUp(const Point& pos, EInputKey key)
 // maxMouseDist of the first, count up, wrapped at the window's maxClicks.
 bool URootWindow::HandleButton(EInputKey key, bool press)
 {
+	bool wasDown = MarkKey(key, press);
 	if (!IsModalOpen())
 		return false;
+	// A release of a button not down is taken, and goes to no window.
+	if (!press && !wasDown)
+		return true;
 	if (bMouseButtonLocked())
 		return true;
 
@@ -571,7 +590,11 @@ bool URootWindow::HandleButton(EInputKey key, bool press)
 bool URootWindow::OnWindowMouseWheel(const Point& pos, EInputKey key)
 {
 	if (!OnWindowMouseDown(pos, key))
+	{
+		// The game takes the press and the release
+		MarkKey(key, false);
 		return false;
+	}
 
 	OnWindowMouseUp(pos, key);
 	return true;
@@ -622,6 +645,8 @@ bool URootWindow::OnWindowKeyChar(std::string chars)
 
 bool URootWindow::OnWindowKeyDown(EInputKey key)
 {
+	bool repeat = MarkKey(key, true);
+
 	// To do: this shouldn't just check the focus window. It needs to build an accelerator table for all windows
 	UWindow* focus = FocusWindow();
 	if (focus && TopmostModal() && engine->window->GetKeyState(IK_Alt) && focus->acceleratorKey() != 0)
@@ -630,8 +655,6 @@ bool URootWindow::OnWindowKeyDown(EInputKey key)
 		if (focus->AcceleratorKeyPressed(chars))
 			return true;
 	}
-
-	bool repeat = false; // To do: can surrealwidgets tell us this?
 
 	return RouteKey([&](UWindow* w) { return w->RawKeyPressed(key, EInputType::IST_Press, repeat) || w->VirtualKeyPressed(key, repeat); });
 }
@@ -644,6 +667,11 @@ bool URootWindow::OnWindowKeyUp(EInputKey key)
 	// event bool BoxOptionSelected(Window box, int buttonNumber)
 	// event bool ListRowActivated(window list, int rowId)
 	// event bool ListSelectionChanged(window list, int numSelections, int focusRowId)
+
+	// A release of a key not down is taken while a modal holds the keyboard,
+	// and goes to no window; with none up, the game gets it.
+	if (!MarkKey(key, false))
+		return IsModalOpen();
 
 	return RouteKey([&](UWindow* w) { return w->RawKeyPressed(key, EInputType::IST_Release, false); });
 }
