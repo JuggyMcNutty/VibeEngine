@@ -150,16 +150,18 @@ void UActor::TickFalling(float elapsed)
 // velocity. The original falls a whole frame in its steps and stops where it
 // lands, handing the landing the rest of the frame: so here a landing, a
 // stop and a hand-over to swimming end the frame's physics (EndPhysicsFrame),
-// the rest of the frame theirs. Not here: the original's ladder check first,
-// a ladder the fork does not climb; and its split of a step at the top of a
+// the rest of the frame theirs. A player on a ladder climbs it instead
+// (DeusExLadder). Not here: the original's split of a step at the top of a
 // rise, which needs a step over 0.03 s and the fork's are 0.02 at most
 // (TickPhysics).
 void UActor::DeusExTickFalling(float deltaTime)
 {
+	UPawn* pawn = UObject::TryCast<UPawn>(this);
+	if (pawn && pawn->DeusExLadder(deltaTime))
+		return;
 	if (HasLeftWorld())
 		return;
 
-	UPawn* pawn = UObject::TryCast<UPawn>(this);
 	UDecoration* decor = UObject::TryCast<UDecoration>(this);
 	bool player = UObject::TryCast<UPlayerPawn>(this) != nullptr;
 

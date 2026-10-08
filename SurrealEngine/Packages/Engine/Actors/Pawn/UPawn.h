@@ -77,6 +77,13 @@ public:
 	// The speed Deus Ex's pawns walk and swim at, the original's calcVelocity
 	// (UActor_PhysWalking.cpp).
 	void DeusExCalcVelocity(const vec3& accelDir, float deltaTime, float maxSpeed, float friction, bool fluid, bool brake, bool buoyant);
+	// Deus Ex's flying, the original's, and its ladders, which a player
+	// climbs by flying (UActor_PhysFlying.cpp): true when the ladder check
+	// took the tick.
+	void DeusExPhysFlying(float deltaTime);
+	bool DeusExLadder(float deltaTime);
+	UTexture* DeusExLadderProbe(CollisionHit& hit, vec3& hitLocation);
+	UTexture* DeusExLineTexture(const vec3& start, const vec3& end, CollisionHit& hit, vec3& hitLocation);
 	void SuggestJumpVelocity(vec3 dest, vec3& vel);
 	bool FindBestJump(vec3 dest, vec3 testVel, vec3& landing, bool movePawn);
 	bool DeusExAIDirectionReachable(const vec3& focus, int yaw, int pitch, float minDist, float maxDist, vec3& bestDest);

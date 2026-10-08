@@ -370,7 +370,12 @@ crate rises and bobs at the surface at the original's speeds), swimming
 back at the water line and swim on, the player stopped as its head goes
 under and held to 0.3 of `WaterSpeed`, as it walks whenever it swims; up out
 of the water it hops and falls back in, bobbing), the speed a pawn walks and
-swims at (`calcVelocity`; one that stops brakes to a standstill),
+swims at (`calcVelocity`; one that stops brakes to a standstill), ladders
+(`LadderConsole`: a player at a ladder's foot hangs there, climbs as it
+pushes into it, goes down looking down and steps off onto the top; the same
+check's slide of a walking player on a texture with a `Friction` under 1 is
+unchecked in a run) and flying, by which a player climbs (a flying NPC's
+flight is unchecked in a run),
 `SetLocation`, the rotators' conversions (`RotatorConsole`,
 702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
 `MidConsole`'s ten probes of both, and `Object.DynamicLoadObject` with a
@@ -388,12 +393,6 @@ Differs:
 - **A box started inside a cylinder** keeps the least penetration's normal;
   the original's is level, out from the axis, as a line's is in both
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
-- **Ladders** are not climbed. The original's walking, falling and swimming
-  first look, for a player, for a wall whose texture is in a `Ladder` group
-  just in front of it, and climb it by flying; with none, a walking player on
-  a texture whose `Friction` is under 1 slides along the floor
-  ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).
-  The fork has neither.
 
 ## Housekeeping, not seen directly
 

@@ -101,6 +101,7 @@ the run. *Either*: one engine on each side of a pair.
 | `TraceConsole` | both | `TraceTexture`'s hits; toward decorations, `TraceActors`, `TraceTexture`, `Trace` and `FastTrace` | `DXTRACE:` | |
 | `FloatConsole` | both | the crates in the water by the pier, every quarter second | `DXFLOAT:` | |
 | `SwimConsole` | both | at the pier's edge, every tick for 4 s: the player falling into the water from three heights, diving, swimming up; a troop dropped and thrown in | `DXSWIM:` | |
+| `LadderConsole` | both | Liberty Island's first ladder found from the navigation points, every tick: the player at its foot, climbing 1 s, hanging, going down looking down, hanging, climbing onto the top | `DXLADDER:` | |
 | `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators | `DXVIS:` | |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
 | `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |

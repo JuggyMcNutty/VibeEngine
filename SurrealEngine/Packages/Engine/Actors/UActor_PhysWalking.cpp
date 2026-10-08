@@ -40,6 +40,14 @@ bool UActor::ShouldAbortJumping(UPawn* pawn, vec3 oldPosition, vec3 stepDownDelt
 
 void UActor::TickWalking(float elapsed)
 {
+	// Deus Ex: a player on a ladder climbs it instead.
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		UPawn* climber = UObject::TryCast<UPawn>(this);
+		if (climber && climber->DeusExLadder(elapsed))
+			return;
+	}
+
 	// Only pawns can walk!
 	UPawn* pawn = PreparePawnMovementTick();
 	if (!pawn)
