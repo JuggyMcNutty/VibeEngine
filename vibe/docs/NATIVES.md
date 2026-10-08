@@ -483,8 +483,14 @@ which the recreated launcher's `run-game.sh` passes on as given
 ([running it](ENGINE.md#running-it)) but for its quotes, which that launcher
 drops ([its known defects](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#known-defects)).
 Its flags are found as the original finds them
-([cli-flags.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md));
-what the fork does with each:
+([cli-flags.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md)),
+with one exception, by choice: a flag's name (`-X` or `/X`) must end at a
+space or the line's end, where the original's `ParseParam` checks nothing
+after it. Both take `/` as a switch, and a Linux path is full of them: the
+original's would find `-server` in `INI=/srv/server/x.ini`. The recreated
+launcher parses alike
+([where it differs](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#where-it-differs-from-the-original)).
+What the fork does with each:
 
 - **The start URL**: with `-hax0r` or `-server`, the first word (the second
   after `SERVER`) unless it starts with `-`; else the game's own start,

@@ -62,6 +62,8 @@ void OriginalCommandLine::Set(const std::string& value)
 bool OriginalCommandLine::Param(const std::string& name) const
 {
 	// Past the line's first character, as ParseParam starts its search there.
+	// The name ending at a space or the end is the fork's own test, by choice
+	// (OriginalCommandLine.h): the original's checks nothing after it.
 	for (size_t at = FindNoCase(line, name, 1); at != std::string::npos; at = FindNoCase(line, name, at + 1))
 	{
 		char before = line[at - 1];
