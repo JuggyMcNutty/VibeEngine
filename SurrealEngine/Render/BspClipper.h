@@ -50,6 +50,14 @@ public:
 private:
 	bool IsVisible(int16_t y, int16_t x0, int16_t x1);
 
+	// A convex polygon clipped once and drawn a row at a time, one span to a
+	// row, each edge stepped as DrawClippedTriangle steps it: a fan of
+	// triangles drew as many spans to a row as it had triangles there, and
+	// clipped each triangle on its own. One of more vertices goes by the fan.
+	enum { MaxPolygonVertices = 64 };
+	bool DrawPolygon(const vec3* vertices, uint32_t count, bool solid);
+	bool DrawFan(const vec3* vertices, uint32_t count, bool solid);
+
 	struct ShadedVertex
 	{
 		vec4 position;

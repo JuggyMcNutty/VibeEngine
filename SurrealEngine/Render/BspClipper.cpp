@@ -75,6 +75,158 @@ bool BspClipper::CheckSurface(const vec3* vertices, uint32_t count, bool solid)
 
 	numSurfs++;
 
+	if (count <= MaxPolygonVertices)
+		return DrawPolygon(vertices, count, solid);
+	return DrawFan(vertices, count, solid);
+}
+
+
+bool BspClipper::DrawPolygon(const vec3* vertices, uint32_t count, bool solid)
+{
+	numTris += (int)count - 2;
+
+	// Each vertex in clip space with its distances to the six half-spaces
+	// ClipEdge clips by: the view's four sides, the near plane and the
+	// portal's plane. Each clip adds a vertex at most.
+	struct ClipVertex
+	{
+		vec4 pos;
+		float d[6];
+	};
+	ClipVertex bufferA[MaxPolygonVertices + 6];
+	ClipVertex bufferB[MaxPolygonVertices + 6];
+	ClipVertex* in = bufferA;
+	int n = (int)count;
+	bool needsClipping = false;
+	for (int i = 0; i < n; i++)
+	{
+		ClipVertex& v = in[i];
+		v.pos = WorldToProjection * vec4(vertices[i], 1.0f);
+		v.d[0] = v.pos.x + v.pos.w;
+		v.d[1] = v.pos.w - v.pos.x;
+		v.d[2] = v.pos.y + v.pos.w;
+		v.d[3] = v.pos.w - v.pos.y;
+		v.d[4] = v.pos.z + v.pos.w;
+		v.d[5] = dot(PortalPlane, vec4(vertices[i], 1.0f));
+		// Any distance not at least zero (a NaN too) means clipping
+		for (int k = 0; k < 6; k++)
+			needsClipping = needsClipping || !(v.d[k] >= 0.0f);
+	}
+
+	if (needsClipping)
+	{
+		for (int p = 0; p < 6; p++)
+		{
+			ClipVertex* out = in == bufferA ? bufferB : bufferA;
+			int m = 0;
+			for (int i = 0; i < n; i++)
+			{
+				const ClipVertex& a = in[i];
+				const ClipVertex& b = in[i + 1 < n ? i + 1 : 0];
+				bool aInside = a.d[p] >= 0.0f;
+				bool bInside = b.d[p] >= 0.0f;
+				if (aInside)
+					out[m++] = a;
+				if (aInside != bInside && m < MaxPolygonVertices + 6)
+				{
+					float t = a.d[p] / (a.d[p] - b.d[p]);
+					ClipVertex& v = out[m++];
+					v.pos = a.pos * (1.0f - t) + b.pos * t;
+					for (int k = 0; k < 6; k++)
+						v.d[k] = a.d[k] * (1.0f - t) + b.d[k] * t;
+				}
+				if (m >= MaxPolygonVertices + 6)
+					break;
+			}
+			in = out;
+			n = m;
+			if (n < 3)
+				return false;
+		}
+	}
+
+	// To the viewport, as DrawTriangle maps a vertex
+	float halfWidth = (float)ViewportWidth * 0.5f;
+	float halfHeight = (float)ViewportHeight * 0.5f;
+	float sx[MaxPolygonVertices + 6];
+	float sy[MaxPolygonVertices + 6];
+	int top = 0;
+	int bottom = 0;
+	for (int i = 0; i < n; i++)
+	{
+		float invw = 1.0f / in[i].pos.w;
+		sx[i] = 0.0f + halfWidth * (1.0f + in[i].pos.x * invw);
+		sy[i] = 0.0f + halfHeight * (1.0f - in[i].pos.y * invw);
+		if (sy[i] < sy[top])
+			top = i;
+		if (sy[i] > sy[bottom])
+			bottom = i;
+	}
+
+	int16_t clipright = ViewportWidth;
+	int16_t topY = std::max((int16_t)(sy[top] + 0.5f), (int16_t)0);
+	int16_t bottomY = std::min((int16_t)(sy[bottom] + 0.5f), (int16_t)ViewportHeight);
+	if (topY >= bottomY)
+		return false;
+
+	// The two chains from the top vertex down, one each way round. An edge
+	// takes the rows from its upper end's to its lower end's, its x stepped
+	// from where it crosses its first row, as DrawClippedTriangle steps it.
+	struct Chain
+	{
+		int vertex, dir, endRow;
+		float pos, step;
+	};
+	auto startEdge = [&](Chain& c, int16_t row)
+	{
+		while (true)
+		{
+			int next = (c.vertex + c.dir + n) % n;
+			c.endRow = (int16_t)(sy[next] + 0.5f);
+			if (row < c.endRow || next == bottom)
+			{
+				float dy = sy[next] - sy[c.vertex];
+				c.step = dy != 0.0f ? (sx[next] - sx[c.vertex]) / dy : 0.0f;
+				c.pos = sx[c.vertex] + c.step * (row + 0.5f - sy[c.vertex]) + 0.5f;
+				return;
+			}
+			c.vertex = next;
+		}
+	};
+	Chain left = { top, 1, 0, 0.0f, 0.0f };
+	Chain right = { top, -1, 0, 0.0f, 0.0f };
+	startEdge(left, topY);
+	startEdge(right, topY);
+
+	bool result = false;
+	for (int16_t y = topY; y < bottomY; y++)
+	{
+		if (y >= left.endRow && left.vertex != bottom)
+		{
+			left.vertex = (left.vertex + left.dir + n) % n;
+			startEdge(left, y);
+		}
+		if (y >= right.endRow && right.vertex != bottom)
+		{
+			right.vertex = (right.vertex + right.dir + n) % n;
+			startEdge(right, y);
+		}
+
+		int16_t x0 = (int16_t)left.pos;
+		int16_t x1 = (int16_t)right.pos;
+		if (x1 < x0) std::swap(x0, x1);
+		x0 = clamp(x0, (int16_t)0, clipright);
+		x1 = clamp(x1, (int16_t)0, clipright);
+		result |= DrawSpan(y, x0, x1, solid);
+
+		left.pos += left.step;
+		right.pos += right.step;
+	}
+	return result;
+}
+
+bool BspClipper::DrawFan(const vec3* vertices, uint32_t count, bool solid)
+{
 	ShadedVertex buffer[3];
 	ShadedVertex* triverts[3] = { &buffer[0], &buffer[1], &buffer[2] };
 

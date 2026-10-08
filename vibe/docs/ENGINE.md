@@ -231,7 +231,8 @@ the UI see the render size.
 For every game, the renderer's CPU work is lighter: lightmaps lit only where a light reaches
 (0005); the light tree and each surface's lights kept while no light changes (0023); the
 clipper's occlusion grid one row per image row (0010), its non-SSE (ARM) build skipping the clip
-for triangles inside the view (0020, an upstream bug); one-sided surfaces seen from behind
+for triangles inside the view (0020, an upstream bug), a surface clipped once and filled into the
+grid as one polygon, a span to a row (`BspClipper::DrawPolygon`); one-sided surfaces seen from behind
 skipped before the visibility test (0011); a surface's points gathered only when a test needs
 them (0021); each mesh vertex animated, lit and fogged once a draw (0018), and a run of faces
 with one texture drawn in one device call (0019); a portal's spans put in order by row in
