@@ -46,6 +46,13 @@ public:
 	// tick), which ends by calling the actor tick.
 	void Tick(float elapsed) override;
 
+	// The original's native UpdateAgitation and UpdateFear, which the native
+	// tick calls in place of the script's own (DeusEx.dll 0x10019e30,
+	// 0x10019f60; dx-reverse-info deusex-dll.md, alliances, fear and
+	// carcasses).
+	void UpdateAgitation(float deltaSeconds);
+	void UpdateFear(float deltaSeconds);
+
 	BitfieldBool bDisappear() { return BoolValue(PropOffsets_ScriptedPawn.bDisappear); }
 	BitfieldBool bTickVisibleOnly() { return BoolValue(PropOffsets_ScriptedPawn.bTickVisibleOnly); }
 	BitfieldBool bHasCloak() { return BoolValue(PropOffsets_ScriptedPawn.bHasCloak); }
@@ -68,6 +75,13 @@ public:
 	float& BeamCheckTimer() { return Value<float>(PropOffsets_ScriptedPawn.BeamCheckTimer); }
 	float& FutzTimer() { return Value<float>(PropOffsets_ScriptedPawn.FutzTimer); }
 	float& PlayerAgitationTimer() { return Value<float>(PropOffsets_ScriptedPawn.PlayerAgitationTimer); }
+	float& AgitationCheckTimer() { return Value<float>(PropOffsets_ScriptedPawn.AgitationCheckTimer); }
+	float& AgitationTimer() { return Value<float>(PropOffsets_ScriptedPawn.AgitationTimer); }
+	float& AgitationDecayRate() { return Value<float>(PropOffsets_ScriptedPawn.AgitationDecayRate); }
+	BitfieldBool bAlliancesChanged() { return BoolValue(PropOffsets_ScriptedPawn.bAlliancesChanged); }
+	float& FearTimer() { return Value<float>(PropOffsets_ScriptedPawn.FearTimer); }
+	float& FearDecayRate() { return Value<float>(PropOffsets_ScriptedPawn.FearDecayRate); }
+	float& FearLevel() { return Value<float>(PropOffsets_ScriptedPawn.FearLevel); }
 	float& WeaponTimer() { return Value<float>(PropOffsets_ScriptedPawn.WeaponTimer); }
 	float& DistressTimer() { return Value<float>(PropOffsets_ScriptedPawn.DistressTimer); }
 	float& FearSustainTime() { return Value<float>(PropOffsets_ScriptedPawn.FearSustainTime); }

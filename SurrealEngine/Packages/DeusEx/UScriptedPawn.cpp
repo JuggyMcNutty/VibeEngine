@@ -102,12 +102,89 @@ bool UScriptedPawn::IsValidEnemy(UPawn* TestEnemy, std::optional<bool> bCheckAll
 	return true;
 }
 
+void UScriptedPawn::UpdateAgitation(float deltaSeconds)
+{
+	if (AgitationCheckTimer() > 0.0f)
+	{
+		AgitationCheckTimer() -= deltaSeconds;
+		if (AgitationCheckTimer() < 0.0f)
+			AgitationCheckTimer() = 0.0f;
+	}
+
+	// What the frame's time decays, less the part the timer still covered
+	float decrement = 0.0f;
+	if (AgitationTimer() > 0.0f)
+	{
+		if (AgitationTimer() < deltaSeconds)
+		{
+			float mult = 1.0f - (AgitationTimer() / deltaSeconds);
+			AgitationTimer() = 0.0f;
+			decrement = mult * (AgitationDecayRate() * deltaSeconds);
+		}
+		else
+		{
+			AgitationTimer() -= deltaSeconds;
+		}
+	}
+	else
+	{
+		decrement = AgitationDecayRate() * deltaSeconds;
+	}
+
+	// Off each alliance that is not permanent, while any is agitated
+	if (bAlliancesChanged() && decrement > 0.0f)
+	{
+		bAlliancesChanged() = false;
+		auto alliances = AlliancesEx();
+		for (int i = 15; i >= 0; i--)
+		{
+			UDXInitialAllianceInfoEx& alliance = alliances[i];
+			if (!alliance.AllianceName.IsNone() && !alliance.bPermanent && alliance.AllianceAgitation > 0.0f)
+			{
+				bAlliancesChanged() = true;
+				alliance.AllianceAgitation -= decrement;
+				if (alliance.AllianceAgitation < 0.0f)
+					alliance.AllianceAgitation = 0.0f;
+			}
+		}
+	}
+}
+
+void UScriptedPawn::UpdateFear(float deltaSeconds)
+{
+	float decrement = 0.0f;
+	if (FearTimer() > 0.0f)
+	{
+		if (FearTimer() < deltaSeconds)
+		{
+			float mult = 1.0f - (FearTimer() / deltaSeconds);
+			FearTimer() = 0.0f;
+			decrement = mult * (FearDecayRate() * deltaSeconds);
+		}
+		else
+		{
+			FearTimer() -= deltaSeconds;
+		}
+	}
+	else
+	{
+		decrement = FearDecayRate() * deltaSeconds;
+	}
+
+	if (decrement > 0.0f && FearLevel() > 0.0f)
+	{
+		FearLevel() -= decrement;
+		if (FearLevel() < 0.0f)
+			FearLevel() = 0.0f;
+	}
+}
+
 // The original's AScriptedPawn::Tick (0x100195a0), which runs before the
-// actor tick: disappearing, the pivot's easing, agitation and fear -- the
-// script's own unused UpdateAgitation and UpdateFear, which mirror the
-// DLL's -- the sixteen AI timers, cloaking, the advanced-tactics
-// manoeuvre's end, burning out and bleeding. Simulated here: in single
-// player, which the fork always is, that is every tick.
+// actor tick: disappearing, the pivot's easing, agitation and fear (natives
+// that do what the script's own unused UpdateAgitation and UpdateFear do),
+// the sixteen AI timers, cloaking, the advanced-tactics manoeuvre's end,
+// burning out and bleeding. Simulated here: in single player that is every
+// tick.
 void UScriptedPawn::Tick(float elapsed)
 {
 	if (Role() >= ROLE_SimulatedProxy)
@@ -136,8 +213,8 @@ void UScriptedPawn::Tick(float elapsed)
 			}
 		}
 
-		CallEvent(this, "UpdateAgitation", { ExpressionValue::FloatValue(elapsed) });
-		CallEvent(this, "UpdateFear", { ExpressionValue::FloatValue(elapsed) });
+		UpdateAgitation(elapsed);
+		UpdateFear(elapsed);
 
 		auto countDown = [&](float& timer) { timer = std::max(timer - elapsed, 0.0f); };
 		countDown(AlarmTimer());
