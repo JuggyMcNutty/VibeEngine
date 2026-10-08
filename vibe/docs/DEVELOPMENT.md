@@ -88,7 +88,7 @@ the run. *Either*: one engine on each side of a pair.
 | `ProveConsole` | fork | the URL's map: two shots, an exit | `DXPROVE:` | `prove` |
 | `CaptureConsole` | both | tripwires, coronas, comment-jump conversations | `DXCAP:` | |
 | `ViewConsole` | both | the player's weapon in view; the level's light | `DXVIEW:` | |
-| `CoronaConsole` | both | Liberty Island's lamp coronas | `DXCORONA:` | |
+| `CoronaConsole` | both | Liberty Island's lamp coronas; a movable corona light of its own, in the player's BSP leaf and out of it | `DXCORONA:` | |
 | `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` | |
 | `MeshConsole` | both | meshes lit on the pier | `DXMESH:` | |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` | |

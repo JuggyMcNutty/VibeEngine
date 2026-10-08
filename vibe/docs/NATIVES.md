@@ -180,9 +180,11 @@ Differs:
 ### Coronas
 
 Matches the original ([coronas](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#coronas);
-`CoronaConsole`) but for one thing: the fork takes every dynamic corona
-light in the level, the original those in the player's leaf. No Deus Ex map
-places one, so only a spawned one would show from farther.
+`CoronaConsole`): the static lights reaching the player's leaf get coronas,
+and no dynamic light does, the original's pass reading the leaf's dynamic
+lights only after its occlusion pass has emptied them. `CoronaConsole`'s
+own movable lamp shows none in either engine, in the player's leaf or out
+of it, and logs the same BSP leaves in both.
 
 ### What a pawn holds
 

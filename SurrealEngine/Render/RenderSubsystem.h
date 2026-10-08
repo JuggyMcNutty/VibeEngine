@@ -82,7 +82,6 @@ public:
 		float Brightness = 0.0f;
 	};
 	Array<CoronaState> CoronaStates;
-	Array<UActor*> CoronaDynamicLights;
 	std::chrono::steady_clock::time_point CoronaLastUpdate = {};
 	void DrawCoronasDX(VisibleFrame* frame);
 

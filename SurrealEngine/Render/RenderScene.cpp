@@ -28,13 +28,11 @@ void RenderSubsystem::DrawScene()
 
 	// Make sure all actors are at the right location in the BSP
 	IteratorActors.clear();
-	CoronaDynamicLights.clear();
 	// Only where the RenderIterator native class is registered (its
 	// registration in PackageManager matches this condition)
 	bool hasRenderIterators = (engine->LaunchInfo.ue1Version < 400 || engine->LaunchInfo.IsDeusEx()) &&
 		PropOffsets_Actor.RenderInterface.DataOffset != ~(size_t)0 &&
 		PropOffsets_Actor.RenderIteratorClass.DataOffset != ~(size_t)0;
-	bool isDeusEx = engine->LaunchInfo.IsDeusEx();
 	for (UActor* actor : engine->Level->Actors)
 	{
 		if (actor)
@@ -46,10 +44,6 @@ void RenderSubsystem::DrawScene()
 				if (actor->RenderInterface())
 					IteratorActors.push_back(actor);
 			}
-			// A dynamic light's corona is not in any leaf's permeating list
-			if (isDeusEx && actor->bCorona() && actor->LightType() != 0 &&
-				((!actor->bStatic() && !actor->bNoDelete()) || actor->bDynamicLight()))
-				CoronaDynamicLights.push_back(actor);
 		}
 	}
 
@@ -87,15 +81,16 @@ void RenderSubsystem::UpdateRenderInterface(UActor* actor)
 
 void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 {
-	// The original's coronas (dx-reverse-info/render-dll.md, coronas): the lights
-	// shining into the viewer's own leaf of the BSP -- its permeating
-	// list, and the dynamic lights standing in it -- with bCorona and a
-	// Skin, at any distance. One is seen when the line from the eye meets
-	// no level geometry or mover, and no pawn or other actor but the
-	// viewer's own pawn. Each frame every corona loses three times the
-	// real seconds elapsed and each one seen gains twice that, so one
-	// comes up, or goes, in about a third of a second; at 0 it is
-	// dropped, and up to 32 are kept.
+	// The original's coronas (dx-reverse-info/render-dll.md, coronas): the
+	// static lights shining into the viewer's own leaf of the BSP -- its
+	// permeating list -- with bCorona and a Skin, at any distance. No
+	// dynamic light: the original's pass reads the leaf's dynamic lights
+	// only after its occlusion pass has emptied their list. One is seen when
+	// the line from the eye meets no level geometry or mover, and no pawn or
+	// other actor but the viewer's own pawn. Each frame every corona loses
+	// three times the real seconds elapsed and each one seen gains twice
+	// that, so one comes up, or goes, in about a third of a second; at 0 it
+	// is dropped, and up to 32 are kept.
 	UModel* model = engine->Level->Model;
 	UActor* viewerPawn = engine->viewport->Actor();
 	vec3 eye = frame->ViewLocation.xyz();
@@ -120,11 +115,6 @@ void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 					candidates.push_back(light);
 			}
 		}
-	}
-	for (UActor* light : CoronaDynamicLights)
-	{
-		if (light->bCorona() && light->Skin() && !light->bDeleteMe())
-			candidates.push_back(light);
 	}
 
 	// Seen: the eye reaches the light past the world, movers, pawns and
