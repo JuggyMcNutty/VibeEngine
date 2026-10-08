@@ -295,11 +295,14 @@ and tests a polygon's plane before its vertex count and surface (0030); sight li
 actors of only the cells they cross (0026); each cell's actors sit in an open-addressed table,
 found by `CollisionSystem::FindCell`, where upstream keeps a `std::unordered_map` of
 `std::list`s (0031); moves and traces go without casts and heap allocations (0032); a walking
-pawn steps to the ground with its dry run's trace (0027). Deus Ex's traces and moves are
-`Engine.dll`'s (its backoffs, `FindSpot` and encroachment, moves held off what they meet as
-`ULevel::MoveActor` holds them, landing as `processLanded`; [implemented, not as the
+pawn steps to the ground with its dry run's trace (0027). Deus Ex's traces, moves and physics
+are `Engine.dll`'s (its backoffs, `FindSpot` and encroachment, moves held off what they meet as
+`ULevel::MoveActor` holds them, landing as `processLanded`; falling, swimming, flying, a
+player's ladders and the speed pawns move at, as `physFalling`, `physSwimming`, `physFlying`
+and `calcVelocity`, a fall ending its frame where it lands; [implemented, not as the
 original](NATIVES.md#implemented-not-as-the-original)), in
-`SurrealEngine/Collision/TopLevel/TraceTest.cpp` and `UActor_Phys.cpp`.
+`SurrealEngine/Collision/TopLevel/TraceTest.cpp` and `UActor_Phys*.cpp`. The physics still
+takes a frame in steps of at most 0.02 s (`UActor::TickPhysics`).
 
 ### Objects and memory
 
