@@ -355,8 +355,8 @@ Every other native the scripted runs compare matches the original
 the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
 frob target, through decorations), sight (`SightConsole`), the reach tests
 (`ReachConsole`), falls, each step by its mean velocity (a pawn's air
-control, a bounce left to the script, a wall slid along), coming to rest
-and their landing on a ledge -- a crate nudged off it, a pawn fitted clear
+control, a bounce left to the script, a wall slid along, a landing ending
+the frame's move), coming to rest and their landing on a ledge -- a crate nudged off it, a pawn fitted clear
 of it and pushed on at random
 (`RestConsole`,
 [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving))
@@ -388,11 +388,6 @@ Differs:
 - **A box started inside a cylinder** keeps the least penetration's normal;
   the original's is level, out from the axis, as a line's is in both
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
-- **A bounce within a frame**: the fork's physics takes a frame in steps of
-  at most 0.02 s, so a pawn bounced off another falls on for the rest of a
-  longer frame, where the original's landing ends its frame's move: at the
-  frame's end the fork's bounce rises at 45 to 50, the original's at 50
-  (`StompConsole`).
 - **Ladders** are not climbed. The original's walking, falling and swimming
   first look, for a player, for a wall whose texture is in a `Ladder` group
   just in front of it, and climb it by flying; with none, a walking player on

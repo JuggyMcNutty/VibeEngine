@@ -147,9 +147,13 @@ void UActor::TickFalling(float elapsed)
 // on, a bounce gives HitWall, a floor (normal over 0.7) lands, a wall is slid
 // along; the velocity after is the move's own, doubled less the old when it
 // gained downward or the old was not falling, held to the zone's terminal
-// velocity. Not here: the original's ladder check first, a ladder the fork
-// does not climb; and its split of a step at the top of a rise, which needs a
-// step over 0.03 s and the fork's are 0.02 at most (TickPhysics).
+// velocity. The original falls a whole frame in its steps and stops where it
+// lands, handing the landing the rest of the frame: so here a landing, a
+// stop and a hand-over to swimming end the frame's physics (EndPhysicsFrame),
+// the rest of the frame theirs. Not here: the original's ladder check first,
+// a ladder the fork does not climb; and its split of a step at the top of a
+// rise, which needs a step over 0.03 s and the fork's are 0.02 at most
+// (TickPhysics).
 void UActor::DeusExTickFalling(float deltaTime)
 {
 	if (HasLeftWorld())
@@ -257,7 +261,7 @@ void UActor::DeusExTickFalling(float deltaTime)
 		// (ZoneChange), swims the rest.
 		if (pawn && Physics() == PHYS_Swimming)
 		{
-			remaining += (1.0f - hit.Fraction) * tick;
+			remaining += (1.0f - hit.Fraction) * tick + EndPhysicsFrame();
 			pawn->DeusExStartSwimming(oldVelocity, tick, remaining);
 			return;
 		}
@@ -275,7 +279,10 @@ void UActor::DeusExTickFalling(float deltaTime)
 				// rest of the step back.
 				CallEvent(this, EventName::HitWall, { ExpressionValue::VectorValue(hit.Normal), ExpressionValue::ObjectValue(hit.Actor ? hit.Actor : Level()) });
 				if (Physics() == PHYS_None)
+				{
+					EndPhysicsFrame();
 					return;
+				}
 				if (bounces < 2)
 					remaining += (1.0f - hit.Fraction) * tick;
 				bounces++;
@@ -288,7 +295,7 @@ void UActor::DeusExTickFalling(float deltaTime)
 				remaining += (1.0f - hit.Fraction) * tick;
 				if (!bJustTeleported() && hit.Fraction > 0.1f && hit.Fraction * tick > 0.003f)
 					Velocity() = (Location() - OldLocation()) / (hit.Fraction * tick);
-				PhysLanded(hit.Actor, hit.Normal, remaining);
+				PhysLanded(hit.Actor, hit.Normal, remaining + EndPhysicsFrame());
 				return;
 			}
 			else
@@ -306,7 +313,7 @@ void UActor::DeusExTickFalling(float deltaTime)
 					{
 						if (hit.Normal.z > 0.7f)
 						{
-							PhysLanded(hit.Actor, hit.Normal, remaining);
+							PhysLanded(hit.Actor, hit.Normal, remaining + EndPhysicsFrame());
 							return;
 						}
 						ProcessHitWall(hit.Normal, hit.Actor);
@@ -315,7 +322,7 @@ void UActor::DeusExTickFalling(float deltaTime)
 						hit = TryMoveHeldOff(delta);
 						if (ditch || hit.Normal.z > 0.7f)
 						{
-							PhysLanded(hit.Actor, hit.Normal, remaining);
+							PhysLanded(hit.Actor, hit.Normal, remaining + EndPhysicsFrame());
 							return;
 						}
 					}

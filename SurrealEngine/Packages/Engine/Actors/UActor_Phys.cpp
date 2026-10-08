@@ -19,6 +19,8 @@ void UActor::TickPhysics(float elapsed)
 	for (float timeLeft = elapsed; timeLeft > 0.0f && !bDeleteMe(); timeLeft -= 0.02f)
 	{
 		float physTimeElapsed = std::min(timeLeft, 0.02f);
+		PhysicsFrameLeft = timeLeft - physTimeElapsed;
+		PhysicsFrameEnded = false;
 		int mode = Physics();
 		if (mode != PHYS_None)
 		{
@@ -36,11 +38,28 @@ void UActor::TickPhysics(float elapsed)
 			case PHYS_Spider: TickSpider(physTimeElapsed); break;
 			case PHYS_Trailer: TickTrailer(physTimeElapsed); break;
 			}
+			// A fall that ended the frame took the rest of it; the rotation
+			// still turns for the whole frame, as the original's turns once
+			// a frame after its physics.
+			if (PhysicsFrameEnded)
+				physTimeElapsed += timeLeft - physTimeElapsed;
 			TickRotating(physTimeElapsed); // Rotation logic applies to multiple physics modes and not just PHYS_Rotating
 		}
 
 		CheckPendingTouch();
+		if (PhysicsFrameEnded)
+			break;
 	}
+	PhysicsFrameLeft = 0.0f;
+	PhysicsFrameEnded = false;
+}
+
+float UActor::EndPhysicsFrame()
+{
+	float left = PhysicsFrameLeft;
+	PhysicsFrameLeft = 0.0f;
+	PhysicsFrameEnded = true;
+	return left;
 }
 
 void UActor::SetPhysics(uint8_t newPhysics)

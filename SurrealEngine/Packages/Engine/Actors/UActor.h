@@ -681,6 +681,14 @@ public:
 	float SleepTimeLeft = 0.0f;
 	vec3 gravityVector;
 
+	// A frame's physics goes in steps (TickPhysics): the time the frame has
+	// left after the step under way. Deus Ex's falls end the frame where they
+	// land, or swim, as the original's physFalling does: EndPhysicsFrame
+	// hands them that time and stops the steps.
+	float PhysicsFrameLeft = 0.0f;
+	bool PhysicsFrameEnded = false;
+	float EndPhysicsFrame();
+
 	// Index in level Actors array
 	int Index = -1;
 
