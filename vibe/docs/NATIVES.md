@@ -47,7 +47,12 @@ level's mission script, which no save holds -- an object of a transient
 class is not written (`LoadConsole` over either engine's saves and the
 original's hub save, `ReturnConsole`). Before a level is saved into
 `Current`, what travels with the player goes from it, a decoration in its
-hands too (`PruneTravelActors`; `ReturnConsole`).
+hands too (`PruneTravelActors`; `ReturnConsole`). A map opened at a portal
+(`open <map>#<portal>`) starts the player at the teleporter of that tag
+(`PortalConsole`). Differs: a level returned to from `Current` keeps the
+map's name in its URL, where the original's names the saved file
+(`..\Save\Current\<map>.dxs`), as `Level.GetLocalURL` shows
+(`ReturnConsole`).
 
 ## Flags
 
@@ -547,8 +552,9 @@ original's native lists, the server's calls, downloads both ways, server
 travel, the Entry level for a lost server, the login, merged bunches, the
 uplink and query answerer, the scripts' sockets
 ([the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)),
-the addresses they ask for, a player's and the server's own
-([the scripts' addresses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#addresses)),
+the addresses they ask for, a player's and the server's own, and a server's
+URL with the address it bound (`ServeConsole`'s `serving` line;
+[the scripts' addresses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#addresses)),
 and the sounds the server plays, which a remote player's client plays
 through `Pawn.ClientHearSound`
 ([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds);
@@ -576,9 +582,6 @@ server-only stubs are under
   on the desktop, VSync on) has no room for one to an internet-speed client
   (2,600 bytes/s): `ServeConsole`'s 8 beeps, the client recorded, reach it
   none; at some 100 frames (on the hidden display) 4, from the original's 6.
-- **A listen server's own URL** (`Level.GetLocalURL`) has no host: the
-  fork's reads `DXMP_Cathedral?...` where the original's reads
-  `0.0.0.0/DXMP_Cathedral?...` (`ServeConsole`'s `serving` line).
 - **Unchecked:** whether a live server corrects the client at a stop.
 
 As in the original:

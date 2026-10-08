@@ -255,6 +255,10 @@ public:
 	std::unique_ptr<NetClientLevel> ClientLevel;
 	std::unique_ptr<NetServerLevel> ServerLevel;
 	std::string NetFailure;
+	// The URL the level was loaded with, as given (the original's
+	// UGameEngine::LastURL): what a restart, a server's travel and reconnect
+	// go by, where the level's own URL also gets a listen server's address.
+	UnrealURL LastURL;
 	struct
 	{
 		UnrealURL URL;

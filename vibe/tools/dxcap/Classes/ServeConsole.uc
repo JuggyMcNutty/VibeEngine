@@ -8,11 +8,13 @@
 // turned across its view, and walks 2 s, stands 2 s and turns about, over
 // and over, for the client to watch; where each player stands, and its
 // address (GetPlayerNetworkAddress), is logged every 2 s with the server's
-// own (GetNetworkNumber). 12 s after it is placed the host stands still and
-// plays 8 beeps 1 s apart from this console's own function, which is not
-// simulated: a server's sound every player hears, the client through
-// Pawn.ClientHearSound (a client run with DXCAP_RECORD=1, read with
-// vibe/tools/dxcap/sound.py --onsets). Exits after 290 s.
+// own (GetNetworkNumber); its own URL and address (GetLocalURL,
+// GetAddressURL) as it starts serving. 12 s after it is placed the host
+// stands still and plays 8 beeps 1 s apart from this console's own
+// function, which is not simulated: a server's sound every player hears,
+// the client through Pawn.ClientHearSound (a client run with
+// DXCAP_RECORD=1, read with vibe/tools/dxcap/sound.py --onsets). Exits
+// after 290 s.
 //=============================================================================
 class ServeConsole extends Console;
 
@@ -65,7 +67,7 @@ event Tick(float Delta)
 	}
 	else if (Phase == 1 && P.Level.NetMode != NM_Standalone)
 	{
-		Log("DXCAP: serving " $ P.Level.GetLocalURL() $ ", net mode " $ P.Level.NetMode);
+		Log("DXCAP: serving " $ P.Level.GetLocalURL() $ ", address " $ P.Level.GetAddressURL() $ ", net mode " $ P.Level.NetMode);
 		Phase = 2;
 	}
 	else if (Phase == 2)

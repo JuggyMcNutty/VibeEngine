@@ -104,6 +104,7 @@ the run. *Either*: one engine on each side of a pair.
 | `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |
 | `RestConsole` | both | where a falling decoration rests; a crate and the player dropped over the pier's edge | `DXREST:` | |
 | `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |
+| `PortalConsole` | both | a map opened at a portal (`open <map>#<portal>`): the level's URL, where the player lands | `DXPORTAL:` | |
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |
@@ -124,7 +125,7 @@ the run. *Either*: one engine on each side of a pair.
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
 | `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load; the mission script, a `LoadMarker`'s `PostPostBeginPlay` calls | `DXSAVE:` | |
 | `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` | |
-| `ServeConsole` | either | a listen server: every 2 s each player's place and address and its own number; 8 beeps 1 s apart, 12 s after the other player is in; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py` |
+| `ServeConsole` | either | a listen server: its own URL and address as it starts; every 2 s each player's place and address and its own number; 8 beeps 1 s apart, 12 s after the other player is in; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py` |
 | `JoinConsole` | either | a client of `127.0.0.1:7790` | `DXNET:` | `sound.py --onsets <run>`, the client alone with `DXCAP_RECORD=1`: the server's beeps |
 | `RejoinConsole` | either | a client that joins twice | `DXREJOIN:` | |
 | `TravelServeConsole` | either | a server that travels; it exits after 150 s | `DXCAP:` | |

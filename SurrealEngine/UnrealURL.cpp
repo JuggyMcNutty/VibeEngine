@@ -247,6 +247,9 @@ std::string UnrealURL::GetPortal() const
 	return Portal;
 }
 
+// As the original's FURL::String writes it (dx-reverse-info/network.md,
+// addresses): the host when it or the port is not the default, the port
+// only when it is not, '#' before a portal.
 std::string UnrealURL::ToString() const
 {
 	std::string result;
@@ -259,17 +262,25 @@ std::string UnrealURL::ToString() const
 			result += "//";
 	}
 
-	if (!Host.empty() || Port != DefaultPort())
+	int defaultPort = DefaultPort();
+	if (!Host.empty() || Port != defaultPort)
 	{
 		result += Host;
-		result += ":";
-		result += std::to_string(Port);
+		if (Port != defaultPort)
+		{
+			result += ":";
+			result += std::to_string(Port);
+		}
 		result += "/";
 	}
 
 	result += Map;
 	result += GetOptions();
-	result += GetPortal();
+	if (!Portal.empty())
+	{
+		result += "#";
+		result += Portal;
+	}
 
 	return result;
 }

@@ -395,7 +395,7 @@ void Engine::Run()
 					// Passes the level's own TravelInfo back in, so it means to preserve it.
 					// Copies: LoadMap unloads the level that holds them.
 					ClientTravelInfo.TravelType = ETravelType::TRAVEL_Relative;
-					UnrealURL restartURL = LevelInfo->URL;
+					UnrealURL restartURL = LastURL;
 					auto restartTravelInfo = Level->TravelInfo;
 					LoadMap(restartURL, restartTravelInfo);
 					if (!dedicated)
@@ -408,8 +408,8 @@ void Engine::Run()
 					// crosses in the pawn's graph, as the original's travel
 					// save runs before its Browse.
 					auto travelInfo = CreateTravelInfo(true);
-					DeusExPreTravel(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()));
-					LoadMap(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()), travelInfo);
+					DeusExPreTravel(UnrealURL(LastURL, LevelInfo->NextURL()));
+					LoadMap(UnrealURL(LastURL, LevelInfo->NextURL()), travelInfo);
 					if (!dedicated)
 						LoginPlayer();
 				}
@@ -417,8 +417,8 @@ void Engine::Run()
 				{
 					// Deliberately carries nothing - it passes no travel info at all.
 					ClientTravelInfo.TravelType = ETravelType::TRAVEL_Absolute;
-					DeusExPreTravel(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()));
-					LoadMap(UnrealURL(LevelInfo->URL, LevelInfo->NextURL()), {});
+					DeusExPreTravel(UnrealURL(LastURL, LevelInfo->NextURL()));
+					LoadMap(UnrealURL(LastURL, LevelInfo->NextURL()), {});
 					if (!dedicated)
 						LoginPlayer();
 				}
@@ -429,7 +429,7 @@ void Engine::Run()
 		{
 			if (packages->IsDeusEx())
 				DeleteSaveGameFiles("Current"); // the original's ?restart empties Current
-			UnrealURL restartURL = LevelInfo->URL;
+			UnrealURL restartURL = LastURL;
 			auto restartTravelInfo = Level->TravelInfo;
 			LoadMap(restartURL, restartTravelInfo);
 			LoginPlayer();
@@ -1103,6 +1103,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	LevelInfo->DefaultTexture() = engine->DefaultTexture;
 
 	LevelInfo->URL = url;
+	LastURL = url;
 
 	GetLevelObject();
 
@@ -1339,6 +1340,7 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 	if (realMapName.empty())
 		realMapName = LevelPackage->GetPackageName().ToString();
 	LevelInfo->URL = UnrealURL(realMapName);
+	LastURL = LevelInfo->URL;
 
 	GetLevelObject();
 
@@ -2068,6 +2070,11 @@ void Engine::Listen(const UnrealURL& url)
 		return;
 	}
 	LogMessage("Net: listening on port " + std::to_string(port));
+	// The level's URL takes the address and port bound, as the original's
+	// net driver writes them into it (IpDrv.dll UTcpNetDriver::InitListen):
+	// GetLocalURL reads 0.0.0.0/<map>?..., GetAddressURL 0.0.0.0:<port>.
+	LevelInfo->URL.Host = NetAddressString(LevelNetDriver->LocalAddr);
+	LevelInfo->URL.Port = port;
 
 	// The game engine's ServerActors -- in the section of the class
 	// [Engine.Engine] GameEngine names --, each a class and then its config
@@ -2446,9 +2453,9 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	}
 	else if (command == "reconnect")
 	{
-		// The level's URL again: a client's is its server's.
+		// The last URL again: a client's is its server's.
 		if (LevelInfo)
-			ClientTravel(LevelInfo->URL.ToString(), ETravelType::TRAVEL_Absolute, false);
+			ClientTravel(LastURL.ToString(), ETravelType::TRAVEL_Absolute, false);
 	}
 	else if (command == "switchlevel" && args.size() == 2)
 	{

@@ -113,10 +113,11 @@ void NPlayerPawn::ResetKeyboard(UObject* Self)
 	engine->LoadKeybindings();
 }
 
+// The option into the game engine's last URL (Engine.dll
+// APlayerPawn::execUpdateURL 0x103b87c0), which travel goes by.
 void NPlayerPawn::UpdateURL(UObject* Self, const std::string& NewOption, const std::string& NewValue, bool bSaveDefault)
 {
-	UPlayerPawn* SelfPlayerPawn = UObject::Cast<UPlayerPawn>(Self);
-	SelfPlayerPawn->Level()->URL.AddOrReplaceOption(NewOption + "=" + NewValue);
+	engine->LastURL.AddOrReplaceOption(NewOption + "=" + NewValue);
 	if (bSaveDefault)
 	{
 		// Save the setting to DefaultUser section in User.ini
@@ -126,6 +127,5 @@ void NPlayerPawn::UpdateURL(UObject* Self, const std::string& NewOption, const s
 
 void NPlayerPawn::UpdateURL_219(UObject* Self, const std::string& NewOption)
 {
-	UPlayerPawn* SelfPlayerPawn = UObject::Cast<UPlayerPawn>(Self);
-	SelfPlayerPawn->Level()->URL.AddOrReplaceOption(NewOption);
+	engine->LastURL.AddOrReplaceOption(NewOption);
 }
