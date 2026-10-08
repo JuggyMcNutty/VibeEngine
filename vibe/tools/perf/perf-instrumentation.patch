@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 360cd11..2c62b31 100644
+index f4e2c56..217b7a7 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -29,6 +29,11 @@ endif()
@@ -15,7 +15,7 @@ index 360cd11..2c62b31 100644
  	SurrealEngine/Precomp.cpp
  	SurrealEngine/Precomp.h
 diff --git a/SurrealEngine/Engine.cpp b/SurrealEngine/Engine.cpp
-index 804aa38..06fb768 100644
+index 978465c..bef802c 100644
 --- a/SurrealEngine/Engine.cpp
 +++ b/SurrealEngine/Engine.cpp
 @@ -2,6 +2,7 @@
@@ -26,8 +26,19 @@ index 804aa38..06fb768 100644
  #include "Utils/File.h"
  #include "Utils/StrTools.h"
  #include "Utils/SHA1Sum.h"
-@@ -292,10 +293,16 @@ void Engine::Run()
- 		LevelInfo->Millisecond() = 0; // No timedesc equivalent for LevelInfo->Millisecond()
+@@ -278,8 +279,10 @@ void Engine::Run()
+ 		// The windows tick before the engine, as the original's
+ 		// (Extension.dll XGameEngineExt::Tick 0x100266a0): what the level
+ 		// makes this frame has been laid out by the time they next tick.
++		{ PerfLog::Section perfWindows(PerfLog::Tick); // TEMPORARY DEBUG TOOL
+ 		if (dxRootWindow)
+ 			dxRootWindow->Tick(levelElapsed); // Should this maybe be realTimeElapsed?
++		} // TEMPORARY DEBUG TOOL
+ 
+ 		TotalTime += realTimeElapsed;
+ 
+@@ -310,10 +313,16 @@ void Engine::Run()
+ 		LevelInfo->Millisecond() = milliseconds;
  
  		if (!dedicated)
 +		{
@@ -43,17 +54,18 @@ index 804aa38..06fb768 100644
  		// Do NOT pause this Tick event otherwise some messages will stay on screen forever.
  		if (!dedicated)
  			CallEvent(console, EventName::Tick, { ExpressionValue::FloatValue(levelElapsed) });
-@@ -326,6 +333,9 @@ void Engine::Run()
+@@ -342,6 +351,10 @@ void Engine::Run()
+ 		if (LevelNetDriver)
+ 			LevelNetDriver->TickFlush();
  
- 		if (dxRootWindow)
- 			dxRootWindow->Tick(levelElapsed); // Should this maybe be realTimeElapsed?
 +		} // TEMPORARY DEBUG TOOL: end of the tick scope
 +
 +		{ PerfLog::Scope perfView(PerfLog::View); // TEMPORARY DEBUG TOOL
- 
++
  		// To do: improve CallEvent so parameter passing isn't this painful
  		UFunction* funcPlayerCalcView = viewport->Actor() ? FindEventFunction(viewport->Actor(), "PlayerCalcView") : nullptr;
-@@ -345,12 +355,17 @@ void Engine::Run()
+ 		if (funcPlayerCalcView)
+@@ -360,12 +373,17 @@ void Engine::Run()
  		}
  
  		if (!dedicated)
@@ -72,7 +84,7 @@ index 804aa38..06fb768 100644
  
  		// Save the game if there is a request for it
  		if (SaveGameInfo.SaveGameSlot != DONT_SAVE_GAME)
-@@ -2737,6 +2752,9 @@ void Engine::UpdateInput(float timeElapsed)
+@@ -2823,6 +2841,9 @@ void Engine::UpdateInput(float timeElapsed)
  	if (!viewport->Actor())
  		return;
  
@@ -83,7 +95,7 @@ index 804aa38..06fb768 100644
  		viewport->Actor()->SetBool(it.first, true);
  	for (auto& it : activeInputAxes)
 diff --git a/SurrealEngine/Light/LightSystem_Light.cpp b/SurrealEngine/Light/LightSystem_Light.cpp
-index 4223a87..4b0ab9a 100644
+index 6bff844..72f8cc9 100644
 --- a/SurrealEngine/Light/LightSystem_Light.cpp
 +++ b/SurrealEngine/Light/LightSystem_Light.cpp
 @@ -1,6 +1,8 @@
@@ -145,7 +157,7 @@ index 4223a87..4b0ab9a 100644
  		UnrealMipmap& lmmip = lmtexture->Mip;
  		vec4* dest = (vec4*)lmmip.Data.data();
 diff --git a/SurrealEngine/Light/LightmapBuilder.cpp b/SurrealEngine/Light/LightmapBuilder.cpp
-index 340db0e..9fec715 100644
+index 6919b19..6fffe6f 100644
 --- a/SurrealEngine/Light/LightmapBuilder.cpp
 +++ b/SurrealEngine/Light/LightmapBuilder.cpp
 @@ -1,4 +1,5 @@
@@ -154,7 +166,7 @@ index 340db0e..9fec715 100644
  #include "Precomp.h"
  #include "LightmapBuilder.h"
  #include "Engine.h"
-@@ -161,6 +162,19 @@ bool LightmapBuilder::LightAnimates(UActor* light)
+@@ -162,6 +163,19 @@ bool LightmapBuilder::LightAnimates(UActor* light)
  void LightmapBuilder::AddDynamicLights(UModel* model, int lightMap, const Array<UActor*>& lights)
  {
  	size_t count = (size_t)width * height;
@@ -175,7 +187,7 @@ index 340db0e..9fec715 100644
  	for (UActor* light : lights)
  	{
 diff --git a/SurrealEngine/Packages/Engine/Actors/UActor.cpp b/SurrealEngine/Packages/Engine/Actors/UActor.cpp
-index 461136e..68a09f9 100644
+index d51e9b0..9c6cef7 100644
 --- a/SurrealEngine/Packages/Engine/Actors/UActor.cpp
 +++ b/SurrealEngine/Packages/Engine/Actors/UActor.cpp
 @@ -19,6 +19,7 @@
@@ -196,7 +208,7 @@ index 461136e..68a09f9 100644
  	{
  		thinkElapsed = AiTimeSinceThought;
 diff --git a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
-index 92bd060..f09b8f5 100644
+index 0018fdf..91e202c 100644
 --- a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 +++ b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 @@ -1,5 +1,7 @@
@@ -205,9 +217,9 @@ index 92bd060..f09b8f5 100644
 +#include "Utils/PerfLog.h" // TEMPORARY DEBUG TOOL
 +#include "Packages/Core/UClass.h" // TEMPORARY DEBUG TOOL
  #include "ULevel.h"
- #include "Packages/Engine/Actors/Info/ULevelInfo.h"
- #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
-@@ -91,7 +93,10 @@ void ULevel::TickActor(float elapsed, UActor* actor)
+ #include "Packages/Core/UClass.h"
+ #include "Packages/Engine/Actors/UDecal.h"
+@@ -93,7 +95,10 @@ void ULevel::TickActor(float elapsed, UActor* actor)
  	actor->bTicked() = ticked;
  
  	// Tick the actor for this turn
@@ -219,7 +231,7 @@ index 92bd060..f09b8f5 100644
  	// Destroy the actor if its time
  	if (actor->Role() >= ROLE_SimulatedProxy && actor->LifeSpan() != 0.0f)
 diff --git a/SurrealEngine/Render/RenderScene.cpp b/SurrealEngine/Render/RenderScene.cpp
-index 41d6e6d..7a60143 100644
+index 5d85996..87075b3 100644
 --- a/SurrealEngine/Render/RenderScene.cpp
 +++ b/SurrealEngine/Render/RenderScene.cpp
 @@ -1,5 +1,6 @@
@@ -229,16 +241,16 @@ index 41d6e6d..7a60143 100644
  #include "RenderSubsystem.h"
  #include "RenderDevice/RenderDevice.h"
  #include "GameWindow.h"
-@@ -35,6 +36,7 @@ void RenderSubsystem::DrawScene()
+@@ -33,6 +34,7 @@ void RenderSubsystem::DrawScene()
+ 	bool hasRenderIterators = (engine->LaunchInfo.ue1Version < 400 || engine->LaunchInfo.IsDeusEx()) &&
  		PropOffsets_Actor.RenderInterface.DataOffset != ~(size_t)0 &&
  		PropOffsets_Actor.RenderIteratorClass.DataOffset != ~(size_t)0;
- 	bool isDeusEx = engine->LaunchInfo.IsDeusEx();
 +	{ PerfLog::Section perf(PerfLog::BspInfo); // TEMPORARY DEBUG TOOL
  	for (UActor* actor : engine->Level->Actors)
  	{
  		if (actor)
-@@ -52,12 +54,17 @@ void RenderSubsystem::DrawScene()
- 				CoronaDynamicLights.push_back(actor);
+@@ -46,13 +48,18 @@ void RenderSubsystem::DrawScene()
+ 			}
  		}
  	}
 +	}
@@ -248,6 +260,7 @@ index 41d6e6d..7a60143 100644
 +	{ PerfLog::Section perf(PerfLog::Visibility); // TEMPORARY DEBUG TOOL
  	MainFrame.Process(engine->CameraLocation, worldToView, Coords::Rotation(engine->CameraRotation));
 +	}
+ 	MainView = MainFrame.Frame;
  	MainFrame.Draw();
 +	{ PerfLog::Section perf(PerfLog::Coronas); // TEMPORARY DEBUG TOOL
  	MainFrame.DrawCoronas();
@@ -256,7 +269,7 @@ index 41d6e6d..7a60143 100644
  
  void RenderSubsystem::UpdateRenderInterface(UActor* actor)
 diff --git a/SurrealEngine/Render/RenderSubsystem.cpp b/SurrealEngine/Render/RenderSubsystem.cpp
-index fce4011..d9a025a 100644
+index c0995fa..3bf3745 100644
 --- a/SurrealEngine/Render/RenderSubsystem.cpp
 +++ b/SurrealEngine/Render/RenderSubsystem.cpp
 @@ -1,5 +1,6 @@
@@ -266,8 +279,8 @@ index fce4011..d9a025a 100644
  #include "RenderSubsystem.h"
  #include "RenderDevice/RenderDevice.h"
  #include "GameWindow.h"
-@@ -26,7 +27,9 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
- {
+@@ -27,7 +28,9 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
+ 	DrawnSinceFlush = true;
  	LevelTimeElapsed = levelTimeElapsed;
  	AutoUV += levelTimeElapsed * 64.0f;
 +	{ PerfLog::Section perf(PerfLog::LightTick); // TEMPORARY DEBUG TOOL
@@ -276,7 +289,7 @@ index fce4011..d9a025a 100644
  
  	Stats.Frames = 0;
  	Stats.Surfaces = 0;
-@@ -52,11 +55,15 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
+@@ -53,11 +56,15 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
  	}
  
  	Device->Brightness = engine->client->Brightness;
@@ -292,7 +305,7 @@ index fce4011..d9a025a 100644
  
  	if (engine->LaunchInfo.ue1Version <= 219 || engine->console->bNoDrawWorld() == false)
  	{
-@@ -69,16 +76,24 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
+@@ -70,16 +77,24 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
  		if (engine->viewport->Actor() && (!engine->dxRootWindow || engine->dxRootWindow->bRender()))
  		{
  			DrawScene();
@@ -318,7 +331,7 @@ index fce4011..d9a025a 100644
  	FrameDrawn = true;
  }
 diff --git a/SurrealEngine/Render/VisibleFrame.cpp b/SurrealEngine/Render/VisibleFrame.cpp
-index 2e87bfc..5273f32 100644
+index d25e3f2..72b7ea5 100644
 --- a/SurrealEngine/Render/VisibleFrame.cpp
 +++ b/SurrealEngine/Render/VisibleFrame.cpp
 @@ -1,6 +1,7 @@
@@ -329,7 +342,7 @@ index 2e87bfc..5273f32 100644
  #include "VisibleCorona.h"
  #include "RenderSubsystem.h"
  #include "RenderDevice/RenderDevice.h"
-@@ -485,7 +486,11 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
+@@ -487,7 +488,11 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
  
  	// Skip node if its AABB is not visible -- and what came down into its
  	// space with it, as the original drops it
@@ -342,7 +355,7 @@ index 2e87bfc..5273f32 100644
  	{
  		return;
  	}
-@@ -498,6 +503,7 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
+@@ -500,6 +505,7 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
  			actor->LastDrawFrame = FrameCounter;
  
  			VisibleActor visactor;
@@ -350,7 +363,7 @@ index 2e87bfc..5273f32 100644
  			visactor.Process(this, actor);
  		}
  	}
-@@ -620,7 +626,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -622,7 +628,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  			if (zoneInfo->SkyZone())
  			{
  				gatherPoints();
@@ -360,7 +373,7 @@ index 2e87bfc..5273f32 100644
  				if (!spans.empty())
  				{
  					USkyZoneInfo* skyZone = zoneInfo->SkyZone();
-@@ -651,7 +659,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -653,7 +661,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  				if (warpZone)
  				{
  					gatherPoints();
@@ -370,7 +383,7 @@ index 2e87bfc..5273f32 100644
  					if (!spans.empty())
  					{
  						for (auto& p : Portals)
-@@ -679,7 +689,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -681,7 +691,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  				return;
  
  			gatherPoints();
@@ -380,7 +393,7 @@ index 2e87bfc..5273f32 100644
  			if (!spans.empty())
  			{
  				for (auto& p : Portals)
-@@ -716,7 +728,11 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -718,7 +730,11 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  	}
  
  	gatherPoints();
@@ -393,7 +406,7 @@ index 2e87bfc..5273f32 100644
  		return;
  
  	// A visible portal surface means the zones it borders were seen: their
-@@ -783,6 +799,14 @@ int VisibleFrame::FindZoneAt(const vec4& location, BspNode* node, BspNode* nodes
+@@ -785,6 +801,14 @@ int VisibleFrame::FindZoneAt(const vec4& location, BspNode* node, BspNode* nodes
  
  void VisibleFrame::Draw()
  {
@@ -992,7 +1005,7 @@ index 0000000..0561179
 +	}
 +}
 diff --git a/SurrealEngine/VM/Frame.cpp b/SurrealEngine/VM/Frame.cpp
-index 5f1d308..8572f37 100644
+index 625f0e1..73d93d6 100644
 --- a/SurrealEngine/VM/Frame.cpp
 +++ b/SurrealEngine/VM/Frame.cpp
 @@ -1,6 +1,7 @@
@@ -1003,7 +1016,7 @@ index 5f1d308..8572f37 100644
  #include "Bytecode.h"
  #include "Expression.h"
  #include "ExpressionEvaluator.h"
-@@ -277,14 +278,17 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
+@@ -300,14 +301,17 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
  	for (size_t i = args.size(); i < parms.size() && AllFlags(parms[i]->PropFlags, PropertyFlags::Parm | PropertyFlags::OptionalParm); i++)
  		args.push_back(ExpressionValue::NothingValue());
  
