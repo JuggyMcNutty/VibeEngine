@@ -72,7 +72,7 @@ are gone.
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
 | `DXCAP_NOVSYNC=1` | Mesa's GL draws either engine without waiting for the display (`vblank_mode=0`): the original's `OpenGLDrv` asks for no swap interval and gets the driver's vsync |
 | `DXCAP_FPS=<n>` | either engine held to n frames a second: MangoHud's limiter, its display off (`mangohud`, and `lib32-mangohud` for the original's 32-bit process) |
-| `DXCAP_PERF=1` | the engine's main thread sampled by perf into the run's `perf.data`, on the wall clock, with the process's `maps.txt` ([measuring both engines](#measuring-both-engines)) |
+| `DXCAP_PERF=1` | the engine's main thread sampled by perf into the run's `perf.data`, on the wall clock, its cycles and instructions counted each 100 ms (`stat.csv`), with the process's `maps.txt` ([measuring both engines](#measuring-both-engines)) |
 | `DXCAP_TIMELINE=<file>` | a `live` run's timeline, not `JoinConsole`'s walk; a `fork` run's [timeline](#timelines) |
 | `DXCAP_ENGINE=<binary>` | a fork run on that build, not linux-x86_64's (an [ASan build](#crashes)) |
 | `DXCAP_MEMLOG=1` | a fork run's resident memory each second in its `memlog.txt`: seconds, MB |
@@ -275,11 +275,15 @@ vibe/tools/perf/frame-report.py <original run> <fork run>
   `ClientCycles` (the frame drawn), read each frame where they are not 0 (the fork keeps neither
   and has no `CyclesToSeconds`), are each line's `game` and `client`.
 - **`frame-report.py`** keeps the samples inside the windows and gives the main thread's time a
-  frame by area and by function. The original's functions are each DLL's nearest export below
-  the sample (its base from `maps.txt`): `Core.dll` and `Engine.dll` export most of theirs,
-  `Render.dll` 97 of them, so names in it are only near. The fork's are perf's own symbols.
+  frame by area and by function, and its cycles and instructions a frame. The original's
+  functions are each DLL's nearest export below the sample (its base from `maps.txt`):
+  `Core.dll` and `Engine.dll` export most of theirs, `Render.dll` 97 of them, so names in it
+  are only near. The fork's are perf's own symbols. `--mean` averages each engine's runs.
 - **One run at a time**, nothing else running; three of each, alternating, before a number is
-  taken.
+  taken. The machine's speed drifts from run to run by 10% and more, its CPU at full clock
+  (its power and memory clocks, the scene's own changes): a change to the fork is measured by
+  alternating runs of the two builds (`DXCAP_ENGINE`), and by the time of the functions it
+  changes, which the report gives.
 
 ### Crashes
 

@@ -111,8 +111,10 @@ fps_env() {
 
 # DXCAP_PERF: the engine's main thread (its process's first) sampled until it
 # exits, its samples stamped with the wall clock (-k realtime) so that they
-# can be cut to PerfConsole's windows; the process's maps once its libraries
-# are in, for the original's DLLs. Prints perf's pid, for a wait.
+# can be cut to PerfConsole's windows; its cycles and instructions counted
+# each 100 ms (stat.csv, from the wall-clock time in stat.start), which a
+# CPU's clock speed does not change; the process's maps once its libraries
+# are in, for the original's DLLs. Prints perf's pids, for perf_wait.
 PERF="$DX_ROOT/deps/perf/usr/bin/perf"
 perf_attach() {
     local pid="$1" dir="$2"
@@ -120,8 +122,20 @@ perf_attach() {
     LD_LIBRARY_PATH="$DX_ROOT/deps/perf/usr/lib" "$PERF" record -q -e cpu-clock -t "$pid" -k realtime -F 999 \
         -o "$dir/perf.data" > "$dir/perf.log" 2>&1 &
     local ppid=$!
-    ( sleep 20; cp "/proc/$pid/maps" "$dir/maps.txt" 2>/dev/null || true ) &
-    printf '%s\n' "$ppid"
+    date +%s.%N > "$dir/stat.start"
+    LD_LIBRARY_PATH="$DX_ROOT/deps/perf/usr/lib" "$PERF" stat -e cycles:u,instructions:u -t "$pid" -I 100 -x , \
+        -o "$dir/stat.csv" > /dev/null 2>&1 &
+    local spid=$!
+    ( sleep 20; cp "/proc/$pid/maps" "$dir/maps.txt" 2>/dev/null || true ) > /dev/null 2>&1 &
+    printf '%s %s\n' "$ppid" "$spid"
+}
+# perf_wait <pids>: until perf has written its files (not this shell's
+# children: perf_attach runs in a command substitution).
+perf_wait() {
+    local p
+    for p in "$@"; do
+        while kill -0 "$p" 2>/dev/null; do sleep 0.2; done
+    done
 }
 need_perf() {
     [ "${DXCAP_PERF:-0}" != 1 ] || [ -x "$PERF" ] || die "DXCAP_PERF needs perf in $DX_ROOT/deps -- vibe/tools/host-tools.sh"
@@ -423,7 +437,7 @@ cmd_original() {
             echo "exited after $i s"
         fi
         sleep 3
-        [ -z "$perfpid" ] || wait "$perfpid" 2>/dev/null || true
+        [ -z "$perfpid" ] || perf_wait $perfpid
     ) || true
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_stop
 
@@ -517,7 +531,7 @@ run_fork() {
         local erc=0
         wait "$tpid" || erc=$?
         [ -z "$mpid" ] || kill "$mpid" 2>/dev/null || true
-        [ -z "$perfpid" ] || wait "$perfpid" 2>/dev/null || true
+        [ -z "$perfpid" ] || perf_wait $perfpid
         exit "$erc"
     ) || rc=$?
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_stop

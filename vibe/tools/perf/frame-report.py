@@ -13,7 +13,14 @@ perf's, its function the nearest export at or below its address (maps.txt
 gives the DLL's base). Render.dll exports few of its functions, so the names
 in it are only near. The fork's functions are perf's own symbols.
 
-    frame-report.py [--top N] <run dir> [<run dir> ...]
+The main thread's cycles and instructions (stat.csv, counted each 100 ms
+from the wall-clock time in stat.start) give the frame's cost in cycles,
+which the CPU's clock speed does not change, and the work it does.
+
+    frame-report.py [--top N] [--mean] <run dir> [<run dir> ...]
+
+--mean puts the runs of each engine together: each area's and function's
+milliseconds a frame averaged over that engine's runs, the frame's too.
 """
 import argparse
 import bisect
@@ -190,6 +197,33 @@ def ms_of_day(epoch):
     return ((t.hour * 60 + t.minute) * 60 + t.second) * 1000 + t.microsecond / 1000.0
 
 
+def counts(run, start, end):
+    """The main thread's cycles and instructions inside [start, end] (ms of the day)."""
+    path, first = os.path.join(run, 'stat.csv'), os.path.join(run, 'stat.start')
+    if not (os.path.exists(path) and os.path.exists(first)):
+        return {}
+    t0 = float(open(first).read().strip())
+    last, total = {}, Counter()
+    for line in open(path):
+        parts = line.strip().split(',')
+        if len(parts) < 4 or line.startswith('#'):
+            continue
+        try:
+            t, n = float(parts[0]), float(parts[1])
+        except ValueError:
+            continue
+        event = parts[3].split(':')[0]
+        a = ms_of_day(t0 + last.get(event, 0.0))
+        b = ms_of_day(t0 + t)
+        last[event] = t
+        if b <= a:
+            continue
+        overlap = min(b, end) - max(a, start)
+        if overlap > 0:
+            total[event] += n * overlap / (b - a)
+    return total
+
+
 def samples(run):
     env = dict(os.environ, LD_LIBRARY_PATH=PERF_LIB)
     out = subprocess.run([PERF, 'script', '-i', os.path.join(run, 'perf.data'), '-F', 'time,ip,sym,dso', '--ns'],
@@ -220,7 +254,8 @@ def dso_area(dso):
     return 'other'
 
 
-def report(run, top):
+def measure(run):
+    """The run's frames, frame time and main-thread time a frame, by area and function."""
     logname, log = read_log(run)
     windows = [tuple(int(x) for x in m.groups()) for m in WINDOW.finditer(log)]
     if not windows:
@@ -258,30 +293,66 @@ def report(run, top):
         funcs[func] += 1
 
     per_frame = 1000.0 / RATE / max(frames, 1)
-    wall = (total and float(total.group(4))) or 0.0
-    print('== %s (%s)' % (run, 'original' if original else 'fork'))
-    print('   %d frames in %d windows, %.0f s; %s' % (frames, len(windows), (end - start) / 1000.0,
-                                                     total.group(0).replace('DXPERF: total ', '') if total else ''))
+    stat = counts(run, start, end)
+    return {
+        'mcycles': stat.get('cycles', 0.0) / 1e6 / max(frames, 1),
+        'minstr': stat.get('instructions', 0.0) / 1e6 / max(frames, 1),
+        'engine': 'original' if original else 'fork',
+        'frames': frames,
+        'windows': len(windows),
+        'seconds': (end - start) / 1000.0,
+        'total': total.group(0).replace('DXPERF: total ', '') if total else '',
+        'wall': (total and float(total.group(4))) or 0.0,
+        'cpu': kept * per_frame,
+        'areas': {name: n * per_frame for name, n in areas.items()},
+        'funcs': {name: n * per_frame for name, n in funcs.items()},
+    }
+
+
+def show(title, m, top):
+    print('== %s' % title)
     print('   main thread on the CPU %.3f ms a frame of the frame\'s %.3f (the rest: waits, the kernel)'
-          % (kept * per_frame, wall))
+          % (m['cpu'], m['wall']))
+    if m['mcycles']:
+        print('   main thread a frame: %.3f M cycles, %.3f M instructions (%.2f a cycle)'
+              % (m['mcycles'], m['minstr'], m['minstr'] / m['mcycles']))
     print('   %-52s %8s' % ('area', 'ms/frame'))
-    for name, n in areas.most_common():
-        print('   %-52s %8.3f' % (name, n * per_frame))
+    for name, ms in sorted(m['areas'].items(), key=lambda kv: -kv[1]):
+        print('   %-52s %8.3f' % (name, ms))
     print('   %-52s %8s' % ('function (self)', 'ms/frame'))
-    for name, n in funcs.most_common(top):
-        print('   %-70.70s %8.3f' % (name, n * per_frame))
+    for name, ms in sorted(m['funcs'].items(), key=lambda kv: -kv[1])[:top]:
+        print('   %-70.70s %8.3f' % (name, ms))
     print()
+
+
+def mean(ms):
+    out = {key: sum(m[key] for m in ms) / len(ms) for key in ('wall', 'cpu', 'mcycles', 'minstr')}
+    for key in ('areas', 'funcs'):
+        names = set().union(*(m[key] for m in ms))
+        out[key] = {n: sum(m[key].get(n, 0.0) for m in ms) / len(ms) for n in names}
+    return out
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     ap.add_argument('--top', type=int, default=30, help='functions to list (30)')
+    ap.add_argument('--mean', action='store_true', help='each engine\'s runs averaged')
     ap.add_argument('runs', nargs='+')
     args = ap.parse_args()
     if not os.access(PERF, os.X_OK):
         sys.exit('no perf at %s -- vibe/tools/host-tools.sh' % PERF)
-    for run in args.runs:
-        report(run, args.top)
+    results = [(run, measure(run)) for run in args.runs]
+    if not args.mean:
+        for run, m in results:
+            show('%s (%s): %d frames in %d windows, %.0f s; %s' % (run, m['engine'], m['frames'], m['windows'],
+                                                                 m['seconds'], m['total']), m, args.top)
+        return
+    for engine in ('original', 'fork'):
+        ms = [m for _, m in results if m['engine'] == engine]
+        if not ms:
+            continue
+        fps = ', '.join('%.1f' % (1000.0 / m['wall']) for m in ms if m['wall'])
+        show('%s, the mean of %d runs (frames a second: %s)' % (engine, len(ms), fps), mean(ms), args.top)
 
 
 if __name__ == '__main__':
