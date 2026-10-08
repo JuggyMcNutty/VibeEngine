@@ -2,6 +2,12 @@
 
 #include "vec.h"
 
+// Precomp.h's test for SSE2, here so that the header stands alone
+#if (defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))) || ((defined(__i386__) || defined(__x86_64__) || defined(__e2k__)) && defined(__SSE2__))
+#define MAT_USE_SSE2
+#include <emmintrin.h>
+#endif
+
 enum class handedness
 {
 	left,
@@ -44,6 +50,34 @@ struct mat4
 
 	float matrix[4 * 4];
 };
+
+// Inline: the renderer transforms each box corner and vertex through it, tens
+// of thousands of times a frame. The same sums in the same order either way.
+inline vec4 mat4::operator*(const vec4 &v) const
+{
+#ifndef MAT_USE_SSE2
+	vec4 result;
+	result.x = matrix[0 * 4 + 0] * v.x + matrix[1 * 4 + 0] * v.y + matrix[2 * 4 + 0] * v.z + matrix[3 * 4 + 0] * v.w;
+	result.y = matrix[0 * 4 + 1] * v.x + matrix[1 * 4 + 1] * v.y + matrix[2 * 4 + 1] * v.z + matrix[3 * 4 + 1] * v.w;
+	result.z = matrix[0 * 4 + 2] * v.x + matrix[1 * 4 + 2] * v.y + matrix[2 * 4 + 2] * v.z + matrix[3 * 4 + 2] * v.w;
+	result.w = matrix[0 * 4 + 3] * v.x + matrix[1 * 4 + 3] * v.y + matrix[2 * 4 + 3] * v.z + matrix[3 * 4 + 3] * v.w;
+	return result;
+#else
+	__m128 m0 = _mm_loadu_ps(matrix);
+	__m128 m1 = _mm_loadu_ps(matrix + 4);
+	__m128 m2 = _mm_loadu_ps(matrix + 8);
+	__m128 m3 = _mm_loadu_ps(matrix + 12);
+	__m128 mv = _mm_loadu_ps(&v.x);
+	m0 = _mm_mul_ps(m0, _mm_shuffle_ps(mv, mv, _MM_SHUFFLE(0, 0, 0, 0)));
+	m1 = _mm_mul_ps(m1, _mm_shuffle_ps(mv, mv, _MM_SHUFFLE(1, 1, 1, 1)));
+	m2 = _mm_mul_ps(m2, _mm_shuffle_ps(mv, mv, _MM_SHUFFLE(2, 2, 2, 2)));
+	m3 = _mm_mul_ps(m3, _mm_shuffle_ps(mv, mv, _MM_SHUFFLE(3, 3, 3, 3)));
+	mv = _mm_add_ps(_mm_add_ps(_mm_add_ps(m0, m1), m2), m3);
+	vec4 result;
+	_mm_storeu_ps(&result.x, mv);
+	return result;
+#endif
+}
 
 struct mat3
 {
