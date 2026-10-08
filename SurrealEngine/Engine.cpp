@@ -288,9 +288,12 @@ void Engine::Run()
 		LevelInfo->TimeSeconds() += levelElapsed;
 		Logger::Get()->SetTimeSeconds(LevelInfo->TimeSeconds());
 
-		// Update the time fields
-		std::time_t now = std::time(nullptr);
+		// Update the time fields: the local time to the millisecond, as the
+		// original's ULevel::UpdateTime has it from GetLocalTime.
+		auto clockNow = std::chrono::system_clock::now();
+		std::time_t now = std::chrono::system_clock::to_time_t(clockNow);
 		std::tm* timedesc = std::localtime(&now);
+		int milliseconds = (int)(std::chrono::duration_cast<std::chrono::milliseconds>(clockNow.time_since_epoch()).count() % 1000);
 
 		// As the original has them: the full year and the month 1 to 12, which is
 		// what the scripts read them as -- StatLog pads a month below 10 and
@@ -304,7 +307,7 @@ void Engine::Run()
 		LevelInfo->Hour() = timedesc->tm_hour;
 		LevelInfo->Minute() = timedesc->tm_min;
 		LevelInfo->Second() = timedesc->tm_sec;
-		LevelInfo->Millisecond() = 0; // No timedesc equivalent for LevelInfo->Millisecond()
+		LevelInfo->Millisecond() = milliseconds;
 
 		if (!dedicated)
 			UpdateInput(realTimeElapsed);
