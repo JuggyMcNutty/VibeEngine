@@ -38,6 +38,13 @@ public:
 	// if some piece of its proxy survives the world in front of it.
 	void AddOcclusionProxy(UActor* actor);
 
+	// The actor's rectangle on the frame, as the original's sprite setup
+	// makes it (Render.dll FDynamicSprite::Setup 0x10b23910): a mesh's
+	// render box through BoundVisible, a sprite's texture at its draw scale,
+	// none for a location behind the viewer or another draw type. In the
+	// view's x across and y up over the depth; z the location's depth.
+	bool SpriteRectangle(UActor* actor, float& minX, float& minY, float& maxX, float& maxY, float& z);
+
 private:
 	// An actor's proxy for the occlusion test, as the original's sprites
 	// have one: its screen rectangle set back in the world at its

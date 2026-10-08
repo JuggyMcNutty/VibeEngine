@@ -126,15 +126,14 @@ Matches the original ([render time](https://github.com/JuggyMcNutty/dx-reverse-i
 [which actors are drawn](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#which-actors-are-drawn),
 [stasis and render time](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#stasis-and-render-time)):
 whether an actor counts as drawn is tested piece by piece in the BSP walk,
-and the proxies' rectangles are the original's (`AIConsole`). Beside it the
-fork keeps Distant AI's own `LastVisibleFrame`
+and the proxies' rectangles are the original's (`AIConsole`). An actor drawn
+on its own (`GC.DrawActor`, `Canvas.DrawActor`) counts as drawn whenever its
+rectangle is on the frame, whatever is in front of it: an NPC the vision
+augmentation draws through a wall stays drawn while it is in view
+(`AugVisionConsole`). Beside it the fork keeps Distant AI's own
+`LastVisibleFrame`
 ([its patches](ENGINE.md#settings-the-launcher-exposes)). Differs:
 
-- **`GC.DrawActor` stamps no render time.** The original stamps an actor
-  drawn through it, as the vision augmentation's heat sources are; the fork
-  stamps only what the scene draws, so an NPC seen only through the
-  augmentation does not count as drawn for stasis, `bTickVisibleOnly` or the
-  event manager.
 - **9 NPCs count as drawn at Liberty Island's start, to the original's 3**:
   five terrorists and a thug far off, whose rectangles show 1 to 9 pixels
   over the seawall and the pier's roof in the fork, where the original's

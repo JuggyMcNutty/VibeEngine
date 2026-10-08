@@ -187,44 +187,46 @@ bool VisibleFrame::BoundRectangle(const BBox& box, float& minX, float& minY, flo
 	return minX < maxX && minY < maxY;
 }
 
-void VisibleFrame::AddOcclusionProxy(UActor* actor)
+bool VisibleFrame::SpriteRectangle(UActor* actor, float& minX, float& minY, float& maxX, float& maxY, float& z)
 {
-	if (actor->LastRenderTime() == Now)
-		return;
-
-	// Only a mesh or a sprite gets one, as the original's sprites: at the
-	// depth of the actor's location, none when that is behind the viewer.
+	// Only a mesh or a sprite has one: at the depth of the actor's location,
+	// none when that is behind the viewer.
 	vec4 location = Frame.WorldToView * vec4(actor->Location(), 1.0f);
-	float z = location.z;
+	z = location.z;
 	if (z < 0.0f)
-		return;
+		return false;
 
-	float minX, minY, maxX, maxY;
 	EDrawType dt = (EDrawType)actor->DrawType();
 	if (dt == DT_Mesh && actor->Mesh())
-	{
-		if (!BoundRectangle(MeshRenderBox(actor, actor->Mesh()), minX, minY, maxX, maxY))
-			return;
-	}
-	else if ((dt == DT_Sprite || dt == DT_SpriteAnimOnce) && actor->Texture())
+		return BoundRectangle(MeshRenderBox(actor, actor->Mesh()), minX, minY, maxX, maxY);
+
+	if ((dt == DT_Sprite || dt == DT_SpriteAnimOnce) && actor->Texture())
 	{
 		// The texture's size at the draw scale, around where the location
 		// lands; none nearer than a unit.
 		if (z <= 1.0f)
-			return;
+			return false;
 		float halfWidth = actor->Texture()->USize() * actor->DrawScale() * 0.5f;
 		float halfHeight = actor->Texture()->VSize() * actor->DrawScale() * 0.5f;
 		minX = std::max((location.x - halfWidth) / z, -FrustumTanX);
 		maxX = std::min((location.x + halfWidth) / z, FrustumTanX);
 		minY = std::max((location.y - halfHeight) / z, -FrustumTanY);
 		maxY = std::min((location.y + halfHeight) / z, FrustumTanY);
-		if (minX >= maxX || minY >= maxY)
-			return;
+		return minX < maxX && minY < maxY;
 	}
-	else
-	{
+
+	return false;
+}
+
+void VisibleFrame::AddOcclusionProxy(UActor* actor)
+{
+	if (actor->LastRenderTime() == Now)
 		return;
-	}
+
+	// Only a mesh or a sprite gets one, as the original's sprites.
+	float minX, minY, maxX, maxY, z;
+	if (!SpriteRectangle(actor, minX, minY, maxX, maxY, z))
+		return;
 
 	// The rectangle set back at that depth -- no nearer than the clipper's
 	// near plane, which would cut it away.

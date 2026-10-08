@@ -14,6 +14,7 @@
 #include "GameWindow.h"
 #include "VM/ScriptCall.h"
 #include "Engine.h"
+#include "Packages/Engine/Actors/Info/ULevelInfo.h"
 
 void RenderSubsystem::ResetCanvas()
 {
@@ -120,6 +121,18 @@ void RenderSubsystem::DrawActor(UActor* actor, bool WireFrame, bool ClearZ)
 	Device->SetSceneNode(&MainFrame.Frame);
 	if (ClearZ)
 		Device->ClearZ();
+
+	// Deus Ex's renderer stamps an actor drawn on its own as drawn, as one
+	// the scene draws (Render.dll URender::DrawActor 0x10b262c0): whenever
+	// its sprite has a rectangle on the main view's frame, whatever is in
+	// front of it -- an NPC the vision augmentation draws through a wall
+	// counts as drawn. GC.DrawActor and Canvas.DrawActor both come here.
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		float minX, minY, maxX, maxY, z;
+		if (MainFrame.SpriteRectangle(actor, minX, minY, maxX, maxY, z))
+			actor->LastRenderTime() = engine->LevelInfo->TimeSeconds();
+	}
 
 	// The actor draws as if not hidden; a visible one (the vision
 	// augmentation's heat sources) keeps its own flag afterwards.

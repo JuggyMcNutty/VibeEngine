@@ -104,6 +104,7 @@ the run. *Either*: one engine on each side of a pair.
 | `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |
 | `RestConsole` | both | where a falling decoration rests; a crate and the player dropped over the pier's edge | `DXREST:` | |
 | `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |
+| `AugVisionConsole` | both | an NPC behind a wall that the vision augmentation draws: its time since drawn, the augmentation off, on, on and turned about, off | `DXAUGVIS:` | |
 | `PortalConsole` | both | a map opened at a portal (`open <map>#<portal>`): the level's URL, where the player lands | `DXPORTAL:` | |
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
