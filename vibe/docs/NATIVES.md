@@ -358,8 +358,13 @@ frob target, through decorations), sight (`SightConsole`), the reach tests
 crate nudged off it, a pawn fitted clear of it and pushed on at random
 (`RestConsole`,
 [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving))
---, falls in water (`FloatConsole`: a buoyant crate rises and bobs at the
-surface at the original's speeds), `SetLocation`, the rotators' conversions (`RotatorConsole`,
+--, a pawn landing on another or on a decoration that cannot be its base,
+which the scripts' `SupportActor` bounces off 50 up and 25 to 50 sideways at
+random, again until it slips off, and the one under it stomped but for a
+human NPC not hostile to the player (`StompConsole`: the player and Paul
+Denton on each other, crates), falls in water (`FloatConsole`: a buoyant
+crate rises and bobs at the surface at the original's speeds),
+`SetLocation`, the rotators' conversions (`RotatorConsole`,
 702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
 `MidConsole`'s ten probes of both, and `Object.DynamicLoadObject` with a
 group in the name, its own, another or none, and a class that is not the
@@ -382,10 +387,11 @@ Differs:
 - **Falling out of water** keeps the fork's own step, where the original's
   moves by the step's mean velocity
   ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).
-- **Known risk:** a pawn landing on an NPC or the player bounces off and
-  stomps it, and one landing on a decoration that cannot be a base is pushed
-  off, through the scripts' `SupportActor`; untried in play. Check: jumping
-  onto an NPC's head.
+- **A bounce within a frame**: the fork's physics takes a frame in steps of
+  at most 0.02 s, so a pawn bounced off another falls on for the rest of a
+  longer frame, where the original's landing ends its frame's move: at the
+  frame's end the fork's bounce rises at 39 to 50, the original's at 50
+  (`StompConsole`).
 
 ## Housekeeping, not seen directly
 
