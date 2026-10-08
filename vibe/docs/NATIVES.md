@@ -354,8 +354,10 @@ Every other native the scripted runs compare matches the original
 [`Engine.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md)):
 the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
 frob target, through decorations), sight (`SightConsole`), the reach tests
-(`ReachConsole`), falls coming to rest and their landing on a ledge -- a
-crate nudged off it, a pawn fitted clear of it and pushed on at random
+(`ReachConsole`), falls, each step by its mean velocity (a pawn's air
+control, a bounce left to the script, a wall slid along), coming to rest
+and their landing on a ledge -- a crate nudged off it, a pawn fitted clear
+of it and pushed on at random
 (`RestConsole`,
 [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving))
 --, a pawn landing on another or on a decoration that cannot be its base,
@@ -385,13 +387,10 @@ Differs:
 - **A box started inside a cylinder** keeps the least penetration's normal;
   the original's is level, out from the axis, as a line's is in both
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
-- **Falling out of water** keeps the fork's own step, where the original's
-  moves by the step's mean velocity
-  ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).
 - **A bounce within a frame**: the fork's physics takes a frame in steps of
   at most 0.02 s, so a pawn bounced off another falls on for the rest of a
   longer frame, where the original's landing ends its frame's move: at the
-  frame's end the fork's bounce rises at 39 to 50, the original's at 50
+  frame's end the fork's bounce rises at 45 to 50, the original's at 50
   (`StompConsole`).
 
 ## Housekeeping, not seen directly

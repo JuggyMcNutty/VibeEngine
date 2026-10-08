@@ -400,6 +400,7 @@ public:
 	void TickPhysics(float elapsed);
 	void TickWalking(float elapsed);
 	void TickFalling(float elapsed);
+	void DeusExTickFalling(float deltaTime);
 	void TickSwimming(float elapsed);
 	void TickFlying(float elapsed);
 	void TickProjectile(float elapsed);
