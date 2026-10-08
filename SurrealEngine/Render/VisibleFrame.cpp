@@ -832,12 +832,63 @@ void VisibleFrame::DrawTranslucent()
 		translucent.Draw(this);
 }
 
+// A portal's spans by row, and each row's by x0, as BspClipper::Setup reads
+// them. They come a surface at a time, each surface's row by row: the rows
+// are counted, each span put in its row's place, and each row's few sorted.
+// A row's spans never overlap (each was drawn solid as it was found), so this
+// is the order a sort by row and x0 gives, without its cost: a sky seen
+// through many surfaces brings tens of thousands of spans a frame.
+static void SortPortalSpans(Array<PortalSpan>& spans)
+{
+	if (spans.size() < 2)
+		return;
+	int64_t lastRow = 0;
+	for (const PortalSpan& span : spans)
+	{
+		if (span.y < 0 || span.y >= BspClipper::MaxHeight)
+		{
+			std::sort(spans.begin(), spans.end(), [](const PortalSpan& a, const PortalSpan& b) { return a.y != b.y ? a.y < b.y : a.x0 < b.x0; });
+			return;
+		}
+		lastRow = std::max(lastRow, span.y);
+	}
+
+	Array<uint32_t> rowStart((size_t)lastRow + 2, 0u);
+	for (const PortalSpan& span : spans)
+		rowStart[(size_t)span.y + 1]++;
+	for (size_t row = 1; row < rowStart.size(); row++)
+		rowStart[row] += rowStart[row - 1];
+
+	Array<PortalSpan> sorted(spans.size());
+	Array<uint32_t> next = rowStart;
+	for (const PortalSpan& span : spans)
+		sorted[next[(size_t)span.y]++] = span;
+
+	for (size_t row = 0; row + 1 < rowStart.size(); row++)
+	{
+		PortalSpan* first = sorted.data() + rowStart[row];
+		PortalSpan* last = sorted.data() + rowStart[row + 1];
+		for (PortalSpan* i = first + 1; i < last; i++)
+		{
+			PortalSpan span = *i;
+			PortalSpan* j = i;
+			while (j > first && (j - 1)->x0 > span.x0)
+			{
+				*j = *(j - 1);
+				j--;
+			}
+			*j = span;
+		}
+	}
+	spans.swap(sorted);
+}
+
 void VisibleFrame::DrawPortals()
 {
 	for (VisiblePortal& portal : Portals)
 	{
 		// BspClipper requires the visible spans list to be sorted
-		std::sort(portal.Spans.begin(), portal.Spans.end(), [](const PortalSpan& a, const PortalSpan& b) { return a.y != b.y ? a.y < b.y: a.x0 < b.x0; });
+		SortPortalSpans(portal.Spans);
 
 		if (portal.SkyZone)
 		{

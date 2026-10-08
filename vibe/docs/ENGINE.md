@@ -234,7 +234,8 @@ clipper's occlusion grid one row per image row (0010), its non-SSE (ARM) build s
 for triangles inside the view (0020, an upstream bug); one-sided surfaces seen from behind
 skipped before the visibility test (0011); a surface's points gathered only when a test needs
 them (0021); each mesh vertex animated, lit and fogged once a draw (0018), and a run of faces
-with one texture drawn in one device call (0019). Deus Ex's look, as `Render.dll` and
+with one texture drawn in one device call (0019); a portal's spans put in order by row in
+linear time, not sorted (`SortPortalSpans`). Deus Ex's look, as `Render.dll` and
 `D3DDrv.dll` make it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); its code
 is in `SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`),
 `SurrealEngine/Light/` and `SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`,
