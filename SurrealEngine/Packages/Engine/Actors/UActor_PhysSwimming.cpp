@@ -153,7 +153,7 @@ void UPawn::DeusExPhysSwimming(float deltaTime)
 
 	OldLocation() = Location();
 	bJustTeleported() = false;
-	DeusExSwimVelocity(SafeNormal(Acceleration()), deltaTime);
+	DeusExCalcVelocity(SafeNormal(Acceleration()), deltaTime, WaterSpeed(), zone->ZoneFluidFriction(), true, false, true);
 	float velZ = Velocity().z;
 
 	// The zone's velocity for a player, and for another pawn in a zone moving
@@ -337,49 +337,4 @@ void UPawn::DeusExStepUp(const vec3& gravDir, const vec3& desiredDir, vec3 delta
 		if (dot(slide, down) >= 0.0f)
 			hit = TryMoveHeldOff(slide);
 	}
-}
-
-// APawn::calcVelocity (0x103cd7a0) as physSwimming asks it: as a fluid,
-// buoyant, no braking, at WaterSpeed and the zone's fluid friction. The
-// acceleration is cut to AccelRate (0.3 of it for a walking player -- Deus
-// Ex's player walks whenever it swims); the velocity turns toward it, loses
-// the friction and gains it, and the buoyancy; then it is held to the speed
-// (x DesiredSpeed but for a player), a walking player's 0.3 of it (0.6 in a
-// net game) and brought down to that no faster than the friction allows.
-void UPawn::DeusExSwimVelocity(const vec3& accelDir, float deltaTime)
-{
-	UZoneInfo* zone = Region().Zone;
-	float friction = zone->ZoneFluidFriction();
-	float turning = std::max(1.0f, friction);
-	bool player = UObject::TryCast<UPlayerPawn>(this) != nullptr;
-	bool walkingPlayer = player && bIsWalking();
-
-	float speed = length(Velocity());
-	float accelRate = walkingPlayer ? AccelRate() * 0.3f : AccelRate();
-	if (dot(Acceleration(), Acceleration()) > accelRate * accelRate)
-		Acceleration() = accelDir * accelRate;
-	Velocity() = Velocity() - (Velocity() - accelDir * speed) * (deltaTime * turning);
-	Velocity() = Velocity() * (1.0f - friction * deltaTime) + Acceleration() * deltaTime;
-
-	float maxSpeed = WaterSpeed();
-	if (!player)
-		maxSpeed *= DesiredSpeed();
-
-	// The mass as it is; a massless pawn would make this 0/0, and takes 1.
-	float mass = Mass() != 0.0f ? Mass() : 1.0f;
-	Velocity() = Velocity() + zone->ZoneGravity() * (deltaTime * (1.0f - Buoyancy() / mass));
-
-	float squared = dot(Velocity(), Velocity());
-	if (walkingPlayer)
-	{
-		float walkSpeed = maxSpeed * (Level()->NetMode() != NM_Standalone ? 0.6f : 0.3f);
-		if (squared > walkSpeed * walkSpeed)
-		{
-			float size = std::sqrt(squared);
-			Velocity() = Velocity() / size * std::max(walkSpeed, (1.0f - 2.0f * turning * deltaTime) * size);
-			return;
-		}
-	}
-	if (squared > maxSpeed * maxSpeed)
-		Velocity() = SafeNormal(Velocity()) * maxSpeed;
 }

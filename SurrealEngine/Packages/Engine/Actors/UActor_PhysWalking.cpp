@@ -53,9 +53,21 @@ void UActor::TickWalking(float elapsed)
 
 	Velocity().z = 0.0f;
 
-	float accelRate = pawn->AccelRate() * (isCrouching ? 0.3f : 1.0f);
-	float maxSpeed = (player ? player->GroundSpeed() : pawn->GroundSpeed() * pawn->DesiredSpeed()) * (isCrouching ? 0.3f : 1.0f);
-	ApplyMovementAcceleration(elapsed, accelRate, zone->ZoneGroundFriction(), maxSpeed);
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		// Deus Ex's: the original's speed, level, braking with no
+		// acceleration (APawn::physWalking 0x103ca540).
+		Acceleration().z = 0.0f;
+		float accelSize = length(Acceleration());
+		vec3 accelDir = accelSize > 0.0f ? Acceleration() / accelSize : vec3(0.0f);
+		pawn->DeusExCalcVelocity(accelDir, elapsed, pawn->GroundSpeed(), zone->ZoneGroundFriction(), false, true, false);
+	}
+	else
+	{
+		float accelRate = pawn->AccelRate() * (isCrouching ? 0.3f : 1.0f);
+		float maxSpeed = (player ? player->GroundSpeed() : pawn->GroundSpeed() * pawn->DesiredSpeed()) * (isCrouching ? 0.3f : 1.0f);
+		ApplyMovementAcceleration(elapsed, accelRate, zone->ZoneGroundFriction(), maxSpeed);
+	}
 
 	Velocity().z = 0.0f;
 
@@ -230,4 +242,77 @@ void UActor::TickWalking(float elapsed)
 
 	RecomputeVelocityFromDisplacement(elapsed);
 	Velocity().z = 0.0f;
+}
+
+// APawn::calcVelocity (Engine.dll 0x103cd7a0; dx-reverse-info/engine-dll.md,
+// moving: the speed), as Deus Ex's walking (GroundSpeed, the zone's ground
+// friction, braking) and swimming (WaterSpeed, its fluid friction, as a
+// fluid, buoyant) ask it. It turns and brakes with the larger of the
+// friction and the fluid's 1. With no acceleration a braking pawn slows in
+// slices of 0.03 s, to the slices' velocities that still point the old way
+// weighted by their time, and stops under 10 or turned about. Otherwise the
+// acceleration is cut to AccelRate (0.3 of it for a walking player -- Deus
+// Ex's player walks whenever it swims) and the velocity turns toward it.
+// Then the fluid's friction, the acceleration and the buoyancy; then the
+// speed held to maxSpeed (x DesiredSpeed but for a player), a walking
+// player's to 0.3 of it (0.6 in a net game), brought down to that no faster
+// than the friction allows.
+void UPawn::DeusExCalcVelocity(const vec3& accelDir, float deltaTime, float maxSpeed, float friction, bool fluid, bool brake, bool buoyant)
+{
+	float turning = std::max(fluid ? 1.0f : 0.0f, friction);
+	bool player = UObject::TryCast<UPlayerPawn>(this) != nullptr;
+	bool walkingPlayer = player && bIsWalking();
+
+	if (brake && Acceleration() == vec3(0.0f))
+	{
+		vec3 oldVelocity = Velocity();
+		vec3 sumVelocity(0.0f);
+		float remainingTime = deltaTime;
+		while (remainingTime > 0.03f)
+		{
+			Velocity() = Velocity() - Velocity() * (2.0f * 0.03f * turning);
+			if (dot(Velocity(), oldVelocity) > 0.0f)
+				sumVelocity += Velocity() * (0.03f / deltaTime);
+			remainingTime -= 0.03f;
+		}
+		Velocity() = Velocity() - Velocity() * (2.0f * remainingTime * turning);
+		if (dot(Velocity(), oldVelocity) > 0.0f)
+			sumVelocity += Velocity() * (remainingTime / deltaTime);
+		Velocity() = sumVelocity;
+		if (dot(oldVelocity, Velocity()) < 0.0f || dot(Velocity(), Velocity()) < 100.0f)
+			Velocity() = vec3(0.0f);
+	}
+	else
+	{
+		float speed = length(Velocity());
+		float accelRate = walkingPlayer ? AccelRate() * 0.3f : AccelRate();
+		if (dot(Acceleration(), Acceleration()) > accelRate * accelRate)
+			Acceleration() = accelDir * accelRate;
+		Velocity() = Velocity() - (Velocity() - accelDir * speed) * (deltaTime * turning);
+	}
+	Velocity() = Velocity() * (1.0f - (fluid ? friction : 0.0f) * deltaTime) + Acceleration() * deltaTime;
+
+	if (!player)
+		maxSpeed *= DesiredSpeed();
+
+	if (buoyant)
+	{
+		// The mass as it is; a massless pawn would make this 0/0, and takes 1.
+		float mass = Mass() != 0.0f ? Mass() : 1.0f;
+		Velocity() = Velocity() + Region().Zone->ZoneGravity() * (deltaTime * (1.0f - Buoyancy() / mass));
+	}
+
+	float squared = dot(Velocity(), Velocity());
+	if (walkingPlayer)
+	{
+		float walkSpeed = maxSpeed * (Level()->NetMode() != NM_Standalone ? 0.6f : 0.3f);
+		if (squared > walkSpeed * walkSpeed)
+		{
+			float size = std::sqrt(squared);
+			Velocity() = Velocity() / size * std::max(walkSpeed, (1.0f - 2.0f * turning * deltaTime) * size);
+			return;
+		}
+	}
+	if (squared > maxSpeed * maxSpeed)
+		Velocity() = Velocity() * (maxSpeed / std::sqrt(squared));
 }
