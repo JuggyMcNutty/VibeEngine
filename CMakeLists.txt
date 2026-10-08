@@ -945,12 +945,11 @@ set(THIRDPARTY_SOURCES
 	Thirdparty/resample/CDSPResampler.h
 	Thirdparty/resample/CDSPRealFFT.h
 	Thirdparty/resample/CDSPFIRFilter.h
-	Thirdparty/resample/pffft.cpp
+	# pffft.cpp and pffft.h are left out: R8B_PFFFT is 0, and pffft.cpp's ARM test warns on aarch64
 	Thirdparty/resample/r8butil.h
 	Thirdparty/resample/CDSPHBUpsampler.h
 	Thirdparty/resample/CDSPProcessor.h
 	Thirdparty/resample/r8bbase.cpp
-	Thirdparty/resample/pffft.h
 	Thirdparty/resample/CDSPFracInterpolator.h
 	Thirdparty/resample/CDSPBlockConvolver.h
 	Thirdparty/resample/fft4g.h
