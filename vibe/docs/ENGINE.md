@@ -254,6 +254,10 @@ The handheld's numbers are [the Smart Pro's Performance](https://github.com/Jugg
 `LauncherSettings` reads the `Gamepad` and `Performance` blocks
 ([the keys](#settings-and-environment)). Distant AI (0008, 0022) is `UActor::ThinkThisFrame`,
 asked each tick; a pawn counts as seen when the renderer drew it this frame (`LastVisibleFrame`).
+A pawn neither seen nor within 1,500 units runs its tick and state code every third frame, beyond
+4,000 units every sixth, the tick given the time it missed; its physics and timers run every frame.
+With it on, Liberty Island's pawns move and change state as without it: `MoveConsole`'s 52 within
+the original's tolerance, `AIConsole`'s states at 8 and 20 s the original's.
 Render scale (0009, 0038) is `RenderDevice::GetRenderScale`: a device whose
 `SupportsRenderScale()` says so (Vulkan, GL) makes its scene buffers at `GetRenderWidth()` by
 `GetRenderHeight()` and scales them to the window as it presents; the viewport, the canvas and
