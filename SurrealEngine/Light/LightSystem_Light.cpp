@@ -80,22 +80,33 @@ TextureInfo LightSystem::GetLevelLightmap(BspSurface& surface, UZoneInfo* zoneAc
 	return GetLightmap(model, surface.LightMap, mapCoords, zoneActor, surface.Center, surface.Radius, nullptr, surface.PolyFlags & PF_SpecialLit);
 }
 
-// The tree's lights for a lightmap's surface. Every visible surface asked
-// the tree again every frame (~6 ms a frame on the handheld); its answer is
-// now kept until the tree is rebuilt, or the surface's sphere differs. Each
-// model keeps its own: a mover's surfaces, drawn among the level's, emptied
-// a cache kept for one model at a time every frame.
-const Array<UActor*>& LightSystem::CollectSurfaceLights(UModel* model, int lightmapIndex, const vec3& center, float radius)
+// What is kept for a lightmap of a model: the level's and every mover's
+// brush, drawn in turn every frame, each keep their own.
+LightSystem::SurfaceLights& LightSystem::GetSurfaceLights(UModel* model, int lightmapIndex)
 {
 	Array<SurfaceLights>& cache = SurfaceLightCaches[model];
 	if (cache.size() <= (size_t)lightmapIndex)
 		cache.resize(std::max(model->LightMap.size(), (size_t)lightmapIndex + 1));
+	return cache[lightmapIndex];
+}
 
-	SurfaceLights& entry = cache[lightmapIndex];
+// The tree's lights that can move, for a lightmap's surface. Every visible
+// surface asked the tree again every frame (~6 ms a frame on the handheld);
+// its answer is now kept until the tree is rebuilt, or the surface's sphere
+// differs. Only a light that can move is ever taken from it -- a static or
+// no-delete one lights a map through the surface's own list -- so the
+// others are left out here once, not passed over every frame.
+const Array<UActor*>& LightSystem::CollectSurfaceLights(SurfaceLights& entry, const vec3& center, float radius)
+{
 	if (entry.Version != LightTreeVersion || entry.Center != center || entry.Radius != radius)
 	{
 		LightTree.CollectLights(center, radius);
-		entry.Lights = LightTree.CollectedLights;
+		entry.Lights.clear();
+		for (UActor* light : LightTree.CollectedLights)
+		{
+			if (!light->bStatic() && !light->bNoDelete())
+				entry.Lights.push_back(light);
+		}
 		entry.Version = LightTreeVersion;
 		entry.Center = center;
 		entry.Radius = radius;
@@ -122,6 +133,7 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 	}
 
 	int checkCounter = LightmapCheckCounter++;
+	SurfaceLights& surface = GetSurfaceLights(model, lightmapIndex);
 
 	// Collect lights for the lightmap and check if they changed
 
@@ -165,12 +177,12 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 
 		if (!noDynamicLights)
 		{
-			for (UActor* light : CollectSurfaceLights(model, lightmapIndex, worldLocation, radius))
+			for (UActor* light : CollectSurfaceLights(surface, worldLocation, radius))
 			{
 				if (light->Light.LightmapCheckCounter != checkCounter)
 				{
 					light->Light.LightmapCheckCounter = checkCounter;
-					if (!light->bStatic() && !light->bNoDelete() && light->bSpecialLit() == specialLit)
+					if (light->bSpecialLit() == specialLit)
 					{
 						CheckLight(light);
 						lastDynamicUpdate = std::max(lastDynamicUpdate, light->Light.LastUpdate);
@@ -207,7 +219,13 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 
 	bool bRealtimeChanged = false;
 	LightmapRect updated;
-	auto& lmtexture = lmtextures[cacheID];
+	// The map: the surface's last one, else the cache's search
+	if (!surface.Texture || surface.TextureID != cacheID)
+	{
+		surface.Texture = &lmtextures[cacheID];
+		surface.TextureID = cacheID;
+	}
+	std::unique_ptr<LightmapTexture>& lmtexture = *surface.Texture;
 	if (!lmtexture || lmtexture->LastStaticUpdate != lastStaticUpdate || lmtexture->LastDynamicUpdate != lastDynamicUpdate)
 	{
 		engine->render->Stats.LightmapsUpdated++;

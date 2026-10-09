@@ -42,6 +42,7 @@ void LightSystem::OnMapLoaded()
 {
 	engine->Level->Light.FogBalls.clear();
 	engine->Level->Light.lmtextures.clear();
+	engine->Level->Light.SurfaceLightCaches.clear();
 	engine->Level->Light.fogtextures.clear();
 
 	std::set<UActor*> lightset;

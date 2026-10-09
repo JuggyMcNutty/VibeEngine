@@ -285,7 +285,9 @@ public:
 	void PurgeDying();
 
 private:
-	const Array<UActor*>& CollectSurfaceLights(UModel* model, int lightmapIndex, const vec3& center, float radius);
+	struct SurfaceLights;
+	SurfaceLights& GetSurfaceLights(UModel* model, int lightmapIndex);
+	const Array<UActor*>& CollectSurfaceLights(SurfaceLights& entry, const vec3& center, float radius);
 	void UpdateFogmapTexture(uint32_t* texels, UModel* model, const Coords& mapCoords, int lightMap, UZoneInfo* zoneActor);
 
 	ULevel* Level = nullptr;
@@ -318,15 +320,19 @@ private:
 	Array<TreeLight> TreeLights;
 	uint64_t LightTreeVersion = 0;
 
-	// Each lightmap's lights from the tree, as of the version they were found
-	// in, for each model: the level's and every mover's brush, drawn in turn
-	// every frame.
+	// Each lightmap's lights from the tree that can move, as of the version
+	// they were found in, and its map as last drawn: the cache ID it was
+	// asked for under and its place in lmtextures, which keeps it until the
+	// next level. For each model: the level's and every mover's brush.
 	struct SurfaceLights
 	{
 		uint64_t Version = 0;
 		vec3 Center = vec3(0.0f);
 		float Radius = 0.0f;
 		Array<UActor*> Lights;
+
+		uint64_t TextureID = 0;
+		std::unique_ptr<LightmapTexture>* Texture = nullptr;
 	};
 	std::unordered_map<UModel*, Array<SurfaceLights>> SurfaceLightCaches;
 };
