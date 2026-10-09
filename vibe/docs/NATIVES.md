@@ -427,8 +427,8 @@ with it. `GarbageConsole` and `DeleteConsole` run both engines. Differs:
 - **Code is never freed**, where the original's frees a script class nothing
   uses and loads it again when asked for.
 
-On linux-x86_64, on the hidden display, Liberty Island and Battery Park loaded
-in turn (`reload-fresh.txt`), twenty loads: 522 MB at the end, 528 MB at most;
+On linux-x86_64 under software GL (llvmpipe), Liberty Island and Battery Park
+loaded in turn (`reload-fresh.txt`), twenty loads: 522 MB at the end, 528 MB at most;
 each island load's collection leaves the same 43,054 objects and frees some
 130 textures and 20 sounds. Liberty Island and UNATCO HQ through `Current`
 (`reload-current.txt`): 522 MB at most throughout. A collection takes 28 to
@@ -601,7 +601,7 @@ server-only stubs are under
   Its queue drains 2.6 bytes a tick for an internet-speed client (2,600
   bytes/s), so an unreliable call has no room for a dozen ticks after any
   packet ([packets](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#packets)).
-  At some 100 frames (the hidden display) `ServeConsole`'s 8 beeps reach the
+  At some 100 frames a second (software GL) `ServeConsole`'s 8 beeps reach the
   original's client, 7 or 8 of them, as the original server's reach the
   fork's, 6 to 8: the first goes as the host stops, its last step's packet
   just sent.
