@@ -77,7 +77,10 @@ void GLTextureManager::UploadTexture(TextureInfo* info, bool masked, GLCachedTex
 	if (info->bRealtimeChanged)
 	{
 		info->bRealtimeChanged = 0;
-		renderer->Uploads->UploadTexture(tex, *info, masked);
+		if (info->UpdateWidth > 0)
+			renderer->Uploads->UploadTextureRect(tex, *info, info->UpdateX, info->UpdateY, info->UpdateWidth, info->UpdateHeight);
+		else
+			renderer->Uploads->UploadTexture(tex, *info, masked);
 	}
 }
 

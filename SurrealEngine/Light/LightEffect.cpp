@@ -38,9 +38,9 @@ LightEffect::EffectFunc LightEffect::Effects[LE_Unused + 1] =
 	&LightEffect::NoneEffect, // LE_Unused
 };
 
-void LightEffect::Run(UActor* light, int width, const Array<LightmapSpan>& spans, const vec3* locations, vec3 base, vec3 N, const float* shadowmap, float* result)
+void LightEffect::Run(UActor* light, int width, const LightmapSpan* spans, size_t count, const vec3* locations, vec3 base, vec3 N, const float* shadowmap, float* result)
 {
-	if (spans.empty())
+	if (count == 0)
 		return;
 
 	if (!TablesInitialized)
@@ -63,8 +63,9 @@ void LightEffect::Run(UActor* light, int width, const Array<LightmapSpan>& spans
 	// plain light too (dx-reverse-info/render-dll.md, light maps)
 	if (args.smoothFalloff && (effect == LE_TorchWaver || effect == LE_FireWaver || effect == LE_WateryShimmer || effect == LE_OmniBumpMap))
 		func = &LightEffect::NoneEffect;
-	for (const LightmapSpan& span : spans)
+	for (size_t i = 0; i < count; i++)
 	{
+		const LightmapSpan& span = spans[i];
 		int offset = span.y * width + span.x0;
 		args.size = span.x1 - span.x0;
 		args.locations = locations + offset;

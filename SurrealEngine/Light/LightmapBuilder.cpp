@@ -36,8 +36,10 @@ void LightmapBuilder::Setup(UModel* model, const Coords& mapCoords, int lightMap
 		lightcolors.resize(size);
 	if (illuminationmap.size() < size)
 		illuminationmap.resize(size);
+	if (rows.size() < (size_t)height)
+		rows.resize(height);
 
-	CalcWorldLocations(mapCoords, lmindex);
+	CalcRowLines(mapCoords, lmindex);
 }
 
 void LightmapBuilder::SetAmbientLight(UZoneInfo* zoneActor)
@@ -50,8 +52,7 @@ void LightmapBuilder::SetAmbientLight(UZoneInfo* zoneActor)
 		// colour times 64
 		vec3 ambient = FGetHSV(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
 		vec3 bytes(std::floor(ambient.r * 64.0f), std::floor(ambient.g * 64.0f), std::floor(ambient.b * 64.0f));
-		for (vec3& c : lightcolors)
-			c = bytes;
+		std::fill(lightcolors.begin(), lightcolors.begin() + (size_t)width * height, bytes);
 		return;
 	}
 
@@ -60,8 +61,7 @@ void LightmapBuilder::SetAmbientLight(UZoneInfo* zoneActor)
 	vec3 ambientColor = hsbtorgb(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness()); // To do: is this the correct scale?
 	// To do: is there more ambient light than just from the zone?
 
-	for (vec3& c : lightcolors)
-		c = ambientColor;
+	std::fill(lightcolors.begin(), lightcolors.begin() + (size_t)width * height, ambientColor);
 
 	// To do: how does polyflags affect the lightmap (if at all)?
 
@@ -69,11 +69,13 @@ void LightmapBuilder::SetAmbientLight(UZoneInfo* zoneActor)
 	//bool isTranslucent = (surface.PolyFlags & PF_Translucent) == PF_Translucent;
 }
 
-void LightmapBuilder::LoadStaticLight(const Array<vec3>& staticLightColors)
+void LightmapBuilder::LoadStaticLight(const Array<vec3>& staticLightColors, const LightmapRect& rect)
 {
-	if (lightcolors.size() < staticLightColors.size())
-		lightcolors.resize(staticLightColors.size());
-	std::memcpy(lightcolors.data(), staticLightColors.data(), staticLightColors.size() * sizeof(vec3));
+	for (int y = rect.y0; y < rect.y1; y++)
+	{
+		size_t offset = (size_t)y * width + rect.x0;
+		std::memcpy(lightcolors.data() + offset, staticLightColors.data() + offset, (rect.x1 - rect.x0) * sizeof(vec3));
+	}
 }
 
 void LightmapBuilder::SaveStaticLight(Array<vec3>& staticLightColors)
@@ -84,8 +86,6 @@ void LightmapBuilder::SaveStaticLight(Array<vec3>& staticLightColors)
 
 void LightmapBuilder::AddStaticLights(UModel* model, int lightMap)
 {
-	size_t count = (size_t)width * height;
-
 	const LightMapIndex& lmindex = model->LightMap[lightMap];
 	if (lmindex.LightActors >= 0)
 	{
@@ -96,41 +96,64 @@ void LightmapBuilder::AddStaticLights(UModel* model, int lightMap)
 			if (light->LightType() != LT_None && light->LightBrightness() > 0)
 			{
 				// An animating light is added over the kept static map
-				// each frame instead (AddAnimatedLights), unless the
+				// each frame instead (AddLights), unless the
 				// client's NoDynamicLights stills it into the map here
 				if (LightAnimates(light) && !engine->client->NoDynamicLights)
 					continue;
-				FindLitSpans(light);
+				spans.clear();
+				FindLitSpans(light, spans);
 				if (spans.empty())
 					continue;
-				Shadow.Load(model, lightMap, lightindex);
-				Effect.Run(light, width, spans, WorldLocations(), base, WorldNormal(), Shadow.Pixels(), illuminationmap.data());
-				AddLightContribution(light);
+				Shadow.Load(model, lightMap, lightindex, LightmapRect::Of(spans.data(), spans.size()));
+				Effect.Run(light, width, spans.data(), spans.size(), WorldLocations(), base, WorldNormal(), Shadow.Pixels(), illuminationmap.data());
+				AddLightContribution(light, spans.data(), spans.size());
 			}
 		}
 	}
 }
 
-void LightmapBuilder::AddAnimatedLights(UModel* model, int lightMap, const Array<int>& lightIndices)
+void LightmapBuilder::FindAddedLights(UModel* model, int lightMap, const Array<int>& animatedIndices, const Array<UActor*>& dynamicLights)
 {
-	// The surface's own animating lights, each over its shadow bits, added
-	// to the loaded static map every frame
-	const LightMapIndex& lmindex = model->LightMap[lightMap];
-	if (lmindex.LightActors < 0)
-		return;
-	UActor** lightlist = &model->Lights[lmindex.LightActors];
-	for (int lightindex : lightIndices)
+	addedLights.clear();
+	addedSpans.clear();
+	addedRect = {};
+	auto add = [&](UActor* light, int lightIndex)
 	{
-		UActor* light = lightlist[lightindex];
-		if (light->LightType() != LT_None && light->LightBrightness() > 0)
-		{
-			FindLitSpans(light);
-			if (spans.empty())
-				continue;
-			Shadow.Load(model, lightMap, lightindex);
-			Effect.Run(light, width, spans, WorldLocations(), base, WorldNormal(), Shadow.Pixels(), illuminationmap.data());
-			AddLightContribution(light);
-		}
+		if (light->LightType() == LT_None || light->LightBrightness() == 0)
+			return;
+		size_t first = addedSpans.size();
+		FindLitSpans(light, addedSpans);
+		size_t count = addedSpans.size() - first;
+		if (count == 0)
+			return;
+		LightmapRect rect = LightmapRect::Of(addedSpans.data() + first, count);
+		addedLights.push_back({ light, lightIndex, first, count, rect });
+		addedRect.Add(rect);
+	};
+
+	const LightMapIndex& lmindex = model->LightMap[lightMap];
+	if (lmindex.LightActors >= 0)
+	{
+		UActor** lightlist = &model->Lights[lmindex.LightActors];
+		for (int lightindex : animatedIndices)
+			add(lightlist[lightindex], lightindex);
+	}
+	for (UActor* light : dynamicLights)
+		add(light, -1);
+}
+
+void LightmapBuilder::AddLights(UModel* model, int lightMap)
+{
+	// An animating light goes through its shadow bits, a moving one has none
+	for (const AddedLight& added : addedLights)
+	{
+		const LightmapSpan* lit = addedSpans.data() + added.FirstSpan;
+		if (added.LightIndex >= 0)
+			Shadow.Load(model, lightMap, added.LightIndex, added.Rect);
+		else
+			Shadow.Clear(model, lightMap, added.Rect);
+		Effect.Run(added.Light, width, lit, added.NumSpans, WorldLocations(), base, WorldNormal(), Shadow.Pixels(), illuminationmap.data());
+		AddLightContribution(added.Light, lit, added.NumSpans);
 	}
 }
 
@@ -159,25 +182,8 @@ bool LightmapBuilder::LightAnimates(UActor* light)
 	}
 }
 
-void LightmapBuilder::AddDynamicLights(UModel* model, int lightMap, const Array<UActor*>& lights)
+void LightmapBuilder::FindLitSpans(UActor* light, Array<LightmapSpan>& spans)
 {
-	size_t count = (size_t)width * height;
-	Shadow.Clear(model, lightMap);
-	for (UActor* light : lights)
-	{
-		if (light->LightType() != LT_None && light->LightBrightness() > 0)
-		{
-			FindLitSpans(light);
-			Effect.Run(light, width, spans, WorldLocations(), base, WorldNormal(), Shadow.Pixels(), illuminationmap.data());
-			AddLightContribution(light);
-		}
-	}
-}
-
-void LightmapBuilder::FindLitSpans(UActor* light)
-{
-	spans.clear();
-
 	// A cylinder light reaches any height, so its reach is not a sphere
 	if (width < 2 || light->LightEffect() == LE_Cylinder)
 	{
@@ -186,9 +192,9 @@ void LightmapBuilder::FindLitSpans(UActor* light)
 		return;
 	}
 
-	// Each row of texel positions is a line, p(x) = row[0] + x * D, D the step
-	// from one texel to the next (CalcWorldLocations interpolates between the
-	// row's ends, so D is taken over the whole row, not from two neighbours).
+	// Each row of texel positions is a line, p(x) = first + x * D, D the step
+	// from one texel to the next (the texels are placed between the row's
+	// ends, so D is taken over the whole row, not from two neighbours).
 	// The texels within the radius are where |p(x) - light|^2 < radius^2; one
 	// texel of margin on each side covers the rounding in the positions.
 	vec3 lightLocation = light->Location();
@@ -196,9 +202,9 @@ void LightmapBuilder::FindLitSpans(UActor* light)
 	float radiusSquared = radius * radius;
 	for (int y = 0; y < height; y++)
 	{
-		const vec3* row = &points[y * width];
-		vec3 P = row[0] - lightLocation;
-		vec3 D = (row[width - 1] - row[0]) * (1.0f / (width - 1));
+		const RowLine& line = rows[y];
+		vec3 P = line.first - lightLocation;
+		vec3 D = (line.last - line.first) * (1.0f / (width - 1));
 		float dd = dot(D, D), pd = dot(P, D), pp = dot(P, P);
 		if (!(dd > 0.0f))
 		{
@@ -219,17 +225,18 @@ void LightmapBuilder::FindLitSpans(UActor* light)
 	}
 }
 
-void LightmapBuilder::AddLightContribution(UActor* light)
+void LightmapBuilder::AddLightContribution(UActor* light, const LightmapSpan* spans, size_t count)
 {
 	if (engine->LaunchInfo.IsDeusEx())
 	{
-		AddLightContributionDX(light);
+		AddLightContributionDX(light, spans, count);
 		return;
 	}
 
 	vec3 lightcolor = GetLightColor(light);
-	for (const LightmapSpan& span : spans)
+	for (size_t i = 0; i < count; i++)
 	{
+		const LightmapSpan& span = spans[i];
 		int offset = span.y * width + span.x0;
 		AddLightContribution(lightcolor, illuminationmap.data() + offset, (float*)(lightcolors.data() + offset), span.x1 - span.x0);
 	}
@@ -280,7 +287,7 @@ void LightmapBuilder::AddLightContribution(const vec3& lightcolor, const float* 
 	}
 }
 
-void LightmapBuilder::AddLightContributionDX(UActor* light)
+void LightmapBuilder::AddLightContributionDX(UActor* light, const LightmapSpan* spans, size_t count)
 {
 	// The original's merge (dx-reverse-info/render-dll.md, light maps): a
 	// texel's illumination i, its shadow byte (254 lit, a light without
@@ -307,19 +314,15 @@ void LightmapBuilder::AddLightContributionDX(UActor* light)
 	case LE_WateryShimmer: waver = 0.4f; randoms = engine->Level->Light.ShimmerRandoms; break;
 	}
 
-	int rectX0 = width, rectX1 = 0, rectY0 = spans.empty() ? 0 : spans.front().y;
-	for (const LightmapSpan& span : spans)
-	{
-		rectX0 = std::min(rectX0, span.x0);
-		rectX1 = std::max(rectX1, span.x1);
-	}
-	int rectWidth = std::max(rectX1 - rectX0, 0);
+	LightmapRect rect = LightmapRect::Of(spans, count);
+	int rectWidth = rect.x1 - rect.x0;
 
-	for (const LightmapSpan& span : spans)
+	for (size_t s = 0; s < count; s++)
 	{
+		const LightmapSpan& span = spans[s];
 		const float* src = illuminationmap.data() + span.y * width + span.x0;
 		vec3* dest = lightcolors.data() + span.y * width + span.x0;
-		int index = (span.y - rectY0) * rectWidth + (span.x0 - rectX0);
+		int index = (span.y - rect.y0) * rectWidth + (span.x0 - rect.x0);
 		for (int x = span.x0; x < span.x1; x++, src++, dest++, index++)
 		{
 			int i = std::clamp((int)(*src + 0.5f), 0, 255);
@@ -488,10 +491,8 @@ vec3 LightmapBuilder::GetLightColor(UActor* light)
 	}
 }
 
-void LightmapBuilder::CalcWorldLocations(Coords MapCoords, const LightMapIndex& lmindex)
+void LightmapBuilder::CalcRowLines(Coords MapCoords, const LightMapIndex& lmindex)
 {
-	// Note: this could be simplified a lot for better performance
-
 	// Allow optimizer to move them into registers
 	int width = this->width;
 	int height = this->height;
@@ -541,11 +542,23 @@ void LightmapBuilder::CalcWorldLocations(Coords MapCoords, const LightMapIndex& 
 			std::swap(p0, p1);
 		}
 
+		RowLine& line = rows[y];
+		line.p0 = p0;
+		line.p1 = p1;
+		line.x0 = x0;
+		line.x1 = x1;
+		line.first = TexelLocation(line, 0);
+		line.last = TexelLocation(line, width - 1);
+	}
+}
+
+void LightmapBuilder::CalcWorldLocations(const LightmapRect& rect)
+{
+	for (int y = rect.y0; y < rect.y1; y++)
+	{
+		const RowLine& line = rows[y];
 		vec3* dest = &points[y * width];
-		for (int i = 0; i < width; i++)
-		{
-			float t = (i + 0.5f - x0) / (x1 - x0);
-			dest[i] = mix(p0, p1, t);
-		}
+		for (int i = rect.x0; i < rect.x1; i++)
+			dest[i] = TexelLocation(line, i);
 	}
 }

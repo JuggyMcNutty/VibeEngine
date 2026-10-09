@@ -12,6 +12,48 @@ struct LightmapSpan
 	int y, x0, x1;
 };
 
+// A rectangle of lightmap texels: [x0, x1) of the rows [y0, y1).
+struct LightmapRect
+{
+	int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+
+	bool Empty() const { return x0 >= x1 || y0 >= y1; }
+
+	// The rectangle that holds both
+	void Add(const LightmapRect& r)
+	{
+		if (r.Empty())
+			return;
+		if (Empty())
+		{
+			*this = r;
+			return;
+		}
+		x0 = std::min(x0, r.x0);
+		y0 = std::min(y0, r.y0);
+		x1 = std::max(x1, r.x1);
+		y1 = std::max(y1, r.y1);
+	}
+
+	// The spans' rectangle; the spans go down the rows
+	static LightmapRect Of(const LightmapSpan* spans, size_t count)
+	{
+		LightmapRect r;
+		if (count == 0)
+			return r;
+		r.x0 = spans[0].x0;
+		r.x1 = spans[0].x1;
+		r.y0 = spans[0].y;
+		r.y1 = spans[count - 1].y + 1;
+		for (size_t i = 1; i < count; i++)
+		{
+			r.x0 = std::min(r.x0, spans[i].x0);
+			r.x1 = std::max(r.x1, spans[i].x1);
+		}
+		return r;
+	}
+};
+
 struct LightEffectArgs
 {
 	UActor* light;
@@ -31,7 +73,7 @@ class LightEffect
 {
 public:
 	// Writes result[] in the spans only; the texels outside them are left as they were.
-	void Run(UActor* light, int width, const Array<LightmapSpan>& spans, const vec3* locations, vec3 base, vec3 normal, const float* shadowmap, float* result);
+	void Run(UActor* light, int width, const LightmapSpan* spans, size_t count, const vec3* locations, vec3 base, vec3 normal, const float* shadowmap, float* result);
 
 private:
 	void NoneEffect(LightEffectArgs* args);

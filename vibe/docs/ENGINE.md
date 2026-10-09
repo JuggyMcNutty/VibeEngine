@@ -257,20 +257,21 @@ the UI see the render size.
 
 ### Rendering
 
-For every game, the renderer's CPU work is lighter: lightmaps lit only where a light reaches
-(0005); the light tree and each surface's lights kept while no light changes (0023), the level's
-surfaces' apart from each mover's; the
-clipper's occlusion grid one row per image row (0010), its non-SSE (ARM) build skipping the clip
-for triangles inside the view (0020, an upstream bug), a surface clipped once and filled into the
-grid as one polygon, a span to a row (`BspClipper::DrawPolygon`); one-sided surfaces seen from behind
-skipped before the visibility test (0011); a surface's points gathered only when a test needs
-them (0021); each mesh vertex animated, lit and fogged once a draw (0018), and a run of faces
-with one texture drawn in one device call (0019); a portal's spans put in order by row in
-linear time, not sorted (`SortPortalSpans`). Deus Ex's look, as `Render.dll` and
-`D3DDrv.dll` make it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); its code
-is in `SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`),
-`SurrealEngine/Light/` and `SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`,
-the fractal textures).
+For every game, the renderer's CPU work is lighter: lightmaps lit only where a light reaches (0005),
+and a lightmap whose animating or moving lights changed built, converted and uploaded again only
+where they reach, now or at its last build, each light's shadows unpacked only there
+(`LightmapBuilder::FindAddedLights`, `TextureInfo::UpdateWidth`); the light tree and each surface's
+lights kept while no light changes (0023), the level's surfaces' apart from each mover's; the
+clipper's occlusion grid one row per image row (0010), its non-SSE (ARM) build skipping the clip for
+triangles inside the view (0020, an upstream bug), a surface clipped once and filled into the grid
+as one polygon, a span to a row (`BspClipper::DrawPolygon`); one-sided surfaces seen from behind
+skipped before the visibility test (0011); a surface's points gathered only when a test needs them
+(0021); each mesh vertex animated, lit and fogged once a draw (0018), and a run of faces with one
+texture drawn in one device call (0019); a portal's spans put in order by row in linear time, not
+sorted (`SortPortalSpans`). Deus Ex's look, as `Render.dll` and `D3DDrv.dll` make it, is gated and
+described by feature in [`NATIVES.md`](NATIVES.md); its code is in `SurrealEngine/Render/`
+(`VisibleFrame.cpp`, `VisibleMesh.cpp`), `SurrealEngine/Light/` and
+`SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`, the fractal textures).
 
 **The Vulkan device**: the game tick runs while the GPU draws the previous frame
 (`CommandBufferManager` keeps one frame in flight, and `WaitForFrame()` collects it before

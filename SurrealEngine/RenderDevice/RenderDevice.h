@@ -71,6 +71,14 @@ struct TextureInfo
 	uint64_t CacheID = 0;
 	bool bRealtimeChanged = false;
 
+	// With bRealtimeChanged, the part of a one-mip texture that changed, when
+	// not all of it did (UpdateWidth > 0): a device that already holds the
+	// texture uploads only that part
+	int UpdateX = 0;
+	int UpdateY = 0;
+	int UpdateWidth = 0;
+	int UpdateHeight = 0;
+
 	UTexture* Texture = nullptr;
 	float UScale = 1.0f;
 	float VScale = 1.0f;

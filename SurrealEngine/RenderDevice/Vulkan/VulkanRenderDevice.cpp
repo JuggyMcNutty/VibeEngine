@@ -378,16 +378,18 @@ void VulkanRenderDevice::DrawBatch(VulkanCommandBuffer* cmdbuffer)
 
 void VulkanRenderDevice::DrawComplexSurface(SceneNode* Frame, SurfaceInfo& Surface, SurfaceFacet& Facet)
 {
-	if (Facet.VertexCount < 3)
-		return;
-
 	uint32_t PolyFlags = ApplyPrecedenceRules(Surface.PolyFlags);
 
+	// The textures first, drawn or not: a lightmap's change, perhaps only a
+	// part of it, is handed over once
 	CachedTexture* tex = Textures->GetTexture(Surface.Texture, !!(PolyFlags & PF_Masked));
 	CachedTexture* lightmap = Textures->GetTexture(Surface.LightMap, false);
 	CachedTexture* macrotex = Textures->GetTexture(Surface.MacroTexture, false);
 	CachedTexture* detailtex = Textures->GetTexture(Surface.DetailTexture, false);
 	CachedTexture* fogmap = (Surface.FogMap && Surface.FogMap->NumMips > 0 && !Surface.FogMap->Mips[0].Data.empty()) ? Textures->GetTexture(Surface.FogMap, false) : nullptr;
+
+	if (Facet.VertexCount < 3)
+		return;
 
 	if (Surface.DetailTexture && Surface.FogMap) detailtex = nullptr;
 

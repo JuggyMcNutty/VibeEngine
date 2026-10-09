@@ -1,52 +1,39 @@
 
 #include "Precomp.h"
 #include "Shadowmap.h"
+#include "LightEffect.h"
 #include "Math/vec.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Engine.h"
 
-Shadowmap::Shadowmap()
-{
-	// Precompute 3x3 gaussian blur table
-	blurTable.resize(512);
-	const float weights[9] = { 0.125f, 0.25f, 0.125f, 0.25f, 0.50f, 0.25f, 0.125f, 0.25f, 0.125f };
-	for (int i = 0; i < 512; i++)
-	{
-		float src[9];
-		for (int j = 0; j < 9; j++)
-			src[j] = (float)((i >> j) & 1);
-		float value = 0.0f;
-		for (int yy = -1; yy <= 1; yy++)
-		{
-			for (int xx = -1; xx <= 1; xx++)
-			{
-				value += src[4 + xx + yy * 3] * weights[4 + xx + yy * 3];
-			}
-		}
-		blurTable[i] = value;
-	}
-}
-
-void Shadowmap::Clear(UModel* model, int lightMap)
+void Shadowmap::Resize(UModel* model, int lightMap)
 {
 	const LightMapIndex& lmindex = model->LightMap[lightMap];
-	int width = lmindex.UClamp;
-	int height = lmindex.VClamp;
-	int size = width * height;
+	width = lmindex.UClamp;
+	height = lmindex.VClamp;
+	size_t size = (size_t)width * height;
 	if (pixels.size() < size)
 		pixels.resize(size);
-	this->width = width;
-	this->height = height;
+	if (tempbuf.size() < size)
+		tempbuf.resize(size);
+}
+
+void Shadowmap::Clear(UModel* model, int lightMap, const LightmapRect& rect)
+{
+	Resize(model, lightMap);
 	// Deus Ex's shadows are the original's bytes: a light without shadow
 	// bits, a moving one, is 127 all over, half a lit texel's 254
 	// (dx-reverse-info/render-dll.md, light maps)
 	float lit = engine->LaunchInfo.IsDeusEx() ? 127.0f : 1.0f;
-	float* dest = pixels.data();
-	for (int i = 0; i < size; i++)
-		dest[i] = lit;
+	for (int y = rect.y0; y < rect.y1; y++)
+	{
+		float* dest = pixels.data() + y * width;
+		for (int x = rect.x0; x < rect.x1; x++)
+			dest[x] = lit;
+	}
 }
 
-void Shadowmap::LoadDX(const uint8_t* bits, int pitch)
+void Shadowmap::LoadDX(const uint8_t* bits, int pitch, const LightmapRect& rect)
 {
 	// The original's ShadowFromBits: a texel is the bits around it through
 	// the kernel 24 40 24 / 40 64 40 / 24 40 24, a row at a time, each row
@@ -64,60 +51,55 @@ void Shadowmap::LoadDX(const uint8_t* bits, int pitch)
 	{
 		return 255 * (side * (bit(x - 1, y) + bit(x + 1, y)) + middle * bit(x, y)) / 320;
 	};
-	float* dest = pixels.data();
-	for (int y = 0; y < height; y++)
+	for (int y = rect.y0; y < rect.y1; y++)
 	{
-		for (int x = 0; x < width; x++)
+		float* dest = pixels.data() + y * width;
+		for (int x = rect.x0; x < rect.x1; x++)
 		{
 			int value = row(x, y, 40, 64) + row(x, std::max(y - 1, 0), 24, 40);
 			if (height > 1)
 				value += row(x, std::min(y + 1, height - 1), 24, 40);
-			*(dest++) = (float)value;
+			dest[x] = (float)value;
 		}
 	}
 }
 
-void Shadowmap::Load(UModel* model, int lightMap, int lightindex)
+void Shadowmap::Load(UModel* model, int lightMap, int lightindex, const LightmapRect& rect)
 {
+	Resize(model, lightMap);
 	const LightMapIndex& lmindex = model->LightMap[lightMap];
-	int width = lmindex.UClamp;
-	int height = lmindex.VClamp;
 	int pitch = (width + 7) / 8;
-	int size = width * height;
-	if (pixels.size() < size)
-		pixels.resize(size);
-	if (tempbuf.size() < size)
-		tempbuf.resize(size);
-	this->width = width;
-	this->height = height;
 
-#if 1
 	// Convert bits to floats that are easier to work with
 
 	const uint8_t* bits = model->LightBits.data() + lmindex.DataOffset + lightindex * pitch * height;
 	if (engine->LaunchInfo.IsDeusEx())
 	{
-		LoadDX(bits, pitch);
+		LoadDX(bits, pitch, rect);
 		return;
 	}
-	for (int y = 0; y < height; y++)
+
+	// The bits of the rectangle and a texel around it, which the blur reads
+	int bx0 = std::max(rect.x0 - 1, 0), bx1 = std::min(rect.x1 + 1, width);
+	int by0 = std::max(rect.y0 - 1, 0), by1 = std::min(rect.y1 + 1, height);
+	for (int y = by0; y < by1; y++)
 	{
-		float* line = &tempbuf[y * width];
-		for (int x = 0; x < width; x++)
+		const uint8_t* line = bits + y * pitch;
+		float* dest = &tempbuf[y * width];
+		for (int x = bx0; x < bx1; x++)
 		{
-			bool shadowtest = (bits[x >> 3] & (1 << (x & 7))) != 0;
-			line[x] = (float)shadowtest;
+			bool shadowtest = (line[x >> 3] & (1 << (x & 7))) != 0;
+			dest[x] = (float)shadowtest;
 		}
-		bits += pitch;
 	}
 
 	// Apply 3x3 gaussian blur
 	static const float weights[9] = { 0.125f, 0.25f, 0.125f, 0.25f, 0.50f, 0.25f, 0.125f, 0.25f, 0.125f };
-	float* dest = pixels.data();
-	const float* src = tempbuf.data();
-	for (int y = 0; y < height; y++, dest += width, src += width)
+	for (int y = rect.y0; y < rect.y1; y++)
 	{
-		for (int x = 0; x < width; x++)
+		float* dest = pixels.data() + y * width;
+		const float* src = tempbuf.data() + y * width;
+		for (int x = rect.x0; x < rect.x1; x++)
 		{
 			float value = 0.0f;
 			for (int yy = -1; yy <= 1; yy++)
@@ -133,56 +115,4 @@ void Shadowmap::Load(UModel* model, int lightMap, int lightindex)
 			dest[x] = value;
 		}
 	}
-
-#else // There is a bug in this that creates artifacts. It also wasn't much faster anyway...
-
-	// Convert bits to floats and apply 3x3 gaussian blur
-
-	const uint8_t* bits = model->LightBits.data() + lmindex.DataOffset + lightindex * pitch * height;
-	if (width > 2 && height > 2)
-	{
-		const float* blur = blurTable.data();
-		int offmiddle = 0;
-		for (int y = 0; y < height; y++)
-		{
-			int offtop = (y > 0) ? offmiddle - pitch : offmiddle;
-			int offbottom = (y < height - 1) ? offmiddle + pitch : offmiddle;
-
-			uint32_t top = bits[offtop] & 0b111;
-			uint32_t middle = bits[offmiddle] & 0b111;
-			uint32_t bottom = bits[offbottom] & 0b111;
-
-			float* line = &pixels[y * width];
-			line[0] = blur[top | (middle << 3) | (bottom << 6)];
-			int x = 2;
-			while (x < width)
-			{
-				int byteidx = x >> 3;
-				int bitidx = x & 7;
-				top = ((top << 1) | ((bits[offtop + byteidx] >> bitidx) & 1)) & 0b111;
-				middle = ((middle << 1) | ((bits[offmiddle + byteidx] >> bitidx) & 1)) & 0b111;
-				bottom = ((bottom << 1) | ((bits[offbottom + byteidx] >> bitidx) & 1)) & 0b111;
-				line[x - 1] = blur[top | (middle << 3) | (bottom << 6)];
-				x++;
-			}
-			line[x - 1] = blur[top | (middle << 3) | (bottom << 6)];
-
-			offmiddle += pitch;
-		}
-	}
-	else
-	{
-		for (int y = 0; y < height; y++)
-		{
-			int offset = y * pitch;
-			float* line = &pixels[y * width];
-			for (int x = 0; x < width; x++)
-			{
-				int byteidx = x >> 3;
-				int bitidx = x & 7;
-				line[x] = (float)((bits[offset + byteidx] >> bitidx) & 1);
-			}
-		}
-	}
-#endif
 }

@@ -206,7 +206,10 @@ within a level or two of 256 of `D3DDrv`'s frames. Still the fork's own:
 
 - **Light maps**
   - floats, converted on the CPU for the Smart Pro's GPU (engine patches
-    0002 and 0024); a changed map goes to the GPU whole;
+    0002 and 0024);
+  - a map whose animating or moving lights changed built, converted and sent
+    to the GPU again only where they reach now or reached at its last build,
+    where the original builds and uploads it whole every frame;
   - the lookup a `std::map`, where the original's cache hashes and first
     checks the item it found last;
   - a still-shaped animated light re-run, where the original keeps it as its

@@ -206,12 +206,14 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 	// If anything changed update the lightmap:
 
 	bool bRealtimeChanged = false;
+	LightmapRect updated;
 	auto& lmtexture = lmtextures[cacheID];
 	if (!lmtexture || lmtexture->LastStaticUpdate != lastStaticUpdate || lmtexture->LastDynamicUpdate != lastDynamicUpdate)
 	{
 		engine->render->Stats.LightmapsUpdated++;
 
 		Builder.Setup(model, coords, lightmapIndex);
+		Builder.FindAddedLights(model, lightmapIndex, TempAnimatedIndexList, TempDynLightList);
 
 		if (!lmtexture || lmtexture->Mip.Width != Builder.Width() || lmtexture->Mip.Height != Builder.Height())
 		{
@@ -222,46 +224,65 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 			lmtexture->Mip.Data.resize((size_t)lmtexture->Mip.Width * lmtexture->Mip.Height * sizeof(vec4));
 		}
 
-		if (dynamicMover)
+		// When only the animating and moving lights changed, the map is
+		// built again only where they reach now or reached when it was last
+		// built -- the kept static map, the lights over it -- and only that
+		// part is converted and uploaded. A mover's map is built whole.
+		bool partial = !dynamicMover && lmtexture->LastStaticUpdate == lastStaticUpdate && lmtexture->StaticLightColors.size() == (size_t)Builder.Width() * Builder.Height();
+		if (partial)
 		{
-			Builder.SetAmbientLight(zoneActor);
+			updated = Builder.AddedLightsRect();
+			updated.Add(lmtexture->AddedRect);
+			Builder.CalcWorldLocations(updated);
+			Builder.LoadStaticLight(lmtexture->StaticLightColors, updated);
 		}
-		else if (lmtexture->LastStaticUpdate != lastStaticUpdate)
+		else
 		{
+			updated = { 0, 0, Builder.Width(), Builder.Height() };
+			Builder.CalcWorldLocations(updated);
 			Builder.SetAmbientLight(zoneActor);
-			Builder.AddStaticLights(model, lightmapIndex);
-			Builder.SaveStaticLight(lmtexture->StaticLightColors);
-		}
-		else if (lmtexture->StaticLightColors.size() == Builder.Width() * Builder.Height())
-		{
-			Builder.LoadStaticLight(lmtexture->StaticLightColors);
+			if (!dynamicMover)
+			{
+				Builder.AddStaticLights(model, lightmapIndex);
+				Builder.SaveStaticLight(lmtexture->StaticLightColors);
+			}
 		}
 
-		Builder.AddAnimatedLights(model, lightmapIndex, TempAnimatedIndexList);
-		Builder.AddDynamicLights(model, lightmapIndex, TempDynLightList);
+		Builder.AddLights(model, lightmapIndex);
 
 		UnrealMipmap& lmmip = lmtexture->Mip;
-		vec4* dest = (vec4*)lmmip.Data.data();
-		const vec3* src = Builder.Pixels();
-		int count = lmmip.Width * lmmip.Height;
+		const vec3* pixels = Builder.Pixels();
 		// Deus Ex's maps are the original's bytes, up to 127: a 255th each,
 		// which the light map's doubling on the screen makes D3DDrv's 2/255
 		float scale = engine->LaunchInfo.IsDeusEx() ? 1.0f / 255.0f : 1.0f;
-		for (int i = 0; i < count; i++)
+		for (int y = updated.y0; y < updated.y1; y++)
 		{
-			dest[i].r = std::min(src[i].r * scale, 1.0f);
-			dest[i].g = std::min(src[i].g * scale, 1.0f);
-			dest[i].b = std::min(src[i].b * scale, 1.0f);
-			dest[i].a = 1.0f;
+			vec4* dest = (vec4*)lmmip.Data.data() + (size_t)y * lmmip.Width;
+			const vec3* src = pixels + (size_t)y * lmmip.Width;
+			for (int x = updated.x0; x < updated.x1; x++)
+			{
+				dest[x].r = std::min(src[x].r * scale, 1.0f);
+				dest[x].g = std::min(src[x].g * scale, 1.0f);
+				dest[x].b = std::min(src[x].b * scale, 1.0f);
+				dest[x].a = 1.0f;
+			}
 		}
 
+		lmtexture->AddedRect = Builder.AddedLightsRect();
 		lmtexture->LastStaticUpdate = lastStaticUpdate;
 		lmtexture->LastDynamicUpdate = lastDynamicUpdate;
-		bRealtimeChanged = true;
+		bRealtimeChanged = !updated.Empty();
 	}
 
 	TextureInfo texinfo;
 	texinfo.bRealtimeChanged = bRealtimeChanged;
+	if (bRealtimeChanged && (updated.x1 - updated.x0 < lmtexture->Mip.Width || updated.y1 - updated.y0 < lmtexture->Mip.Height))
+	{
+		texinfo.UpdateX = updated.x0;
+		texinfo.UpdateY = updated.y0;
+		texinfo.UpdateWidth = updated.x1 - updated.x0;
+		texinfo.UpdateHeight = updated.y1 - updated.y0;
+	}
 	texinfo.CacheID = cacheID;
 	texinfo.Format = lmtexture->Format;
 	texinfo.Mips = &lmtexture->Mip;

@@ -25,6 +25,10 @@ struct LightmapTexture
 	int LastStaticUpdate = -1;
 	int LastDynamicUpdate = -1;
 	Array<vec3> StaticLightColors;
+
+	// Where the lights added over the static map reached when it was last
+	// built: outside it, the map is the static map
+	LightmapRect AddedRect;
 };
 
 class VertexLight

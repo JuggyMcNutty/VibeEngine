@@ -78,7 +78,10 @@ void D3D11TextureManager::UploadTexture(TextureInfo* info, bool masked, D3D11Cac
 	if (info->bRealtimeChanged)
 	{
 		info->bRealtimeChanged = 0;
-		renderer->Uploads->UploadTexture(tex, *info, masked);
+		if (info->UpdateWidth > 0)
+			renderer->Uploads->UploadTextureRect(tex, *info, info->UpdateX, info->UpdateY, info->UpdateWidth, info->UpdateHeight);
+		else
+			renderer->Uploads->UploadTexture(tex, *info, masked);
 	}
 }
 

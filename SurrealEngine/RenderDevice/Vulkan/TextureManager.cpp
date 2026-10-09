@@ -46,7 +46,10 @@ CachedTexture* TextureManager::GetTexture(TextureInfo* info, bool masked)
 	else if (info->bRealtimeChanged)
 	{
 		info->bRealtimeChanged = 0;
-		renderer->Uploads->UploadTexture(tex.get(), *info, masked);
+		if (info->UpdateWidth > 0)
+			renderer->Uploads->UploadTextureRect(tex.get(), *info, info->UpdateX, info->UpdateY, info->UpdateWidth, info->UpdateHeight);
+		else
+			renderer->Uploads->UploadTexture(tex.get(), *info, masked);
 	}
 	return tex.get();
 }
