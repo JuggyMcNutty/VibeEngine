@@ -166,31 +166,30 @@ same way ([measuring both engines](DEVELOPMENT.md#measuring-both-engines)).
 
 Liberty Island's level start, the player idle, both engines on the desktop's Xwayland through
 OpenGL, no vsync, 1280x720 (`PerfConsole`, `DXCAP_PERF=1`), three alternating runs of each, at
-engine `3683f40` on the development machine (Ryzen 9 7940HS, Radeon 780M). Milliseconds a frame
+engine `da3b72a` on the development machine (Ryzen 9 7940HS, Radeon 780M). Milliseconds a frame
 of the main thread, by area (`frame-report.py --mean`), and the same with the view turning
 (`PerfTurnConsole`):
 
 | | Original | Fork |
 |---|---|---|
-| Frame (frames a second) | 4.06 (247) | 4.02 (249) |
-| Main thread on the CPU | 3.84 | 3.58 |
-| Cycles, instructions a frame | 20.7 M, 28.8 M | 19.7 M, 38.1 M |
-| Scene render | 1.35 (`Render.dll`), 0.10 fractal textures (`Fire.dll`) | 2.08 |
-| Script VM and objects | 0.38 (`Core.dll`) | 0.36 |
-| Game tick, AI, physics, collision | 0.34 (`Engine.dll`, `DeusEx.dll`) | 0.28 |
-| Render device, GL driver | 0.32, 0.38 | 0.11, 0.33 |
-| C runtime | 0.93 | 0.20 |
-| Turning: frame (frames a second), cycles | 1.98 (505), 9.6 M | 1.68 (596), 7.6 M |
+| Frame (frames a second) | 3.69 (271) | 3.44 (290) |
+| Main thread on the CPU | 3.49 | 3.25 |
+| Cycles, instructions a frame | 18.9 M, 28.7 M | 17.8 M, 35.9 M |
+| Scene render | 1.20 (`Render.dll`), 0.09 fractal textures (`Fire.dll`) | 1.99 |
+| Script VM and objects | 0.34 (`Core.dll`) | 0.32 |
+| Game tick, AI, physics, collision | 0.28 (`Engine.dll`, `DeusEx.dll`) | 0.25 |
+| Render device, GL driver | 0.31, 0.36 | 0.10, 0.19 |
+| C runtime | 0.86 | 0.20 |
+| Turning: frame (frames a second), cycles | 1.99 (502), 9.6 M | 1.64 (608), 7.6 M |
 
-The original's own counters at the same runs: its game 0.42 ms a frame, its client 3.62. The
-fork's main thread takes fewer cycles a frame than the original's, more instructions at a higher
-rate. Held, its frame is about the original's, a few percent either way from run to run: it is
-off the CPU the longer, 0.44 ms a frame against 0.23. Its render is the larger: the visibility
-walk (`ProcessNodeSurface`, `DrawPolygon`, `ProcessNode`, the box tests, about 1.0), meshes
-(`DrawLodMeshFaceDX`, about 0.46), light maps (`GetLightmap`, about 0.05). The walk waits on
-memory, not on arithmetic: the original's own savings -- each node's box tested one frame in 16
-while it shows, each point transformed once a frame into a cache, a surface outside one side
-rejected without a clip
+The original's own counters at the same runs: its game 0.34 ms a frame, its client 3.33. The
+fork's frame is the shorter, held and turning: its main thread takes fewer cycles a frame than the
+original's, more instructions at a higher rate, and is off the CPU as long, 0.19 ms a frame
+against 0.20. Its render is the larger: the visibility walk (`ProcessNodeSurface`, `DrawPolygon`,
+`ProcessNode`, the box tests, about 1.0), meshes (`DrawLodMeshFaceDX`, about 0.46), light maps
+(`GetLightmap`, about 0.05). The walk waits on memory, not on arithmetic: the original's own
+savings -- each node's box tested one frame in 16 while it shows, each point transformed once a
+frame into a cache, a surface outside one side rejected without a clip
 ([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)) --
 and skipping the nodes of zones not yet seen were each tried in the fork and gained nothing here,
 or lost: the cache's misses cost more than the transforms they save.
