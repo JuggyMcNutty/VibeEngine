@@ -89,7 +89,6 @@ run before the actor tick, in the original's order.
 Matches the original ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)):
 every actor starts a level 10 s undrawn and every dynamic one ticks in its
 first tick, so a pawn out of sight starts from its state code (`AIConsole`).
-A few pawns far off count as drawn: [out of sight](#out-of-sight).
 
 ### Hearing: the AI event system
 
@@ -103,19 +102,14 @@ the manager as its own older saves lay it out.
 Matches the original ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving),
 [reaching](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#reaching),
 [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)):
-`MoveConsole` (`move.py`) has 50 of Liberty Island's 52 pawns move within
+`MoveConsole` (`move.py`) has all 52 of Liberty Island's pawns move within
 15% (or 200 units) of the original's distance. A dead robot frozen in
 `Dying` for good is the original's own behaviour, and the rest of a death
 is alike too (`DeathConsole`). Differs:
 
-- **Terrorist12** walks on from the ledge where its first patrol leg ends:
-  the original's stops being ticked there 3 s in, frozen mid-step, and the
-  fork's, ticking on, takes its next leg 6 s in, some 2,000 units to 38.
-  Unexplained.
-- **Terrorist10** moves 1,010 units to the original's 652. Both stop at
-  PatrolPoint102 with no move target, but at 20 s the fork's finds a route
-  on toward PathNode580 and walks some 8 s more, where the original's finds
-  none.
+- **Four pawns stop short of a path node** the original's reaches:
+  SecurityBot3, Terrorist15, Terrorist20 and Terrorist29, some 45 to 105
+  units short of its distance. Unexplained.
 - **`ReachConsole`**: 143 of 144 verdicts alike and 134 answers to the unit.
   The other ten, from the island's two patrolling security bots asked where
   their patrols had taken them, are 26 to 67 units off.
@@ -126,7 +120,9 @@ Matches the original ([render time](https://github.com/JuggyMcNutty/dx-reverse-i
 [which actors are drawn](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#which-actors-are-drawn),
 [stasis and render time](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#stasis-and-render-time)):
 whether an actor counts as drawn is tested piece by piece in the BSP walk,
-and the proxies' rectangles are the original's (`AIConsole`). An actor drawn
+and the proxies' rectangles are the original's: at Liberty Island's start
+the same three NPCs count as drawn in both engines, every other one hidden
+from the camera by the level, as the traces have it (`AIConsole`). An actor drawn
 on its own (`GC.DrawActor`, `Canvas.DrawActor`) counts as drawn whenever its
 rectangle is on the frame, whatever is in front of it: an NPC the vision
 augmentation draws through a wall stays drawn while it is in view
@@ -134,10 +130,11 @@ augmentation draws through a wall stays drawn while it is in view
 `LastVisibleFrame`
 ([its patches](ENGINE.md#settings-the-launcher-exposes)). Differs:
 
-- **9 NPCs count as drawn at Liberty Island's start, to the original's 3**:
-  five terrorists and a thug far off, whose rectangles show 1 to 9 pixels
-  over the seawall and the pier's roof in the fork, where the original's
-  edges close them: a pixel's difference in rasterizing.
+- **The pixels.** The fork's grid takes a pixel whose centre a polygon
+  covers; the original's span buffer, one whose lower right corner it covers
+  (`Render.dll`'s rasterizer: rows from the one the top edge falls in, each
+  edge's x where it crosses the row's lower boundary). A sliver under a
+  pixel tall can show in one and not the other.
 - **One span buffer** for the frame, where the original keeps one per zone.
   A buffer per zone would change no test in 15,500 at the starts of Liberty
   Island, UNATCO HQ and Battery Park: the walls round a portal are drawn

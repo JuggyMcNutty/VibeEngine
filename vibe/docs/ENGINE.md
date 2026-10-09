@@ -269,13 +269,15 @@ lights that can move kept while no light changes (0023), the level's surfaces' a
 mover's, with the map it last drew; the clipper's occlusion grid one row per image row (0010), its
 non-SSE (ARM) build skipping the clip for triangles inside the view (0020, an upstream bug), a
 surface clipped once and filled into the grid as one polygon, a span to a row
-(`BspClipper::DrawPolygon`); one-sided surfaces seen from behind skipped before the visibility test
-(0011); a surface's points gathered only when a test needs them (0021); each mesh vertex animated,
-lit and fogged once a draw (0018), and a run of faces with one texture drawn in one device call, set
-up once (0019; the GL device's `DrawGouraudTriangles` too); a portal's spans put in order by row in
-linear time, not sorted (`SortPortalSpans`). Deus Ex's look, as `Render.dll` and `D3DDrv.dll` make
-it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); its code is in
-`SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`), `SurrealEngine/Light/` and
+(`BspClipper::DrawPolygon`), and a span that closes a gap in a row going on into the gap after it
+(`BspClipper::DrawSpan`, an upstream bug: it passed that gap over, leaving it open, so what lay
+behind counted as showing and was drawn); one-sided surfaces seen from behind skipped before the
+visibility test (0011); a surface's points gathered only when a test needs them (0021); each mesh
+vertex animated, lit and fogged once a draw (0018), and a run of faces with one texture drawn in one
+device call, set up once (0019; the GL device's `DrawGouraudTriangles` too); a portal's spans put in
+order by row in linear time, not sorted (`SortPortalSpans`). Deus Ex's look, as `Render.dll` and
+`D3DDrv.dll` make it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); its code is
+in `SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`), `SurrealEngine/Light/` and
 `SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`, the fractal textures).
 
 **The Vulkan device**: the game tick runs while the GPU draws the previous frame

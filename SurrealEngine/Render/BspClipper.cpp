@@ -371,7 +371,8 @@ bool BspClipper::DrawSpan(int16_t y, int16_t x0, int16_t x1, bool solid)
 
 	bool collect = CollectSpans;
 	bool visible = false;
-	for (size_t pos = 0; pos < line.size(); pos++)
+	size_t pos = 0;
+	while (pos + 1 < line.size())
 	{
 		ClipSpan& span = line[pos];
 		ClipSpan& nextspan = line[pos + 1];
@@ -401,28 +402,28 @@ bool BspClipper::DrawSpan(int16_t y, int16_t x0, int16_t x1, bool solid)
 				span.x1 = right;
 				if (span.x1 == nextspan.x0)
 				{
+					// The gap closed: the two spans are one, and the next gap
+					// borders this span now, so it is looked at from here.
+					// Moving on would pass it over unfilled.
 					span.x1 = nextspan.x1;
 					line.erase(line.begin() + pos + 1);
+					continue;
 				}
 			}
 			else if (right == nextspan.x0)
 			{
 				nextspan.x0 = left;
-				if (span.x1 == nextspan.x0)
-				{
-					span.x1 = nextspan.x1;
-					line.erase(line.begin() + pos + 1);
-				}
 			}
 			else
 			{
 				pos++;
-				ClipSpan span;
-				span.x0 = left;
-				span.x1 = right;
-				line.insert(line.begin() + pos, span);
+				ClipSpan filled;
+				filled.x0 = left;
+				filled.x1 = right;
+				line.insert(line.begin() + pos, filled);
 			}
 		}
+		pos++;
 	}
 	return visible;
 }
