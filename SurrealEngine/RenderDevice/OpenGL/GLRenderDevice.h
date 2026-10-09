@@ -184,6 +184,26 @@ public:
 	std::vector<DrawBatchEntry> QueuedBatches;
 	GLCachedTexture* nulltex = nullptr;
 
+	// The state the scene's draws last set (DrawEntry), so that a draw sets
+	// only what differs from the one before -- some 750 draws a frame, most
+	// with the last one's program, samplers, blend and depth state. Whatever
+	// sets that state elsewhere forgets it: the frame's start and end (the
+	// present and bloom passes), a depth clear, a read-back, the texture
+	// cache's flush (a deleted texture's name is given out again), and a
+	// texture upload, which binds on unit 0, the unit active outside draws.
+	struct
+	{
+		bool Valid = false;
+		GLuint Program = 0;
+		GLuint Samplers[4] = {};
+		GLuint Textures[4] = {};
+		GLBlendState* Blend = nullptr;
+		float BlendConstants[4] = {};
+		GLDepthStencilState* DepthStencil = nullptr;
+	} DrawState;
+	void ForgetDrawState() { DrawState.Valid = false; }
+	void ForgetBoundTexture() { DrawState.Textures[0] = ~0u; }
+
 	// The draw code writes into CPU staging arrays; every flush uploads the
 	// range written since the last one (glBufferSubData) and draws it. The
 		// mapped-buffer streaming this replaced spent 2/3 of the frame on the

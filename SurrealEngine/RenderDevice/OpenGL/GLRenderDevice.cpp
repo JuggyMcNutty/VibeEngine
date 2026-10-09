@@ -7,6 +7,7 @@
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include <surrealwidgets/core/widget.h>
 #include <cmath>
+#include <cstring>
 
 static Widget* InitGLWidget = nullptr;
 extern "C"
@@ -1088,6 +1089,7 @@ void GLRenderDevice::Lock(vec4 InFlashScale, vec4 InFlashFog, vec4 ScreenClear, 
 	ForceHitIndex = -1;
 
 	IsLocked = true;
+	ForgetDrawState();
 
 	ThrowIfGLError("Lock failed");
 }
@@ -1318,6 +1320,7 @@ void GLRenderDevice::Unlock(bool Blit)
 	HitSize = nullptr;
 
 	IsLocked = false;
+	ForgetDrawState();
 
 	ThrowIfGLError("Unlock failed");
 }
@@ -1833,6 +1836,7 @@ void GLRenderDevice::ClearZ()
 	glDepthMask(GL_TRUE);
 	glClearDepthf(1.0f); // ES has only the f variant
 	glClear(GL_DEPTH_BUFFER_BIT);
+	ForgetDrawState();
 }
 
 void GLRenderDevice::ReadPixels(TextureColor* Pixels)
@@ -1929,6 +1933,7 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	ForgetDrawState();
 
 	if (IsLocked)
 		MapVertices(false);
@@ -2144,6 +2149,7 @@ void GLRenderDevice::PrecacheTexture(TextureInfo& Info, uint32_t PolyFlags)
 void GLRenderDevice::ClearTextureCache()
 {
 	Textures->ClearCache();
+	ForgetDrawState();
 }
 
 bool GLRenderDevice::SupportsTextureFormat(TextureFormat Format)
@@ -2228,11 +2234,56 @@ void GLRenderDevice::DrawEntry(const DrawBatchEntry& entry)
 		SetViewport(SceneViewport);
 	}
 
-	glUseProgram(entry.Pipeline->ShaderProgram->Handle);
-	SetSamplers(0, 4, samplers);
-	SetTextures(0, 4, views);
-	SetBlendState(entry.Pipeline->BlendState.get(), entry.BlendConstants);
-	SetDepthStencilState(entry.Pipeline->DepthStencilState.get());
+	// Only the state that differs from the last draw's (DrawState)
+	bool all = !DrawState.Valid;
+	GLuint program = entry.Pipeline->ShaderProgram->Handle;
+	if (all || DrawState.Program != program)
+	{
+		glUseProgram(program);
+		DrawState.Program = program;
+	}
+	for (int i = 0; i < 4; i++)
+	{
+		GLuint sampler = samplers[i] ? samplers[i]->Handle : 0;
+		if (all || DrawState.Samplers[i] != sampler)
+		{
+			glBindSampler(i, sampler);
+			DrawState.Samplers[i] = sampler;
+		}
+	}
+	// From the last unit to the first, so that unit 0 is left active
+	bool otherUnitActive = false;
+	for (int i = 3; i >= 0; i--)
+	{
+		GLuint texture = views[i] ? views[i]->Handle : 0;
+		if (all || DrawState.Textures[i] != texture)
+		{
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			DrawState.Textures[i] = texture;
+			otherUnitActive = i != 0;
+		}
+	}
+	if (otherUnitActive)
+		glActiveTexture(GL_TEXTURE0);
+	GLBlendState* blend = entry.Pipeline->BlendState.get();
+	if (all || DrawState.Blend != blend)
+	{
+		SetBlendState(blend);
+		DrawState.Blend = blend;
+	}
+	if (all || std::memcmp(DrawState.BlendConstants, entry.BlendConstants, sizeof(DrawState.BlendConstants)) != 0)
+	{
+		glBlendColor(entry.BlendConstants[0], entry.BlendConstants[1], entry.BlendConstants[2], entry.BlendConstants[3]);
+		std::memcpy(DrawState.BlendConstants, entry.BlendConstants, sizeof(DrawState.BlendConstants));
+	}
+	GLDepthStencilState* depthStencil = entry.Pipeline->DepthStencilState.get();
+	if (all || DrawState.DepthStencil != depthStencil)
+	{
+		SetDepthStencilState(depthStencil);
+		DrawState.DepthStencil = depthStencil;
+	}
+	DrawState.Valid = true;
 
 	glDrawElements(entry.Pipeline->PrimitiveTopology, (GLsizei)icount, GL_UNSIGNED_INT, (void*)(entry.SceneIndexStart * sizeof(uint32_t)));
 	Stats.DrawCalls++;

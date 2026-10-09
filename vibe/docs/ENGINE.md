@@ -295,7 +295,9 @@ sources keep to `u`-suffixed masks, float literals and `std140` push-constant bl
 desktop-only calls: `glClearDepthf` and `glDepthRangef`, `glDrawBuffers` for every
 `glDrawBuffer`, no `GL_DEPTH_CLAMP` or `GL_MULTISAMPLE` on ES, the plain blend calls, the null
 texture as `UNSIGNED_BYTE`. It asks for GL errors once a frame, not at each flush of its batches
-and each texture upload: every `glGetError` makes Mesa's GL thread finish all it has queued.
+and each texture upload: every `glGetError` makes Mesa's GL thread finish all it has queued. A
+draw sets only the state that differs from the last draw's (`DrawState`: program, samplers,
+textures, blend, depth), forgotten wherever else that state is set.
 
 - **ES 3.2, not 3.0**: RGBA16F (the scene buffers with `Hdr`) is colour-renderable only from ES
   3.2 core, and the shaders bind their samplers with `layout(binding)`, which GLSL ES 3.00 lacks.

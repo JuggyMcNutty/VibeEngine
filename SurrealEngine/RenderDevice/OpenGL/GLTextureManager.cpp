@@ -104,5 +104,6 @@ GLCachedTexture* GLTextureManager::CreateNullTexture()
 	glBindTexture(GL_TEXTURE_2D, NullTexture->Texture->Handle);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	renderer->ForgetBoundTexture(); // bound on the active unit, 0
 	return NullTexture.get();
 }

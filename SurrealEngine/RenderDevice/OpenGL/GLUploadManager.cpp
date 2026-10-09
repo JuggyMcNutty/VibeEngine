@@ -91,6 +91,7 @@ void GLUploadManager::UploadTexture(GLCachedTexture* tex, const TextureInfo& Inf
 		UploadData(tex->Texture.get(), Info, masked, uploader, tex->DummyMipmapCount, minSize);
 	else
 		UploadWhite(tex->Texture.get());
+	renderer->ForgetBoundTexture(); // bound on the active unit, 0
 
 	renderer->Stats.Uploads++;
 }
@@ -114,6 +115,7 @@ void GLUploadManager::UploadTextureRect(GLCachedTexture* tex, const TextureInfo&
 
 	glBindTexture(GL_TEXTURE_2D, tex->Texture->Handle);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, uploader->GetFormat(), uploader->GetType(), data);
+	renderer->ForgetBoundTexture(); // bound on the active unit, 0
 
 	renderer->Stats.RectUploads++;
 }
