@@ -453,6 +453,9 @@ inline void GLRenderDevice::SetDescriptorSet(uint32_t PolyFlags, const ComplexSu
 	}
 }
 
+// Each check makes a threaded GL driver (Mesa's glthread) finish all it has
+// queued before it answers: checked once a frame (Lock, Unlock) and when
+// things are made, never per draw or texture upload.
 inline void ThrowIfGLError(const char* msg)
 {
 	GLenum error = glGetError();

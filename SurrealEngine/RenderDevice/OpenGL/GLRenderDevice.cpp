@@ -2181,8 +2181,6 @@ void GLRenderDevice::DrawBatches(bool nextBuffer)
 
 	AddDrawBatch();
 
-	ThrowIfGLError("DrawBatches failed (before draw)");
-
 	// Upload what the draw code wrote since the last flush, then draw it.
 	if (GLSceneVertexPos > UploadedVertexPos || SceneIndexPos > UploadedIndexPos)
 	{
@@ -2197,8 +2195,6 @@ void GLRenderDevice::DrawBatches(bool nextBuffer)
 	for (const DrawBatchEntry& entry : QueuedBatches)
 		DrawEntry(entry);
 	QueuedBatches.clear();
-
-	ThrowIfGLError("DrawBatches failed (after draw)");
 
 	MapVertices(nextBuffer);
 

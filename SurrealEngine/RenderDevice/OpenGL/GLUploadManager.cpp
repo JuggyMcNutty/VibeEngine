@@ -114,7 +114,6 @@ void GLUploadManager::UploadTextureRect(GLCachedTexture* tex, const TextureInfo&
 
 	glBindTexture(GL_TEXTURE_2D, tex->Texture->Handle);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, uploader->GetFormat(), uploader->GetType(), data);
-	ThrowIfGLError("UploadTextureRect failed");
 
 	renderer->Stats.RectUploads++;
 }
@@ -138,7 +137,6 @@ void GLUploadManager::UploadData(GLTexture2D* image, const TextureInfo& Info, bo
 			{
 				glBindTexture(GL_TEXTURE_2D, image->Handle);
 				glTexSubImage2D(GL_TEXTURE_2D, level + dummyMipmapCount, 0, 0, mipwidth, mipheight, uploader->GetFormat(), uploader->GetType(), data);
-				ThrowIfGLError("UploadData failed");
 			}
 			else
 			{
