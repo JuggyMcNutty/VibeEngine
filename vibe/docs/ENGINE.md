@@ -270,12 +270,12 @@ non-SSE (ARM) build skipping the clip for triangles inside the view (0020, an up
 surface clipped once and filled into the grid as one polygon, a span to a row
 (`BspClipper::DrawPolygon`); one-sided surfaces seen from behind skipped before the visibility test
 (0011); a surface's points gathered only when a test needs them (0021); each mesh vertex animated,
-lit and fogged once a draw (0018), and a run of faces with one texture drawn in one device call
-(0019); a portal's spans put in order by row in linear time, not sorted (`SortPortalSpans`). Deus
-Ex's look, as `Render.dll` and `D3DDrv.dll` make it, is gated and described by feature in
-[`NATIVES.md`](NATIVES.md); its code is in `SurrealEngine/Render/` (`VisibleFrame.cpp`,
-`VisibleMesh.cpp`), `SurrealEngine/Light/` and `SurrealEngine/Packages/Engine/Resources/Textures/`
-(`FireEngine.cpp`, the fractal textures).
+lit and fogged once a draw (0018), and a run of faces with one texture drawn in one device call, set
+up once (0019; the GL device's `DrawGouraudTriangles` too); a portal's spans put in order by row in
+linear time, not sorted (`SortPortalSpans`). Deus Ex's look, as `Render.dll` and `D3DDrv.dll` make
+it, is gated and described by feature in [`NATIVES.md`](NATIVES.md); its code is in
+`SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`), `SurrealEngine/Light/` and
+`SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`, the fractal textures).
 
 **The Vulkan device**: the game tick runs while the GPU draws the previous frame
 (`CommandBufferManager` keeps one frame in flight, and `WaitForFrame()` collects it before

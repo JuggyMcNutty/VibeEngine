@@ -1476,6 +1476,33 @@ void GLRenderDevice::DrawComplexSurfaceFaces(const ComplexSurfaceInfo& info)
 	}
 }
 
+// A Gouraud polygon's or triangles' scene vertices; modulated ones white
+static void WriteGouraudVertices(GLSceneVertex* vertex, const GouraudVertex* Pts, int NumPts, uint32_t PolyFlags, int flags, float UMult, float VMult)
+{
+	bool modulated = (PolyFlags & PF_Modulated) != 0;
+	for (int i = 0; i < NumPts; i++)
+	{
+		const GouraudVertex* P = Pts + i;
+		vertex->Flags = flags;
+		vertex->Position.x = P->Point.x;
+		vertex->Position.y = P->Point.y;
+		vertex->Position.z = P->Point.z;
+		vertex->TexCoord.s = P->UV.x * UMult;
+		vertex->TexCoord.t = P->UV.y * VMult;
+		vertex->TexCoord2.s = P->Fog.x;
+		vertex->TexCoord2.t = P->Fog.y;
+		vertex->TexCoord3.s = P->Fog.z;
+		vertex->TexCoord3.t = P->Fog.w;
+		vertex->TexCoord4.s = 0.0f;
+		vertex->TexCoord4.t = 0.0f;
+		vertex->Color.r = modulated ? 1.0f : P->Light.x;
+		vertex->Color.g = modulated ? 1.0f : P->Light.y;
+		vertex->Color.b = modulated ? 1.0f : P->Light.z;
+		vertex->Color.a = 1.0f;
+		vertex++;
+	}
+}
+
 void GLRenderDevice::DrawGouraudPolygon(SceneNode* Frame, TextureInfo& Info, const GouraudVertex* Pts, int NumPts, uint32_t PolyFlags)
 {
 	if (NumPts < 3) return; // This can apparently happen!!
@@ -1496,61 +1523,10 @@ void GLRenderDevice::DrawGouraudPolygon(SceneNode* Frame, TextureInfo& Info, con
 	auto alloc = ReserveVertices(NumPts, (NumPts - 2) * 3);
 	if (alloc.vptr)
 	{
-		GLSceneVertex* vptr = alloc.vptr;
 		uint32_t* iptr = alloc.iptr;
 		uint32_t vpos = alloc.vpos;
 
-		if (PolyFlags & PF_Modulated)
-		{
-			GLSceneVertex* vertex = vptr;
-
-			for (int i = 0; i < NumPts; i++)
-			{
-				const GouraudVertex* P = Pts + i;
-				vertex->Flags = flags;
-				vertex->Position.x = P->Point.x;
-				vertex->Position.y = P->Point.y;
-				vertex->Position.z = P->Point.z;
-				vertex->TexCoord.s = P->UV.x * UMult;
-				vertex->TexCoord.t = P->UV.y * VMult;
-				vertex->TexCoord2.s = P->Fog.x;
-				vertex->TexCoord2.t = P->Fog.y;
-				vertex->TexCoord3.s = P->Fog.z;
-				vertex->TexCoord3.t = P->Fog.w;
-				vertex->TexCoord4.s = 0.0f;
-				vertex->TexCoord4.t = 0.0f;
-				vertex->Color.r = 1.0f;
-				vertex->Color.g = 1.0f;
-				vertex->Color.b = 1.0f;
-				vertex->Color.a = 1.0f;
-				vertex++;
-			}
-		}
-		else
-		{
-			GLSceneVertex* vertex = vptr;
-			for (int i = 0; i < NumPts; i++)
-			{
-				const GouraudVertex* P = Pts + i;
-				vertex->Flags = flags;
-				vertex->Position.x = P->Point.x;
-				vertex->Position.y = P->Point.y;
-				vertex->Position.z = P->Point.z;
-				vertex->TexCoord.s = P->UV.x * UMult;
-				vertex->TexCoord.t = P->UV.y * VMult;
-				vertex->TexCoord2.s = P->Fog.x;
-				vertex->TexCoord2.t = P->Fog.y;
-				vertex->TexCoord3.s = P->Fog.z;
-				vertex->TexCoord3.t = P->Fog.w;
-				vertex->TexCoord4.s = 0.0f;
-				vertex->TexCoord4.t = 0.0f;
-				vertex->Color.r = P->Light.x;
-				vertex->Color.g = P->Light.y;
-				vertex->Color.b = P->Light.z;
-				vertex->Color.a = 1.0f;
-				vertex++;
-			}
-		}
+		WriteGouraudVertices(alloc.vptr, Pts, NumPts, PolyFlags, flags, UMult, VMult);
 
 		uint32_t vstart = vpos;
 		uint32_t vcount = NumPts;
@@ -1565,6 +1541,43 @@ void GLRenderDevice::DrawGouraudPolygon(SceneNode* Frame, TextureInfo& Info, con
 	}
 
 	Stats.GouraudPolygons++;
+}
+
+void GLRenderDevice::DrawGouraudTriangles(SceneNode* Frame, TextureInfo& Info, const GouraudVertex* Pts, int NumTris, uint32_t PolyFlags)
+{
+	if (NumTris <= 0) return;
+
+	// What DrawGouraudPolygon does for each triangle, with the texture and
+	// the pipeline looked up once for all of them
+	uint32_t requestedFlags = PolyFlags;
+	PolyFlags = ApplyPrecedenceRules(PolyFlags);
+
+	GLCachedTexture* tex = Textures->GetTexture(&Info, !!(PolyFlags & PF_Masked));
+
+	SetPipeline(PolyFlags);
+	SetDescriptorSet(PolyFlags, tex);
+
+	int flags = (PolyFlags & (PF_RenderFog | PF_Translucent | PF_Modulated)) == PF_RenderFog ? 16 : 0;
+	if ((PolyFlags & (PF_Translucent | PF_Modulated)) == 0 && LightMode == 2) flags |= 32;
+
+	int NumPts = NumTris * 3;
+	auto alloc = ReserveVertices(NumPts, NumPts);
+	if (!alloc.vptr)
+	{
+		// More than the whole buffer: one triangle at a time, as before
+		RenderDevice::DrawGouraudTriangles(Frame, Info, Pts, NumTris, requestedFlags);
+		return;
+	}
+
+	WriteGouraudVertices(alloc.vptr, Pts, NumPts, PolyFlags, flags, tex->UMult, tex->VMult);
+
+	uint32_t* iptr = alloc.iptr;
+	for (uint32_t i = 0; i < (uint32_t)NumPts; i++)
+		*(iptr++) = alloc.vpos + i;
+
+	UseVertices(NumPts, NumPts);
+
+	Stats.GouraudPolygons += NumTris;
 }
 
 void GLRenderDevice::DrawTile(SceneNode* Frame, TextureInfo& Info, float X, float Y, float XL, float YL, float U, float V, float UL, float VL, float Z, vec4 Color, vec4 Fog, uint32_t PolyFlags)
