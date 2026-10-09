@@ -15,7 +15,7 @@ index f4e2c56..217b7a7 100644
  	SurrealEngine/Precomp.cpp
  	SurrealEngine/Precomp.h
 diff --git a/SurrealEngine/Engine.cpp b/SurrealEngine/Engine.cpp
-index 978465c..bef802c 100644
+index 280c41b..1439d59 100644
 --- a/SurrealEngine/Engine.cpp
 +++ b/SurrealEngine/Engine.cpp
 @@ -2,6 +2,7 @@
@@ -84,7 +84,7 @@ index 978465c..bef802c 100644
  
  		// Save the game if there is a request for it
  		if (SaveGameInfo.SaveGameSlot != DONT_SAVE_GAME)
-@@ -2823,6 +2841,9 @@ void Engine::UpdateInput(float timeElapsed)
+@@ -2827,6 +2845,9 @@ void Engine::UpdateInput(float timeElapsed)
  	if (!viewport->Actor())
  		return;
  
@@ -95,7 +95,7 @@ index 978465c..bef802c 100644
  		viewport->Actor()->SetBool(it.first, true);
  	for (auto& it : activeInputAxes)
 diff --git a/SurrealEngine/Light/LightSystem_Light.cpp b/SurrealEngine/Light/LightSystem_Light.cpp
-index 6bff844..72f8cc9 100644
+index 261c5bc..500836d 100644
 --- a/SurrealEngine/Light/LightSystem_Light.cpp
 +++ b/SurrealEngine/Light/LightSystem_Light.cpp
 @@ -1,6 +1,8 @@
@@ -107,8 +107,8 @@ index 6bff844..72f8cc9 100644
  #include "RenderDevice/RenderDevice.h"
  #include "Engine.h"
  #include "Packages/Engine/USurrealClient.h"
-@@ -211,6 +213,29 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
- 	auto& lmtexture = lmtextures[cacheID];
+@@ -228,6 +230,29 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
+ 	std::unique_ptr<LightmapTexture>& lmtexture = *surface.Texture;
  	if (!lmtexture || lmtexture->LastStaticUpdate != lastStaticUpdate || lmtexture->LastDynamicUpdate != lastDynamicUpdate)
  	{
 +		PerfLog::Scope perfLm(PerfLog::Lightmap); PerfLog::Counter(PerfLog::Lightmap)++; // TEMPORARY DEBUG TOOL
@@ -137,57 +137,26 @@ index 6bff844..72f8cc9 100644
  		engine->render->Stats.LightmapsUpdated++;
  
  		Builder.Setup(model, coords, lightmapIndex);
-@@ -230,6 +255,7 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
- 		}
- 		else if (lmtexture->LastStaticUpdate != lastStaticUpdate)
+@@ -258,6 +283,7 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
  		{
+ 			updated = { 0, 0, Builder.Width(), Builder.Height() };
+ 			Builder.CalcWorldLocations(updated);
 +			PerfLog::Scope perfStatic(PerfLog::LmStatic); // TEMPORARY DEBUG TOOL
  			Builder.SetAmbientLight(zoneActor);
- 			Builder.AddStaticLights(model, lightmapIndex);
- 			Builder.SaveStaticLight(lmtexture->StaticLightColors);
-@@ -240,7 +266,10 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
+ 			if (!dynamicMover)
+ 			{
+@@ -266,7 +292,9 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
+ 			}
  		}
  
- 		Builder.AddAnimatedLights(model, lightmapIndex, TempAnimatedIndexList);
-+
 +		{ PerfLog::Scope perfDynamic(PerfLog::LmDynamic); // TEMPORARY DEBUG TOOL
- 		Builder.AddDynamicLights(model, lightmapIndex, TempDynLightList);
+ 		Builder.AddLights(model, lightmapIndex);
 +		}
  
  		UnrealMipmap& lmmip = lmtexture->Mip;
- 		vec4* dest = (vec4*)lmmip.Data.data();
-diff --git a/SurrealEngine/Light/LightmapBuilder.cpp b/SurrealEngine/Light/LightmapBuilder.cpp
-index 6919b19..6fffe6f 100644
---- a/SurrealEngine/Light/LightmapBuilder.cpp
-+++ b/SurrealEngine/Light/LightmapBuilder.cpp
-@@ -1,4 +1,5 @@
- 
-+#include "Utils/PerfLog.h" // TEMPORARY DEBUG TOOL
- #include "Precomp.h"
- #include "LightmapBuilder.h"
- #include "Engine.h"
-@@ -162,6 +163,19 @@ bool LightmapBuilder::LightAnimates(UActor* light)
- void LightmapBuilder::AddDynamicLights(UModel* model, int lightMap, const Array<UActor*>& lights)
- {
- 	size_t count = (size_t)width * height;
-+	if (PerfLog::Detail()) // TEMPORARY DEBUG TOOL: texels per rebuild, and how many each light reaches
-+	{
-+		PerfLog::LmCauses()["~texels"] += (int)count;
-+		PerfLog::LmCauses()["~dynlights"] += (int)lights.size();
-+		for (UActor* l : lights)
-+		{
-+			vec3 c = l->Location();
-+			float r2 = l->WorldLightRadius() * l->WorldLightRadius();
-+			int lit = 0;
-+			for (size_t i = 0; i < count; i++) { vec3 d = points[i] - c; if (dot(d, d) < r2) lit++; }
-+			PerfLog::LmCauses()["~in-radius"] += lit;
-+		}
-+	}
- 	Shadow.Clear(model, lightMap);
- 	for (UActor* light : lights)
- 	{
+ 		const vec3* pixels = Builder.Pixels();
 diff --git a/SurrealEngine/Packages/Engine/Actors/UActor.cpp b/SurrealEngine/Packages/Engine/Actors/UActor.cpp
-index d51e9b0..9c6cef7 100644
+index fa32658..b641a17 100644
 --- a/SurrealEngine/Packages/Engine/Actors/UActor.cpp
 +++ b/SurrealEngine/Packages/Engine/Actors/UActor.cpp
 @@ -19,6 +19,7 @@
@@ -198,7 +167,7 @@ index d51e9b0..9c6cef7 100644
  
  UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std::optional<NameString> SpawnTag, std::optional<vec3> SpawnLocation, std::optional<Rotator> SpawnRotation, bool noCollisionFail, bool remoteOwned)
  {
-@@ -409,6 +410,8 @@ bool UActor::ThinkThisFrame(float elapsed, float& thinkElapsed)
+@@ -439,6 +440,8 @@ bool UActor::ThinkThisFrame(float elapsed, float& thinkElapsed)
  	float distance = player ? length(player->Location() - Location()) : 0.0f;
  	bool near = player && distance < nearDistance;
  	int interval = (player && distance > farDistance) ? 6 : 3;
@@ -208,7 +177,7 @@ index d51e9b0..9c6cef7 100644
  	{
  		thinkElapsed = AiTimeSinceThought;
 diff --git a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
-index 0018fdf..91e202c 100644
+index 389baa3..d7aa595 100644
 --- a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 +++ b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 @@ -1,5 +1,7 @@
@@ -219,7 +188,7 @@ index 0018fdf..91e202c 100644
  #include "ULevel.h"
  #include "Packages/Core/UClass.h"
  #include "Packages/Engine/Actors/UDecal.h"
-@@ -93,7 +95,10 @@ void ULevel::TickActor(float elapsed, UActor* actor)
+@@ -94,7 +96,10 @@ void ULevel::TickActor(float elapsed, UActor* actor)
  	actor->bTicked() = ticked;
  
  	// Tick the actor for this turn
@@ -331,7 +300,7 @@ index c0995fa..3bf3745 100644
  	FrameDrawn = true;
  }
 diff --git a/SurrealEngine/Render/VisibleFrame.cpp b/SurrealEngine/Render/VisibleFrame.cpp
-index d25e3f2..72b7ea5 100644
+index a2f9ec4..0d0758d 100644
 --- a/SurrealEngine/Render/VisibleFrame.cpp
 +++ b/SurrealEngine/Render/VisibleFrame.cpp
 @@ -1,6 +1,7 @@
@@ -468,7 +437,7 @@ index 355b96a..5e424ce 100644
  	if (result != VK_SUCCESS)
  		throw std::runtime_error("vkWaitForFences failed");
 diff --git a/SurrealEngine/RenderDevice/Vulkan/TextureManager.cpp b/SurrealEngine/RenderDevice/Vulkan/TextureManager.cpp
-index b869842..513994e 100644
+index 1a85d81..a6a96fe 100644
 --- a/SurrealEngine/RenderDevice/Vulkan/TextureManager.cpp
 +++ b/SurrealEngine/RenderDevice/Vulkan/TextureManager.cpp
 @@ -1,6 +1,7 @@
@@ -491,8 +460,8 @@ index b869842..513994e 100644
  	{
 +		PerfLog::Scope perf(PerfLog::TexUpload); PerfLog::Counter(PerfLog::TexUpload)++; // TEMPORARY DEBUG TOOL
  		info->bRealtimeChanged = 0;
- 		renderer->Uploads->UploadTexture(tex.get(), *info, masked);
- 	}
+ 		if (info->UpdateWidth > 0)
+ 			renderer->Uploads->UploadTextureRect(tex.get(), *info, info->UpdateX, info->UpdateY, info->UpdateWidth, info->UpdateHeight);
 diff --git a/SurrealEngine/Utils/PerfLog.h b/SurrealEngine/Utils/PerfLog.h
 new file mode 100644
 index 0000000..0561179
