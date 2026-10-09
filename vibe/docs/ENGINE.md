@@ -182,17 +182,18 @@ of the main thread, by area (`frame-report.py --mean`), and the same with the vi
 | C runtime | 0.86 | 0.20 |
 | Turning: frame (frames a second), cycles | 1.99 (502), 9.6 M | 1.64 (608), 7.6 M |
 
-The original's own counters at the same runs: its game 0.34 ms a frame, its client 3.33. The
-fork's frame is the shorter, held and turning: its main thread takes fewer cycles a frame than the
-original's, more instructions at a higher rate, and is off the CPU as long, 0.19 ms a frame
-against 0.20. Its render is the larger: the visibility walk (`ProcessNodeSurface`, `DrawPolygon`,
+The original's own counters at the same runs: its game 0.34 ms a frame, its client 3.33. The fork's
+frame is the shorter, held and turning: its main thread takes fewer cycles a frame than the
+original's, more instructions at a higher rate, and is off the CPU as long, 0.19 ms a frame against
+0.20. Its render is the larger: the visibility walk (`ProcessNodeSurface`, `DrawPolygon`,
 `ProcessNode`, the box tests, about 1.0), meshes (`DrawLodMeshFaceDX`, about 0.46), light maps
-(`GetLightmap`, about 0.05). The walk waits on memory, not on arithmetic: the original's own
-savings -- each node's box tested one frame in 16 while it shows, each point transformed once a
-frame into a cache, a surface outside one side rejected without a clip
-([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)) --
-and skipping the nodes of zones not yet seen were each tried in the fork and gained nothing here,
-or lost: the cache's misses cost more than the transforms they save.
+(`GetLightmap`, about 0.05). The walk waits on memory, not on arithmetic: the original's own savings
+-- each node's box tested one frame in 16 while it shows, each point transformed once a frame into a
+cache, a surface outside one side rejected without a clip
+([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)) -- and
+skipping the nodes of zones not yet seen, the occlusion grid's rows a cache line each, and asking
+ahead (prefetch) for a node's surfaces and far child were each tried in the fork and gained nothing
+here, or lost: the cache's misses cost more than the transforms they save.
 
 ## Settings and environment
 
