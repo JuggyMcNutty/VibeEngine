@@ -184,7 +184,12 @@ The original's own counters at the same runs: its game 0.45 ms a frame, its clie
 fork's render is the gap: the visibility walk (`ProcessNodeSurface`, `DrawPolygon`,
 `ProcessNode`, the box tests, about 1.2), meshes (`DrawLodMeshFaceDX`, about 0.47), light maps
 (`GetLightmap`, about 0.24, most of it the barrel fire's six maps rebuilt and uploaded whole each
-frame).
+frame). The walk waits on memory, not on arithmetic: the original's own savings -- each node's box
+tested one frame in 16 while it shows, each point transformed once a frame into a cache, a
+surface outside one side rejected without a clip
+([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)) --
+and skipping the nodes of zones not yet seen were each tried in the fork and gained nothing here,
+or lost: the cache's misses cost more than the transforms they save.
 
 ## Settings and environment
 
