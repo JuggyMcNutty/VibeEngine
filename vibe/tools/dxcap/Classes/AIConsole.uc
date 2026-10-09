@@ -4,7 +4,9 @@
 // 20 s into the level's own time, each ScriptedPawn's state, orders,
 // whether it is in the world and hidden, its enemy, whether it looks for
 // enemies and listens for shots and noises, its physics, its place and how
-// long since it was drawn (tenths of a second) are logged, one line each;
+// long since it was drawn (tenths of a second) and whether the level's
+// geometry lets the camera see it are logged, one line each, and the camera
+// the frame is drawn from;
 // then an exit. Through the level's first 10 s, each
 // state an NPC enters is logged too, with the time, as the console's tick
 // finds it.
@@ -67,9 +69,46 @@ function Census(PlayerPawn P, string Label)
 			$ " looks " $ Flag(S.bLookingForEnemy) $ Flag(S.bLookingForShot) $ Flag(S.bLookingForLoudNoise)
 			$ " physics " $ S.Physics
 			$ " at " $ int(S.Location.X) $ "," $ int(S.Location.Y) $ "," $ int(S.Location.Z)
-			$ " drawn " $ int(S.LastRendered() * 10.0));
+			$ " drawn " $ int(S.LastRendered() * 10.0)
+			$ " sight " $ Sight(P, S));
 	}
 	Log("DXAI: " $ Label $ " " $ Count $ " scripted pawns at " $ P.Level.TimeSeconds $ " s; player at " $ P.Location);
+	LogView(P, Label);
+}
+
+// Whether the level's geometry lets the camera see a pawn: a FastTrace from
+// the camera to five heights up its collision cylinder, feet first, 1 where
+// the line is clear.
+function string Sight(PlayerPawn P, Pawn S)
+{
+	local Actor ViewActor;
+	local vector CameraLocation, Target;
+	local rotator CameraRotation;
+	local string Result;
+	local int i;
+
+	P.PlayerCalcView(ViewActor, CameraLocation, CameraRotation);
+	for (i = 0; i < 5; i++)
+	{
+		Target = S.Location;
+		Target.Z += S.CollisionHeight * (i - 2) * 0.45;
+		Result = Result $ Flag(P.FastTrace(Target, CameraLocation));
+	}
+	return Result;
+}
+
+// Where the frame is seen from: PlayerCalcView's camera, which both engines
+// draw from, and the eye height in it.
+function LogView(PlayerPawn P, string Label)
+{
+	local Actor ViewActor;
+	local vector CameraLocation;
+	local rotator CameraRotation;
+
+	P.PlayerCalcView(ViewActor, CameraLocation, CameraRotation);
+	Log("DXAI: " $ Label $ " view from " $ CameraLocation $ " rotation " $ CameraRotation
+		$ " eye " $ P.EyeHeight $ " base eye " $ P.BaseEyeHeight $ " bob " $ P.WalkBob
+		$ " fov " $ P.FovAngle);
 }
 
 // Each state an NPC enters, logged with "DXAISTATE:" and the level's time.

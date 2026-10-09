@@ -28,10 +28,10 @@
 # DXCAP_PREFIX and DXCAP_PROTON (default "Proton-CachyOS Latest") pick another
 # prefix and the Proton under ~/.local/share/Steam/compatibilitytools.d.
 # Both engines draw on the desktop's X display, Xwayland ($DISPLAY, or
-# DXCAP_DISPLAY), each in a 1280x720 window, the fork through its window's
-# X11 backend: one X server and the GPU for both. DXCAP_RENDERER=D3D draws the
-# original through D3DDrv, the game's own renderer, instead of OpenGLDrv:
-# the same frames, gamma ramp and all. DXCAP_AUDIO=1 gives
+# DXCAP_DISPLAY), each in a 1280x720 window (DXCAP_WINDOW=<w>x<h> another
+# size), the fork through its window's X11 backend: one X server and the GPU
+# for both. DXCAP_RENDERER=D3D draws the original through D3DDrv, the game's
+# own renderer, instead of OpenGLDrv: the same frames, gamma ramp and all. DXCAP_AUDIO=1 gives
 # the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
 # engine's audio to a private sink instead of the speakers and records it into
 # the run's audio.wav, with the music off (vibe/tools/dxcap/sound.py reads it).
@@ -146,6 +146,10 @@ need_perf() {
 WINE="$HOME/.local/share/Steam/compatibilitytools.d/${DXCAP_PROTON:-Proton-CachyOS Latest}/files/bin/wine"
 PREFIX="${DXCAP_PREFIX:-$CAP/prefix}"
 XDISPLAY="${DXCAP_DISPLAY:-${DISPLAY:-:0}}"
+WINDOW="${DXCAP_WINDOW:-1280x720}"
+[[ "$WINDOW" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || die "DXCAP_WINDOW is <width>x<height>, not $WINDOW"
+WINDOW_X="${WINDOW%x*}"
+WINDOW_Y="${WINDOW#*x}"
 need_display() {
     DISPLAY="$XDISPLAY" xdotool getdisplaygeometry > /dev/null 2>&1 ||
         die "no X display at $XDISPLAY (the desktop's Xwayland; xdotool is needed too)"
@@ -188,7 +192,7 @@ make_prefix() {
 winpath() { printf 'Z:%s' "${1//\//\\}"; }
 
 # make_ini <original|fork> <console> <out>: the game's DeusEx.ini with the
-# console class, the package's path, a 1280x720 window, the music off when
+# console class, the package's path, the run's window, the music off when
 # recording, and for the original the OpenGL renderer (DXCAP_RENDERER=D3D:
 # D3DDrv), whose window its frames are grabbed from.
 make_ini() {
@@ -198,9 +202,9 @@ make_ini() {
     else
         path="$CAP/System/*.u"
     fi
-    python3 - "$GAME/System/DeusEx.ini" "$out" "$engine" "$console" "$path" <<'EOF'
+    python3 - "$GAME/System/DeusEx.ini" "$out" "$engine" "$console" "$path" "$WINDOW_X" "$WINDOW_Y" <<'EOF'
 import os, re, sys
-src, out, engine, console, path = sys.argv[1:]
+src, out, engine, console, path, window_x, window_y = sys.argv[1:]
 s = open(src, encoding='latin1', newline='').read()
 nl = '\r\n' if '\r\n' in s else '\n'
 def put(key, value):
@@ -264,8 +268,8 @@ if os.environ.get('DXCAP_STATS'):
         sys.exit('no [Engine.GameInfo] in ' + src)
 # Both engines take the game's settings from it; both run in a window of
 # the same size.
-put('WindowedViewportX', '1280')
-put('WindowedViewportY', '720')
+put('WindowedViewportX', window_x)
+put('WindowedViewportY', window_y)
 put('StartupFullscreen', 'False')
 if engine == 'original':
     if os.environ.get('DXCAP_RENDERER', '') == 'D3D':
@@ -409,7 +413,7 @@ cmd_original() {
     mkdir -p "$dir"
 
     local gpid=""
-    python3 "$HERE/dxcap/grab.py" "$dir" "$XDISPLAY" '^Deus Ex$' 1280 720 2> "$dir/grab.log" &
+    python3 "$HERE/dxcap/grab.py" "$dir" "$XDISPLAY" '^Deus Ex$' "$WINDOW_X" "$WINDOW_Y" 2> "$dir/grab.log" &
     gpid=$!
 
     [ "${DXCAP_RECORD:-0}" != 1 ] || rec_start "$dir/audio.wav"

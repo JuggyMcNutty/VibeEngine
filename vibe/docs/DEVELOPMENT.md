@@ -49,9 +49,9 @@ game's files into `build/dxcap` by absolute path, and after a move `compile` doe
 are gone.
 
 - **The ini.** Each run gets a private ini made from the game's `DeusEx.ini` and `User.ini`: the
-  console class, a 1280x720 window, 333networks' master server for the Join Internet screen (the
-  game names GameSpy's, which is closed), no uplink, and `OpenGLDrv` for the original. Both
-  engines take the game's settings from it; the game's inis are never written.
+  console class, a 1280x720 window (`DXCAP_WINDOW`), 333networks' master server for the Join
+  Internet screen (the game names GameSpy's, which is closed), no uplink, and `OpenGLDrv` for the
+  original. Both engines take the game's settings from it; the game's inis are never written.
 - **`Settings.json`.** The fork's renderer, MSAA, VSync, gamma mode, `GammaCorrectScreenshots`,
   HDR and bloom, AI level of detail and render scale come from
   `~/.config/SurrealEngine/Settings.json`, an input of every fork run that no run's ini changes,
@@ -63,6 +63,7 @@ are gone.
 |---|---|
 | `DX_ROOT=<dir>` | the parent folder, if not the one this clone is in |
 | `DXCAP_DISPLAY=<display>` | another X display than `$DISPLAY`, the desktop's ([the display](#the-display)) |
+| `DXCAP_WINDOW=<w>x<h>` | both engines' window that size, not 1280x720: at 4:3 their views are the same ([the view's width](NATIVES.md#the-views-width)) |
 | `DXCAP_AUDIO=1` | the fork with real audio; it is silent otherwise |
 | `DXCAP_RECORD=1` | either engine's sound recorded into the run's `audio.wav` (a private null sink, `PULSE_SINK`, and `parecord`); the music off |
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
@@ -98,7 +99,7 @@ the run. *Either*: one engine on each side of a pair.
 | `FlashConsole` | both | the screen flash | `DXFLASH:` | |
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` | |
 | `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` | |
-| `AIConsole` | both | every NPC's state, orders, enemy, time since drawn | `DXAI:`, `DXAISTATE:` | |
+| `AIConsole` | both | every NPC's state, orders, enemy, time since drawn, and whether the level lets the camera see it; the camera | `DXAI:`, `DXAISTATE:` | |
 | `StaticConsole` | both | the map's (`TargetMap`) static actors that animate or keep a timer, a life span, physics or a state, at 5 s and at 15 s, and a count by class: an engine that ticks them shows them moving on | `DXSTATIC:` | |
 | `MoveConsole` | both | every pawn's moves, every 2 s for 120 s | `DXMOVE:` | `move.py <original run> <fork run>` |
 | `ReachConsole` | both | `AIDirectionReachable`, `PointReachable`, `ActorReachable` | `DXREACH:` | |
@@ -250,9 +251,9 @@ how full: `https://master.333networks.com/json/deusex`. Pick an empty server.
 ### The display
 
 Both engines draw on the desktop's X display, Xwayland (`$DISPLAY`; `DXCAP_DISPLAY` names
-another), each in a 1280x720 window: the original through Wine's X11 driver, the fork through
-its window's X11 backend (`SURREALWIDGETS_DISPLAY_BACKEND=X11`, `WAYLAND_DISPLAY` unset,
-`SDL_VIDEODRIVER=x11`). One X server and the GPU serve both, so their runs compare; no run uses a
+another), each in a 1280x720 window (`DXCAP_WINDOW` another size): the original through Wine's
+X11 driver, the fork through its window's X11 backend (`SURREALWIDGETS_DISPLAY_BACKEND=X11`,
+`WAYLAND_DISPLAY` unset, `SDL_VIDEODRIVER=x11`). One X server and the GPU serve both, so their runs compare; no run uses a
 hidden display, as runs on different displays do not compare. The development machine is given
 over to it: windows come and go on its desktop.
 
