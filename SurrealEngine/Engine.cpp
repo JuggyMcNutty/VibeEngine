@@ -2225,10 +2225,16 @@ float Engine::CalcTimeElapsed()
 	// A client runs no more frames a second than its connection's speed over
 	// 64, as the original's GetMaxTickRate has it: 40 at the default 2,600. A
 	// dedicated server runs [IpDrv.TcpNetDriver]'s rate, 10 to 120: 20 on the
-	// internet, 35 on a LAN (--lanplay).
+	// internet, 35 on a LAN (--lanplay). A listen server runs no more than 144,
+	// where the original's runs as fast as it draws: a remote client's queue
+	// drains its rate over a tick, and the faster the ticks the less room an
+	// unreliable call finds (dx-reverse-info/network.md, packets) -- the
+	// sounds a remote player hears go so.
 	int maxTickRate = (LevelNetDriver && LevelNetDriver->ServerConnection) ? LevelNetDriver->ServerConnection->CurrentNetSpeed / 64 : 0;
 	if (LevelNetDriver && !LevelNetDriver->ServerConnection && LaunchInfo.dedicatedServer)
 		maxTickRate = std::clamp(LaunchInfo.lanPlay ? LevelNetDriver->LanServerMaxTickRate : LevelNetDriver->NetServerMaxTickRate, 10, 120);
+	else if (LevelNetDriver && !LevelNetDriver->ServerConnection)
+		maxTickRate = 144;
 	if (maxTickRate > 0 && lastTime != 0)
 	{
 		uint64_t minDelta = 1'000'000 / (uint64_t)maxTickRate;
