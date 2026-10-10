@@ -298,9 +298,9 @@ window's size, `ScrollConsole` for a scroll area and a slider,
 dragged by its title bar and Alt with a letter, `EditConsole` for a
 script's text in an edit field, a text window and a button, and
 `MenuConsole` and `ScreenConsole`, which log every menu and game screen's
-windows: their sizes, text, focus, a slider's value text, a scroll area's
-bars, a tile's children and a list's rows read alike in both engines but
-for what is listed below. The same, read from the original's code:
+windows: their places, sizes, text, focus, a slider's value text, a scroll
+area's bars, a tile's children and a list's rows read alike in both engines
+but for what is listed below. The same, read from the original's code:
 
 - **A new window** starts hidden, 10 by 10; its parent and ancestors hear of
   it before its `InitWindow`, and it is shown after, so `VisibilityChanged`
@@ -559,18 +559,19 @@ each island load's collection leaves the same 43,054 objects and frees some
 66 ms there; on the Smart Pro 200 to 265 ms without the name walk.
 
 **Names** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
-a spawned actor and an AI event's object are named as the original names
-them (`MakeUniqueObjectName`: the class's name without trailing digits and
-the class's count, past any number an object of the level's package
-already has), and the collection deletes such a name once nothing holds it
-(an object's own name, its properties', a class's defaults, a state
-frame's locals), its slot taken by the next name made. Differs: every other
-name -- from a package, an ini, the script or C++, or a spawned actor's
-looked up by its spelling -- is kept for the session, where the original's
-deletes any name nothing reaches but the hard-coded ones. `ChurnConsole`
-(2,200 actors a second for two minutes) stays at 358 MB resident, where
-keeping every name grew it by 77 MB; the name walk adds 5 to 8 ms to a
-collection on linux-x86_64.
+a spawned actor, an AI event's object, an object a script makes with `new`
+and a new window are named as the original names them
+(`MakeUniqueObjectName`: the class's name without trailing digits and the
+class's count, past any number an object of its package already has), and
+the collection deletes such a name once nothing holds it (an object's own
+name, its properties', a class's defaults, a state frame's locals), its
+slot taken by the next name made. Differs: every other name -- from a
+package, an ini, the script or C++, or a spawned actor's looked up by its
+spelling -- is kept for the session, where the original's deletes any name
+nothing reaches but the hard-coded ones. `ChurnConsole` (2,200 actors a
+second for two minutes) stays at 358 MB resident, where keeping every name
+grew it by 77 MB; the name walk adds 5 to 8 ms to a collection on
+linux-x86_64.
 
 **Destroyed actors** are the original's
 ([destroyed actors](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#destroyed-actors)):
@@ -772,8 +773,8 @@ Stubs a single-player game does without; the audit lists each:
   server logging world stats writes no log of them.
 - `ComputerWindow`'s 22, which no script calls: the InfoLink's text window,
   its only user, calls only implemented ones.
-- `ClipWindow`'s unit sizes, `GC`'s `PushGC`, `PopGC`, `CopyGC` and
-  `Intersect`, and 6 more of the windows' stubs, which no script calls.
+- `GC`'s `PushGC`, `PopGC`, `CopyGC` and `Intersect`, and 3 more of the
+  windows' stubs, which no script calls.
 - Five more that no script of the game calls, so only a mod reaches them:
   `Object.ResetConfig`, which in the original copies the class's section
   back from `Default.ini` or `DefUser.ini` and reads it again

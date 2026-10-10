@@ -164,7 +164,9 @@ the run. *Either*: one engine on each side of a pair.
 
 A fork run does what `DXCAP_TIMELINE`'s file says, in [the live mode's format](#live-servers),
 beside its console's own script; with `-` for its console it keeps the stock one. Keys reach the
-game as the window's do, so a timeline drives the UI, which no console can.
+game as the window's do, so a timeline drives the UI, which no console can. The original takes no
+timeline, and the desktop's Xwayland passes over the pointer moves XTEST sends, so what a
+timeline's mouse and keys do is checked on the fork alone.
 `vibe/tools/dxcap/timelines` has the map loads that show what a session keeps of the levels it
 left, both from Liberty Island, ten loads of each map 25 s apart, then an exit:
 
@@ -174,8 +176,9 @@ left, both from Liberty Island, ten loads of each map 25 s apart, then an exit:
 | `reload-current.txt` | the island and UNATCO HQ | stays in mission 1: the map left saved into `Current`, the next one from there |
 
 and four more: `loot-drags.txt`, `LootConsole`'s drags in the inventory screen;
-`stray-release.txt`, `KeypadConsole`'s release of a key no press came before; `scroll.txt` and
-`clicks.txt`, `ScrollConsole`'s mouse and `ClickConsole`'s mouse and keys, on their schedules.
+`stray-release.txt`, `KeypadConsole`'s release of a key no press came before; and `scroll.txt`
+and `clicks.txt`, `ScrollConsole`'s mouse and `ClickConsole`'s mouse and keys, on their
+schedules.
 
 ```sh
 DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \
@@ -207,10 +210,10 @@ Every server's game disconnects a player whose console is not the stock one
 So `live <address> [<secs>]` keeps the stock console, and the engine drives the run from a
 timeline (`--timeline=<file>`, `SurrealEngine/Timeline.h`). Each line is
 `<clock> <seconds> <action>`: the clock `start` (from the engine's start) or `game` (seconds of
-the net game); the action `press <key>` or `release <key>` as the key in the window (a mouse button
-pressed where the pointer is, a press of `MouseWheelUp` or `MouseWheelDown` a notch of the wheel),
-`pointer <x> <y>` the pointer moved there in the root window's
-coordinates, or a console command (`shot`, `exit`, ...). The timeline is `DXCAP_TIMELINE`'s file, or `JoinConsole`'s walk:
+the net game); the action `press <key>` or `release <key>` as the key in the window (a mouse
+button pressed where the pointer is, a press of `MouseWheelUp` or `MouseWheelDown` a notch of the
+wheel), `pointer <x> <y>` the pointer moved there in the root window's coordinates, or a console
+command (`shot`, `exit`, ...). The timeline is `DXCAP_TIMELINE`'s file, or `JoinConsole`'s walk:
 stand 5 s, walk forward 5 s (`W`), stand, shots at the stops, out at 25 s. Each second of the
 game the player's place and every other pawn's are logged (`DXLIVE:`), and each correction the
 server sends the player (`ClientAdjustPosition`), how far it moved it; a run dropped to the menu

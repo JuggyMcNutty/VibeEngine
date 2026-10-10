@@ -312,7 +312,9 @@ textures, blend, depth), forgotten wherever else that state is set.
 - The vertices stream through CPU staging arrays, each flush uploading the range written since
   the last one (`glBufferSubData`): the GE8300 has no `glBufferStorage` (persistent mapping), and
   mapping the buffers' unused tails on every flush costs 2/3 of its frame.
-- The scene buffers are RGBA8 unless `Hdr` is on.
+- The scene buffers are RGBA8 unless `Hdr` is on. They hold the frame top row first, so a scene
+  drawn in a window (a security camera's view on its computer) lands where the Vulkan device
+  puts it: its viewport is placed from the top, where upstream's placed it from the bottom.
 - BC1 without `EXT_texture_compression_s3tc` and RGBA32F (the lightmaps) without
   `OES_texture_float_linear` are decoded to RGBA8 on the CPU.
 - The samplers set no `GL_TEXTURE_LOD_BIAS` on ES (no ES sampler has it), anisotropy only with
@@ -425,9 +427,10 @@ What else Deus Ex needs is gated as [above](#how-it-is-kept) and described by fe
   channel count under Galaxy's name, `EffectsChannels`, other games' as `Channels`
   ([sound](NATIVES.md#sound)). Its render device keeps `DetailTextures` beside upstream's keys;
   on Deus Ex's first run it takes them from the section of the device the game's ini names
-  (`GameRenderDevice`) ([the menus' settings](NATIVES.md#the-menus-settings)). Who hears a sound an actor plays, a remote player through its
-  client, is `UActor::HearSound` and `CheckHearSound` (`UActor.cpp`), from Deus Ex's
-  `PlaySound`, `PlayOwnedSound` and `DemoPlaySound` natives (`NActor.cpp`).
+  (`GameRenderDevice`) ([the menus' settings](NATIVES.md#the-menus-settings)). Who hears a
+  sound an actor plays, a remote player through its client, is `UActor::HearSound` and
+  `CheckHearSound` (`UActor.cpp`), from Deus Ex's `PlaySound`, `PlayOwnedSound` and
+  `DemoPlaySound` natives (`NActor.cpp`).
 - **The network driver**: `SurrealEngine/Network/` is the fork's own, the original's protocol
   over UDP (`NetDriver`, channels, the package map, replication by the original's lists) with a
   client that joins the original's servers, a listen and a dedicated server, downloads and
