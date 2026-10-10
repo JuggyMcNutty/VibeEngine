@@ -156,12 +156,20 @@ function Actor FindOrPlace(DeusExPlayer P, class<Actor> C)
 	return Place(P, C);
 }
 
-// An actor placed in front of the player, or over it when that is blocked.
+// An actor placed in front of the player -- else at its side, behind it or
+// over it, where the one placed before may stand.
 function Actor Place(DeusExPlayer P, class<Actor> C)
 {
 	local Actor A;
+	local rotator Turn;
+	local int i;
 
-	A = P.Spawn(C,,, P.Location + 80 * vector(P.Rotation));
+	Turn = P.Rotation;
+	for (i = 0; i < 4 && A == None; i++)
+	{
+		A = P.Spawn(C,,, P.Location + 80 * vector(Turn));
+		Turn.Yaw += 16384;
+	}
 	if (A == None)
 		A = P.Spawn(C,,, P.Location + vect(0,0,40));
 	if (A != None)
