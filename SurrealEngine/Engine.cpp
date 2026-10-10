@@ -3092,6 +3092,8 @@ void Engine::OnWindowActivated()
 void Engine::OnWindowDeactivated()
 {
 	//SetPause(true);
+	if (dxRootWindow)
+		dxRootWindow->ForgetKeys();
 }
 
 void Engine::OnWindowDpiScaleChanged()

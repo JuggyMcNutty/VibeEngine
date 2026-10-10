@@ -636,7 +636,7 @@ bool URootWindow::RouteKey(const std::function<bool(UWindow*)>& handle)
 		return false;
 
 	UWindow* start = FocusWindow() ? FocusWindow() : modal;
-	bool alt = engine->window->GetKeyState(IK_Alt);
+	bool alt = IsKeyDown(IK_Alt);
 	for (UWindow* cur = start; cur; cur = cur->parentOwner())
 	{
 		if (alt && !UObject::TryCast<UModalWindow>(cur))
@@ -647,11 +647,12 @@ bool URootWindow::RouteKey(const std::function<bool(UWindow*)>& handle)
 	return true;
 }
 
+// While Alt is down the platform's characters are not counted on (some send
+// none): a letter or digit pressed is its own character (OnWindowKeyDown).
 bool URootWindow::OnWindowKeyChar(std::string chars)
 {
-	// To do: fire these for edit windows
-	// event bool TextChanged(window edit, bool bModified)
-	// event bool EditActivated(window edit, bool bModified)
+	if (IsKeyDown(IK_Alt))
+		return IsModalOpen();
 
 	return RouteKey([&](UWindow* w) { return w->KeyPressed(chars); });
 }
@@ -660,16 +661,31 @@ bool URootWindow::OnWindowKeyDown(EInputKey key)
 {
 	bool repeat = MarkKey(key, true);
 
-	// To do: this shouldn't just check the focus window. It needs to build an accelerator table for all windows
-	UWindow* focus = FocusWindow();
-	if (focus && TopmostModal() && engine->window->GetKeyState(IK_Alt) && focus->acceleratorKey() != 0)
+	bool taken = RouteKey([&](UWindow* w) { return w->RawKeyPressed(key, EInputType::IST_Press, repeat) || w->VirtualKeyPressed(key, repeat); });
+
+	// With Alt down, a letter or digit goes on as a character, as the
+	// original's Alt characters do: a modal on top presses the window whose
+	// accelerator it is (UModalWindow::KeyPressed).
+	if (IsKeyDown(IK_Alt))
 	{
-		std::string chars(1, (char)focus->acceleratorKey());
-		if (focus->AcceleratorKeyPressed(chars))
-			return true;
+		char ch = 0;
+		if (key >= IK_A && key <= IK_Z)
+			ch = (char)('a' + (key - IK_A));
+		else if (key >= IK_0 && key <= IK_9)
+			ch = (char)('0' + (key - IK_0));
+		if (ch != 0)
+			RouteKey([&](UWindow* w) { return w->KeyPressed(std::string(1, ch)); });
 	}
 
-	return RouteKey([&](UWindow* w) { return w->RawKeyPressed(key, EInputType::IST_Press, repeat) || w->VirtualKeyPressed(key, repeat); });
+	return taken;
+}
+
+// Keys held as the window loses the keyboard are let go unseen: none counts
+// as down when it comes back (an Alt held into Alt+Tab would else stay).
+void URootWindow::ForgetKeys()
+{
+	for (int i = 0; i < 255; i++)
+		(&keyDownMap())[i] = 0;
 }
 
 bool URootWindow::OnWindowKeyUp(EInputKey key)

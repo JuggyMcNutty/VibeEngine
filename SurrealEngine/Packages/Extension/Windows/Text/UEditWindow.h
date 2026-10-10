@@ -40,6 +40,7 @@ public:
 	void Undo();
 
 	void InitDefaults() override;
+	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
 	bool FilterChar(std::string& ch);
 	void Tick(float timeElapsed) override;
 	void DrawWindow(UGC* gc) override;
@@ -47,7 +48,9 @@ public:
 	bool VirtualKeyPressed(EInputKey key, bool bRepeat) override;
 	bool MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks) override;
 	bool MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks) override;
-	void TextModifiedByScript() override;
+	void SetText(const std::string& NewText) override;
+	void AppendText(const std::string& NewText) override;
+	void StoreText(const std::string& text);
 
 	// The undo list: each change a position, the text removed and the text
 	// put in (extension-dll.md, Small). Changes [0, undoIndex) are applied;

@@ -12,7 +12,14 @@
 // 16    the value logged; the LAN join screen opened, cursor on its first
 //       checkbox                                      timeline: click at 20
 // 22    the checkbox logged                           timeline: click at 23
-// 25    the checkbox logged; 27 exit
+// 25    the checkbox logged
+// 27    Settings on top, its place logged, the cursor on its title bar
+//                                                     timeline: press at 28,
+//       release at 30; the cursor dragged 100 right and 50 down, 28.3-29.3
+// 31    its place logged; the Display screen opened   timeline: Alt+B at 34
+// 36    the top window logged                         timeline: Alt+C at 37
+// 39    the top window logged                         timeline: Alt+C at 40
+// 42    the top window logged; 44 exit
 //=============================================================================
 class ClickConsole extends Console;
 
@@ -21,6 +28,10 @@ var int Step;
 var DeusExRootWindow Root;
 var MenuUIChoiceEnum Choice;
 var MenuUICheckboxWindow Checkbox;
+var MenuUIWindow Menu;
+var float DragX, DragY;
+var int DragSteps;
+var float NextDrag;
 
 function Window FindClass(Window W, class<Window> Wanted)
 {
@@ -78,6 +89,16 @@ event Tick(float Delta)
 	P = Viewport.Actor;
 	RunTime += Delta;
 	Root = DeusExRootWindow(DeusExPlayer(P).rootWindow);
+
+	// A drag in progress: the cursor moved along every 0.1 s.
+	if (DragSteps > 0 && RunTime >= NextDrag)
+	{
+		DragX += 10;
+		DragY += 5;
+		Root.SetCursorPos(DragX, DragY);
+		DragSteps--;
+		NextDrag = RunTime + 0.1;
+	}
 
 	switch (Step)
 	{
@@ -149,6 +170,48 @@ event Tick(float Delta)
 		break;
 	case 9:
 		if (!Due(27.0))
+			return;
+		Root.PopWindow();
+		Menu = MenuUIWindow(Root.GetTopWindow());
+		Log("DXCLICK: " $ Menu.Class.Name $ " on top, at " $ Menu.x $ "," $ Menu.y);
+		Menu.ConvertCoordinates(Menu.winTitle, 60, 10, Root, DragX, DragY);
+		Root.SetCursorPos(DragX, DragY);
+		Log("DXCLICK: cursor on its title bar");
+		break;
+	case 10:
+		if (!Due(28.3))
+			return;
+		DragSteps = 10;
+		NextDrag = RunTime;
+		break;
+	case 11:
+		if (!Due(31.0))
+			return;
+		Log("DXCLICK: dragged by its title bar 100 right and 50 down, it is at " $ Menu.x $ "," $ Menu.y);
+		Root.InvokeMenuScreen(class'MenuScreenDisplay');
+		break;
+	case 12:
+		if (!Due(33.0))
+			return;
+		Log("DXCLICK: the top window is " $ Root.GetTopWindow().Class.Name);
+		break;
+	case 13:
+		if (!Due(36.0))
+			return;
+		Log("DXCLICK: after Alt+B the top window is " $ Root.GetTopWindow().Class.Name);
+		break;
+	case 14:
+		if (!Due(39.0))
+			return;
+		Log("DXCLICK: after Alt+C the top window is " $ Root.GetTopWindow().Class.Name);
+		break;
+	case 15:
+		if (!Due(42.0))
+			return;
+		Log("DXCLICK: after another Alt+C the top window is " $ Root.GetTopWindow().Class.Name);
+		break;
+	case 16:
+		if (!Due(44.0))
 			return;
 		Log("DXCAP: done, exiting");
 		P.ConsoleCommand("exit");

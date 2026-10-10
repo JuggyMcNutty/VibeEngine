@@ -9,6 +9,9 @@ public:
 
 	bool IsCurrentModal();
 	void SetMouseFocusMode(uint8_t newFocusMode);
+	UWindow* GetAcceleratorWindow(int key);
+
+	bool KeyPressed(std::string key) override;
 
 	UWindow*& acceleratorTable() { return Value<UWindow*>(PropOffsets_ModalWindow.acceleratorTable); }
 	BitfieldBool bDirtyAccelerators() { return BoolValue(PropOffsets_ModalWindow.bDirtyAccelerators); }

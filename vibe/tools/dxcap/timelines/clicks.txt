@@ -1,6 +1,8 @@
-# ClickConsole's mouse, on its schedule (its header): ClickConsole puts the
-# UI cursor on each window first; here the left and right buttons click.
-# DXCAP_TIMELINE=<this> vibe/tools/dxcap.sh fork ClickConsole DX.dx 60
+# ClickConsole's mouse and keys, on its schedule (its header): ClickConsole
+# puts the UI cursor on each window first; here the left and right buttons
+# click and a title bar is dragged, and Alt and a letter press the window
+# whose accelerator it is.
+# DXCAP_TIMELINE=<this> vibe/tools/dxcap.sh fork ClickConsole DX.dx 80
 start 6 press LeftMouse
 start 6.1 release LeftMouse
 start 11 press LeftMouse
@@ -11,3 +13,17 @@ start 20 press LeftMouse
 start 20.1 release LeftMouse
 start 23 press LeftMouse
 start 23.1 release LeftMouse
+start 28 press LeftMouse
+start 30 release LeftMouse
+start 34 press Alt
+start 34.2 press B
+start 34.3 release B
+start 34.5 release Alt
+start 37 press Alt
+start 37.2 press C
+start 37.3 release C
+start 37.5 release Alt
+start 40 press Alt
+start 40.2 press C
+start 40.3 release C
+start 40.5 release Alt

@@ -203,6 +203,7 @@ public:
 	bool IsSensitive(std::optional<bool> bRecurse);
 	bool IsVisible(std::optional<bool> bRecurse);
 	bool IsShown();
+	float RootOffsetX();
 	void Lower();
 	//UObject* MoveFocus(EMove direction);
 	UObject* MoveFocusDown();

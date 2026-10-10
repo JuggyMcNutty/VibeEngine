@@ -294,7 +294,9 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
 `GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`,
 `ChoiceConsole` for a conversation's choices, `SizeConsole` for a new
 window's size, `ScrollConsole` for a scroll area and a slider,
-`ClickConsole` for a button, a choice and a checkbox clicked, and
+`ClickConsole` for a button, a choice and a checkbox clicked, a menu
+dragged by its title bar and Alt with a letter, `EditConsole` for a
+script's text in an edit field, a text window and a button, and
 `MenuConsole` and `ScreenConsole`, which log every menu and game screen's
 windows: their sizes, text, focus, a slider's value text, a scroll area's
 bars, a tile's children and a list's rows read alike in both engines but
@@ -303,11 +305,29 @@ for what is listed below. The same, read from the original's code:
 - **A new window** starts hidden, 10 by 10; its parent and ancestors hear of
   it before its `InitWindow`, and it is shown after, so `VisibilityChanged`
   reaches everything its `InitWindow` made.
+- **Places**: `SetPos` makes a window left- and top-aligned with its x and
+  y as margins; `SetWindowAlignments` sets both margins of each side, the
+  second the first's unless given. A parent's `ConfigureChild` sets just
+  what it gives; a window no parent places, or that the base script's
+  answer to its asking hands back (`ResizeChild`), sits by its alignment at
+  its preferred size -- centred with the half dropped, plus its margin --
+  and its `x` and `y` are that place. So a menu dragged by its title bar
+  follows the pointer and the credits start below the screen
+  (`ClickConsole`, `MenuConsole`).
 - **Sizes**: a side a window was given (`SetSize`) counts as asked for; a
   side it leaves unset is its background's size, else its own -- an empty
-  text window is 0 wide and keeps its height. A parent's `ConfigureChild`
-  sets just what it gives. A window asking to be laid out again is laid out
-  itself too.
+  text window is 0 wide and keeps its height. A large text window and an
+  edit field measure rows of the font's height with their vertical spacing
+  between (`ScreenConsole`'s skill text and note), an edit field a space
+  wider when no width is given. A window asking to be laid out again is
+  laid out itself too.
+- **Text from a script** (`EditConsole`): a text window takes no text that
+  differs only in case. An edit field's `SetText` replaces its text as
+  typing would -- its undo cleared, `TextChanged` announced up its
+  parents -- and leaves the insertion point at the start, as `AppendText`
+  does after adding at the end; so the save screen's Save Game button
+  wakes for the name it fills in. An edit leaves the insertion point after
+  what it put in.
 - **Buttons** activate on the release, a repeating one on the press and
   again while held; a right click where the button takes them; each with
   its sounds, and a press from the keyboard shown pressed for its delay. A
@@ -329,10 +349,18 @@ for what is listed below. The same, read from the original's code:
   a repeat, and a release of a key or button not down is taken while a
   modal shows and goes to no window (`KeypadConsole` with
   `stray-release.txt`, the fork's alone; with no modal up the game gets it).
+  `IsKeyDown` reads those marks.
   `LootConsole` searches two carcasses alike in both engines; the keys and
   the drags between the searches (`loot-drags.txt`) are a timeline's, so the
   fork's alone, as are `ScrollConsole`'s clicks, drags and wheel
-  (`scroll.txt`) and `ClickConsole`'s clicks (`clicks.txt`).
+  (`scroll.txt`) and `ClickConsole`'s clicks, drag and keys (`clicks.txt`).
+- **Accelerators**: a text's `|&` marks its window's key while the text is
+  its accelerator -- every text window's from its start, but a large text
+  window's. Alt and a key the scripts leave press, in the modal on top, the
+  first window with that key -- the modal, then its children bottom to
+  top, each in turn -- that shows, is sensitive and takes the focus, a
+  letter in either case (`ClickConsole`: Alt+B opens Brightness from the
+  Display screen, Alt+C cancels it).
 - **Keyboard focus**
   ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
   a tab group's windows in order of where they lie on screen; `MoveFocus`,
@@ -358,7 +386,9 @@ Differs:
   cover the whole view. Its render time: [out of sight](#out-of-sight).
 - **Keys**, read from both codes: the keyboard counts as grabbed while a
   modal shows, where the original counts its grabs (every modal grabs while
-  shown); the fork tries only the focus window's accelerator.
+  shown). With Alt down the fork takes a letter or digit from the key's
+  press, not from the characters the platform sends, and it forgets the
+  keys held as its window loses the keyboard.
 - **Keyboard focus**: the fork places windows in its layout pass, after the
   level's tick, and seeds the first focus there; the original places them
   as they are made and seeds it at its windows' next tick, so a
@@ -366,20 +396,22 @@ Differs:
   Read from both codes, the tables pass no window over as clipped away, the
   fork keeping no clip rectangles.
 - **Layout** (`MenuConsole`, `ScreenConsole`, `SizeConsole`): the fork lays
-  windows out once a frame, the original as each asks, so a window made
-  this frame is 10 by 10 until the next. A window placed by its alignment
-  keeps `x` and `y` at 0 where the original's hold its place, its alignment
-  winning over a parent's placing, and `SetPos` sets no margins where the
-  original's sets them -- so the credits start on screen, not below it, and
-  a menu dragged by its title bar stays put. The root window is 4:3 (960
-  wide at 1280x720), where the original's is the whole viewport, so a
-  cutscene letterboxes at 16:9; the UI's scale is the screen's height over
-  600, rounded, where the original's is the smaller whole multiple of
-  640x480 the screen holds.
-- **A large text window and an edit field** measure and draw their lines as
-  a text window does, where the original's lay out rows spaced by their
-  vertical spacing: a skill's description is a pixel taller, a note a pixel
-  taller (`ScreenConsole`).
+  windows out once a frame, the original as each asks, so a window made this
+  frame is 10 by 10 until the next; a window that shows sits at the margins
+  `SetPos` gives it at once, where a parent that places it again does so the
+  next frame. A window a parent placed keeps that place until it moves or
+  asks again, where the original's goes back to its alignment when the
+  parent's next layout leaves it out; read from both codes, a hidden window
+  takes a parent's `ConfigureChild`, where the original's only counts itself
+  placed. The root window is 4:3 (960 wide at 1280x720), where the
+  original's is the whole viewport, so a cutscene letterboxes at 16:9; its
+  children lie across the screen up to 16:9, their `x` the screen's. The
+  UI's scale is the screen's height over 600, rounded, where the original's
+  is the smaller whole multiple of 640x480 the screen holds.
+- **A large text window and an edit field** draw their lines through the GC,
+  read from both codes, whose block of lines ends in one more spacing than
+  the original's rows: in a window taller than its text, lines centred or
+  at the bottom sit up to a pixel higher.
 
 ## The menus' settings
 

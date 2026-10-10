@@ -2,25 +2,33 @@
 #include "Precomp.h"
 #include "UTextWindow.h"
 #include "Utils/Logger.h"
+#include "Utils/StrTools.h"
 #include "Engine.h"
 #include "Packages/Engine/UCanvas.h"
 #include "Packages/Engine/Resources/UFont.h"
 #include "Packages/Extension/Windows/UGC.h"
 
+// The original's (XTextWindow::AppendText 0x10045e60): laid out again even
+// for nothing appended, the accelerator following the text.
 void UTextWindow::AppendText(const std::string& NewText)
 {
 	Text() += NewText;
-	if (!NewText.empty())
-	{
-		TextModifiedByScript();
-		AskParentForReconfigure();
-	}
+	if (bTextIsAccelerator())
+		SetAcceleratorText(Text());
+	AskParentForReconfigure();
 }
 
+// The original's (XTextWindow::EnableTextAsAccelerator 0x100464e0): the
+// text's |& marks the window's accelerator while this is on -- every text
+// window from its start, but a large text window's.
 void UTextWindow::EnableTextAsAccelerator(std::optional<bool> bEnable)
 {
-	std::string accelText = bEnable ? Text() : "";
-	SetAcceleratorText(accelText.length() > 0 ? accelText : "");
+	bool enable = bEnable.value_or(true);
+	if (bTextIsAccelerator() != enable)
+	{
+		bTextIsAccelerator() = enable;
+		SetAcceleratorText(enable ? Text() : "");
+	}
 }
 
 std::string UTextWindow::GetText()
@@ -90,12 +98,15 @@ void UTextWindow::SetMinWidth(float newMinWidth)
 	}
 }
 
+// The original's (XTextWindow::SetText 0x10045d50): a text that differs
+// only in case is no change; the accelerator follows the text.
 void UTextWindow::SetText(const std::string& NewText)
 {
-	if (Text() != NewText)
+	if (!StrTools::equals_ignore_case(Text(), NewText))
 	{
 		Text() = NewText;
-		TextModifiedByScript();
+		if (bTextIsAccelerator())
+			SetAcceleratorText(Text());
 		AskParentForReconfigure();
 	}
 }

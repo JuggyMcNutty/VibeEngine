@@ -31,37 +31,31 @@ void UWindow::UpdateLayout()
 	{
 		EHAlign halign = (EHAlign)winHAlign();
 		EVAlign valign = (EVAlign)winVAlign();
-		float leftMargin = hMargin0();
-		float rightMargin = hMargin1();
-		float topMargin = vMargin0();
-		float bottomMargin = vMargin1();
 		float pWidth = parent->Width();
 		float pHeight = parent->Height();
 
+		float offsetX = RootOffsetX();
+		if (parent == engine->dxRootWindow)
+			pWidth += std::max(GetExtendedVirtualWidth() - pWidth, 0.0f);
+
+		// Full: the parent's size less both margins, whoever placed it.
 		if (halign == EHAlign::Full || valign == EVAlign::Full)
 		{
-			float newX = X();
-			float newY = Y();
 			float newWidth = Width();
 			float newHeight = Height();
 
 			if (halign == EHAlign::Full)
 			{
-				newX = 0.0f;
-				if (parent == engine->dxRootWindow)
-					newWidth = std::max(GetExtendedVirtualWidth() - leftMargin - rightMargin, 0.0f);
-				else
-					newWidth = std::max(pWidth - leftMargin - rightMargin, 0.0f);
+				X() = hMargin0();
+				float fullWidth = parent == engine->dxRootWindow ? GetExtendedVirtualWidth() : pWidth;
+				newWidth = std::max(fullWidth - hMargin0() - hMargin1(), 0.0f);
 			}
 
 			if (valign == EVAlign::Full)
 			{
-				newY = 0.0f;
-				newHeight = std::max(pHeight - topMargin - bottomMargin, 0.0f);
+				Y() = vMargin0();
+				newHeight = std::max(pHeight - vMargin0() - vMargin1(), 0.0f);
 			}
-
-			X() = newX;
-			Y() = newY;
 
 			if (Width() != newWidth || Height() != newHeight)
 			{
@@ -71,36 +65,30 @@ void UWindow::UpdateLayout()
 			}
 		}
 
-		float width = Width();
-		float height = Height();
-		float offsetX = 0.0f;
-
-		if (parent == engine->dxRootWindow)
+		// A window its parent placed stays where it was put; one it did not
+		// places itself by its alignment (XWindow::ResizeChild 0x1004eab0):
+		// centred (the half truncated) plus its first margin, right or bottom
+		// less it, else at it -- where SetPos puts a window. Its x and y are
+		// that place, as the original's are.
+		if (!bConfigured())
 		{
-			float extraWidth = std::max(GetExtendedVirtualWidth() - pWidth, 0.0f);
-			offsetX = -std::round(extraWidth * 0.5f);
-			pWidth += extraWidth;
+			if (halign == EHAlign::Center)
+				X() = std::trunc((pWidth - Width()) * 0.5f) + hMargin0();
+			else if (halign == EHAlign::Right)
+				X() = pWidth - Width() - hMargin0();
+			else if (halign == EHAlign::Left)
+				X() = hMargin0();
+
+			if (valign == EVAlign::Center)
+				Y() = std::trunc((pHeight - Height()) * 0.5f) + vMargin0();
+			else if (valign == EVAlign::Bottom)
+				Y() = pHeight - Height() - vMargin0();
+			else if (valign == EVAlign::Top)
+				Y() = vMargin0();
 		}
 
-		float x = 0.0f, y = 0.0f;
-		if (halign == EHAlign::Left || halign == EHAlign::Full)
-			x = X() + leftMargin;
-		else if (halign == EHAlign::Center)
-			x = (pWidth - width) * 0.5f;
-		else if (halign == EHAlign::Right)
-			x = pWidth - rightMargin - width - X();
-
-		if (valign == EVAlign::Top || valign == EVAlign::Full)
-			y = Y() + topMargin;
-		else if (valign == EVAlign::Center)
-			y = (pHeight - height) * 0.5f;
-		else if (valign == EVAlign::Bottom)
-			y = pHeight - bottomMargin - height - Y();
-
-		x += offsetX;
-
-		UsedX = x;
-		UsedY = y;
+		UsedX = X() + offsetX;
+		UsedY = Y();
 	}
 	else
 	{
@@ -149,6 +137,16 @@ void UWindow::UpdateLayout()
 		FirstDraw = false;
 		WindowReady();
 	}
+}
+
+// The root's children lie across the screen up to 16:9, the 4:3 root centred
+// in it: their x is the screen's, drawn less this.
+float UWindow::RootOffsetX()
+{
+	UWindow* parent = parentOwner();
+	if (!parent || parent != engine->dxRootWindow)
+		return 0.0f;
+	return -std::round(std::max(GetExtendedVirtualWidth() - parent->Width(), 0.0f) * 0.5f);
 }
 
 float UWindow::GetVirtualWidth()
@@ -750,12 +748,14 @@ bool UWindow::IsFocusWindow()
 	return false;
 }
 
+// The original's (XWindow::IsKeyDown 0x1004c980): the root's mark of the
+// key, which every press it sees sets and every release clears.
 bool UWindow::IsKeyDown(uint8_t Key)
 {
-	if (engine && engine->window)
-		return engine->window->GetKeyState(static_cast<EInputKey>(Key));
-	else
+	URootWindow* root = GetRootWindow();
+	if (!root || Key > 0xFE)
 		return false;
+	return (&root->keyDownMap())[Key] != 0;
 }
 
 bool UWindow::IsPointInWindow(float pointX, float pointY)
@@ -1327,21 +1327,21 @@ void UWindow::RemoveActorRef(UObject* refActor)
 	}
 }
 
+// The original's (XWindow::SetAcceleratorText 0x1004f310, SetAcceleratorKey
+// 0x1004f3b0): the character after the text's first |&, none past 254.
+// The modal it lies in looks its accelerators up afresh each time.
 void UWindow::SetAcceleratorText(const std::string& newStr)
 {
-	char accelerator = 0;
+	unsigned char accelerator = 0;
 	size_t pos = newStr.find("|&");
 	if (pos != std::string::npos && pos + 2 < newStr.size())
+		accelerator = (unsigned char)newStr[pos + 2];
+	int newKey = accelerator < 0xFF ? accelerator : 0;
+	if (acceleratorKey() != newKey)
 	{
-		accelerator = newStr[pos + 2];
-	}
-	int previousKey = acceleratorKey();
-	int newKey = static_cast<int>(accelerator);
-	acceleratorKey() = newKey;
-	if (previousKey != newKey)
-	{
-		UModalWindow* modal = UObject::Cast<UModalWindow>(GetModalWindow());
-		modal->bDirtyAccelerators() = true;
+		acceleratorKey() = newKey;
+		if (UModalWindow* modal = UObject::TryCast<UModalWindow>(GetModalWindow()))
+			modal->bDirtyAccelerators() = true;
 	}
 }
 
@@ -1588,10 +1588,29 @@ void UWindow::SetConfiguration(float newX, float newY, float newWidth, float New
 	SetSize(newWidth, NewHeight);
 }
 
+// The original's (XWindow::Move 0x1004ce80): left- and top-aligned, x and y
+// its margins, laid out again when that changes anything. A parent that
+// places its children places it again; else its margins place it.
 void UWindow::SetPos(float newX, float newY)
 {
-	X() = newX;
-	Y() = newY;
+	if ((EHAlign)winHAlign() != EHAlign::Left || (EVAlign)winVAlign() != EVAlign::Top || hMargin0() != newX || vMargin0() != newY)
+	{
+		winHAlign() = (uint8_t)EHAlign::Left;
+		winVAlign() = (uint8_t)EVAlign::Top;
+		hMargin0() = newX;
+		vMargin0() = newY;
+		bConfigured() = false;
+		// Shown, the original's is laid out at once: one its parent does not
+		// place again sits at its margins, so it reads and draws there now.
+		if (IsShown())
+		{
+			X() = newX;
+			Y() = newY;
+			UsedX = X() + RootOffsetX();
+			UsedY = Y();
+		}
+		AskParentForReconfigure();
+	}
 }
 
 // The original's (XWindow::QueryPreferredSize 0x1004e790): a size the
@@ -1687,9 +1706,14 @@ void UWindow::AskParentForReconfigure()
 	}
 }
 
+// The original's (XWindow::ResizeChild 0x1004eab0) places the window by its
+// alignment at its preferred size -- the base Window script's answer to a
+// child's request. The fork's layout pass does, unless the parent places
+// the window again.
 void UWindow::ResizeChild()
 {
 	//LogMessage(GetUClassFullName(this).ToString() + ": ResizeChild");
+	bConfigured() = false;
 	bNeedsReconfigure() = true;
 }
 
@@ -1706,22 +1730,17 @@ void UWindow::ConfigureChild(float newX, float newY, float newWidth, float newHe
 		{
 			float leftMargin = hMargin0();
 			float rightMargin = hMargin1();
+			newX = leftMargin;
 			if (owner == engine->dxRootWindow)
-			{
-				newX = 0.0f;
 				newWidth = std::max(GetExtendedVirtualWidth() - leftMargin - rightMargin, 0.0f);
-			}
 			else
-			{
-				newX = 0.0f;
 				newWidth = std::max(owner->Width() - leftMargin - rightMargin, 0.0f);
-			}
 		}
 		if ((EVAlign)winVAlign() == EVAlign::Full)
 		{
 			float topMargin = vMargin0();
 			float bottomMargin = vMargin1();
-			newY = 0.0f;
+			newY = topMargin;
 			newHeight = std::max(owner->Height() - topMargin - bottomMargin, 0.0f);
 		}
 	}
@@ -1737,25 +1756,27 @@ void UWindow::ConfigureChild(float newX, float newY, float newWidth, float newHe
 	}
 }
 
+// The original's (XWindow::SetWindowAlignments 0x1004d300, from a script
+// 0x10052360): a first margin not given is 0, a second the first; laid out
+// again when that changes anything, the alignment placing the window unless
+// its parent places it again.
 void UWindow::SetWindowAlignments(uint8_t HAlign, uint8_t VAlign, std::optional<float> newHMargin0, std::optional<float> newVMargin0, std::optional<float> newHMargin1, std::optional<float> newVMargin1)
 {
-	winHAlign() = HAlign;
-	winVAlign() = VAlign;
-
-	if (newHMargin0)
-		hMargin0() = *newHMargin0;
-	if (newVMargin0)
-		vMargin0() = *newVMargin0;
-
-	if (newHMargin1)
-		hMargin1() = *newHMargin1;
-	else if (newHMargin0)
-		hMargin1() = *newHMargin0;
-
-	if (newVMargin1)
-		vMargin1() = *newVMargin1;
-	else if (newVMargin0)
-		vMargin1() = *newVMargin0;
+	float h0 = newHMargin0.value_or(0.0f);
+	float v0 = newVMargin0.value_or(0.0f);
+	float h1 = newHMargin1.value_or(h0);
+	float v1 = newVMargin1.value_or(v0);
+	if (winHAlign() != HAlign || winVAlign() != VAlign || hMargin0() != h0 || hMargin1() != h1 || vMargin0() != v0 || vMargin1() != v1)
+	{
+		winHAlign() = HAlign;
+		winVAlign() = VAlign;
+		hMargin0() = h0;
+		vMargin0() = v0;
+		hMargin1() = h1;
+		vMargin1() = v1;
+		bConfigured() = false;
+		AskParentForReconfigure();
+	}
 }
 
 // A new window: its class's own defaults, each class's after its parent

@@ -36,10 +36,9 @@ void UTabGroupWindow::ParentRequestedPreferredSize(bool bWidthSpecified, float& 
 		child->QueryPreferredSize(bWidthSpecified, preferredWidth, &width, bHeightSpecified, preferredHeight, &height);
 		if (!bSizeChildrenToParent())
 		{
-			// The original's place is its alignment margins; a window the
-			// fork's SetPos placed holds it in its position.
-			width += child->X() + child->hMargin0();
-			height += child->Y() + child->vMargin0();
+			// Each with its place: its margins, where SetPos puts it.
+			width += child->hMargin0();
+			height += child->vMargin0();
 			if ((EHAlign)child->winHAlign() == EHAlign::Full)
 				width += child->hMargin1();
 			if ((EVAlign)child->winVAlign() == EVAlign::Full)

@@ -40,6 +40,7 @@ public:
 	bool OnWindowMouseUp(const Point& pos, EInputKey key);
 	bool HandleButton(EInputKey key, bool press);
 	bool MarkKey(EInputKey key, bool down);
+	void ForgetKeys();
 	UWindow* MouseHolder();
 	bool OnWindowMouseWheel(const Point& pos, EInputKey key);
 	bool OnWindowRawMouseMove(int dx, int dy);

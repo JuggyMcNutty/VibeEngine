@@ -41,7 +41,7 @@ void UEditWindow::ApplyChange(int pos, const std::string& from, const std::strin
 	insertPos() = pos + (int)to.size();
 	selectStart() = insertPos();
 	selectEnd() = insertPos();
-	SetText(text);
+	StoreText(text);
 	SetTextChangedFlag(true);
 	DispatchTextChanged(true);
 }
@@ -141,7 +141,7 @@ void UEditWindow::DeleteChar(std::optional<bool> bBefore, std::optional<bool> bU
 	}
 	selectStart() = insertPos();
 	selectEnd() = insertPos();
-	SetText(text);
+	StoreText(text);
 	SetTextChangedFlag(true);
 	DispatchTextChanged(true);
 
@@ -169,13 +169,15 @@ int UEditWindow::GetInsertionPoint()
 	return insertPos();
 }
 
+// With nothing selected, 0 and 0: the original's (XEditWindow::
+// GetSelectedArea 0x1001d5c0) keeps no selection as -1, held to 0.
 void UEditWindow::GetSelectedArea(int& startPos, int& Count)
 {
 	int start = selectStart();
 	int end = selectEnd();
 	if (end < start)
 		std::swap(start, end);
-	startPos = start;
+	startPos = end > start ? start : 0;
 	Count = end - start;
 }
 
@@ -184,12 +186,38 @@ bool UEditWindow::HasTextChanged()
 	return textChanged;
 }
 
-void UEditWindow::TextModifiedByScript()
+// The original's (XEditWindow::SetText 0x1001e260): the whole text
+// selected and replaced as typing replaces it -- the undo list cleared, the
+// change announced (TextChanged) -- then the insertion point at the start.
+void UEditWindow::SetText(const std::string& NewText)
 {
-	// This happens if script code calls UTextWindow::AppendText or UTextWindow::SetText
+	selectStart() = 0;
+	insertPos() = (int)Text().size();
+	selectEnd() = insertPos();
+	InsertText(NewText, false, false);
+	SetInsertionPoint(0, false);
+}
+
+// The original's (XEditWindow::AppendText 0x1001e310): put in at the end as
+// typing puts it, then the insertion point at the start.
+void UEditWindow::AppendText(const std::string& NewText)
+{
 	insertPos() = (int)Text().size();
 	selectStart() = insertPos();
 	selectEnd() = insertPos();
+	InsertText(NewText, false, false);
+	SetInsertionPoint(0, false);
+}
+
+// The text an edit leaves, laid out again (XEditWindow::ReplaceText
+// 0x1001fe20); the insertion point stays where the edit put it.
+void UEditWindow::StoreText(const std::string& text)
+{
+	if (Text() != text)
+	{
+		Text() = text;
+		AskParentForReconfigure();
+	}
 }
 
 // The original's XEditWindow::InsertText (0x1001e3c0): each character
@@ -226,7 +254,7 @@ bool UEditWindow::InsertText(std::optional<std::string> InsertText, std::optiona
 	{
 		if ((int)text.size() > maxSize())
 		{
-			SetText(text.substr(0, maxSize()));
+			StoreText(text.substr(0, maxSize()));
 			ClearUndo();
 			SetTextChangedFlag(true);
 			SetInsertionPoint(0, false);
@@ -262,7 +290,7 @@ bool UEditWindow::InsertText(std::optional<std::string> InsertText, std::optiona
 	insertPos() += (int)filtered.size();
 	selectStart() = insertPos();
 	selectEnd() = insertPos();
-	SetText(text);
+	StoreText(text);
 	SetTextChangedFlag(true);
 	DispatchTextChanged(true);
 
@@ -460,6 +488,26 @@ void UEditWindow::ClearTextChangedFlag()
 void UEditWindow::SetTextChangedFlag(std::optional<bool> bSet)
 {
 	textChanged = bSet ? *bSet : true;
+}
+
+// The original's (XEditWindow::ParentRequestedPreferredSize 0x10020ac0): a
+// large text window's, a single line one row high when no height is given,
+// and a width not given a space wider.
+void UEditWindow::ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight)
+{
+	ULargeTextWindow::ParentRequestedPreferredSize(bWidthSpecified, preferredWidth, bHeightSpecified, preferredHeight);
+
+	UGC* gc = engine->dxgc;
+	UGC::TextSettings saved = gc->UseTextSettings(this);
+	if (bSingleLine() && !bHeightSpecified)
+		preferredHeight = vMargin() + vMargin() + std::max(gc->GetFontHeight(false), 1.0f);
+	if (!bWidthSpecified)
+	{
+		float spaceWidth = 0.0f, spaceHeight = 0.0f;
+		gc->GetTextExtent(0.0f, spaceWidth, spaceHeight, " ");
+		preferredWidth += spaceWidth;
+	}
+	gc->RestoreTextSettings(saved);
 }
 
 // The original's XEditWindow::Init (0x1001cea0): text from the top left, 3
