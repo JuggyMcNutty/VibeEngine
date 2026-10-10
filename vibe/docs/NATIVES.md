@@ -485,6 +485,9 @@ engine's own objects are not deleted (the log says so).
   fork's own step down always brings it nearer. The fork's player stands 4.8
   over the floor every time (a `MaxStepHeight` of 25), the original's 4.6 to
   5.1 as it came to rest (`StandConsole`).
+- **Walking into a wall**: the fork's player stops some 1.4 units nearer a
+  wall than the original's, as a server of the original's has it
+  ([multiplayer](#multiplayer)). Unread.
 - **A long frame**: the actors' step is at most 0.4 s, as the original's
   ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)).
   Not carried: its floor of 5 ms, the step of every tick past 200 frames a
@@ -600,7 +603,19 @@ server-only stubs are under
   144 frames a second, 4 at 200 and none at some 1,300 (uncapped on the
   desktop with no vsync), as the original server's reach the fork's, 6 to 8:
   the first goes as the host stops, its last step's packet just sent.
-- **Unchecked:** whether a live server corrects the client at a stop.
+- **A server's corrections** (`ClientAdjustPosition`), the fork a client of
+  the original's own server here, a stock game: walking in the open, none;
+  sliding along a wall and stopping there, 1.5 to 2.6 units, the fork's player
+  nearer the wall ([small](#small)), as often as the server checks the
+  client's place (180 / its speed s) while it is off by over 1.7: in one run
+  three times, in another some 13 a second; standing, the update every 2 s takes it
+  0.06 down, its height over the floor. For its first seconds in, until the
+  server's augmentation manager reaches it, the player walks at 100 where the
+  server runs it (the game's `GetCurrentGroundSpeed` gives 0 without one), and
+  a walk then is corrected by up to 36 units: the server sends the original's
+  client the same, as fast. The public servers run mods (MTL, ANNA, CDX, DXAG,
+  SG) whose player classes correct by functions of their own; the fork joins
+  each and stays in.
 
 As in the original:
 

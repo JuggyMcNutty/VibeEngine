@@ -1189,7 +1189,19 @@ void NetActorChannel::ReceiveFunction(UFunction* declared, NetInBunch& bunch)
 				continue;
 			args.push_back(ExpressionValue::Variable(data, prop));
 		}
+		// A live run (--timeline, the harness's) logs each correction its
+		// server sends the player, and how far it moved it.
+		bool correction = !engine->LaunchInfo.timelinePath.empty() && Connection->Driver->ServerConnection.get() == Connection &&
+			function->Name == "ClientAdjustPosition";
+		vec3 before = Actor->Location();
 		Frame::Call(function, Actor, std::move(args));
+		if (correction)
+		{
+			vec3 after = Actor->Location();
+			auto vec = [](const vec3& v) { return std::to_string(v.x) + "," + std::to_string(v.y) + "," + std::to_string(v.z); };
+			LogMessage("DXLIVE: corrected at " + std::to_string(engine->LevelInfo->TimeSeconds()) + " s, " + std::to_string(length(after - before)) +
+				" units, from " + vec(before) + " to " + vec(after));
+		}
 	}
 
 	for (UProperty* prop : parmProps)

@@ -202,9 +202,13 @@ the net game); the action `press <key>` or `release <key>` as the key in the win
 pressed where the pointer is), `pointer <x> <y>` the pointer moved there in the root window's
 coordinates, or a console command (`shot`, `exit`, ...). The timeline is `DXCAP_TIMELINE`'s file, or `JoinConsole`'s walk:
 stand 5 s, walk forward 5 s (`W`), stand, shots at the stops, out at 25 s. Each second of the
-game the player's place and every other pawn's are logged (`DXLIVE:`); a run dropped to the menu
+game the player's place and every other pawn's are logged (`DXLIVE:`), and each correction the
+server sends the player (`ClientAdjustPosition`), how far it moved it; a run dropped to the menu
 exits. A join downloads what the fork lacks into the game's `Cache`. Which servers are up, and
-how full: `https://master.333networks.com/json/deusex`. Pick an empty server.
+how full: `https://master.333networks.com/json/deusex`. Pick an empty server. Most run a mod
+(MTL, ANNA and others) whose player class replaces the stock moves and corrections, its names
+hidden: for the stock game's, serve the original here (`original ServeConsole 300`) and run
+`live 127.0.0.1:7790`.
 
 ### Shots
 
