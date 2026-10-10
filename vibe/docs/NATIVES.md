@@ -273,16 +273,28 @@ Matches the original ([blend animations](https://github.com/JuggyMcNutty/dx-reve
 
 ### Lists
 
-Matches the original ([lists](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#lists)).
+Matches the original ([lists](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#lists)):
+the rows, fields, sort order and selections that `MenuConsole` and
+`ScreenConsole` log are alike in both engines. A list shown with rows
+selects and focuses its first, so the Images screen opens on its first
+image; a float field reads as its shown number. The hot keys and a drag's
+selection are the original's, read from its code. Differs: a list in a clip
+window is as tall as its rows, the original's at least as tall as the clip
+window ([the UI](#the-ui)).
 
 ### The UI
 
 Matches the original ([the UI in front of the game](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#the-ui-in-front-of-the-game),
 [drawing](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#drawing),
 [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)):
-`GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`, and
-`ChoiceConsole` for a conversation's choices. The same, read from the
-original's code:
+`GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`,
+`ChoiceConsole` for a conversation's choices, and `MenuConsole` and
+`ScreenConsole`, which log every menu and game screen's windows. The same,
+read from the original's code:
+
+- **A new window** starts hidden; its parent and ancestors hear of it
+  before its `InitWindow`, and it is shown after, so `VisibilityChanged`
+  reaches everything its `InitWindow` made.
 
 - **Keys** go up from the focus window to the root, so Esc and F1 close a
   screen; **mouse buttons**, only while a modal shows, to the window the
@@ -318,9 +330,32 @@ Differs:
   unselectable or destroyed, the windows ticking before the engine
   (`ChoiceConsole`), and the root's tick seeding the focus -- none while the
   keypad (`MFOCUS_EnterLeave`) is up, none with no modal up
-  (`KeypadConsole`) -- are the original's. Differs, read from both codes,
-  unchecked in a run: the tab groups' table passes no window over as
-  clipped away, the fork keeping no clip rectangles.
+  (`KeypadConsole`) -- are the original's, as is a scroll area's taking no
+  focus itself. Differs: a tab group's order goes by each window's place in
+  its parent as the fork lays it out, the original's by where it lies on
+  screen, so a screen's first focus can fall elsewhere -- the Keys screen's
+  on Restore Defaults, not the list, the Join screens' on Cancel, not the
+  first column's header (`MenuConsole`); read from both codes, the tables
+  pass no window over as clipped away, the fork keeping no clip
+  rectangles.
+- **Layout** (`MenuConsole`, `ScreenConsole`): a window its parent places
+  keeps `x` and `y` at 0 where the original's hold its place, and `SetPos`
+  sets no margins where the original's sets them -- so the credits start on
+  screen, not below it, and a menu dragged by its title bar stays put. The
+  root window is 4:3 (960 wide at 1280x720), where the original's is the
+  whole viewport, so a cutscene letterboxes at 16:9; the UI's scale is the
+  screen's height over 600, rounded, where the original's is the smaller
+  whole multiple of 640x480 the screen holds.
+- **Text** measures a pixel wider, and a line a pixel shorter, than the
+  original's, which adds its GC's line spacing of 1; an empty text window
+  measures 1x0, where the original's keeps its size. `|n` turns into a line
+  break as text is drawn, where the original's turns into one as a script
+  sets it (`GetText` shows `|n`). A checkbox measures 4 wider and 3 taller.
+- **A scroll area** always shows its bar, the original's only when what it
+  holds does not fit; an edit field is as wide as its text, the original's
+  as its box.
+- **The Display screen**: Detail Textures reads Off (the fork's render device
+  has no `DetailTextures` to `GET`), and Screen Resolution shows no value.
 
 ## Sound
 

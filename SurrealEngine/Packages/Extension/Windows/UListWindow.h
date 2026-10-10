@@ -85,9 +85,13 @@ public:
 	void DrawWindow(UGC* gc) override;
 	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
 	void ParentRequestedGranularity(float& hGranularity, float& vGranularity) override;
+	void VisibilityChanged(bool bNewVisibility) override;
+	void MouseMoved(float newX, float newY) override;
 	bool MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks) override;
 	bool MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks) override;
+	bool KeyPressed(std::string key) override;
 	bool VirtualKeyPressed(EInputKey key, bool bRepeat) override;
+	void Tick(float timeElapsed) override;
 
 	struct Column
 	{
@@ -96,7 +100,7 @@ public:
 		UFont* font = nullptr;
 		std::string title;
 		uint8_t type = 0;
-		std::optional<std::string> format;
+		std::string format;
 		float width = 0.0f;
 		bool hidden = false;
 		bool sortReverse = false;
@@ -155,13 +159,20 @@ public:
 	//DynamicArray& rows() { return Value<DynamicArray>(PropOffsets_ListWindow.rows); }
 
 private:
-	void SplitRow(Item& item, const std::string& rowStr);
-	void UpdateCellValue(Item& item, int colIndex);
+	bool FillRow(Item& item, const std::string& rowStr);
+	void SetFieldByString(Item& item, int colIndex, const std::string& fieldStr);
+	void SetFieldByValue(Item& item, int colIndex, float value);
+	std::string FieldConvertToString(const Column& col, float value);
 	std::string FieldDisplayText(const Item& item, int colIndex);
 	float MeasureText(UFont* colFont, const std::string& text);
 	float GetLineHeight();
-	void AutoExpandColumn(int colIndex, const std::string& displayText);
-	void MoveToRow(int index, bool bSelect, bool bClearRows, bool bDrag);
+	bool AutoExpandColumn(int colIndex, const std::string& displayText);
+	void ChangeSelectRow(int index, bool bSelect, bool& changed);
+	void MoveToRow(int index, bool bSelect, bool bClearRows, bool bInvert, bool bSpan, bool bMoveFocus);
+	void SetFocusLine(int index, bool bShow, bool bAnchor);
+	int FindRowByKey(char key);
+	static bool IsHotKeyValid(char key);
+	void ClearHotKeyString();
 	void ActivateRow();
 	bool RowLess(const Item& a, const Item& b);
 	void SortChanged();

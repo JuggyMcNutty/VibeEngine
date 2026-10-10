@@ -117,6 +117,8 @@ the run. *Either*: one engine on each side of a pair.
 | `PortalConsole` | both | a map opened at a portal (`open <map>#<portal>`): the level's URL, where the player lands | `DXPORTAL:` | |
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`, the audio device's `EffectsChannels` among them; the main menu | `DXGET:` | |
+| `MenuConsole` | both | every menu screen from the menu map, as the player opens it: each window's tree (`WindowDump`: place, size, text, focus, a list's rows, a choice's value and setting) and a shot; message boxes answered No | `DXMENU:` | |
+| `ScreenConsole` | both | the screens of a game (`TargetMap`, Liberty Island by default): the data vault's, the in-game menu's Save Game, the map's computers and ATM logged in to, a medical bot and a repair bot, each window tree as `MenuConsole` logs it | `DXSCREEN:` | |
 | `PerfConsole` | both | what a frame costs: the map (`TargetMap`, Liberty Island by default) from its start, the player idle, the view held; from 15 s in, sixty one-second windows on the wall clock; the original's own cycle counters | `DXPERF:` | `vibe/tools/perf/frame-report.py`, with `DXCAP_PERF=1` ([measuring both engines](#measuring-both-engines)) |
 | `PerfTurnConsole` | both | `PerfConsole` with the view turning 45 degrees a second | `DXPERF:` | the same |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |

@@ -52,41 +52,100 @@ void UListWindow::InitWindow()
 	UWindow::InitWindow();
 }
 
-void UListWindow::SplitRow(Item& item, const std::string& rowStr)
+// A row's text split at the delimiter's first character, a field a column:
+// a field past the last column is dropped, a column past the last field
+// gets an empty one, and a field is at most 2,047 characters (the
+// original's FillRow, dx-reverse-info/extension-dll.md, lists). True when a
+// column widened to a field.
+bool UListWindow::FillRow(Item& item, const std::string& rowStr)
 {
-	item.cells.clear();
-	const std::string& delim = Delimiter();
-	if (delim.empty())
+	item.cells.resize(columns.size());
+	char delim = Delimiter().empty() ? '\0' : Delimiter()[0];
+	size_t pos = 0;
+	bool expanded = false;
+	for (int colIndex = 0; colIndex < (int)columns.size(); colIndex++)
 	{
-		item.cells.push_back({ rowStr, 0.0f });
+		size_t end = rowStr.size();
+		if (delim != '\0')
+			end = std::min(rowStr.find(delim, pos), rowStr.size());
+		std::string field = pos < end ? rowStr.substr(pos, std::min<size_t>(end - pos, 2047)) : std::string();
+		pos = end < rowStr.size() ? end + 1 : end;
+		SetFieldByString(item, colIndex, field);
+		expanded |= AutoExpandColumn(colIndex, item.cells[colIndex].text);
+	}
+	return expanded;
+}
+
+// A field set from text: a float or time column keeps the number read from
+// it and shows that number; a string column keeps the text, its number 0.
+void UListWindow::SetFieldByString(Item& item, int colIndex, const std::string& fieldStr)
+{
+	if (item.cells.size() < columns.size())
+		item.cells.resize(columns.size());
+	const Column& col = columns[colIndex];
+	Cell& cell = item.cells[colIndex];
+	if (col.type == ColTypeFloat || col.type == ColTypeTime)
+	{
+		cell.value = StringToFloat(fieldStr);
+		cell.text = FieldConvertToString(col, cell.value);
 	}
 	else
 	{
-		size_t start = 0;
-		while (true)
-		{
-			size_t pos = rowStr.find(delim, start);
-			item.cells.push_back({ rowStr.substr(start, pos == std::string::npos ? std::string::npos : pos - start), 0.0f });
-			if (pos == std::string::npos)
-				break;
-			start = pos + delim.size();
-		}
-	}
-	for (int colIndex = 0; colIndex < (int)item.cells.size(); colIndex++)
-	{
-		UpdateCellValue(item, colIndex);
-		AutoExpandColumn(colIndex, FieldDisplayText(item, colIndex));
+		cell.value = 0.0f;
+		cell.text = fieldStr;
 	}
 }
 
-void UListWindow::UpdateCellValue(Item& item, int colIndex)
+// A field set from a number: it shows as FieldConvertToString makes it; a
+// string column keeps that text, its number 0.
+void UListWindow::SetFieldByValue(Item& item, int colIndex, float value)
 {
-	// A float or time field keeps the number read from the text; a string
-	// field's number is 0.
-	if (colIndex < 0 || (size_t)colIndex >= item.cells.size())
-		return;
-	uint8_t type = (size_t)colIndex < columns.size() ? columns[colIndex].type : (uint8_t)ColTypeString;
-	item.cells[colIndex].value = (type == ColTypeFloat || type == ColTypeTime) ? StringToFloat(item.cells[colIndex].text) : 0.0f;
+	if (item.cells.size() < columns.size())
+		item.cells.resize(columns.size());
+	const Column& col = columns[colIndex];
+	Cell& cell = item.cells[colIndex];
+	cell.text = FieldConvertToString(col, value);
+	cell.value = (col.type == ColTypeFloat || col.type == ColTypeTime) ? value : 0.0f;
+}
+
+// The text a number shows as: through a float column's format, %f for any
+// other column. A format is the script's; one that is not a single
+// floating-point conversion is taken as %f, where the original would print
+// whatever it asks for.
+std::string UListWindow::FieldConvertToString(const Column& col, float value)
+{
+	std::string format = "%f";
+	if (col.type == ColTypeFloat)
+	{
+		int conversions = 0;
+		bool valid = true;
+		const std::string& f = col.format;
+		for (size_t i = 0; i < f.size() && valid; i++)
+		{
+			if (f[i] != '%')
+				continue;
+			i++;
+			if (i < f.size() && f[i] == '%')
+				continue;
+			while (i < f.size() && strchr("-+ #0", f[i]))
+				i++;
+			while (i < f.size() && isdigit((unsigned char)f[i]))
+				i++;
+			if (i < f.size() && f[i] == '.')
+			{
+				i++;
+				while (i < f.size() && isdigit((unsigned char)f[i]))
+					i++;
+			}
+			valid = i < f.size() && strchr("fFeEgGaA", f[i]) != nullptr;
+			conversions++;
+		}
+		if (valid && conversions == 1)
+			format = f;
+	}
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer), format.c_str(), (double)value);
+	return buffer;
 }
 
 float UListWindow::StringToFloat(const std::string& text)
@@ -169,22 +228,9 @@ float UListWindow::StringToFloat(const std::string& text)
 
 std::string UListWindow::FieldDisplayText(const Item& item, int colIndex)
 {
-	// A float field shows its number through the column's format, %f by
-	// default; a time field shows as %f too, its own format unused.
 	if (colIndex < 0 || (size_t)colIndex >= item.cells.size())
 		return {};
-	const Cell& cell = item.cells[colIndex];
-	uint8_t type = (size_t)colIndex < columns.size() ? columns[colIndex].type : (uint8_t)ColTypeString;
-	if (type == ColTypeFloat || type == ColTypeTime)
-	{
-		const char* format = "%f";
-		if (type == ColTypeFloat && columns[colIndex].format)
-			format = columns[colIndex].format->c_str();
-		char buffer[64];
-		snprintf(buffer, sizeof(buffer), format, cell.value);
-		return buffer;
-	}
-	return cell.text;
+	return item.cells[colIndex].text;
 }
 
 float UListWindow::MeasureText(UFont* colFont, const std::string& text)
@@ -242,16 +288,20 @@ void UListWindow::ParentRequestedGranularity(float& hGranularity, float& vGranul
 	vGranularity = GetLineHeight();
 }
 
-void UListWindow::AutoExpandColumn(int colIndex, const std::string& displayText)
+// With auto-expanding columns, each field set widens its column to the
+// field's text plus both margins; true when it widened.
+bool UListWindow::AutoExpandColumn(int colIndex, const std::string& displayText)
 {
-	// With auto-expanding columns, each field set widens its column to the
-	// field's text plus both margins.
 	if (!bAutoExpandColumns())
-		return;
+		return false;
 	if (colIndex < 0 || (size_t)colIndex >= columns.size())
-		return;
+		return false;
 	Column& col = columns[colIndex];
-	col.width = std::max(col.width, MeasureText(col.font, displayText) + colMargin() * 2.0f);
+	float width = MeasureText(col.font, displayText) + colMargin() * 2.0f;
+	if (width <= col.width)
+		return false;
+	col.width = width;
+	return true;
 }
 
 int UListWindow::AddRow(const std::string& rowStr, std::optional<int> clientData)
@@ -262,7 +312,7 @@ int UListWindow::AddRow(const std::string& rowStr, std::optional<int> clientData
 	if (clientData.has_value())
 		item.clientInt = clientData.value();
 	items.push_back(std::move(item));
-	SplitRow(items.back(), rowStr);
+	FillRow(items.back(), rowStr);
 	// With auto sort on, a new row goes in at its place.
 	if (bAutoSort())
 		Sort();
@@ -284,10 +334,13 @@ void UListWindow::AddSortColumn(int colIndex, std::optional<bool> bReverse, std:
 
 void UListWindow::DeleteAllRows()
 {
+	bool changed = GetNumSelectedRows() > 0;
 	items.clear();
 	nextRowId = 1;
 	focusLine() = -1;
 	anchorLine() = -1;
+	if (changed)
+		DispatchListSelectionChanged();
 	AskParentForReconfigure();
 }
 
@@ -296,6 +349,8 @@ void UListWindow::DeleteRow(int rowId)
 	int index = RowIdToIndex(rowId);
 	if (index < 0)
 		return;
+	bool changed = false;
+	ChangeSelectRow(index, false, changed);
 	items.erase(items.begin() + index);
 	if (focusLine() == index)
 		focusLine() = -1;
@@ -305,6 +360,8 @@ void UListWindow::DeleteRow(int rowId)
 		anchorLine() = -1;
 	else if (anchorLine() > index)
 		anchorLine()--;
+	if (changed)
+		DispatchListSelectionChanged();
 	AskParentForReconfigure();
 }
 
@@ -328,9 +385,24 @@ void UListWindow::EnableHotKeys(std::optional<bool> bEnable)
 	bHotKeys() = bEnable.has_value() ? bEnable.value() : true;
 }
 
+// Turned off, the first selected row stays selected and the rest are let go.
 void UListWindow::EnableMultiSelect(std::optional<bool> bEnableMultiSelect)
 {
-	bMultiSelect() = bEnableMultiSelect.has_value() ? bEnableMultiSelect.value() : true;
+	bool enable = bEnableMultiSelect.value_or(true);
+	if (bMultiSelect() == enable)
+		return;
+	bMultiSelect() = enable;
+	if (!enable && GetNumSelectedRows() > 0)
+	{
+		bool changed = false;
+		for (int i = (int)items.size() - 1; i >= 0; i--)
+		{
+			if (items[i].selected && GetNumSelectedRows() > 1)
+				ChangeSelectRow(i, false, changed);
+		}
+		if (changed)
+			DispatchListSelectionChanged();
+	}
 }
 
 uint8_t UListWindow::GetColumnAlignment(int colIndex)
@@ -369,9 +441,10 @@ uint8_t UListWindow::GetColumnType(int colIndex)
 	return columns[colIndex].type;
 }
 
+// A hidden column's width reads 0.
 float UListWindow::GetColumnWidth(int colIndex)
 {
-	if (colIndex < 0 || (size_t)colIndex >= columns.size())
+	if (colIndex < 0 || (size_t)colIndex >= columns.size() || columns[colIndex].hidden)
 		return 0;
 	return columns[colIndex].width;
 }
@@ -381,7 +454,7 @@ std::string UListWindow::GetField(int rowId, int colIndex)
 	int rowIndex = RowIdToIndex(rowId);
 	if (rowIndex == -1)
 		return {};
-	if (colIndex < 0 || (size_t)colIndex >= items[rowIndex].cells.size())
+	if (colIndex < 0 || (size_t)colIndex >= columns.size() || (size_t)colIndex >= items[rowIndex].cells.size())
 		return {};
 	return items[rowIndex].cells[colIndex].text;
 }
@@ -523,7 +596,7 @@ void UListWindow::ModifyRow(int rowId, const std::string& rowStr)
 	int rowIndex = RowIdToIndex(rowId);
 	if (rowIndex == -1)
 		return;
-	SplitRow(items[rowIndex], rowStr);
+	FillRow(items[rowIndex], rowStr);
 	// With auto sort on, a changed row is moved to its place.
 	if (bAutoSort())
 		Sort();
@@ -532,65 +605,97 @@ void UListWindow::ModifyRow(int rowId, const std::string& rowStr)
 
 void UListWindow::MoveRow(uint8_t Move, std::optional<bool> bSelect, std::optional<bool> bClearRows, std::optional<bool> bDrag)
 {
-	// Moves the focus row, clamped to the rows, starting from the first row
-	// when there is no focus. The list's script sends the arrow keys, Page
-	// Up and Down, Home and End here.
-	if (items.empty())
-		return;
-
+	// Moves the focus row, clamped to the rows; with no focus every move but
+	// to the end lands on the first row. The list's script sends the arrow
+	// keys, Page Up and Down, Home and End here.
 	int last = (int)items.size() - 1;
-	int cur = (focusLine() >= 0 && focusLine() <= last) ? focusLine() : 0;
-	int page = GetPageSize();
-	int index = cur;
+	int index = (focusLine() >= 0 && focusLine() <= last) ? focusLine() : -65535;
 	switch (Move)
 	{
-	case MoveListUp: index = cur - 1; break;
-	case MoveListDown: index = cur + 1; break;
-	case MoveListPageUp: index = cur - page; break;
-	case MoveListPageDown: index = cur + page; break;
+	case MoveListUp: index--; break;
+	case MoveListDown: index++; break;
+	case MoveListPageUp: index -= GetPageSize(); break;
+	case MoveListPageDown: index += GetPageSize(); break;
 	case MoveListHome: index = 0; break;
 	case MoveListEnd: index = last; break;
-	default: return;
+	default: break;
 	}
-	index = std::clamp(index, 0, last);
-
-	MoveToRow(index, bSelect.value_or(true), bClearRows.value_or(true), bDrag.value_or(false));
+	index = std::max(std::min(index, last), 0);
+	if (index > last)
+		SetFocusLine(-1, true, !bDrag.value_or(false));
+	else
+		SetRow(items[index].id, bSelect.value_or(true), bClearRows.value_or(true), bDrag.value_or(false));
 }
 
-void UListWindow::MoveToRow(int index, bool bSelect, bool bClearRows, bool bDrag)
+void UListWindow::ChangeSelectRow(int index, bool bSelect, bool& changed)
+{
+	if (items[index].selected != bSelect)
+	{
+		items[index].selected = bSelect;
+		changed = true;
+	}
+}
+
+// The original's MoveToRow: with bSelect the selection is cleared (or, when
+// spanning, the old span from the focus to the anchor is), then the row
+// selected or toggled, or the span from the anchor to it selected; a single
+// selection list always clears and never spans. With bMoveFocus the row
+// takes the focus, the anchor too unless spanning. ListSelectionChanged goes
+// up the parents only when the selection changed; a new focus row plays the
+// move sound.
+void UListWindow::MoveToRow(int index, bool bSelect, bool bClearRows, bool bInvert, bool bSpan, bool bMoveFocus)
 {
 	if (index < 0 || (size_t)index >= items.size())
 		return;
 
-	bool newFocus = (index != focusLine());
-	if (bClearRows)
+	bool changed = false;
+	int oldFocus = focusLine();
+	if (!bMultiSelect())
 	{
-		for (auto& item : items)
-			item.selected = false;
+		bClearRows = true;
+		bSpan = false;
 	}
-	if (bDrag && anchorLine() >= 0 && (size_t)anchorLine() < items.size())
+	if (bSelect)
 	{
-		// Extend the selection from the anchor.
-		int from = std::min(anchorLine(), index);
-		int to = std::max(anchorLine(), index);
-		for (int i = from; i <= to; i++)
-			items[i].selected = true;
+		int focusIndex = (focusLine() >= 0 && (size_t)focusLine() < items.size()) ? focusLine() : 0;
+		int anchorIndex = focusIndex;
+		if (anchorLine() >= 0 && (size_t)anchorLine() < items.size())
+			anchorIndex = anchorLine();
+		if (bClearRows)
+		{
+			for (int i = 0; i < (int)items.size(); i++)
+				ChangeSelectRow(i, false, changed);
+		}
+		else if (bSpan)
+		{
+			for (int i = std::min(focusIndex, anchorIndex); i <= std::max(focusIndex, anchorIndex); i++)
+				ChangeSelectRow(i, false, changed);
+		}
+		if (!bSpan)
+		{
+			ChangeSelectRow(index, bInvert ? !items[index].selected : true, changed);
+		}
+		else
+		{
+			for (int i = std::min(anchorIndex, index); i <= std::max(anchorIndex, index); i++)
+				ChangeSelectRow(i, true, changed);
+		}
 	}
-	else if (bSelect)
-	{
-		items[index].selected = true;
-		anchorLine() = index;
-	}
-	focusLine() = index;
+	if (bMoveFocus)
+		SetFocusLine(index, true, !bSpan);
+	if (changed)
+		DispatchListSelectionChanged();
+	if (focusLine() != oldFocus && focusLine() >= 0 && moveSound())
+		PlaySound(moveSound(), {}, {}, {}, {});
+}
 
-	// A new focus row plays the move sound and is scrolled into view.
-	if (newFocus)
-	{
-		if (moveSound())
-			PlaySound(moveSound(), {}, {}, {}, {});
+void UListWindow::SetFocusLine(int index, bool bShow, bool bAnchor)
+{
+	focusLine() = index;
+	if (bAnchor)
+		anchorLine() = index;
+	if (bShow)
 		ShowFocusRow();
-	}
-	DispatchListSelectionChanged();
 }
 
 void UListWindow::PlayListSound(UObject* listSound, std::optional<float> Volume, std::optional<float> Pitch)
@@ -627,7 +732,7 @@ void UListWindow::ResizeColumns(std::optional<bool> bExpandOnly)
 	for (int colIndex = 0; colIndex < (int)columns.size(); colIndex++)
 	{
 		Column& col = columns[colIndex];
-		if (!bExpandOnly.value_or(true))
+		if (!bExpandOnly.value_or(false))
 			col.width = colMargin() * 2.0f;
 		for (auto& item : items)
 			col.width = std::max(col.width, MeasureText(col.font, FieldDisplayText(item, colIndex)) + colMargin() * 2.0f);
@@ -649,27 +754,41 @@ int UListWindow::RowIdToIndex(int rowId)
 	return -1;
 }
 
+// A single selection list only lets go of its rows.
 void UListWindow::SelectAllRows(std::optional<bool> bSelect)
 {
-	bool selected = bSelect.has_value() ? bSelect.value() : true;
-	for (auto& item : items)
-	{
-		item.selected = selected;
-	}
+	bool selected = bMultiSelect() ? bSelect.value_or(true) : false;
+	bool changed = false;
+	for (int i = 0; i < (int)items.size(); i++)
+		ChangeSelectRow(i, selected, changed);
+	if (changed)
+		DispatchListSelectionChanged();
 }
 
+// Selecting a row of a single selection list lets go of the others first.
 void UListWindow::SelectRow(int rowId, std::optional<bool> bSelect)
 {
-	bool selected = bSelect.has_value() ? bSelect.value() : true;
+	bool selected = bSelect.value_or(true);
 	int rowIndex = RowIdToIndex(rowId);
-	if (rowIndex != -1)
-		items[rowIndex].selected = selected;
+	if (rowIndex == -1 || items[rowIndex].selected == selected)
+		return;
+	bool changed = false;
+	if (!bMultiSelect() && selected && GetNumSelectedRows() > 0)
+	{
+		for (int i = 0; i < (int)items.size(); i++)
+			ChangeSelectRow(i, false, changed);
+	}
+	ChangeSelectRow(rowIndex, selected, changed);
+	if (changed)
+		DispatchListSelectionChanged();
 }
 
+// The selection moved to a row, the focus staying where it is.
 void UListWindow::SelectToRow(int rowId, std::optional<bool> bClearRows, std::optional<bool> bInvert, std::optional<bool> bSpanRows)
 {
-	// UNUSED from scripts.
-	LogUnimplemented("ListWindow.SelectToRow");
+	int rowIndex = RowIdToIndex(rowId);
+	if (rowIndex != -1)
+		MoveToRow(rowIndex, true, bClearRows.value_or(true), bInvert.value_or(false), bSpanRows.value_or(false), false);
 }
 
 void UListWindow::SetColumnAlignment(int colIndex, uint8_t newAlign)
@@ -702,16 +821,25 @@ void UListWindow::SetColumnTitle(int colIndex, const std::string& Title)
 	AskParentForReconfigure();
 }
 
+// Each row's field is set again from its text as the new type takes it; the
+// format defaults to %f for a float column, %02h:%02m for a time one.
 void UListWindow::SetColumnType(int colIndex, uint8_t newType, std::optional<std::string> newFmt)
 {
 	if (colIndex < 0 || (size_t)colIndex >= columns.size())
 		return;
-	columns[colIndex].type = newType;
-	columns[colIndex].format = newFmt;
+	Column& col = columns[colIndex];
+	col.type = newType;
+	if (newFmt.has_value())
+		col.format = *newFmt;
+	else
+		col.format = newType == ColTypeFloat ? "%f" : (newType == ColTypeTime ? "%02h:%02m" : "");
 	for (auto& item : items)
-		UpdateCellValue(item, colIndex);
-	if (bAutoSort())
-		Sort();
+	{
+		std::string text = (size_t)colIndex < item.cells.size() ? item.cells[colIndex].text : std::string();
+		SetFieldByString(item, colIndex, text);
+	}
+	if (bAutoExpandColumns())
+		ResizeColumns(true);
 }
 
 void UListWindow::SetColumnWidth(int colIndex, float newWidth)
@@ -735,14 +863,12 @@ void UListWindow::SetField(int rowId, int colIndex, const std::string& fieldStr)
 	if (rowIndex == -1)
 		return;
 	Item& item = items[rowIndex];
-	if (item.cells.size() <= (size_t)colIndex)
-		item.cells.resize(colIndex + 1);
-	item.cells[colIndex].text = fieldStr;
-	UpdateCellValue(item, colIndex);
-	AutoExpandColumn(colIndex, FieldDisplayText(item, colIndex));
+	SetFieldByString(item, colIndex, fieldStr);
+	bool expanded = AutoExpandColumn(colIndex, item.cells[colIndex].text);
 	if (bAutoSort())
 		Sort();
-	AskParentForReconfigure();
+	if (expanded)
+		AskParentForReconfigure();
 }
 
 void UListWindow::SetFieldMargins(float newMarginWidth, float newMarginHeight)
@@ -760,14 +886,12 @@ void UListWindow::SetFieldValue(int rowId, int colIndex, float NewValue)
 	if (rowIndex == -1)
 		return;
 	Item& item = items[rowIndex];
-	if (item.cells.size() <= (size_t)colIndex)
-		item.cells.resize(colIndex + 1);
-	item.cells[colIndex].value = NewValue;
-	item.cells[colIndex].text = FieldDisplayText(item, colIndex);
-	AutoExpandColumn(colIndex, item.cells[colIndex].text);
+	SetFieldByValue(item, colIndex, NewValue);
+	bool expanded = AutoExpandColumn(colIndex, item.cells[colIndex].text);
 	if (bAutoSort())
 		Sort();
-	AskParentForReconfigure();
+	if (expanded)
+		AskParentForReconfigure();
 }
 
 void UListWindow::SetFocusColor(const Color& NewColor)
@@ -777,11 +901,7 @@ void UListWindow::SetFocusColor(const Color& NewColor)
 
 void UListWindow::SetFocusRow(int rowId, std::optional<bool> bMoveTo, std::optional<bool> bAnchor)
 {
-	focusLine() = RowIdToIndex(rowId);
-	if (bAnchor.value_or(false))
-		anchorLine() = focusLine();
-	if (bMoveTo.value_or(false))
-		ShowFocusRow();
+	SetFocusLine(RowIdToIndex(rowId), bMoveTo.value_or(true), bAnchor.value_or(true));
 }
 
 void UListWindow::SetFocusTexture(UObject* NewTexture)
@@ -841,15 +961,22 @@ void UListWindow::SetNumColumns(int newCols)
 		col.type = ColTypeString;
 		sortColumns.push_back((int)i);
 	}
+	// Every row gets an empty field for each new column, or loses those of
+	// the columns gone.
+	for (auto& item : items)
+		item.cells.resize(columns.size());
 	AskParentForReconfigure();
 }
 
+// The row selected and given the focus as a click does; no row leaves no
+// focus.
 void UListWindow::SetRow(int rowId, std::optional<bool> bSelect, std::optional<bool> bClearRows, std::optional<bool> bDrag)
 {
-	if (!bClearRows.has_value() || *bClearRows)
-		SelectAllRows(false);
-	if (!bSelect.has_value() || *bSelect)
-		SelectRow(rowId, true);
+	int rowIndex = RowIdToIndex(rowId);
+	if (rowIndex != -1)
+		MoveToRow(rowIndex, bSelect.value_or(true), bClearRows.value_or(true), false, bDrag.value_or(false), true);
+	else
+		SetFocusLine(-1, true, !bDrag.value_or(false));
 }
 
 void UListWindow::SetRowClientInt(int rowId, int clientInt)
@@ -948,10 +1075,7 @@ void UListWindow::ShowFocusRow()
 
 void UListWindow::ToggleRowSelection(int rowId)
 {
-	int rowIndex = RowIdToIndex(rowId);
-	if (rowIndex == -1)
-		return;
-	items[rowIndex].selected = !items[rowIndex].selected;
+	SelectRow(rowId, !IsRowSelected(rowId));
 }
 
 void UListWindow::DrawWindow(UGC* gc)
@@ -1014,62 +1138,180 @@ void UListWindow::DrawWindow(UGC* gc)
 	}
 }
 
+// A list shown with rows and no focus row selects and focuses its first.
+void UListWindow::VisibilityChanged(bool bNewVisibility)
+{
+	UWindow::VisibilityChanged(bNewVisibility);
+	if (bNewVisibility && focusLine() < 0 && !items.empty())
+		SetRow(items[0].id, true, true, false);
+}
+
+// A left click selects the row under the pointer, the last when below them
+// all: Shift spans from the anchor, Ctrl toggles. It starts a drag, which
+// selects the span to each row the pointer then crosses.
 bool UListWindow::MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks)
 {
-	SetFocusWindow(this);
-
-	if (UWindow::MouseButtonPressed(pointX, pointY, button, numClicks))
-		return true;
-
-	if (lineSize() <= 0.0f || items.empty())
-		return true;
-
-	// A click selects the row under the pointer, the last row when below
-	// them all; a double click activates it.
-	int index = (int)std::floor(pointY / lineSize());
-	if (index >= (int)items.size())
-		index = (int)items.size() - 1;
-	int rowId = IndexToRowId(index);
-	if (rowId > 0)
+	bool handled = UWindow::MouseButtonPressed(pointX, pointY, button, numClicks);
+	if (button != IK_LeftMouse)
+		return handled;
+	if (lineSize() > 0.0f && !items.empty())
 	{
-		SetRow(rowId, true, true, false);
-		SetFocusRow(rowId, false, false);
-		anchorLine() = index;
-		DispatchListSelectionChanged();
-		if (numClicks == 2)
-			ActivateRow();
+		int index = std::clamp((int)(pointY / lineSize()), 0, (int)items.size() - 1);
+		bool shift = IsKeyDown(IK_Shift);
+		bool ctrl = IsKeyDown(IK_Ctrl);
+		MoveToRow(index, true, !ctrl, ctrl, shift, true);
+		lastIndex() = index;
+		bDragging() = true;
+		remainingDelay() = GetTickOffset() + 0.1f;
 	}
-
 	return true;
 }
 
-bool UListWindow::MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks)
+void UListWindow::MouseMoved(float newX, float newY)
 {
-	return UWindow::MouseButtonReleased(pointX, pointY, button, numClicks);
+	UWindow::MouseMoved(newX, newY);
+	if (!bDragging() || lineSize() <= 0.0f || items.empty())
+		return;
+	int index = std::clamp((int)(newY / lineSize()), 0, (int)items.size() - 1);
+	if (index != lastIndex())
+	{
+		lastIndex() = index;
+		MoveToRow(index, true, false, false, true, true);
+	}
 }
 
+// A left release ends the drag; a double click's activates the row under
+// the pointer.
+bool UListWindow::MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks)
+{
+	bool handled = UWindow::MouseButtonReleased(pointX, pointY, button, numClicks);
+	if (button != IK_LeftMouse)
+		return handled;
+	bDragging() = false;
+	if (numClicks > 1 && lineSize() > 0.0f && !items.empty())
+	{
+		int index = (int)(pointY / lineSize());
+		if (index >= 0 && index < (int)items.size())
+		{
+			SetFocusLine(index, true, true);
+			ActivateRow();
+		}
+	}
+	return true;
+}
+
+// Hot keys: letters, digits and _ typed within a second of each other find
+// the next row whose hot key column starts with them, case-blind; the same
+// letter again steps on to the next row starting with it.
+bool UListWindow::KeyPressed(std::string key)
+{
+	bool handled = UWindow::KeyPressed(key);
+	if (key.size() == 1 && IsHotKeyValid(key[0]) && bHotKeys())
+	{
+		int index = FindRowByKey(key[0]);
+		if (index >= 0)
+			SetRow(items[index].id, true, true, false);
+		return true;
+	}
+	return handled;
+}
+
+bool UListWindow::IsHotKeyValid(char key)
+{
+	return (key >= 'a' && key <= 'z') || (key >= 'A' && key <= 'Z') || (key >= '0' && key <= '9') || key == '_';
+}
+
+void UListWindow::ClearHotKeyString()
+{
+	hotKeyString().clear();
+	hotKeyTimer() = 0.0f;
+}
+
+int UListWindow::FindRowByKey(char key)
+{
+	if (!bHotKeys() || hotKeyCol() < 0 || hotKeyCol() >= (int)columns.size() || !IsHotKeyValid(key) || items.empty())
+		return -1;
+
+	std::string& typed = hotKeyString();
+	typed += key;
+	hotKeyTimer() = 1.0f;
+
+	bool sameLetter = true;
+	for (char c : typed)
+		sameLetter &= (c == typed[0]);
+	int matchLen = sameLetter ? 1 : (int)typed.size();
+
+	int index = (focusLine() >= 0 && (size_t)focusLine() < items.size()) ? focusLine() : 0;
+	if (matchLen > 1)
+		index--;
+	for (size_t count = 0; count < items.size(); count++)
+	{
+		if (++index >= (int)items.size())
+			index = 0;
+		const std::string& text = (size_t)hotKeyCol() < items[index].cells.size() ? items[index].cells[hotKeyCol()].text : std::string();
+		bool match = true;
+		for (int i = 0; i < matchLen && match; i++)
+		{
+			char a = i < (int)text.size() ? text[i] : '\0';
+			match = std::tolower((unsigned char)a) == std::tolower((unsigned char)typed[i]);
+		}
+		if (match)
+			return index;
+	}
+	return -1;
+}
+
+// Enter activates the focus row; the arrows and Escape clear the hot keys
+// typed.
 bool UListWindow::VirtualKeyPressed(EInputKey key, bool bRepeat)
 {
-	if (UWindow::VirtualKeyPressed(key, bRepeat))
-		return true;
-
-	// Enter activates the focus row, as a double click does.
+	bool handled = UWindow::VirtualKeyPressed(key, bRepeat);
+	if (key == IK_Left || key == IK_Right || key == IK_Up || key == IK_Down || key == IK_Escape)
+		ClearHotKeyString();
 	if (key == IK_Enter)
 	{
 		ActivateRow();
 		return true;
 	}
-	return false;
+	return handled;
 }
 
+// While dragging, the pointer's place is taken again every 0.1 s, so a
+// drag held past the list's edge scrolls on; the hot keys typed are let go
+// after a second.
+void UListWindow::Tick(float timeElapsed)
+{
+	if (bDragging())
+	{
+		remainingDelay() -= timeElapsed;
+		if (remainingDelay() < 0.0f)
+		{
+			remainingDelay() = 0.1f;
+			float mouseX = 0.0f, mouseY = 0.0f;
+			GetCursorPos(mouseX, mouseY);
+			MouseMoved(mouseX, mouseY);
+		}
+	}
+	if (hotKeyTimer() > 0.0f)
+	{
+		hotKeyTimer() -= timeElapsed;
+		if (hotKeyTimer() <= 0.0f)
+			ClearHotKeyString();
+	}
+	UWindow::Tick(timeElapsed);
+}
+
+// The activate sound, then, when the list and its parents show,
+// ListRowActivated up the parents for the focus row.
 void UListWindow::ActivateRow()
 {
-	// ListRowActivated to the list's parents, with the activate sound.
-	int rowId = GetFocusRow();
-	if (rowId == 0)
-		return;
 	if (ActivateSound())
 		PlaySound(ActivateSound(), {}, {}, {}, {});
+	for (UWindow* cur = this; cur; cur = cur->parentOwner())
+	{
+		if (!cur->bIsVisible())
+			return;
+	}
 	DispatchListRowActivated();
 }
 

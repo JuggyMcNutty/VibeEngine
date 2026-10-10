@@ -27,6 +27,18 @@ void UScrollAreaWindow::InitWindow()
 	hScaleMgr()->SetScale(hScale());
 	vScaleMgr()->SetScale(vScale());
 
+	// The original's XScrollAreaWindow::Init (0x10042d80): the scales, the
+	// four buttons and the area itself take no keyboard focus -- the focus
+	// goes to what the area holds -- and the buttons repeat while held.
+	hScale()->SetSelectability(false);
+	vScale()->SetSelectability(false);
+	for (UButtonWindow* button : { LeftButton(), RightButton(), UpButton(), DownButton() })
+	{
+		button->SetSelectability(false);
+		button->EnableAutoRepeat(true, 0.5f, 0.1f);
+	}
+	SetSelectability(false);
+
 	UWindow::InitWindow();
 }
 

@@ -1059,7 +1059,7 @@ UObject* UWindow::NewChild(UObject* NewClass, std::optional<bool> bShow)
 	child->nextSibling() = nullptr;
 	child->firstChild() = nullptr;
 	child->lastChild() = nullptr;
-	child->bIsVisible() = show;
+	child->bIsVisible() = false;
 	child->bIsSensitive() = true;
 	// The window's type as the original's Init sets it (XTabGroupWindow::Init
 	// 0x10044d90 and XModalWindow::Init 0x10036c00): a tab group, a modal (a
@@ -1079,10 +1079,18 @@ UObject* UWindow::NewChild(UObject* NewClass, std::optional<bool> bShow)
 	lastChild() = child;
 	if (!firstChild())
 		firstChild() = child;
-	child->InitWindow();
+	// The original's CreateNewWindow (Extension.dll 0x1004df70): the window is
+	// made hidden and its parent told -- ChildAdded, then DescendantAdded to
+	// the parent and each ancestor -- before its InitWindow runs; only then is
+	// it shown, as Show shows it, so VisibilityChanged reaches it and the
+	// windows its InitWindow made: a list given rows there selects its first.
 	ChildAdded(child);
-	for (UWindow* ancestor = parentOwner(); ancestor; ancestor = ancestor->parentOwner())
+	for (UWindow* ancestor = this; ancestor; ancestor = ancestor->parentOwner())
 		ancestor->DescendantAdded(child);
+	child->InitWindow();
+	if (show)
+		child->SetVisibility(true);
+	child->AskParentForReconfigure();
 	return child;
 }
 
@@ -1242,6 +1250,10 @@ void UWindow::SetBoldFont(UObject* fn)
 static void NotifyVisibilityChanged(UWindow* window, bool bNewVisibility)
 {
 	window->VisibilityChanged(bNewVisibility);
+	// Then the window's own sound for showing or hiding (the original's
+	// InvokeVisibilityChange, 0x10050e30).
+	if (USound* sound = bNewVisibility ? window->visibleSound() : window->invisibleSound())
+		window->PlaySound(sound, {}, {}, {}, {});
 	for (UWindow* child = window->firstChild(); child; child = child->nextSibling())
 	{
 		if (child->bIsVisible())
