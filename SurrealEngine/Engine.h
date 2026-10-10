@@ -297,6 +297,10 @@ public:
 
 	bool quit = false;
 
+	// The command line a RELAUNCH named, for GameApp to start the engine
+	// again with once it has shut down; empty when there is none.
+	std::string RelaunchLine;
+
 	uint64_t lastTime = 0;
 
 	void LoadEngineSettings();
@@ -345,6 +349,7 @@ private:
 	void ExecFile(UObject* context, const std::string& filename);
 	// What the launcher sends: its TakeFocus and Open (LauncherLine).
 	void OnLauncherLine(const std::string& line);
+	void Relaunch(const std::string& commandline);
 
 	void LogGamePackageSHA1Sums() const;
 	void GetLevelInfoObject();

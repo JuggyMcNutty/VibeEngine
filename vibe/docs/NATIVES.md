@@ -441,7 +441,16 @@ ones on the walls are not drawn
   drawing in 32 bits. **Use 3D Hardware** finds no hardware, as the original
   finds none without an A3D or EAX card.
 - **Rendering Device**, and a dedicated server from the Host screen, send
-  `RELAUNCH`, which the fork does not have: nothing happens.
+  `RELAUNCH`, which starts the launcher again with the rest of the line once
+  the engine has exited, as the original's starts `DeusEx.exe`
+  ([`RELAUNCH`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#relaunch)):
+  the recreated launcher's renderer page, or a dedicated server. The fork
+  passes the line to the launcher on its line
+  ([running it](ENGINE.md#running-it)), which starts again once the game
+  has ended, where the original's new process starts while the old one is
+  still ending. With no launcher on the line -- the ports' launcher, or the
+  engine started by hand -- the dedicated server's starts the engine again
+  itself, as that server, and Rendering Device does nothing.
 
 ## Sound
 
@@ -638,8 +647,9 @@ drops ([its known defects](https://github.com/JuggyMcNutty/deusex-launcher/blob/
 Its flags are found as the original finds them
 ([cli-flags.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md)),
 with one exception, by choice: a flag's name (`-X` or `/X`) must end at a
-space or the line's end, where the original's `ParseParam` checks nothing
-after it. Both take `/` as a switch, and a Linux path is full of them: the
+space, a `?` (a URL's next option, where the Host screen's
+[`RELAUNCH`](#the-menus-settings) puts `-server`) or the line's end, where
+the original's `ParseParam` checks nothing after it. Both take `/` as a switch, and a Linux path is full of them: the
 original's would find `-server` in `INI=/srv/server/x.ini`. The recreated
 launcher parses alike
 ([where it differs](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#where-it-differs-from-the-original)).

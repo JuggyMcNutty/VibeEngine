@@ -63,6 +63,11 @@ void LauncherLine::Ready()
 	Send("ready");
 }
 
+void LauncherLine::Relaunch(const std::string& commandLine)
+{
+	Send("relaunch " + commandLine);
+}
+
 void LauncherLine::Poll(const std::function<void(const std::string&)>& onLine)
 {
 	if (!Open())

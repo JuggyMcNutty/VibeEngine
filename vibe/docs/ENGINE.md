@@ -132,7 +132,9 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
   ([the game and the launcher](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#the-game-and-the-launcher)):
   the engine says `hello` as it starts and `ready` once its first map is in, and takes
   `TakeFocus` (the window to the front) and `Open <url>` (the console's `open`), what a second
-  launch forwarded. The ports' launchers set nothing, and nothing changes.
+  launch forwarded. A `RELAUNCH` goes to it as `relaunch <line>`, and the engine exits
+  ([the menus' settings](NATIVES.md#the-menus-settings)). The ports' launchers set nothing, and
+  nothing changes.
 - Where there is no audio device (a container), give OpenAL Soft the null driver
   ([linux-x86_64's README](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/ports/linux-x86_64/README.md#audio)).
 
@@ -244,7 +246,9 @@ The handheld's numbers are [the Smart Pro's Performance](https://github.com/Jugg
   SDL3.
 - **The launchers' lines**: `--cmdline=` (`OriginalCommandLine`) and `DXL_LAUNCHER_FD`
   (`LauncherLine`) ([running it](#running-it)), with the console's `exec` and an `open` that
-  takes a map's file name.
+  takes a map's file name; `RELAUNCH` passed to the launcher, or a dedicated server started
+  again by the engine itself (`Engine::Relaunch`, `GameApp::Relaunch`;
+  [the menus' settings](NATIVES.md#the-menus-settings)).
 - **Fullscreen under SDL2** is a borderless window covering the display, set up while the window
   is hidden: `SDL_SetWindowFullscreen` deadlocks on a GL window with the Smart Pro's vendor SDL2
   (0039).

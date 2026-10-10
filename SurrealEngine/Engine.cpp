@@ -616,6 +616,40 @@ void Engine::ExecFile(UObject* context, const std::string& filename)
 	}
 }
 
+void Engine::Relaunch(const std::string& commandline)
+{
+	// The original's RELAUNCH (Core.dll's USystem::Exec) logs the rest of the
+	// line, saves the config, starts DeusEx.exe with it and exits. The
+	// Display screen's Rendering Device sends -changevideo, the launcher's
+	// renderer page; the Host screen's dedicated server, its map URL with
+	// -server in it. The inis are saved as the engine shuts down.
+	size_t start = commandline.find_first_not_of(" \t");
+	size_t rest = commandline.find_first_of(" \t", start);
+	rest = commandline.find_first_not_of(" \t", rest == std::string::npos ? commandline.size() : rest);
+	std::string line = rest == std::string::npos ? std::string() : commandline.substr(rest);
+	LogMessage("Relaunch: " + line);
+
+	// The recreated launcher stands for DeusEx.exe: it starts again with the
+	// line once the game has exited. Without it the engine starts itself
+	// again (GameApp), which only a dedicated server needs: there is no
+	// renderer page to show, and starting the same game again would only
+	// lose the one being played.
+	if (LauncherLine::Get().Present())
+	{
+		LauncherLine::Get().Relaunch(line);
+	}
+	else if (OriginalCommandLine(line).Param("server"))
+	{
+		RelaunchLine = line;
+	}
+	else
+	{
+		LogMessage("Relaunch: no launcher to start again");
+		return;
+	}
+	quit = true;
+}
+
 void Engine::OnLauncherLine(const std::string& line)
 {
 	// A second launch's command line, forwarded as the original's log
@@ -2330,6 +2364,10 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	if (command == "exit" || command == "quit")
 	{
 		quit = true;
+	}
+	else if (command == "relaunch" && LaunchInfo.IsDeusEx())
+	{
+		Relaunch(commandline);
 	}
 	else if (command == "shot")
 	{
