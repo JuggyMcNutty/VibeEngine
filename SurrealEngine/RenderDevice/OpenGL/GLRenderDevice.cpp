@@ -2008,9 +2008,12 @@ void GLRenderDevice::SetSceneNode(SceneNode* Frame)
 	RFX2 = 2.0f * RProjZ / Frame->FX;
 	RFY2 = 2.0f * RProjZ * Aspect / Frame->FY;
 
+	// The scene buffers hold the frame top row first (see the shot's
+	// readback), so a frame's top-down Y is the GL viewport's own: a view in
+	// a window (a security camera's) lands where the Vulkan device puts it.
 	SceneViewport = {};
 	SceneViewport.X = (float)Frame->XB;
-	SceneViewport.Y = (float)(SceneBuffers.Height - Frame->YB - Frame->Y);
+	SceneViewport.Y = (float)Frame->YB;
 	SceneViewport.Width = (float)Frame->X;
 	SceneViewport.Height = (float)Frame->Y;
 	SceneViewport.MinDepth = 0.1f;
