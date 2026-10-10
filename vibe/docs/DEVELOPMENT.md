@@ -212,6 +212,9 @@ how full: `https://master.333networks.com/json/deusex`. Pick an empty server.
   window, drawn through `OpenGLDrv`, is read five times a second by `vibe/tools/dxcap/grab.py`
   (the window found by its name), keeping each frame whose corner carries the console's mark (a
   magenta block, then the shot's number in eight black or white blocks).
+- **Through `D3DDrv`** the window's contents reach the grabber only every 0.2 to 1.4 s, though
+  the game draws some 63 frames a second: a console's mark, up for 0.6 s, can pass ungrabbed,
+  and a run keeps 0 to 2 of `MeshConsole`'s 2 shots. `OpenGLDrv`'s window keeps them all.
 - **Gamma.** The original's frames carry its gamma ramp, 1.5 at the runs' Brightness of 0.6, the
   same through `D3DDrv` (`DXCAP_RENDERER=D3D`). The fork's `shot` reads the frame before the
   present pass applies gamma (`GammaCorrectScreenshots` off), so a fork shot takes that gamma
