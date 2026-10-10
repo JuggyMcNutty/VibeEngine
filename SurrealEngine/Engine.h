@@ -80,6 +80,7 @@ public:
 	void Run();
 	void ClientTravel(const std::string& URL, ETravelType travelType, bool transferItems);
 	UnrealURL GetDefaultURL(const std::string& map);
+	void SetMultiplayerName(UnrealURL& url);
 	void LoadEntryMap();
 	// The Entry level made the level played, a new player spawned in it, as
 	// the original's browse to ?failed or ?entry: a lost server, or one that

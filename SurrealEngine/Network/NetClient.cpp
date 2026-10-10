@@ -281,6 +281,7 @@ void NetPendingLevel::NotifyReceivedText(NetConnection* connection, const std::s
 
 		// The URL the server logs in: the map and options, without the
 		// server's own address or a game type.
+		engine->SetMultiplayerName(URL);
 		std::string loginURL = URL.Map;
 		for (const std::string& option : URL.Options)
 		{

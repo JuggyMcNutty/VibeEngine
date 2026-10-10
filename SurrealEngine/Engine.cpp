@@ -1778,8 +1778,25 @@ void Engine::LoginPlayer()
 	LoginPlayer(LevelInfo->URL);
 }
 
-void Engine::LoginPlayer(const UnrealURL& url)
+// A net game's login: in Deus Ex a name the player never chose -- none, or
+// the game's stock "Player" -- is the project's own, so the fork's players show
+// as such on a server. Single player keeps the game's.
+void Engine::SetMultiplayerName(UnrealURL& url)
 {
+	if (!LaunchInfo.IsDeusEx())
+		return;
+	std::string name = url.GetOption("Name");
+	if (name.empty() || name == "Player")
+		url.AddOrReplaceOption("Name=VibePlayer");
+}
+
+void Engine::LoginPlayer(const UnrealURL& loginURL)
+{
+	// A listen server's host is a player of the net game too.
+	UnrealURL url = loginURL;
+	if (LevelInfo && LevelInfo->NetMode() == NM_ListenServer)
+		SetMultiplayerName(url);
+
 	std::map<std::string, std::string> travelInfo = Level->TravelInfo;
 
 	auto stringProp = GC::Alloc<UStringProperty>("", nullptr, ObjectFlags::NoFlags);

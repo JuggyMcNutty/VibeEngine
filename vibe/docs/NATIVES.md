@@ -386,6 +386,11 @@ Differs:
 - **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so a player can tell
   which engine they run ([the version](ENGINE.md#running-on-our-devices)). The original's is
   "Mon Mar 19 12:06:14 2001 v1.112fm".
+- **The player's name in a net game**: a name the player never chose -- none,
+  or the game's stock `Player` -- logs in as `VibePlayer`, a client's to its
+  server and a listen server's host's, by choice, so the fork's players show
+  as such (`Engine::SetMultiplayerName`). A name the player chose is kept;
+  single player, the menus and the inis keep the game's.
 - **The engine's own rotations** (the view, movement) take exact angles;
   the scripts' conversions take the original's sine table
   ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
