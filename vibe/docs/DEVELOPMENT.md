@@ -122,6 +122,7 @@ the run. *Either*: one engine on each side of a pair.
 | `DecalConsole` | both | the Display menu's Decals: a bullet hole on the nearest wall, Decals set off, a second one, Decals on again; whether each is drawn (its `LastRenderedTime`) | `DXDECAL:` | |
 | `ScreenConsole` | both | the screens of a game (`TargetMap`, Liberty Island by default): the data vault's, the in-game menu's Save Game, the map's computers and ATM logged in to, a medical bot and a repair bot, each window tree as `MenuConsole` logs it | `DXSCREEN:` | |
 | `ScrollConsole` | both | the Keys screen's scroll area and the Sound screen's first slider: the UI cursor put on each part as a timeline's mouse clicks, holds, drags and turns the wheel there; the scale's tick, span and count, the clip window's position and sizes, the arrows' sensitivity, the list's focus row moved; the slider's value and text | `DXSCROLL:` | with `vibe/tools/dxcap/timelines/scroll.txt` on the fork |
+| `ClickConsole` | both | the main menu's Settings button, a Game Options choice and a LAN join screen checkbox, the UI cursor put on each as a timeline's mouse clicks there (a right click on the choice): the window opened, the value, the toggle | `DXCLICK:` | with `vibe/tools/dxcap/timelines/clicks.txt` on the fork |
 | `SizeConsole` | both | the size a new window takes: a plain window, an empty text window, an empty label, a text window emptied, as made, on the next frames and asked for its preferred size | `DXSIZE:` | |
 | `PerfConsole` | both | what a frame costs: the map (`TargetMap`, Liberty Island by default) from its start, the player idle, the view held; from 15 s in, sixty one-second windows on the wall clock; the original's own cycle counters | `DXPERF:` | `vibe/tools/perf/frame-report.py`, with `DXCAP_PERF=1` ([measuring both engines](#measuring-both-engines)) |
 | `PerfTurnConsole` | both | `PerfConsole` with the view turning 45 degrees a second | `DXPERF:` | the same |
@@ -171,9 +172,9 @@ left, both from Liberty Island, ten loads of each map 25 s apart, then an exit:
 | `reload-fresh.txt` | the island and Battery Park | crosses a mission: `Current` emptied, the map from `Maps` |
 | `reload-current.txt` | the island and UNATCO HQ | stays in mission 1: the map left saved into `Current`, the next one from there |
 
-and three more: `loot-drags.txt`, `LootConsole`'s drags in the inventory screen;
-`stray-release.txt`, `KeypadConsole`'s release of a key no press came before; `scroll.txt`,
-`ScrollConsole`'s mouse, on its schedule.
+and four more: `loot-drags.txt`, `LootConsole`'s drags in the inventory screen;
+`stray-release.txt`, `KeypadConsole`'s release of a key no press came before; `scroll.txt` and
+`clicks.txt`, `ScrollConsole`'s and `ClickConsole`'s mouse, on their schedules.
 
 ```sh
 DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \

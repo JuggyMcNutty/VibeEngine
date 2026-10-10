@@ -1,0 +1,13 @@
+# ClickConsole's mouse, on its schedule (its header): ClickConsole puts the
+# UI cursor on each window first; here the left and right buttons click.
+# DXCAP_TIMELINE=<this> vibe/tools/dxcap.sh fork ClickConsole DX.dx 60
+start 6 press LeftMouse
+start 6.1 release LeftMouse
+start 11 press LeftMouse
+start 11.1 release LeftMouse
+start 14 press RightMouse
+start 14.1 release RightMouse
+start 20 press LeftMouse
+start 20.1 release LeftMouse
+start 23 press LeftMouse
+start 23.1 release LeftMouse

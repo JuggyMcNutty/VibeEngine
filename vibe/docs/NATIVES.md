@@ -293,7 +293,8 @@ Matches the original ([the UI in front of the game](https://github.com/JuggyMcNu
 [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)):
 `GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`,
 `ChoiceConsole` for a conversation's choices, `SizeConsole` for a new
-window's size, `ScrollConsole` for a scroll area and a slider, and
+window's size, `ScrollConsole` for a scroll area and a slider,
+`ClickConsole` for a button, a choice and a checkbox clicked, and
 `MenuConsole` and `ScreenConsole`, which log every menu and game screen's
 windows: their sizes, text, focus, a slider's value text, a scroll area's
 bars, a tile's children and a list's rows read alike in both engines but
@@ -331,7 +332,7 @@ for what is listed below. The same, read from the original's code:
   `LootConsole` searches two carcasses alike in both engines; the keys and
   the drags between the searches (`loot-drags.txt`) are a timeline's, so the
   fork's alone, as are `ScrollConsole`'s clicks, drags and wheel
-  (`scroll.txt`).
+  (`scroll.txt`) and `ClickConsole`'s clicks (`clicks.txt`).
 - **Keyboard focus**
   ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
   a tab group's windows in order of where they lie on screen; `MoveFocus`,
