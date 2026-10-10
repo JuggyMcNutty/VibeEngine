@@ -204,6 +204,62 @@ std::string GameWindow::GetAvailableResolutions() const
 	return result;
 }
 
+// Deus Ex's Display menu reads the sizes it offers from GETRES, smallest
+// first with a space between, as the original lists its display modes. It
+// takes at most 16, and none from a list with no space. The fork's window
+// takes any size, so in a window the common sizes from 640x480 that fit the
+// screen are offered, with the window's own size and the screen's; full
+// screen, the window is the screen's size, the one offered, followed by the
+// space the menu needs to read it.
+std::string GameWindow::GetMenuResolutions()
+{
+	Size screen = QueryAvailableResolutions()[0];
+	Size current((double)GetPixelWidth(), (double)GetPixelHeight());
+
+	Array<Size> sizes;
+	if (IsFullscreen())
+	{
+		sizes.push_back(current);
+	}
+	else
+	{
+		static const int common[][2] =
+		{
+			{ 640, 480 }, { 800, 600 }, { 1024, 768 }, { 1152, 864 }, { 1280, 720 }, { 1280, 800 },
+			{ 1280, 960 }, { 1280, 1024 }, { 1366, 768 }, { 1440, 900 }, { 1600, 900 }, { 1600, 1200 },
+			{ 1680, 1050 }, { 1920, 1080 }, { 1920, 1200 }, { 2560, 1440 }, { 2560, 1600 }, { 3840, 2160 }
+		};
+		for (auto& size : common)
+		{
+			if (size[0] <= screen.width && size[1] <= screen.height)
+				AddResolutionIfNotAdded(sizes, Size(size[0], size[1]));
+		}
+		AddResolutionIfNotAdded(sizes, current);
+		AddResolutionIfNotAdded(sizes, screen);
+		std::sort(sizes.begin(), sizes.end(), [](const Size& a, const Size& b) { return a.width != b.width ? a.width < b.width : a.height < b.height; });
+		// The menu's 16 keep the window's own size and the screen's: the
+		// smallest others go first.
+		for (size_t i = 0; sizes.size() > 16 && i < sizes.size();)
+		{
+			if (sizes[i] == current || sizes[i] == screen)
+				i++;
+			else
+				sizes.erase(sizes.begin() + i);
+		}
+	}
+
+	std::string result;
+	for (size_t i = 0; i < sizes.size(); i++)
+	{
+		if (i > 0)
+			result += " ";
+		result += std::to_string((int)sizes[i].width) + "x" + std::to_string((int)sizes[i].height);
+	}
+	if (sizes.size() == 1)
+		result += " ";
+	return result;
+}
+
 void GameWindow::AddResolutionIfNotAdded(Array<Size>& resList, Size resolution) const
 {
 	// Skip over the current resolution if it is already inserted

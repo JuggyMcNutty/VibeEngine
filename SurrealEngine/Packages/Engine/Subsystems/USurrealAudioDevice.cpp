@@ -54,11 +54,11 @@ std::string USurrealAudioDevice::GetPropertyAsString(const NameString& propertyN
 	else if (propertyName == ChannelsKey())
 		return IniPropertyConverter<int>::ToString(Channels);
 	else if (propertyName == "MusicVolume")
-		return IniPropertyConverter<uint8_t>::ToString(MusicVolume);
+		return IniPropertyConverter<uint8_t>::ToString(engine->LaunchInfo.IsDeusEx() ? MusicVolumeSetting : MusicVolume);
 	else if (propertyName == "SoundVolume")
-		return IniPropertyConverter<uint8_t>::ToString(SoundVolume);
+		return IniPropertyConverter<uint8_t>::ToString(engine->LaunchInfo.IsDeusEx() ? SoundVolumeSetting : SoundVolume);
 	else if (propertyName == "SpeechVolume")
-		return IniPropertyConverter<uint8_t>::ToString(SpeechVolume);
+		return IniPropertyConverter<uint8_t>::ToString(engine->LaunchInfo.IsDeusEx() ? SpeechVolumeSetting : SpeechVolume);
 	else if (propertyName == "AmbientFactor")
 		return IniPropertyConverter<float>::ToString(AmbientFactor);
 	else if (propertyName == "DopplerSpeed")
@@ -103,11 +103,11 @@ void USurrealAudioDevice::SetPropertyFromString(const NameString& propertyName, 
 			SetChannelCount();
 	}
 	else if (propertyName == "MusicVolume")
-		MusicVolume = IniPropertyConverter<uint8_t>::FromString(value);
+		MusicVolume = MusicVolumeSetting = IniPropertyConverter<uint8_t>::FromString(value);
 	else if (propertyName == "SoundVolume")
-		SoundVolume = IniPropertyConverter<uint8_t>::FromString(value);
+		SoundVolume = SoundVolumeSetting = IniPropertyConverter<uint8_t>::FromString(value);
 	else if (propertyName == "SpeechVolume")
-		SpeechVolume = IniPropertyConverter<uint8_t>::FromString(value);
+		SpeechVolume = SpeechVolumeSetting = IniPropertyConverter<uint8_t>::FromString(value);
 	else if (propertyName == "AmbientFactor")
 		AmbientFactor = IniPropertyConverter<float>::FromString(value);
 	else if (propertyName == "DopplerSpeed")
@@ -141,6 +141,9 @@ void USurrealAudioDevice::LoadProperties(const NameString& from)
 	MusicVolume = IniPropertyConverter<uint8_t>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "MusicVolume", MusicVolume);
 	SoundVolume = IniPropertyConverter<uint8_t>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "SoundVolume", SoundVolume);
 	SpeechVolume = IniPropertyConverter<uint8_t>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "SpeechVolume", SpeechVolume);
+	MusicVolumeSetting = MusicVolume;
+	SoundVolumeSetting = SoundVolume;
+	SpeechVolumeSetting = SpeechVolume;
 	AmbientFactor = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "AmbientFactor", AmbientFactor);
 	DopplerSpeed = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "DopplerSpeed", DopplerSpeed);
 }
@@ -160,9 +163,10 @@ void USurrealAudioDevice::SaveConfig()
 	engine->packages->SetIniValue("System", Class, "Latency", IniPropertyConverter<int>::ToString(Latency));
 	engine->packages->SetIniValue("System", Class, "OutputRate", IniPropertyConverter<AudioFrequency>::ToString(OutputRate));
 	engine->packages->SetIniValue("System", Class, ChannelsKey(), IniPropertyConverter<int>::ToString(Channels));
-	engine->packages->SetIniValue("System", Class, "MusicVolume", IniPropertyConverter<uint8_t>::ToString(MusicVolume));
-	engine->packages->SetIniValue("System", Class, "SoundVolume", IniPropertyConverter<uint8_t>::ToString(SoundVolume));
-	engine->packages->SetIniValue("System", Class, "SpeechVolume", IniPropertyConverter<uint8_t>::ToString(SpeechVolume));
+	bool dx = engine->LaunchInfo.IsDeusEx();
+	engine->packages->SetIniValue("System", Class, "MusicVolume", IniPropertyConverter<uint8_t>::ToString(dx ? MusicVolumeSetting : MusicVolume));
+	engine->packages->SetIniValue("System", Class, "SoundVolume", IniPropertyConverter<uint8_t>::ToString(dx ? SoundVolumeSetting : SoundVolume));
+	engine->packages->SetIniValue("System", Class, "SpeechVolume", IniPropertyConverter<uint8_t>::ToString(dx ? SpeechVolumeSetting : SpeechVolume));
 	engine->packages->SetIniValue("System", Class, "AmbientFactor", IniPropertyConverter<float>::ToString(AmbientFactor));
 	engine->packages->SetIniValue("System", Class, "DopplerSpeed", IniPropertyConverter<float>::ToString(DopplerSpeed));
 }

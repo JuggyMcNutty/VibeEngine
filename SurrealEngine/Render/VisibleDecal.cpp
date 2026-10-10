@@ -9,9 +9,16 @@
 #include "Packages/Engine/Actors/UDecal.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
 #include "Engine.h"
+#include "Packages/Engine/USurrealClient.h"
 
 void VisibleDecal::DrawDecals(VisibleFrame* frame, BspNode* node)
 {
+	// Deus Ex draws decals only while the client's Decals is on (the
+	// Display menu's Decals; Render.dll's DrawFrame), and leaves them
+	// unstamped when off.
+	if (engine->LaunchInfo.IsDeusEx() && !engine->client->Decals)
+		return;
+
 	for (auto& leveldecal : node->Decals)
 	{
 		if (leveldecal.Decal->Texture())

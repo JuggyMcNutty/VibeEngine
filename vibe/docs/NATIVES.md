@@ -354,8 +354,36 @@ Differs:
 - **A scroll area** always shows its bar, the original's only when what it
   holds does not fit; an edit field is as wide as its text, the original's
   as its box.
-- **The Display screen**: Detail Textures reads Off (the fork's render device
-  has no `DetailTextures` to `GET`), and Screen Resolution shows no value.
+
+## The menus' settings
+
+Matches the original: every setting the Controls, Game Options, Display,
+Sound, Colors and multiplayer Player Setup screens change, stepped through
+its menu and saved with OK, reads back alike in both engines -- the menu's
+value and its setting's `GET` -- and steps back (`SettingsConsole`). A
+volume slider moved but not yet saved plays its new level while `GET` still
+reads the saved one, as the original's subsystem and class default differ.
+Detail Textures draws or leaves the world's detail textures, as the
+original's render device does
+([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures)).
+With Decals off no new decal attaches
+([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)) and the
+ones on the walls are not drawn
+([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame);
+`DecalConsole`). Differs:
+
+- **Screen Resolution** offers the fork's sizes, not the display's modes: in
+  a window the common sizes from 640x480 that fit the screen, with the
+  window's own and the screen's, a choice resizing the window and kept as
+  its size; full screen, the screen's size alone, the fork's full screen
+  being a borderless window that size.
+- **World and Object Texture Detail** are kept and read back, but every
+  texture draws at full detail; **Low Sound Quality** is kept, but every
+  sound plays at its own; 16-bit **Texture Color Depth** is kept, the fork
+  drawing in 32 bits. **Use 3D Hardware** finds no hardware, as the original
+  finds none without an A3D or EAX card.
+- **Rendering Device**, and a dedicated server from the Host screen, send
+  `RELAUNCH`, which the fork does not have: nothing happens.
 
 ## Sound
 

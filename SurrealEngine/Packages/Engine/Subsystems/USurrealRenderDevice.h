@@ -13,6 +13,7 @@ public:
 	bool ShinySurfaces = true;
 	bool Coronas = true;
 	bool HighDetailActors = true;
+	bool DetailTextures = true; // the world's detail textures drawn (the Display menu's Detail Textures)
 
 	void LoadProperties(const NameString& from = "") override;
 	void SaveConfig() override;

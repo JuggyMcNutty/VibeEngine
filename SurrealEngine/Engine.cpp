@@ -2371,6 +2371,8 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	{
 		if (LaunchInfo.IsHarryPotter1()) // FEOptionsPage.IsSupportedResolution is so sad :)
 			return "1024x768";
+		if (LaunchInfo.IsDeusEx())
+			return window->GetMenuResolutions();
 		return window->GetAvailableResolutions();
 	}
 	else if (command == "getcolordepths")
@@ -2674,6 +2676,14 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	else if (command == "setres" && args.size() == 2)
 	{
 		window->SetResolution(args[1]);
+		// A window's new size is kept as the windowed size, which the ini
+		// saves, as the original's SETRES keeps it.
+		int width = 0, height = 0;
+		if (LaunchInfo.IsDeusEx() && !window->IsFullscreen() && sscanf(args[1].c_str(), "%dx%d", &width, &height) == 2 && width >= 640 && height >= 480)
+		{
+			client->WindowedViewportX = width;
+			client->WindowedViewportY = height;
+		}
 	}
 	else if (command == "togglefullscreen")
 	{
@@ -2784,7 +2794,13 @@ void Engine::LoadEngineSettings()
 	{
 		client->LoadProperties("WinDrv.WindowsClient");
 		audiodev->LoadProperties("Galaxy.GalaxyAudioSubsystem");
-		renderdev->LoadProperties("D3DDrv.Direct3DRenderDevice");
+		// Deus Ex's renderer settings are those of the device its ini names
+		// (GameRenderDevice, the game's D3DDrv.D3DRenderDevice); other games
+		// keep upstream's section.
+		if (LaunchInfo.IsDeusEx())
+			renderdev->LoadProperties(packages->GetIniValue("system", "Engine.Engine", "GameRenderDevice", "D3DDrv.D3DRenderDevice"));
+		else
+			renderdev->LoadProperties("D3DDrv.Direct3DRenderDevice");
 	}
 	else
 	{

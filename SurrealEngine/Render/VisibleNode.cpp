@@ -4,6 +4,7 @@
 #include "VisibleDecal.h"
 #include "RenderSubsystem.h"
 #include "Engine.h"
+#include "Packages/Engine/Subsystems/USurrealRenderDevice.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Packages/Engine/Actors/Info/UZoneInfo.h"
@@ -36,8 +37,11 @@ void VisibleNode::Draw(VisibleFrame* frame)
 	engine->render->UpdateTexture(tex);
 	engine->render->UpdateTextureInfo(texture, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
 
+	// Drawn only while the render device's DetailTextures is on, as the
+	// original's (d3ddrv-dll.md, detail textures).
 	TextureInfo detailtex;
-	if (surface.Material && surface.Material->DetailTexture())
+	bool detail = engine->renderdev->DetailTextures && surface.Material && surface.Material->DetailTexture();
+	if (detail)
 	{
 		tex = surface.Material->DetailTexture()->GetAnimTexture();
 		engine->render->UpdateTexture(tex);
@@ -83,7 +87,7 @@ void VisibleNode::Draw(VisibleFrame* frame)
 	surfaceinfo.PolyFlags = PolyFlags;
 	surfaceinfo.Texture = &texture;
 	surfaceinfo.MacroTexture = surface.Material && surface.Material->MacroTexture() ? &macrotex : nullptr;
-	surfaceinfo.DetailTexture = surface.Material && surface.Material->DetailTexture() ? &detailtex : nullptr;
+	surfaceinfo.DetailTexture = detail ? &detailtex : nullptr;
 	surfaceinfo.LightMap = lightmap.NumMips != 0 ? &lightmap : nullptr;
 	surfaceinfo.FogMap = fogmap.NumMips != 0 ? &fogmap : nullptr;
 
