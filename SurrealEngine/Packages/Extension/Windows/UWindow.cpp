@@ -7,6 +7,7 @@
 #include "TabGroup/UTabGroupWindow.h"
 #include "Text/UButtonWindow.h"
 #include <algorithm>
+#include <chrono>
 #include <vector>
 #include "Audio/AudioDevice.h"
 #include "VM/ScriptCall.h"
@@ -130,14 +131,8 @@ void UWindow::UpdateLayout()
 	{
 		if ((wasReconfigured || child->FirstDraw) && !child->bConfigured())
 		{
-			float newWidth = child->hardcodedWidth();
-			float newHeight = child->hardcodedHeight();
-			if (!child->FixedWidth && !child->FixedHeight)
-				child->QueryPreferredSize(newWidth, newHeight);
-			else if (child->FixedWidth)
-				newHeight = child->QueryPreferredHeight(child->FixedWidth);
-			else if (child->FixedHeight)
-				newWidth = child->QueryPreferredWidth(child->FixedHeight);
+			float newWidth = 0.0f, newHeight = 0.0f;
+			child->QueryPreferredSize(newWidth, newHeight);
 			child->Width() = newWidth;
 			child->Height() = newHeight;
 			child->bNeedsReconfigure() = true;
@@ -175,6 +170,39 @@ float UWindow::GetVirtualHeight()
 {
 	float scale = GetVirtualScale();
 	return std::ceil(engine->viewport->ViewportHeight() / scale);
+}
+
+// A number through a script's printf format, as the original's appSprintf
+// prints it (a list's float column, a scale's value). A format that is not a
+// single floating-point conversion is taken as %f, where the original would
+// print whatever it asks for.
+std::string UWindow::FormatScriptFloat(const std::string& format, double value)
+{
+	int conversions = 0;
+	bool valid = true;
+	for (size_t i = 0; i < format.size() && valid; i++)
+	{
+		if (format[i] != '%')
+			continue;
+		i++;
+		if (i < format.size() && format[i] == '%')
+			continue;
+		while (i < format.size() && strchr("-+ #0", format[i]))
+			i++;
+		while (i < format.size() && isdigit((unsigned char)format[i]))
+			i++;
+		if (i < format.size() && format[i] == '.')
+		{
+			i++;
+			while (i < format.size() && isdigit((unsigned char)format[i]))
+				i++;
+		}
+		valid = i < format.size() && strchr("fFeEgGaA", format[i]) != nullptr;
+		conversions++;
+	}
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer), (valid && conversions == 1) ? format.c_str() : "%f", value);
+	return buffer;
 }
 
 float UWindow::GetVirtualScale()
@@ -244,16 +272,45 @@ void UWindow::RemoveTimer(int timerId)
 		ActiveTimers.erase(it);
 }
 
-void UWindow::AskParentToShowArea(std::optional<float> areaX, std::optional<float> areaY, std::optional<float> areaWidth, std::optional<float> areaHeight)
+// The original's (XWindow::AskParentToShowArea 0x1004e230): of the area, the
+// part inside the window; when the window's ancestors hide any of that, the
+// parent is asked to show it -- a clip window scrolls to it -- and then asks
+// its own parent, the area in its coordinates. Only a window that shows asks.
+void UWindow::AskParentToShowArea(float areaX, float areaY, float areaWidth, float areaHeight)
 {
 	UWindow* parent = parentOwner();
-	if (parent)
+	if (!parent || !IsShown())
+		return;
+
+	float x0 = std::max(areaX, 0.0f);
+	float y0 = std::max(areaY, 0.0f);
+	float x1 = std::min(areaX + areaWidth, Width());
+	float y1 = std::min(areaY + areaHeight, Height());
+	if (x1 <= x0 || y1 <= y0)
+		return;
+
+	// The part of the window its ancestors let show, in its coordinates
+	// (the original keeps it as the window's clip rect).
+	float visX0 = 0.0f, visY0 = 0.0f, visX1 = Width(), visY1 = Height();
+	float offsetX = 0.0f, offsetY = 0.0f;
+	for (UWindow* w = this; w->parentOwner(); w = w->parentOwner())
 	{
-		float showX = areaX ? *areaX : X();
-		float showY = areaY ? *areaY : Y();
-		float showWidth = areaWidth ? *areaWidth : Width();
-		float showHeight = areaHeight ? *areaHeight : Height();
-		parent->ChildRequestedShowArea(this, showX, showY, showWidth, showHeight);
+		offsetX -= w->UsedX;
+		offsetY -= w->UsedY;
+		UWindow* ancestor = w->parentOwner();
+		visX0 = std::max(visX0, offsetX);
+		visY0 = std::max(visY0, offsetY);
+		visX1 = std::min(visX1, offsetX + ancestor->Width());
+		visY1 = std::min(visY1, offsetY + ancestor->Height());
+	}
+	float shownWidth = std::min(visX1, x1) - std::max(visX0, x0);
+	float shownHeight = std::min(visY1, y1) - std::max(visY0, y0);
+	if (shownWidth < x1 - x0 || shownHeight < y1 - y0)
+	{
+		parent->ChildRequestedShowArea(this, x0, y0, x1 - x0, y1 - y0);
+		float parentX = 0.0f, parentY = 0.0f;
+		ConvertCoordinates(this, x0, y0, parent, parentX, parentY);
+		parent->AskParentToShowArea(parentX, parentY, x1 - x0, y1 - y0);
 	}
 }
 
@@ -297,9 +354,27 @@ void UWindow::ConvertCoordinates(UWindow* fromWin, float fromX, float fromY, UWi
 	toY = y;
 }
 
+// The original's XWindow::ConvertScriptString (Extension.dll 0x10050710): a
+// script's |n is a line break; every other | stays. The script natives that
+// take text (SetText, AppendText, InsertText) pass it through this, so a
+// window holds and GetText gives the break itself.
 std::string UWindow::ConvertScriptString(const std::string& oldStr)
 {
-	return oldStr;
+	std::string out;
+	out.reserve(oldStr.size());
+	for (size_t i = 0; i < oldStr.size(); i++)
+	{
+		if (oldStr[i] == '|' && i + 1 < oldStr.size() && oldStr[i + 1] == 'n')
+		{
+			out += '\n';
+			i++;
+		}
+		else
+		{
+			out += oldStr[i];
+		}
+	}
+	return out;
 }
 
 // A point in the world to this window's coordinates: projected by the main
@@ -594,11 +669,25 @@ UObject* UWindow::GetTabGroupWindow()
 	return nullptr;
 }
 
+// The windows' clock (XRootWindow::GetWindowsTickOffset 0x1003a3b0): real
+// seconds since the root last ticked its windows, which restarts it -- the
+// windows tick by it, not by the level's time. A held button's or scale's
+// first repeat waits its delay plus the offset, so what of the frame had gone
+// by when the press came is not lost (XWindow::GetTickOffset 0x1004fda0).
+float UWindow::GetWindowsTickOffset(bool bRestart)
+{
+	using Clock = std::chrono::steady_clock;
+	static Clock::time_point lastTick = Clock::now();
+	Clock::time_point now = Clock::now();
+	float offset = std::chrono::duration<float>(now - lastTick).count();
+	if (bRestart)
+		lastTick = now;
+	return offset;
+}
+
 float UWindow::GetTickOffset()
 {
-	// Not called directly by script
-	LogUnimplemented("Window.GetTickOffset");
-	return 0.0f;
+	return GetWindowsTickOffset(false);
 }
 
 UObject* UWindow::GetTopChild(std::optional<bool> bVisibleOnly)
@@ -687,6 +776,19 @@ bool UWindow::IsSensitive(std::optional<bool> bRecurse)
 		}
 	}
 	return false;
+}
+
+// The window and every ancestor visible: it shows if the root does. The
+// original's natives walk this chain before acting (a scale's attributes, a
+// shown area).
+bool UWindow::IsShown()
+{
+	for (UWindow* w = this; w; w = w->parentOwner())
+	{
+		if (!w->bIsVisible())
+			return false;
+	}
+	return true;
 }
 
 bool UWindow::IsVisible(std::optional<bool> bRecurse)
@@ -821,29 +923,52 @@ static void CollectGroupWindows(UWindow* w, UWindow* also, std::vector<UWindow*>
 	}
 }
 
+// Each window's place on the screen, which the original sorts by: its
+// clip rect's origin, in the root's coordinates (the comparers at
+// 0x10045250 and 0x100452d0).
+static std::vector<std::pair<UWindow*, vec2>> GroupWindowPlaces(UWindow* group, UWindow* also)
+{
+	std::vector<UWindow*> windows;
+	CollectGroupWindows(group, also, windows);
+	std::vector<std::pair<UWindow*, vec2>> places;
+	URootWindow* root = group->GetRootWindow();
+	for (UWindow* w : windows)
+	{
+		vec2 place = { 0.0f, 0.0f };
+		if (root)
+			group->ConvertCoordinates(w, 0.0f, 0.0f, root, place.x, place.y);
+		places.push_back({ w, place });
+	}
+	return places;
+}
+
 static std::vector<UWindow*> GroupWindowsByRow(UWindow* group, UWindow* also = nullptr)
 {
-	std::vector<UWindow*> out;
-	CollectGroupWindows(group, also, out);
-	std::stable_sort(out.begin(), out.end(), [](UWindow* a, UWindow* b)
+	auto places = GroupWindowPlaces(group, also);
+	std::stable_sort(places.begin(), places.end(), [](const auto& a, const auto& b)
 	{
-		if (a->Y() != b->Y()) return a->Y() < b->Y();
-		if (a->X() != b->X()) return a->X() < b->X();
-		return a < b;
+		if (a.second.y != b.second.y) return a.second.y < b.second.y;
+		if (a.second.x != b.second.x) return a.second.x < b.second.x;
+		return a.first < b.first;
 	});
+	std::vector<UWindow*> out;
+	for (const auto& place : places)
+		out.push_back(place.first);
 	return out;
 }
 
 static std::vector<UWindow*> GroupWindowsByColumn(UWindow* group, UWindow* also = nullptr)
 {
-	std::vector<UWindow*> out;
-	CollectGroupWindows(group, also, out);
-	std::stable_sort(out.begin(), out.end(), [](UWindow* a, UWindow* b)
+	auto places = GroupWindowPlaces(group, also);
+	std::stable_sort(places.begin(), places.end(), [](const auto& a, const auto& b)
 	{
-		if (a->X() != b->X()) return a->X() < b->X();
-		if (a->Y() != b->Y()) return a->Y() < b->Y();
-		return a < b;
+		if (a.second.x != b.second.x) return a.second.x < b.second.x;
+		if (a.second.y != b.second.y) return a.second.y < b.second.y;
+		return a.first < b.first;
 	});
+	std::vector<UWindow*> out;
+	for (const auto& place : places)
+		out.push_back(place.first);
 	return out;
 }
 
@@ -1053,7 +1178,11 @@ UObject* UWindow::NewChild(UObject* NewClass, std::optional<bool> bShow)
 {
 	bool show = !bShow || *bShow;
 	//LogMessage(GetUClassFullName(this).ToString() + ": NewChild(" + NewClass->Name.ToString() + ", " + (show ? "true" : "false") + ")");
-	auto child = UObject::Cast<UWindow>(engine->packages->GetTransientPackage()->NewObject(NewClass->Name.ToString(), UObject::Cast<UClass>(NewClass), ObjectFlags::Transient));
+	// Named after its class and a number, as the original names it
+	// (HUDKeypadWindow0).
+	Package* transient = engine->packages->GetTransientPackage();
+	UClass* childClass = UObject::Cast<UClass>(NewClass);
+	auto child = UObject::Cast<UWindow>(transient->NewObject(transient->MakeUniqueObjectName(childClass), childClass, ObjectFlags::Transient));
 	child->parentOwner() = this;
 	child->prevSibling() = lastChild();
 	child->nextSibling() = nullptr;
@@ -1130,9 +1259,15 @@ void UWindow::PlaySound(UObject* newsound, std::optional<float> Volume, std::opt
 	}
 }
 
+// The original's (XWindow::QueryGranularity 0x1004e9e0): a pixel unless the
+// window says more, and never less.
 void UWindow::QueryGranularity(float& hGranularity, float& vGranularity)
 {
+	hGranularity = 1.0f;
+	vGranularity = 1.0f;
 	ParentRequestedGranularity(hGranularity, vGranularity);
+	hGranularity = std::max(hGranularity, 1.0f);
+	vGranularity = std::max(vGranularity, 1.0f);
 }
 
 void UWindow::Raise()
@@ -1459,69 +1594,90 @@ void UWindow::SetPos(float newX, float newY)
 	Y() = newY;
 }
 
-void UWindow::QueryPreferredSize(float& preferredWidth, float& preferredHeight)
+// The original's (XWindow::QueryPreferredSize 0x1004e790): a size the
+// window was given (SetSize, SetWidth) counts as asked for; with either side
+// not asked for, the window says (ParentRequestedPreferredSize, -1 standing
+// for a side not asked for), and a side it leaves below 0 is its background's
+// size, else its own size now -- a plain window's 10 by 10 from its start.
+void UWindow::QueryPreferredSize(bool bWidthSpecified, float width, float* outWidth, bool bHeightSpecified, float height, float* outHeight)
 {
-	if (!FixedWidth || !FixedHeight)
+	if (!bWidthSpecified)
 	{
-		if (Background())
+		if (FixedWidth)
 		{
-			preferredWidth = (float)Background()->USize();
-			preferredHeight = (float)Background()->VSize();
+			bWidthSpecified = true;
+			width = hardcodedWidth();
 		}
-		ParentRequestedPreferredSize(false, preferredWidth, false, preferredHeight);
+		else
+		{
+			width = -1.0f;
+		}
 	}
-
-	if (FixedWidth)
-		preferredWidth = hardcodedWidth();
-
-	if (FixedHeight)
-		preferredHeight = hardcodedHeight();
-
-	lastQueryWidth() = preferredWidth;
-	lastQueryHeight() = preferredHeight;
+	if (!bHeightSpecified)
+	{
+		if (FixedHeight)
+		{
+			bHeightSpecified = true;
+			height = hardcodedHeight();
+		}
+		else
+		{
+			height = -1.0f;
+		}
+	}
+	if (!bWidthSpecified || !bHeightSpecified)
+	{
+		float askedWidth = width, askedHeight = height;
+		ParentRequestedPreferredSize(bWidthSpecified, askedWidth, bHeightSpecified, askedHeight);
+		if (!bWidthSpecified)
+			width = askedWidth;
+		if (!bHeightSpecified)
+			height = askedHeight;
+		lastQueryWidth() = width;
+		lastQueryHeight() = height;
+		if (width < 0.0f)
+			width = Background() ? (float)Background()->USize() : Width();
+		if (height < 0.0f)
+			height = Background() ? (float)Background()->VSize() : Height();
+	}
+	if (outWidth)
+		*outWidth = width;
+	if (outHeight)
+		*outHeight = height;
 }
 
+void UWindow::QueryPreferredSize(float& preferredWidth, float& preferredHeight)
+{
+	QueryPreferredSize(false, 0.0f, &preferredWidth, false, 0.0f, &preferredHeight);
+}
+
+// The original's (XWindow::QueryPreferredWidth 0x1004e5f0, QueryPreferredHeight
+// 0x1004e680): the other side asked for.
 float UWindow::QueryPreferredWidth(float queryHeight)
 {
 	float width = 0.0f;
-
-	if (FixedWidth)
-	{
-		width = hardcodedWidth();
-	}
-	else
-	{
-		if (Background())
-			width = (float)Background()->USize();
-		ParentRequestedPreferredSize(false, width, true, queryHeight);
-	}
-
-	lastQueryWidth() = width;
+	QueryPreferredSize(false, 0.0f, &width, true, queryHeight, nullptr);
 	return width;
 }
 
 float UWindow::QueryPreferredHeight(float queryWidth)
 {
 	float height = 0.0f;
-
-	if (FixedHeight)
-	{
-		height = hardcodedHeight();
-	}
-	else
-	{
-		if (Background())
-			height = (float)Background()->VSize();
-		ParentRequestedPreferredSize(true, queryWidth, false, height);
-	}
-
-	lastQueryWidth() = height;
+	QueryPreferredSize(true, queryWidth, nullptr, false, 0.0f, &height);
 	return height;
 }
 
+// The original's (XWindow::AskParentForReconfigure 0x1004e060) marks the
+// window itself too: it is configured again even at the same size, so a
+// window whose look changed (a scale's textures) recomputes its own layout.
+// Only a window that shows asks its parents: one made inside a window's
+// InitWindow, before that window shows, does not reach its script.
 void UWindow::AskParentForReconfigure()
 {
 	//LogMessage(GetUClassFullName(this).ToString() + ": AskParentForReconfigure");
+	bNeedsReconfigure() = true;
+	if (!IsShown())
+		return;
 	for (UWindow* cur = parentOwner(); cur != nullptr; cur = cur->parentOwner())
 	{
 		cur->bNeedsReconfigure() = true;
@@ -1541,11 +1697,9 @@ void UWindow::ConfigureChild(float newX, float newY, float newWidth, float newHe
 {
 	//LogMessage(GetUClassFullName(this).ToString() + ": ConfigureChild(" + std::to_string(newX) + ", " + std::to_string(newY) + ", " + std::to_string(newWidth) + ", " + std::to_string(newHeight) + ")");
 
-	if (FixedWidth)
-		newWidth = hardcodedWidth();
-	if (FixedHeight)
-		newHeight = hardcodedHeight();
-
+	// The size the parent gives is the window's, a size set on the window
+	// only what it asks for (XWindow::ConfigureChild 0x1004ec50): a tile
+	// that fills its width widens a child that set its own.
 	if (UWindow* owner = parentOwner())
 	{
 		if ((EHAlign)winHAlign() == EHAlign::Full)
@@ -1604,17 +1758,43 @@ void UWindow::SetWindowAlignments(uint8_t HAlign, uint8_t VAlign, std::optional<
 		vMargin1() = *newVMargin0;
 }
 
+// A new window: its class's own defaults, each class's after its parent
+// class's (as the original's Init chain sets them), then the script's
+// InitWindow.
 void UWindow::InitWindow()
 {
-	//LogMessage(GetUClassFullName(this).ToString() + ": InitWindow");
-
-	TextColor() = { 255, 255, 255, 255 };
-	//textPlane() = vec4(1.0f);
-	tileColor() = { 255, 255, 255, 255 };
-	//tilePlane() = vec4(1.0f);
-	backgroundStyle() = (uint8_t)EDrawStyle::Translucent;
-
+	InitDefaults();
 	CallEvent(this, "InitWindow");
+}
+
+// The original's XWindow::Init (Extension.dll 0x1004bb30): 10 by 10 at the
+// parent's corner -- the size a window asked for one it does not set falls
+// back to (an empty text window is a line high by it) -- green text, white
+// tiles, the normal style, a line spacing of 1, special text on, the GC's
+// underline 1 high and 2 up from a character's foot, and the fonts of the
+// nearest ancestor that has any.
+void UWindow::InitDefaults()
+{
+	X() = 0.0f;
+	Y() = 0.0f;
+	Width() = 10.0f;
+	Height() = 10.0f;
+	TextColor() = { 0, 255, 0, 255 };
+	tileColor() = { 255, 255, 255, 255 };
+	backgroundStyle() = (uint8_t)EDrawStyle::Normal;
+	textVSpacing() = 1.0f;
+	bSpecialText() = true;
+	BaselineOffset = 2.0f;
+	UnderlineHeight = 1.0f;
+	for (UWindow* ancestor = parentOwner(); ancestor; ancestor = ancestor->parentOwner())
+	{
+		if (ancestor->normalFont() || ancestor->boldFont())
+		{
+			normalFont() = ancestor->normalFont();
+			boldFont() = ancestor->boldFont();
+			break;
+		}
+	}
 }
 
 void UWindow::DestroyWindow()
@@ -1784,6 +1964,14 @@ bool UWindow::ButtonActivated(UWindow* button)
 	return CallEvent(this, "ButtonActivated", { ExpressionValue::ObjectValue(button) }).ToBool();
 }
 
+// A right click's activation (XWindow::ButtonActivatedRight 0x10003d50): the
+// script function of that name, which Window declares no event for -- the
+// game's menu choices define it, to step back a value.
+bool UWindow::ButtonActivatedRight(UWindow* button)
+{
+	return CallEvent(this, "ButtonActivatedRight", { ExpressionValue::ObjectValue(button) }).ToBool();
+}
+
 bool UWindow::ToggleChanged(UWindow* button, bool bNewToggle)
 {
 	return CallEvent(this, "ToggleChanged", {
@@ -1824,7 +2012,7 @@ bool UWindow::ScaleRangeChanged(UWindow* scale, int fromTick, int toTick, float 
 
 bool UWindow::ScaleAttributesChanged(UWindow* scale, int tickPosition, int tickSpan, int numTicks)
 {
-	return CallEvent(this, "ScaleRangeChanged", {
+	return CallEvent(this, "ScaleAttributesChanged", {
 		ExpressionValue::ObjectValue(scale),
 		ExpressionValue::IntValue(tickPosition),
 		ExpressionValue::IntValue(tickSpan),
@@ -1832,10 +2020,10 @@ bool UWindow::ScaleAttributesChanged(UWindow* scale, int tickPosition, int tickS
 		}).ToBool();
 }
 
-bool UWindow::ClipAttributesChanged(UWindow* scale, int newClipWidth, int newClipHeight, int newChildWidth, int newChildHeight)
+bool UWindow::ClipAttributesChanged(UWindow* clip, int newClipWidth, int newClipHeight, int newChildWidth, int newChildHeight)
 {
 	return CallEvent(this, "ClipAttributesChanged", {
-		ExpressionValue::ObjectValue(scale),
+		ExpressionValue::ObjectValue(clip),
 		ExpressionValue::IntValue(newClipWidth),
 		ExpressionValue::IntValue(newClipHeight),
 		ExpressionValue::IntValue(newChildWidth),
@@ -1860,6 +2048,15 @@ bool UWindow::ListSelectionChanged(UWindow* list, int numSelections, int focusRo
 		}).ToBool();
 }
 
+bool UWindow::ClipPositionChanged(UWindow* clip, int newCol, int newRow)
+{
+	return CallEvent(this, "ClipPositionChanged", {
+		ExpressionValue::ObjectValue(clip),
+		ExpressionValue::IntValue(newCol),
+		ExpressionValue::IntValue(newRow)
+		}).ToBool();
+}
+
 bool UWindow::TextChanged(UWindow* edit, bool bModified)
 {
 	return CallEvent(this, "TextChanged", {
@@ -1876,7 +2073,7 @@ bool UWindow::EditActivated(UWindow* edit, bool bModified)
 		}).ToBool();
 }
 
-void UWindow::DrawWindow(UGC* gc)
+void UWindow::DrawBackground(UGC* gc)
 {
 	if (bDrawRawBackground())
 	{
@@ -1900,7 +2097,10 @@ void UWindow::DrawWindow(UGC* gc)
 		}
 		// DrawDebugBox(gc);
 	}
+}
 
+void UWindow::DrawWindow(UGC* gc)
+{
 	CallEvent(this, "DrawWindow", { ExpressionValue::ObjectValue(gc) });
 }
 
@@ -1929,30 +2129,34 @@ void UWindow::DescendantRemoved(UWindow* descendant)
 	CallEvent(this, "DescendantRemoved", { ExpressionValue::ObjectValue(descendant) });
 }
 
+// The root's own tick (Extension.dll XRootWindow::Tick 0x1003a540): while
+// nothing has the focus, the topmost modal -- the root itself with none up --
+// seeds it, unless its focusMode is MFOCUS_EnterLeave (the keypad's): its
+// preferred window if that can take the focus (SetFocusWindow keeps the last
+// focus there), else as a move to the next tab group gives it, from the
+// table's first. This is how a conversation's choices light up as they
+// appear, and a menu's first button too. The original then ticks its modal
+// half (an accelerator-table rebuild the fork has no table for). The tab
+// groups go in the order of their windows' places, which the original has
+// as soon as a window is made; the fork places windows in its layout pass,
+// so it seeds the focus after that pass (RenderSubsystem::PreRenderWindows).
+void UWindow::SeedFocus()
+{
+	URootWindow* root = GetRootWindow();
+	if (!root || root->FocusWindow())
+		return;
+	UModalWindow* holder = UObject::TryCast<UModalWindow>(TopmostModal(root));
+	if (holder && holder->focusMode() != (uint8_t)EMouseFocusMode::EnterLeave)
+	{
+		if (holder->preferredFocus() && holder->preferredFocus()->IsTraversable(true))
+			root->SetRootFocusWindow(holder->preferredFocus());
+		if (!root->FocusWindow())
+			MoveTabGroup(true);
+	}
+}
+
 void UWindow::Tick(float timeElapsed)
 {
-	// The root's own tick (Extension.dll XRootWindow::Tick 0x1003a540):
-	// while nothing has the focus, the topmost modal -- the root itself with
-	// none up -- seeds it, unless its focusMode is MFOCUS_EnterLeave (the
-	// keypad's): its preferred window if that can take the focus
-	// (SetFocusWindow keeps the last focus there), else as a move to the next
-	// tab group gives it, from the table's first. This is how a
-	// conversation's choices light up as they appear, and a menu's first
-	// button too. The original then ticks its modal half (an
-	// accelerator-table rebuild the fork has no table for).
-	if (engine->dxRootWindow == this && !GetRootWindow()->FocusWindow())
-	{
-		URootWindow* root = GetRootWindow();
-		UModalWindow* holder = UObject::TryCast<UModalWindow>(TopmostModal(root));
-		if (holder && holder->focusMode() != (uint8_t)EMouseFocusMode::EnterLeave)
-		{
-			if (holder->preferredFocus() && holder->preferredFocus()->IsTraversable(true))
-				root->SetRootFocusWindow(holder->preferredFocus());
-			if (!root->FocusWindow())
-				MoveTabGroup(true);
-		}
-	}
-
 	if (bTickEnabled())
 		CallEvent(this, "Tick", { ExpressionValue::FloatValue(timeElapsed) });
 

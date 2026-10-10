@@ -43,10 +43,11 @@ public:
 	void Mark(GCMarker& marker) override;
 
 	FontGlyph GetGlyph(char c) const;
+	FontGlyph GetPageGlyph(uint8_t c) const;
 
 private:
 	FontGlyph FindGlyph(char c) const;
 
 	Array<FontPage> pages;
-	int charactersPerPage;
+	int charactersPerPage = 0;
 };

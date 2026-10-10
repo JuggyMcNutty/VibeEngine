@@ -740,6 +740,7 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Extension/Windows/TabGroup/URadioBoxWindow.h
 	SurrealEngine/Packages/Extension/Windows/TabGroup/URootWindow.cpp
 	SurrealEngine/Packages/Extension/Windows/TabGroup/URootWindow.h
+	SurrealEngine/Packages/Extension/Windows/TabGroup/UTabGroupWindow.cpp
 	SurrealEngine/Packages/Extension/Windows/TabGroup/UTabGroupWindow.h
 	SurrealEngine/Packages/Extension/Windows/Text/UButtonWindow.cpp
 	SurrealEngine/Packages/Extension/Windows/Text/UButtonWindow.h

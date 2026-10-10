@@ -160,7 +160,7 @@ public:
 	void AddActorRef(UObject* refActor);
 	int AddTimer(float TimeOut, std::optional<bool> bLoop, std::optional<int> clientData, std::optional<NameString> functionName);
 	void AskParentForReconfigure();
-	void AskParentToShowArea(std::optional<float> areaX, std::optional<float> areaY, std::optional<float> areaWidth, std::optional<float> areaHeight);
+	void AskParentToShowArea(float areaX, float areaY, float areaWidth, float areaHeight);
 	std::string CarriageReturn();
 	void ChangeStyle();
 	void ConfigureChild(float newX, float newY, float newWidth, float NewHeight);
@@ -192,6 +192,7 @@ public:
 	void CheckGrabbedWindow();
 	UObject* MoveFocus(int dir);
 	float GetTickOffset();
+	static float GetWindowsTickOffset(bool bRestart);
 	UObject* GetTopChild(std::optional<bool> bVisibleOnly);
 	void GrabMouse();
 	void Hide();
@@ -201,6 +202,7 @@ public:
 	bool IsPointInWindow(float pointX, float pointY);
 	bool IsSensitive(std::optional<bool> bRecurse);
 	bool IsVisible(std::optional<bool> bRecurse);
+	bool IsShown();
 	void Lower();
 	//UObject* MoveFocus(EMove direction);
 	UObject* MoveFocusDown();
@@ -215,6 +217,7 @@ public:
 	void QueryGranularity(float& hGranularity, float& vGranularity);
 	float QueryPreferredHeight(float queryWidth);
 	void QueryPreferredSize(float& preferredWidth, float& preferredHeight);
+	void QueryPreferredSize(bool bWidthSpecified, float width, float* outWidth, bool bHeightSpecified, float height, float* outHeight);
 	float QueryPreferredWidth(float queryHeight);
 	void Raise();
 	void ReleaseGC(UObject* GC);
@@ -258,11 +261,13 @@ public:
 
 	void DetachFromParent();
 	void UpdateLayout();
+	void SeedFocus();
 
 	void DrawDebugBox(UGC* gc);
 
 	// Events (sent to unrealscript, can be overriden by native windows)
-	virtual void InitWindow();
+	void InitWindow();
+	virtual void InitDefaults();
 	virtual void DestroyWindow();
 	virtual void WindowReady();
 	virtual void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight);
@@ -288,17 +293,20 @@ public:
 	virtual void FocusEnteredDescendant(UWindow* enterWindow);
 	virtual void FocusLeftDescendant(UWindow* leaveWindow);
 	virtual bool ButtonActivated(UWindow* button);
+	virtual bool ButtonActivatedRight(UWindow* button);
 	virtual bool ToggleChanged(UWindow* button, bool bNewToggle);
 	virtual bool BoxOptionSelected(UWindow* box, int buttonNumber);
 	virtual bool ScalePositionChanged(UWindow* scale, int newTickPosition, float newValue, bool bFinal);
 	virtual bool ScaleRangeChanged(UWindow* scale, int fromTick, int toTick, float fromValue, float toValue, bool bFinal);
 	virtual bool ScaleAttributesChanged(UWindow* scale, int tickPosition, int tickSpan, int numTicks);
-	virtual bool ClipAttributesChanged(UWindow* scale, int newClipWidth, int newClipHeight, int newChildWidth, int newChildHeight);
+	virtual bool ClipAttributesChanged(UWindow* clip, int newClipWidth, int newClipHeight, int newChildWidth, int newChildHeight);
+	virtual bool ClipPositionChanged(UWindow* clip, int newCol, int newRow);
 	virtual bool ListRowActivated(UWindow* list, int rowId);
 	virtual bool ListSelectionChanged(UWindow* list, int numSelections, int focusRowId);
 	virtual bool TextChanged(UWindow* edit, bool bModified);
 	virtual bool EditActivated(UWindow* edit, bool bModified);
 	virtual void DrawWindow(UGC* gc);
+	void DrawBackground(UGC* gc);
 	virtual void PostDrawWindow(UGC* gc);
 	virtual void ChildAdded(UWindow* child);
 	virtual void ChildRemoved(UWindow* child);
@@ -311,6 +319,7 @@ public:
 	static float GetExtendedVirtualWidth();
 	static float GetVirtualHeight();
 	static float GetVirtualScale();
+	static std::string FormatScriptFloat(const std::string& format, double value);
 
 	UTexture*& Background() { return Value<UTexture*>(PropOffsets_Window.Background); }
 	float& Height() { return Value<float>(PropOffsets_Window.Height); }

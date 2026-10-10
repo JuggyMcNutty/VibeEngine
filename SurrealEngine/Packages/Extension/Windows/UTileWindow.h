@@ -19,12 +19,14 @@ public:
 	void SetOrder(EOrder newOrder);
 	void SetOrientation(uint8_t newOrientation);
 
+	void InitDefaults() override;
 	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
+	void ParentRequestedGranularity(float& hGranularity, float& vGranularity) override;
 	void ConfigurationChanged() override;
 	bool ChildRequestedReconfiguration(UWindow* childWin) override;
+	void ChildRequestedVisibilityChange(UWindow* childWin, bool bNewVisibility) override;
 	void ChildAdded(UWindow* child) override;
 	void ChildRemoved(UWindow* child) override;
-	void DrawWindow(UGC* gc) override;
 
 	BitfieldBool bEqualHeight() { return BoolValue(PropOffsets_TileWindow.bEqualHeight); }
 	BitfieldBool bEqualWidth() { return BoolValue(PropOffsets_TileWindow.bEqualWidth); }
@@ -40,4 +42,17 @@ public:
 	uint8_t& vChildAlign() { return Value<uint8_t>(PropOffsets_TileWindow.vChildAlign); }
 	uint8_t& vDirection() { return Value<uint8_t>(PropOffsets_TileWindow.vDirection); }
 	float& vMargin() { return Value<float>(PropOffsets_TileWindow.vMargin); }
+
+private:
+	void ComputeChildSizes(bool bWidthSpecified, float& width, bool bHeightSpecified, float& height);
+
+	// A row (a column, down a vertical tile) of children: how thick it is
+	// across, how long along, and how many are in it.
+	struct Row
+	{
+		int Thickness = 0;
+		int Length = 0;
+		int Count = 0;
+	};
+	Array<Row> Rows;
 };

@@ -43,7 +43,7 @@ public:
 	void SetTypingSoundVolume(float newSoundVolume);
 	void ShowTextCursor(std::optional<bool> bShow);
 
-	void InitWindow() override;
+	void InitDefaults() override;
 	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
 	void DrawWindow(UGC* gc) override;
 

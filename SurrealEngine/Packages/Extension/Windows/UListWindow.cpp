@@ -32,8 +32,11 @@ static int CompareText(const std::string& a, const std::string& b, bool caseSens
 	return a.size() == b.size() ? 0 : (a.size() < b.size() ? -1 : 1);
 }
 
-void UListWindow::InitWindow()
+void UListWindow::InitDefaults()
 {
+	UWindow::InitDefaults();
+	// Selectable, as the original's XListWindow::Init makes it.
+	bIsSelectable() = true;
 	focusLine() = -1;
 	anchorLine() = -1;
 	lastIndex() = -1;
@@ -49,7 +52,6 @@ void UListWindow::InitWindow()
 	rowMargin() = 1.0f;
 	focusThickness() = 1.0f;
 	SetNumColumns(1);
-	UWindow::InitWindow();
 }
 
 // A row's text split at the delimiter's first character, a field a column:
@@ -109,43 +111,10 @@ void UListWindow::SetFieldByValue(Item& item, int colIndex, float value)
 }
 
 // The text a number shows as: through a float column's format, %f for any
-// other column. A format is the script's; one that is not a single
-// floating-point conversion is taken as %f, where the original would print
-// whatever it asks for.
+// other column.
 std::string UListWindow::FieldConvertToString(const Column& col, float value)
 {
-	std::string format = "%f";
-	if (col.type == ColTypeFloat)
-	{
-		int conversions = 0;
-		bool valid = true;
-		const std::string& f = col.format;
-		for (size_t i = 0; i < f.size() && valid; i++)
-		{
-			if (f[i] != '%')
-				continue;
-			i++;
-			if (i < f.size() && f[i] == '%')
-				continue;
-			while (i < f.size() && strchr("-+ #0", f[i]))
-				i++;
-			while (i < f.size() && isdigit((unsigned char)f[i]))
-				i++;
-			if (i < f.size() && f[i] == '.')
-			{
-				i++;
-				while (i < f.size() && isdigit((unsigned char)f[i]))
-					i++;
-			}
-			valid = i < f.size() && strchr("fFeEgGaA", f[i]) != nullptr;
-			conversions++;
-		}
-		if (valid && conversions == 1)
-			format = f;
-	}
-	char buffer[256];
-	snprintf(buffer, sizeof(buffer), format.c_str(), (double)value);
-	return buffer;
+	return FormatScriptFloat(col.type == ColTypeFloat ? col.format : "%f", value);
 }
 
 float UListWindow::StringToFloat(const std::string& text)
@@ -282,10 +251,13 @@ void UListWindow::ParentRequestedPreferredSize(bool bWidthSpecified, float& pref
 	preferredHeight = (float)items.size() * GetLineHeight();
 }
 
+// The original's (XListWindow::ParentRequestedGranularity 0x100332c0): a
+// row down, a pixel across; then the script's say.
 void UListWindow::ParentRequestedGranularity(float& hGranularity, float& vGranularity)
 {
 	hGranularity = 1.0f;
 	vGranularity = GetLineHeight();
+	UWindow::ParentRequestedGranularity(hGranularity, vGranularity);
 }
 
 // With auto-expanding columns, each field set widens its column to the

@@ -39,7 +39,8 @@ public:
 	void SetTextChangedFlag(std::optional<bool> bSet);
 	void Undo();
 
-	void InitWindow() override;
+	void InitDefaults() override;
+	bool FilterChar(std::string& ch);
 	void Tick(float timeElapsed) override;
 	void DrawWindow(UGC* gc) override;
 	bool KeyPressed(std::string key) override;

@@ -7,8 +7,11 @@ class UClipWindow : public UTabGroupWindow
 public:
 	using UTabGroupWindow::UTabGroupWindow;
 
+	void InitDefaults() override;
 	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
 	void ConfigurationChanged() override;
+	void ChildRequestedVisibilityChange(UWindow* childWin, bool bNewVisibility) override;
+	void ChildRequestedShowArea(UWindow* child, float showX, float showY, float showWidth, float showHeight) override;
 
 	void EnableSnapToUnits(std::optional<bool> bNewSnapToUnits);
 	void ForceChildSize(std::optional<bool> bNewForceChildWidth, std::optional<bool> bNewForceChildHeight);
@@ -22,6 +25,8 @@ public:
 	void SetUnitHeight(int vUnits);
 	void SetUnitSize(int hUnits, int vUnits);
 	void SetUnitWidth(int hUnits);
+
+	void QueryClipPreferredSize(bool bWidthSpecified, float width, float& outWidth, bool& bNeedHScroll, bool bHeightSpecified, float height, float& outHeight, bool& bNeedVScroll);
 
 	int& areaHSize() { return Value<int>(PropOffsets_ClipWindow.areaHSize); }
 	int& areaVSize() { return Value<int>(PropOffsets_ClipWindow.areaVSize); }
@@ -39,5 +44,10 @@ public:
 	float& vMult() { return Value<float>(PropOffsets_ClipWindow.vMult); }
 
 private:
-	vec2 ChildPos = { 0.0f, 0.0f };
+	UWindow* GetChildWindow();
+	void GetChildUnits(UWindow* child, float& hUnit, float& vUnit);
+	void ClampChildPosition(float& x, float& y, float childWidth, float childHeight);
+	void GetChildPreferredSize(UWindow* child, bool bWidthSpecified, float width, bool bHeightSpecified, float height);
+	void GetClipPreferredSize(UWindow* child, bool bWidthSpecified, float& width, bool bHeightSpecified, float& height);
+	void ReconfigureChild(UWindow* child, int col, int row, float width, float height);
 };

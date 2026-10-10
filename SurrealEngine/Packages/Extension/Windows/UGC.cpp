@@ -7,19 +7,11 @@
 #include "Packages/Engine/Resources/UFont.h"
 #include "Packages/Engine/Resources/UPalette.h"
 
-// Hardcoded |p colors
-// Perhaps corresponding to CSS color names?
-// TODO: Figure out the rest
-static Color s_PColors[] = {
-	Color{  0,   0,   0, 255}, // p0 = ???
-	Color{255, 255, 255, 255}, // p1 = ??? (White maybe?)
-	Color{255, 255, 255, 255}, // p2 = ???
-	Color{255, 255, 255, 255}, // p3 = ???
-	Color{255, 255,   0, 255}, // p4 = Yellow
-	Color{  0,   0, 139, 255}, // p5 = Dark Blue
-	Color{255, 255, 255, 255}, // p6 = ???
-	Color{  0, 255, 255, 255}  // p7 = Cyan
-	// Are there more colors???
+// |p0 to |p7's colours (XGC::GetNextChar's palette, Extension.dll 0x100294d0).
+static const Color TextPalette[8] =
+{
+	{ 0, 0, 0, 255 }, { 255, 255, 255, 255 }, { 255, 0, 0, 255 }, { 0, 255, 0, 255 },
+	{ 255, 255, 0, 255 }, { 0, 0, 255, 255 }, { 255, 0, 255, 255 }, { 0, 255, 255, 255 }
 };
 
 void UGC::ClearZ()
@@ -87,34 +79,78 @@ void UGC::DrawActor(UObject* Actor, std::optional<bool> bClearZ, std::optional<b
 		actor->MultiSkins()[i] = oldMultiSkins[i];
 }
 
+// The original's XGC::DrawText (0x10028180): the text clipped to its box,
+// placed down it by the vertical alignment, broken into lines at the word
+// wrap's width (the box's, cut to whole pixels, with word wrap on; none
+// with it off), each line placed across by the horizontal alignment (a
+// centred one by whole pixels), a line as tall as its tallest character or
+// a space, plus the GC's line spacing.
 void UGC::DrawText(float DestX, float DestY, float destWidth, float destHeight, const std::string& textStr)
 {
 	if (!bDrawEnabled())
 		return;
 
-	UFont* font = normalFont();
-	if (font)
-	{
-		float x = offsetX + DestX;
-		float y = offsetY + DestY;
-		uint32_t polyflags = EffectiveTextPolyFlags();
+	float wrap = bWordWrap() ? (float)(int)destWidth : 0.0f;
 
-		auto valign = (EVAlign)VAlign();
-		if (valign == EVAlign::Top)
-		{
-			DrawText(font, x, y, destWidth, textStr, TextColor(), polyflags);
-		}
-		else if (valign == EVAlign::Center || valign == EVAlign::Full)
-		{
-			Sizef extents = DrawText(font, x, y, destWidth, textStr, TextColor(), polyflags, true);
-			DrawText(font, x, y + (destHeight - extents.height) * 0.5f, destWidth, textStr, TextColor(), polyflags);
-		}
+	PushClip(ScaleRect(Rectf::xywh(offsetX + DestX, offsetY + DestY, destWidth, destHeight)));
+
+	auto valign = (EVAlign)VAlign();
+	if (valign != EVAlign::Top)
+	{
+		float textWidth = 0.0f, textHeight = 0.0f;
+		GetTextExtent(wrap, textWidth, textHeight, textStr);
+		if (valign == EVAlign::Center)
+			DestY += (float)((int)(destHeight - textHeight) / 2);
 		else if (valign == EVAlign::Bottom)
-		{
-			Sizef extents = DrawText(font, x, y, destWidth, textStr, TextColor(), polyflags, true);
-			DrawText(font, x, y + destHeight - extents.height, destWidth, textStr, TextColor(), polyflags);
-		}
+			DestY = DestY + destHeight - textHeight;
 	}
+
+	TextState state;
+	state.color = TextColor();
+	bool bold = false;
+	UFont* font = normalFont();
+	auto halign = (EHAlign)HAlign();
+	const uint8_t* text = (const uint8_t*)textStr.data();
+	const uint8_t* end = text + textStr.size();
+	while (true)
+	{
+		TextState lineState = state;
+		float lineWidth = 0.0f;
+		int lineLength = 0;
+		const uint8_t* line = GetLine(lineState, wrap, text, end, lineWidth, lineLength);
+		if (!line)
+			break;
+
+		float x = DestX;
+		if (halign == EHAlign::Center)
+			x = (float)((int)(destWidth - lineWidth) / 2) + DestX;
+		else if (halign == EHAlign::Right)
+			x = DestX + destWidth - lineWidth;
+
+		float lineHeight = 0.0f;
+		const uint8_t* c = line;
+		const uint8_t* lineEnd = line + lineLength;
+		while (uint8_t ch = GetNextChar(c, state, lineEnd))
+		{
+			if (state.bold != bold)
+			{
+				font = state.bold ? boldFont() : normalFont();
+				bold = state.bold;
+			}
+			if (ch != '\n' && font)
+			{
+				float charHeight = 0.0f;
+				DrawChar(font, ch, state.color, state.accel, x, DestY, x, charHeight);
+				lineHeight = std::max(lineHeight, charHeight);
+			}
+		}
+		if (lineHeight < 1.0f && font)
+			lineHeight = (float)font->GetPageGlyph(' ').VSize;
+		DestY += lineHeight + textVSpacing();
+		state = lineState;
+	}
+
+	PopClip();
 }
 
 void UGC::DrawBorders(float DestX, float DestY, float destWidth, float destHeight, float leftMargin, float rightMargin, float TopMargin, float BottomMargin, UObject** borders, std::optional<bool> bStretchHorizontally, std::optional<bool> bStretchVertically)
@@ -247,6 +283,19 @@ void UGC::DrawIcon(float DestX, float DestY, UObject* tX)
 	}
 }
 
+// The original's XGC::DrawIconPattern (0x10028770): the texture from the
+// origin, stretched over the box along an axis given a source size and tiled
+// 1:1 along one given 0.
+void UGC::DrawIconPattern(float DestX, float DestY, float destWidth, float destHeight, float OrgX, float OrgY, float srcWidth, float srcHeight, UTexture* tex)
+{
+	if (!bDrawEnabled() || !tex)
+		return;
+
+	Rectf dest = Rectf::xywh(offsetX + DestX, offsetY + DestY, destWidth, destHeight);
+	Rectf src = Rectf::xywh(OrgX, OrgY, srcWidth != 0.0f ? srcWidth : destWidth, srcHeight != 0.0f ? srcHeight : destHeight);
+	DrawTile(tex, ScaleRect(dest), src, tileColor(), EffectivePolyFlags());
+}
+
 void UGC::DrawPattern(float DestX, float DestY, float destWidth, float destHeight, float OrgX, float OrgY, UObject* tX)
 {
 	if (!bDrawEnabled())
@@ -366,13 +415,18 @@ void UGC::GetAlignments(uint8_t& outHAlign, uint8_t& outVAlign)
 	outVAlign = VAlign();
 }
 
+// The taller of the two fonts' spaces, with the line spacing when asked
+// (XGC::GetFontHeight, 0x10027d60).
 float UGC::GetFontHeight(std::optional<bool> bIncludeSpace)
 {
-	// Not used directly by scripts
-	if (!normalFont())
-		return 0.0f;
-	FontGlyph glyph = normalFont()->GetGlyph('X');
-	return (float)glyph.VSize;
+	float height = 0.0f;
+	if (normalFont())
+		height = std::max(height, (float)normalFont()->GetPageGlyph(' ').VSize);
+	if (boldFont())
+		height = std::max(height, (float)boldFont()->GetPageGlyph(' ').VSize);
+	if (bIncludeSpace.value_or(false))
+		height += textVSpacing();
+	return height;
 }
 
 void UGC::GetFonts(UObject*& outNormalFont, UObject*& outBoldFont)
@@ -396,20 +450,44 @@ void UGC::GetTextColor(Color& outTextColor)
 	outTextColor = TextColor();
 }
 
+// The text's size as DrawText lays it out at that wrap width (0 for none):
+// its widest line, and its lines' heights each with the line spacing
+// (XGC::GetTextExtent, 0x10027bb0).
 void UGC::GetTextExtent(float destWidth, float& xExtent, float& yExtent, const std::string& textStr)
 {
+	TextState state;
+	bool bold = false;
 	UFont* font = normalFont();
-	if (font)
+	float width = 0.0f, height = 0.0f, lineHeight = 0.0f;
+	const uint8_t* text = (const uint8_t*)textStr.data();
+	const uint8_t* end = text + textStr.size();
+	while (true)
 	{
-		Sizef extents = DrawText(font, 0.0f, 0.0f, destWidth, textStr, TextColor(), 0, true);
-		xExtent = extents.width;
-		yExtent = extents.height;
+		float lineWidth = 0.0f;
+		int lineLength = 0;
+		const uint8_t* line = GetLine(state, destWidth, text, end, lineWidth, lineLength);
+		if (!line)
+			break;
+		const uint8_t* c = line;
+		const uint8_t* lineEnd = line + lineLength;
+		while (uint8_t ch = GetNextChar(c, state, lineEnd))
+		{
+			if (bold != state.bold)
+			{
+				font = state.bold ? boldFont() : normalFont();
+				bold = state.bold;
+			}
+			if (ch != '\n' && font)
+				lineHeight = std::max(lineHeight, (float)font->GetPageGlyph(ch).VSize);
+		}
+		if (lineHeight < 1.0f && font)
+			lineHeight = (float)font->GetPageGlyph(' ').VSize;
+		width = std::max(width, lineWidth);
+		height += lineHeight + textVSpacing();
+		lineHeight = 0.0f;
 	}
-	else
-	{
-		xExtent = 0.0f;
-		yExtent = 0.0f;
-	}
+	xExtent = width;
+	yExtent = height;
 }
 
 float UGC::GetTextVSpacing()
@@ -651,270 +729,258 @@ void UGC::DrawTile(UTexture* tex, const Rectf& dest, const Rectf& src, const Col
 	}
 }
 
-Sizef UGC::DrawText(UFont* font, float orgX, float orgY, float destWidth, const std::string& textStr, const Color& colormoo, uint32_t polyflags, bool noDraw)
+// The next character to draw, the codes before it applied to the state
+// (XGC::GetNextChar, 0x100294d0). With special text on: |b bold, |c and up
+// to three hex bytes a colour, |p0 to |p7 a palette colour, |& the next
+// character an accelerator (underlined), each undone by |! (|!c and |!p
+// back to the GC's text colour); any other |x is x itself. 0 at the end.
+uint8_t UGC::GetNextChar(const uint8_t*& p, TextState& state, const uint8_t* end)
 {
-	Color color = colormoo;
-	color.A = 255; // grr
+	auto lower = [](uint8_t c) -> uint8_t { return (c >= 'A' && c <= 'Z') ? c + 32 : c; };
 
-	// The alignment box is the width as passed, whatever the wrap: the
-	// original's XGC::DrawText hands GetLine the wrap width (0 with no
-	// word wrap, which ParseLine takes as no limit) but centers and
-	// right-aligns each line within the width it was given
-	// (Extension.dll 0x10028180). The fork widened the box with the wrap
-	// width, so centered or right-aligned text with word wrap off drew
-	// tens of thousands of pixels to the right -- the object belt's
-	// descriptions, counts and slot numbers among it.
-	float alignWidth = destWidth;
-
-	if (!bWordWrap())
-		destWidth = 100000.0f;
-
-	// No width is no limit to a line (Extension's XGC::ParseLine): what
-	// GetTextExtent(0, ...) measures, as the progress window's.
-	float wrapWidth = destWidth > 0.0f ? destWidth : 500000.0f;
-
-	// Remove the | and & escapes for now
-	/*
-	std::string text;
-	text.reserve(textStr.size());
-	for (char c : textStr)
+	state.accel = false;
+	while (p < end)
 	{
-		if (c != '|' && c != '&')
-			text += c;
+		if (!SpecialTextEnabled || *p != '|')
+			return *p++;
+		p++;
+		if (p >= end)
+			break;
+		bool inverse = false;
+		uint8_t code = lower(*p);
+		if (code == '!')
+		{
+			inverse = true;
+			p++;
+			if (p >= end)
+				break;
+			code = lower(*p);
+		}
+		switch (code)
+		{
+		case 'b':
+			p++;
+			state.bold = !inverse;
+			break;
+		case 'c':
+			p++;
+			if (inverse)
+				state.color = TextColor();
+			else
+				ReadColor(p, state.color, end);
+			state.ownColor = !inverse;
+			break;
+		case 'p':
+			p++;
+			if (p < end)
+			{
+				if (inverse)
+				{
+					state.color = TextColor();
+					state.ownColor = false;
+				}
+				else if (*p >= '0' && *p < '8')
+				{
+					state.color = TextPalette[*p - '0'];
+					state.ownColor = true;
+					p++;
+				}
+			}
+			break;
+		case '&':
+			p++;
+			state.accel = true;
+			break;
+		default:
+			return *p++;
+		}
 	}
-	*/
+	p = std::min(p, end);
+	return 0;
+}
 
-	auto halign = (EHAlign)HAlign();
+// |c's colour: up to three bytes of two hex digits each, red, green, blue;
+// a byte cut short ends it (XGC::ReadColor and GetColorByte, 0x100293d0,
+// 0x100292f0).
+void UGC::ReadColor(const uint8_t*& p, Color& color, const uint8_t* end)
+{
+	auto hex = [](uint8_t c, int& value) -> bool
+	{
+		if (c >= '0' && c <= '9') { value = c - '0'; return true; }
+		if (c >= 'a' && c <= 'f') { value = c - 'a' + 10; return true; }
+		if (c >= 'A' && c <= 'F') { value = c - 'A' + 10; return true; }
+		return false;
+	};
+	auto colorByte = [&](uint8_t& out) -> bool
+	{
+		out = 0;
+		int value = 0;
+		if (p >= end || !hex(*p, value))
+			return false;
+		out = (uint8_t)(value << 4);
+		p++;
+		if (p < end && hex(*p, value))
+		{
+			out |= (uint8_t)value;
+			p++;
+			return true;
+		}
+		return false;
+	};
+	uint8_t r = 0, g = 0, b = 0;
+	if (colorByte(r) && colorByte(g))
+		colorByte(b);
+	color = { r, g, b, 255 };
+}
 
-	float totalWidth = 0.0f;
-	float totalHeight = 0.0f;
-	float curX = 0.0f;
-	float curY = 0.0f;
-
-	Array<TextBlock> textBlocks = FindTextBlocks(textStr, color);
-	size_t lineBegin = 0;
+// One line from the text (XGC::ParseLine, 0x10029ae0): up to a line break
+// or the text's end, or, past the wrap width (none at 0 or less), to the
+// last space before the word that crossed it -- or before the character
+// that did, with no space on the line. The first character always goes.
+// Its width counts the spaces it ends with, but for a line broken at them.
+// False when no line is left: the text's end, unless a line break came
+// last.
+bool UGC::ParseLine(const uint8_t* text, TextState state, const uint8_t* end, float wrap, const uint8_t*& next, TextState& stateOut, int& length, float& width)
+{
+	const uint8_t* lineStart = text;
+	const uint8_t* wordStart = nullptr;
+	const uint8_t* spaceStart = nullptr;
+	TextState wordState;
+	bool wrapped = false;
+	bool firstChar = true;
+	bool inSpace = true;
+	if (wrap <= 0.0f)
+		wrap = 500000.0f;
+	UFont* font = state.bold ? boldFont() : normalFont();
+	bool afterBreak = state.afterBreak;
+	state.afterBreak = false;
 	float lineWidth = 0.0f;
-	float lineHeight = 0.0f;
+	float widthAtSpace = 0.0f;
 
-	float emptyLineHeight = GetTextSize(font, " ").y;
-
-	for (size_t pos = 0; pos < textBlocks.size(); pos++)
+	const uint8_t* charStart = text;
+	const uint8_t* lineEnd = nullptr;
+	float resultWidth = 0.0f;
+	uint8_t ch = 0;
+	while (true)
 	{
-		if (textBlocks[pos].text.front() == '\n')
+		charStart = text;
+		TextState before = state;
+		ch = GetNextChar(text, state, end);
+		if (ch == 0 || ch == '\n')
+			break;
+		if ((ch >= 9 && ch <= 13) || ch == ' ')
 		{
-			if (pos != lineBegin)
+			if (!inSpace)
 			{
-				float centerX = 0;
-				if (halign == EHAlign::Center || halign == EHAlign::Full)
-					centerX = std::round((alignWidth - lineWidth) * 0.5f);
-				else if (halign == EHAlign::Right)
-					centerX = alignWidth - lineWidth;
-
-				if (!noDraw)
-					DrawTextBlockRange(orgX + curX + centerX, orgY + curY, textBlocks, lineBegin, pos, font, polyflags);
-
-				curY += lineHeight;
-				totalHeight += lineHeight;
-				totalWidth = std::max(totalWidth, lineWidth);
-			}
-			else
-			{
-				lineHeight = std::max(lineHeight, emptyLineHeight);
-				curY += lineHeight;
-				totalHeight += lineHeight;
-			}
-
-			curX = 0;
-			lineBegin = pos + 1;
-			lineWidth = 0.0f;
-			lineHeight = 0.0f;
-		}
-		else
-		{
-			vec2 blockSize = GetTextSize(font, textBlocks[pos].text);
-			if (lineWidth + blockSize.x > wrapWidth)
-			{
-				float centerX = 0;
-				if (halign == EHAlign::Center || halign == EHAlign::Full)
-					centerX = std::round((alignWidth - lineWidth) * 0.5f);
-				else if (halign == EHAlign::Right)
-					centerX = alignWidth - lineWidth;
-
-				if (!noDraw)
-					DrawTextBlockRange(orgX + curX + centerX, orgY + curY, textBlocks, lineBegin, pos, font, polyflags);
-
-				curX = 0;
-				curY += lineHeight;
-				totalHeight += lineHeight;
-				totalWidth = std::max(totalWidth, lineWidth);
-
-				if (textBlocks[pos].text.front() == ' ')
-				{
-					// Ignore whitespace at the beginning of a word wrapped line
-					lineBegin = pos + 1;
-					lineWidth = 0.0f;
-					lineHeight = 0.0f;
-				}
-				else
-				{
-					lineBegin = pos;
-					lineWidth = blockSize.x;
-					lineHeight = blockSize.y;
-				}
-			}
-			else
-			{
-				lineWidth += blockSize.x;
-				lineHeight = std::max(lineHeight, blockSize.y);
+				inSpace = true;
+				spaceStart = charStart;
+				widthAtSpace = lineWidth;
 			}
 		}
+		else if (inSpace)
+		{
+			if (wrapped)
+			{
+				// Past the wrap in the spaces after a word: the line ends at
+				// them, the next starts with this word.
+				state = before;
+				next = charStart;
+				lineEnd = spaceStart;
+				resultWidth = widthAtSpace;
+				goto done;
+			}
+			inSpace = false;
+			wordStart = charStart;
+			wordState = before;
+		}
+		if (before.bold != state.bold)
+			font = state.bold ? boldFont() : normalFont();
+		if (font)
+		{
+			float newWidth = (float)font->GetPageGlyph(ch).USize + lineWidth;
+			if (newWidth > wrap && !firstChar)
+			{
+				if (!spaceStart)
+				{
+					state = before;
+					next = charStart;
+					lineEnd = charStart;
+					resultWidth = lineWidth;
+					goto done;
+				}
+				if (wordStart > spaceStart)
+				{
+					state = wordState;
+					next = wordStart;
+					lineEnd = spaceStart;
+					resultWidth = widthAtSpace;
+					goto done;
+				}
+				wrapped = true;
+			}
+			lineWidth = newWidth;
+		}
+		firstChar = false;
 	}
-
-	if (lineBegin < textBlocks.size())
+	if (wrapped)
 	{
-		float centerX = 0;
-		if (halign == EHAlign::Center || halign == EHAlign::Full)
-			centerX = std::round((alignWidth - lineWidth) * 0.5f);
-		else if (halign == EHAlign::Right)
-			centerX = alignWidth - lineWidth;
-
-		if (!noDraw)
-			DrawTextBlockRange(orgX + curX + centerX, orgY + curY, textBlocks, lineBegin, textBlocks.size(), font, polyflags);
-
-		curX += centerX + lineWidth;
-		curY += lineHeight;
-		totalHeight += lineHeight;
-		totalWidth = std::max(totalWidth, lineWidth);
+		lineEnd = spaceStart;
+		resultWidth = widthAtSpace;
 	}
+	else
+	{
+		lineEnd = charStart;
+		resultWidth = lineWidth;
+	}
+	if (ch == '\n')
+		state.afterBreak = true;
+	next = text;
 
-	return Sizef(totalWidth + 1.0f, totalHeight); // Add 1.0f to avoid rounding issues
+done:
+	stateOut = state;
+	length = (int)(lineEnd - lineStart);
+	width = resultWidth;
+	return next > lineStart || afterBreak;
 }
 
-vec2 UGC::GetTextSize(UFont* font, const std::string& text)
+// The next line, its start, or none (XGC::GetLine, 0x10029d80).
+const uint8_t* UGC::GetLine(TextState& state, float wrap, const uint8_t*& text, const uint8_t* end, float& width, int& length)
 {
-	float x = 0.0f;
-	float y = 0.0f;
-	for (char c : text)
-	{
-		FontGlyph glyph = font->GetGlyph(c);
-		x += (float)glyph.USize;
-		y = std::max(y, (float)glyph.VSize);
-	}
-	return { x, y };
+	if (!text)
+		return nullptr;
+	const uint8_t* lineStart = text;
+	if (!ParseLine(lineStart, state, end, wrap, text, state, length, width))
+		return nullptr;
+	return lineStart;
 }
 
-Array<TextBlock> UGC::FindTextBlocks(const std::string& text, const Color& color)
+// One character at a place in the window, moving the place on by its width
+// and giving its height (XGC::DrawChar, 0x10029e40): at whole pixels, clipped
+// to the GC's box; an accelerator underlined with the underline texture,
+// underlineHeight tall, baselineOffset up from the character's foot, one
+// pixel short of its width.
+void UGC::DrawChar(UFont* font, uint8_t ch, const Color& color, bool accel, float x, float y, float& outX, float& outHeight)
 {
-	// Split text into words, whitespace or newline
-	Array<TextBlock> textBlocks;
-	size_t pos = 0;
+	FontGlyph glyph = font->GetPageGlyph(ch);
+	float px = x + offsetX;
+	float py = y + offsetY;
+	outX = x + (float)glyph.USize;
+	outHeight = (float)glyph.VSize;
 
-	// Find all |n tokens and convert them into '\n's
-	std::string editedText = text;
-
-	auto newLinePos = editedText.find("|n");
-
-	while (newLinePos != std::string::npos)
+	auto whole = [](float v) { return (float)(int64_t)(v + 0.1f); };
+	uint32_t polyflags = EffectiveTextPolyFlags();
+	if (glyph.Texture && glyph.USize > 0 && glyph.VSize > 0)
 	{
-		editedText.replace(newLinePos, 2, "\n");
-		newLinePos = editedText.find("|n");
+		Rectf dest = Rectf::xywh(whole(px), whole(py), (float)glyph.USize, (float)glyph.VSize);
+		Rectf src = Rectf::xywh((float)glyph.StartU, (float)glyph.StartV, (float)glyph.USize, (float)glyph.VSize);
+		DrawTile(glyph.Texture, ScaleRect(dest), src, color, polyflags);
 	}
-
-	while (pos < editedText.size())
+	if (accel && underlineTexture() && underlineHeight() > 0.0f && glyph.USize > 1)
 	{
-		if (editedText[pos] == '\r')
-		{
-			textBlocks.push_back({ "\r", Color{255,255,255, 255}, 0 });
-			pos++;
-		}
-		if (editedText[pos] == '\n')
-		{
-			textBlocks.push_back({ "\n", Color{255,255,255, 255}, 0 });
-			pos++;
-		}
-		else if (editedText[pos] == ' ')
-		{
-			// Arbitrary-length whitespace
-			size_t end = std::min(editedText.find_first_not_of(' ', pos + 1), editedText.size());
-
-			std::string whitespaceText = editedText.substr(pos, end - pos);
-
-			textBlocks.push_back({ whitespaceText, color, 0 });
-			pos = end;
-		}
-		else
-		{
-			size_t end = std::min(editedText.find_first_of(" \n", pos + 1), editedText.size());
-
-			std::string foundText = editedText.substr(pos, end - pos);
-			Color textColor = color;
-			size_t accelPos = 0;
-
-			if (foundText.starts_with("|p"))
-			{
-				try
-				{
-					int pColorIdx = std::stoi(foundText.substr(2, 1));
-					textColor = s_PColors[pColorIdx];
-					foundText = foundText.substr(3); // Strip |p and num out
-				}
-				catch (...)
-				{
-					foundText = foundText.substr(2); // Strip |p out
-				}
-			}
-
-			auto accelFind = foundText.find("|&");
-
-			if (accelFind != std::string::npos)
-			{
-				accelPos = accelFind;
-				foundText = foundText.erase(accelFind, 2);
-			}
-
-			TextBlock block = {
-				.text = foundText,
-				.textColor = textColor,
-				.accelPos = accelPos
-			};
-
-			textBlocks.push_back(block);
-			pos = end;
-		}
-	}
-
-	return textBlocks;
-}
-
-void UGC::DrawTextBlockRange(float x, float y, const Array<TextBlock>& textBlocks, size_t start, size_t end, UFont* font, uint32_t polyflags)
-{
-	for (size_t i = start; i < end; i++)
-	{
-		for (char c : textBlocks[i].text)
-		{
-			FontGlyph glyph = font->GetGlyph(c);
-
-			if (!glyph.Texture)
-				continue;
-
-			TextureInfo texinfo;
-			texinfo.CacheID = (uint64_t)(ptrdiff_t)glyph.Texture;
-			texinfo.Texture = glyph.Texture;
-			texinfo.Format = texinfo.Texture->UsedFormat;
-			texinfo.Mips = glyph.Texture->UsedMipmaps.data();
-			texinfo.NumMips = (int)glyph.Texture->UsedMipmaps.size();
-			texinfo.USize = glyph.Texture->USize();
-			texinfo.VSize = glyph.Texture->VSize();
-			if (glyph.Texture->Palette())
-				texinfo.Palette = (TextureColor*)glyph.Texture->Palette()->Colors.data();
-
-			Rectf dest = Rectf::xywh(x, y, (float)glyph.USize, (float)glyph.VSize);
-			Rectf src = Rectf::xywh((float)glyph.StartU, (float)glyph.StartV, (float)glyph.USize, (float)glyph.VSize);
-
-			DrawTile(glyph.Texture, ScaleRect(dest), src, textBlocks[i].textColor, polyflags);
-
-			x += (float)glyph.USize;
-		}
+		float w = (float)(glyph.USize - 1);
+		Rectf dest = Rectf::xywh(whole(px), whole((float)glyph.VSize - baselineOffset() + py), whole(w), whole(underlineHeight()));
+		Rectf src = Rectf::xywh(0.0f, 0.0f, dest.right - dest.left, dest.bottom - dest.top);
+		DrawTile(underlineTexture(), ScaleRect(dest), src, color, polyflags);
 	}
 }
 
@@ -939,4 +1005,22 @@ void UGC::PopClip()
 {
 	clipBox = clipStack.back();
 	clipStack.pop_back();
+}
+
+UGC::TextSettings UGC::UseTextSettings(UWindow* window)
+{
+	TextSettings saved = { normalFont(), boldFont(), SpecialTextEnabled, textVSpacing() };
+	normalFont() = window->normalFont();
+	boldFont() = window->boldFont();
+	SpecialTextEnabled = window->bSpecialText();
+	textVSpacing() = window->textVSpacing();
+	return saved;
+}
+
+void UGC::RestoreTextSettings(const TextSettings& settings)
+{
+	normalFont() = settings.normalFont;
+	boldFont() = settings.boldFont;
+	SpecialTextEnabled = settings.specialText;
+	textVSpacing() = settings.vspacing;
 }

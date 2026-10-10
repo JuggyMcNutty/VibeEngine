@@ -11,18 +11,24 @@ public:
 	void ActivateButton(EInputKey key);
 	void EnableAutoRepeat(std::optional<bool> bEnable, std::optional<float> initialDelay, std::optional<float> repeatRate);
 	void EnableRightMouseClick(std::optional<bool> bEnable);
-	void PressButton(std::optional<uint8_t> Key);
 	void SetActivateDelay(std::optional<float> newDelay);
 	void SetButtonColors(std::optional<Color> Normal, std::optional<Color> pressed, std::optional<Color> normalFocus, std::optional<Color> pressedFocus, std::optional<Color> normalInsensitive, std::optional<Color> pressedInsensitive);
 	void SetButtonSounds(std::optional<UObject*> newPressSound, std::optional<UObject*> newClickSound);
 	void SetButtonTextures(std::optional<UObject*> Normal, std::optional<UObject*> pressed, std::optional<UObject*> normalFocus, std::optional<UObject*> pressedFocus, std::optional<UObject*> normalInsensitive, std::optional<UObject*> pressedInsensitive);
 	void SetTextColors(std::optional<Color> Normal, std::optional<Color> pressed, std::optional<Color> normalFocus, std::optional<Color> pressedFocus, std::optional<Color> normalInsensitive, std::optional<Color> pressedInsensitive);
 
+	virtual void PressButton(EInputKey key);
+
 	void MouseMoved(float newX, float newY) override;
 	bool MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks) override;
 	bool MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks) override;
+	void SensitivityChanged(bool bNewSensitivity) override;
+	void Tick(float timeElapsed) override;
 
 	void DrawWindow(UGC* gc) override;
+	void InitDefaults() override;
+
+	int AppearanceState();
 
 	//ButtonDisplayInfo& Info() { return Value<ButtonDisplayInfo>(PropOffsets_ButtonWindow.Info); }
 	float& activateDelay() { return Value<float>(PropOffsets_ButtonWindow.activateDelay); }
@@ -60,4 +66,7 @@ public:
 		UTexture* NormalInsensitive = nullptr;
 		UTexture* PressedInsensitive = nullptr;
 	} ButtonTextures;
+
+	// What is left of a press's show (the original's activate timer).
+	float ActivateTimeLeft = 0.0f;
 };

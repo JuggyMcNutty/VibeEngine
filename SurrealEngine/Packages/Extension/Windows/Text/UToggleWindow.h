@@ -12,8 +12,11 @@ public:
 	void SetToggle(bool bNewToggle);
 	void SetToggleSounds(std::optional<UObject*> enableSound, std::optional<UObject*> disableSound);
 
+	void InitDefaults() override;
+	void PressButton(EInputKey key) override;
+	bool MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks) override;
+	bool MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks) override;
+
 	USound*& disableSound() { return Value<USound*>(PropOffsets_ToggleWindow.disableSound); }
 	USound*& enableSound() { return Value<USound*>(PropOffsets_ToggleWindow.enableSound); }
-
-	bool isToggled = false;
 };

@@ -114,6 +114,9 @@ Engine::Engine(GameLaunchInfo launchinfo) : LaunchInfo(launchinfo)
 		auto extpkg = packages->GetPackage("Extension");
 		deusExPackage = packages->GetPackage("DeusEx");
 		dxgc = UObject::Cast<UGC>(transientpkg->NewObject("gc", extpkg->GetClass("GC"), ObjectFlags::Transient));
+		// The GC class's underline texture (Solid), which every window's GC
+		// starts with in the original.
+		dxgc->DefaultUnderlineTexture = dxgc->underlineTexture();
 		dxgc->Canvas() = canvas;
 		// In a little package of its own, as the original's GetSaveInfo(pkg)
 		// makes it: Package::Save refuses an object from another package
@@ -278,8 +281,10 @@ void Engine::Run()
 		// The windows tick before the engine, as the original's
 		// (Extension.dll XGameEngineExt::Tick 0x100266a0): what the level
 		// makes this frame has been laid out by the time they next tick.
+		// They tick by real seconds since their last tick, not the level's
+		// time (XRootWindow::TickWindows 0x1003a4a0).
 		if (dxRootWindow)
-			dxRootWindow->Tick(levelElapsed); // Should this maybe be realTimeElapsed?
+			dxRootWindow->Tick(UWindow::GetWindowsTickOffset(true));
 
 		TotalTime += realTimeElapsed;
 

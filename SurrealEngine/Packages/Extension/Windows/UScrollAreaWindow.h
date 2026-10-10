@@ -10,10 +10,15 @@ class UScrollAreaWindow : public UWindow
 public:
 	using UWindow::UWindow;
 
-	void InitWindow() override;
+	void InitDefaults() override;
 	void ConfigurationChanged() override;
 	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
-	void DrawWindow(UGC* gc) override;
+	void ChildRequestedVisibilityChange(UWindow* childWin, bool bNewVisibility) override;
+	void DescendantRemoved(UWindow* descendant) override;
+	bool ScaleRangeChanged(UWindow* scale, int fromTick, int toTick, float fromValue, float toValue, bool bFinal) override;
+	bool ClipAttributesChanged(UWindow* clip, int newClipWidth, int newClipHeight, int newChildWidth, int newChildHeight) override;
+	bool ClipPositionChanged(UWindow* clip, int newCol, int newRow) override;
+	bool MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks) override;
 
 	void AutoHideScrollbars(std::optional<bool> bHide);
 	void EnableScrolling(std::optional<bool> bHScrolling, std::optional<bool> bVScrolling);
@@ -35,4 +40,7 @@ public:
 	float& scrollbarDistance() { return Value<float>(PropOffsets_ScrollAreaWindow.scrollbarDistance); }
 	UScaleWindow*& vScale() { return Value<UScaleWindow*>(PropOffsets_ScrollAreaWindow.vScale); }
 	UScaleManagerWindow*& vScaleMgr() { return Value<UScaleManagerWindow*>(PropOffsets_ScrollAreaWindow.vScaleMgr); }
+
+private:
+	void ComputeChildSizes(bool bWidthSpecified, float width, float* outWidth, bool bHeightSpecified, float height, float* outHeight);
 };

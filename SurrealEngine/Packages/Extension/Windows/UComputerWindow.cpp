@@ -200,9 +200,11 @@ void UComputerWindow::ShowTextCursor(std::optional<bool> bShow)
 	bShowCursor() = !bShow.has_value() ? true : bShow.value();
 }
 
-void UComputerWindow::InitWindow()
+void UComputerWindow::InitDefaults()
 {
-	UWindow::InitWindow();
+	UWindow::InitDefaults();
+	// Selectable, as the original's XComputerWindow::Init makes it.
+	bIsSelectable() = true;
 }
 
 void UComputerWindow::ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight)

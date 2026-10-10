@@ -23,8 +23,9 @@ public:
 	void SetTextMargins(float newHMargin, float newVMargin);
 	void SetWordWrap(bool bNewWordWrap);
 
-	void InitWindow() override;
+	void InitDefaults() override;
 	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
+	void ParentRequestedGranularity(float& hGranularity, float& vGranularity) override;
 	void DrawWindow(UGC* gc) override;
 
 	virtual void TextModifiedByScript() {}

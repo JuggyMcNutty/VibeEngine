@@ -299,8 +299,14 @@ void ExpressionEvaluator::Expr(NewExpression* expr)
 	// To do: package needs to be grabbed from outer, or the "transient package" if it is None, a virtual package for runtime objects
 	Package* package = engine->packages->GetPackage("Engine");
 
+	// An object given no name is named after its class and a number, as
+	// the original's StaticConstructObject names it (DeusExNote0).
+	NameString objName = name.GetType() == ExpressionValueType::Nothing ? NameString() : name.ToName();
+	if (objName.IsNone() && cls)
+		objName = package->MakeUniqueObjectName(cls);
+
 	UObject* newObj = package->NewObject(
-		name.GetType() == ExpressionValueType::Nothing ? NameString() : name.ToName(),
+		objName,
 		cls,
 		flags.GetType() == ExpressionValueType::Nothing ? ObjectFlags::NoFlags : (ObjectFlags)flags.ToInt(),
 		true);

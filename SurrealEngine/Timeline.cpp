@@ -105,6 +105,13 @@ void Timeline::Run(Action& action)
 				LogMessage("DXLIVE: " + action.Verb + " " + action.Arg);
 				EInputKey key = (EInputKey)i;
 				bool mouse = key == IK_LeftMouse || key == IK_RightMouse || key == IK_MiddleMouse;
+				// A wheel notch is a press alone, as the window sends it.
+				if (key == IK_MouseWheelUp || key == IK_MouseWheelDown)
+				{
+					if (action.Verb == "press")
+						engine->OnWindowMouseWheel(Point(), key);
+					return;
+				}
 				if (action.Verb == "press")
 					mouse ? engine->OnWindowMouseDown(Point(), key) : engine->OnWindowKeyDown(key);
 				else

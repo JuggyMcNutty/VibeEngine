@@ -116,10 +116,19 @@ void NWindow::AskParentForReconfigure(UObject* Self)
 	selfWindow->AskParentForReconfigure();
 }
 
+// The original's (XWindow::execAskParentToShowArea 0x10053350): the area
+// from the window's corner, and a width or height left out or 0 the window's
+// own.
 void NWindow::AskParentToShowArea(UObject* Self, std::optional<float> areaX, std::optional<float> areaY, std::optional<float> areaWidth, std::optional<float> areaHeight)
 {
 	UWindow* selfWindow = UObject::Cast<UWindow>(Self);
-	selfWindow->AskParentToShowArea(areaX, areaY, areaWidth, areaHeight);
+	float width = areaWidth.value_or(0.0f);
+	float height = areaHeight.value_or(0.0f);
+	if (width == 0.0f)
+		width = selfWindow->Width();
+	if (height == 0.0f)
+		height = selfWindow->Height();
+	selfWindow->AskParentToShowArea(areaX.value_or(0.0f), areaY.value_or(0.0f), width, height);
 }
 
 void NWindow::CarriageReturn(UObject* Self, std::string& ReturnValue)

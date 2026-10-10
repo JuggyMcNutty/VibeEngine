@@ -25,7 +25,7 @@ void NTextWindow::RegisterFunctions()
 void NTextWindow::AppendText(UObject* Self, const std::string& NewText)
 {
 	UTextWindow* textWindow = UObject::Cast<UTextWindow>(Self);
-	textWindow->AppendText(NewText);
+	textWindow->AppendText(textWindow->ConvertScriptString(NewText));
 }
 
 void NTextWindow::EnableTextAsAccelerator(UObject* Self, std::optional<bool> bEnable)
@@ -91,7 +91,7 @@ void NTextWindow::SetMinWidth(UObject* Self, float newMinWidth)
 void NTextWindow::SetText(UObject* Self, const std::string& NewText)
 {
 	UTextWindow* textWindow = UObject::Cast<UTextWindow>(Self);
-	textWindow->SetText(NewText);
+	textWindow->SetText(textWindow->ConvertScriptString(NewText));
 }
 
 void NTextWindow::SetTextAlignments(UObject* Self, uint8_t newHAlign, uint8_t newVAlign)

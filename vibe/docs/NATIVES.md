@@ -278,24 +278,46 @@ the rows, fields, sort order and selections that `MenuConsole` and
 `ScreenConsole` log are alike in both engines. A list shown with rows
 selects and focuses its first, so the Images screen opens on its first
 image; a float field reads as its shown number. The hot keys and a drag's
-selection are the original's, read from its code. Differs: a list in a clip
-window is as tall as its rows, the original's at least as tall as the clip
-window ([the UI](#the-ui)).
+selection are the original's, read from its code; a list in a clip window
+fills it, and scrolls a row at a time (`ScrollConsole`).
 
 ### The UI
 
 Matches the original ([the UI in front of the game](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#the-ui-in-front-of-the-game),
+[layout](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#layout),
+[text](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#text),
+[buttons](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#buttons),
+[scales and scrolling](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#scales-and-scrolling),
+[tiles and tab groups](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#tiles-and-tab-groups),
 [drawing](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#drawing),
 [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)):
 `GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`,
-`ChoiceConsole` for a conversation's choices, and `MenuConsole` and
-`ScreenConsole`, which log every menu and game screen's windows. The same,
-read from the original's code:
+`ChoiceConsole` for a conversation's choices, `SizeConsole` for a new
+window's size, `ScrollConsole` for a scroll area and a slider, and
+`MenuConsole` and `ScreenConsole`, which log every menu and game screen's
+windows: their sizes, text, focus, a slider's value text, a scroll area's
+bars, a tile's children and a list's rows read alike in both engines but
+for what is listed below. The same, read from the original's code:
 
-- **A new window** starts hidden; its parent and ancestors hear of it
-  before its `InitWindow`, and it is shown after, so `VisibilityChanged`
+- **A new window** starts hidden, 10 by 10; its parent and ancestors hear of
+  it before its `InitWindow`, and it is shown after, so `VisibilityChanged`
   reaches everything its `InitWindow` made.
-
+- **Sizes**: a side a window was given (`SetSize`) counts as asked for; a
+  side it leaves unset is its background's size, else its own -- an empty
+  text window is 0 wide and keeps its height. A parent's `ConfigureChild`
+  sets just what it gives. A window asking to be laid out again is laid out
+  itself too.
+- **Buttons** activate on the release, a repeating one on the press and
+  again while held; a right click where the button takes them; each with
+  its sounds, and a press from the keyboard shown pressed for its delay. A
+  toggle's state is its pressed look; a radio box keeps one of its toggles
+  on.
+- **Scales** keep a tick among their ticks: a slider's value is its tick's,
+  its text the tick's own or the value printed; the thumb drags, a click
+  beside a scrollbar's thumb pages, held, again and again. A scroll area
+  shows a bar only while what it holds does not fit, its clip window moving
+  it a unit at a time (a list's row, a text's line) and bringing the focus
+  into view; the wheel steps it.
 - **Keys** go up from the focus window to the root, so Esc and F1 close a
   screen; **mouse buttons**, only while a modal shows, to the window the
   mouse acts on (the grab, else the one under the pointer in the topmost
@@ -308,7 +330,18 @@ read from the original's code:
   `stray-release.txt`, the fork's alone; with no modal up the game gets it).
   `LootConsole` searches two carcasses alike in both engines; the keys and
   the drags between the searches (`loot-drags.txt`) are a timeline's, so the
-  fork's alone.
+  fork's alone, as are `ScrollConsole`'s clicks, drags and wheel
+  (`scroll.txt`).
+- **Keyboard focus**
+  ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
+  a tab group's windows in order of where they lie on screen; `MoveFocus`,
+  `MoveTabGroup`, `SetFocusWindow` (only a window that can take the focus
+  takes it, its modal keeping it to return to), the focus moving off a
+  window hidden, made unselectable or destroyed, and the root seeding it --
+  none while the keypad (`MFOCUS_EnterLeave`) is up, none with no modal up
+  (`KeypadConsole`).
+- **The windows** tick by real time since their last tick, not the level's,
+  and a held button's first repeat counts what of the frame had gone.
 - **A GC's style** sets only how tiles draw: text stays masked, translucent
   only by `EnableTranslucentText`, so the frob label over its modulated
   backing reads as the original's (`FrobConsole`'s shots).
@@ -325,35 +358,27 @@ Differs:
 - **Keys**, read from both codes: the keyboard counts as grabbed while a
   modal shows, where the original counts its grabs (every modal grabs while
   shown); the fork tries only the focus window's accelerator.
-- **Keyboard focus** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#keyboard-focus)):
-  `MoveFocus`, `MoveTabGroup`, the focus moving off a window hidden, made
-  unselectable or destroyed, the windows ticking before the engine
-  (`ChoiceConsole`), and the root's tick seeding the focus -- none while the
-  keypad (`MFOCUS_EnterLeave`) is up, none with no modal up
-  (`KeypadConsole`) -- are the original's, as is a scroll area's taking no
-  focus itself. Differs: a tab group's order goes by each window's place in
-  its parent as the fork lays it out, the original's by where it lies on
-  screen, so a screen's first focus can fall elsewhere -- the Keys screen's
-  on Restore Defaults, not the list, the Join screens' on Cancel, not the
-  first column's header (`MenuConsole`); read from both codes, the tables
-  pass no window over as clipped away, the fork keeping no clip
-  rectangles.
-- **Layout** (`MenuConsole`, `ScreenConsole`): a window its parent places
-  keeps `x` and `y` at 0 where the original's hold its place, and `SetPos`
-  sets no margins where the original's sets them -- so the credits start on
-  screen, not below it, and a menu dragged by its title bar stays put. The
-  root window is 4:3 (960 wide at 1280x720), where the original's is the
-  whole viewport, so a cutscene letterboxes at 16:9; the UI's scale is the
-  screen's height over 600, rounded, where the original's is the smaller
-  whole multiple of 640x480 the screen holds.
-- **Text** measures a pixel wider, and a line a pixel shorter, than the
-  original's, which adds its GC's line spacing of 1; an empty text window
-  measures 1x0, where the original's keeps its size. `|n` turns into a line
-  break as text is drawn, where the original's turns into one as a script
-  sets it (`GetText` shows `|n`). A checkbox measures 4 wider and 3 taller.
-- **A scroll area** always shows its bar, the original's only when what it
-  holds does not fit; an edit field is as wide as its text, the original's
-  as its box.
+- **Keyboard focus**: the fork places windows in its layout pass, after the
+  level's tick, and seeds the first focus there; the original places them
+  as they are made and seeds it at its windows' next tick, so a
+  conversation's first choice has the focus a frame sooner (`ChoiceConsole`).
+  Read from both codes, the tables pass no window over as clipped away, the
+  fork keeping no clip rectangles.
+- **Layout** (`MenuConsole`, `ScreenConsole`, `SizeConsole`): the fork lays
+  windows out once a frame, the original as each asks, so a window made
+  this frame is 10 by 10 until the next. A window placed by its alignment
+  keeps `x` and `y` at 0 where the original's hold its place, its alignment
+  winning over a parent's placing, and `SetPos` sets no margins where the
+  original's sets them -- so the credits start on screen, not below it, and
+  a menu dragged by its title bar stays put. The root window is 4:3 (960
+  wide at 1280x720), where the original's is the whole viewport, so a
+  cutscene letterboxes at 16:9; the UI's scale is the screen's height over
+  600, rounded, where the original's is the smaller whole multiple of
+  640x480 the screen holds.
+- **A large text window and an edit field** measure and draw their lines as
+  a text window does, where the original's lay out rows spaced by their
+  vertical spacing: a skill's description is a pixel taller, a note a pixel
+  taller (`ScreenConsole`).
 
 ## The menus' settings
 

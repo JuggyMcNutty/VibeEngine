@@ -317,39 +317,52 @@ static UWindow* CommonAncestor(UWindow* a, UWindow* b)
 	return nullptr;
 }
 
+// The original's (XWindow::SetFocusWindow 0x1004f0e0): the focus goes to
+// the nearest selectable window up from the one asked for, only if it can
+// take it now (traversable in the topmost modal), and its modal keeps it as
+// the window to come back to. The window that had the focus is told and
+// each of its ancestors told it left; the new one is scrolled into view (a
+// clip window shows it), told, and each of its ancestors told it came --
+// a menu's help line follows the focus by this. Nothing asked for clears
+// the focus.
 bool URootWindow::SetRootFocusWindow(UWindow* newFocusWindow)
 {
-	UWindow* oldFocusWindow = FocusWindow();
-	if (oldFocusWindow != newFocusWindow)
+	UWindow* target = newFocusWindow;
+	for (UWindow* w = newFocusWindow; w; w = w->parentOwner())
 	{
-		UWindow* ancestor = CommonAncestor(oldFocusWindow, newFocusWindow);
-		if (oldFocusWindow)
+		if (w->bIsSelectable())
 		{
-			if (oldFocusWindow->unfocusSound())
-				PlaySound(oldFocusWindow->unfocusSound(), {}, {}, {}, {});
-
-			oldFocusWindow->FocusLeftWindow();
-			if (oldFocusWindow != ancestor)
-				for (UWindow* w = oldFocusWindow->parentOwner(); w && w != ancestor; w = w->parentOwner())
-				{
-					w->FocusLeftDescendant(oldFocusWindow);
-				}
-		}
-		FocusWindow() = newFocusWindow;
-		if (newFocusWindow)
-		{
-			// Note: this order is in reverse. Hopefully it doesn't matter.
-			newFocusWindow->FocusEnteredWindow();
-			if(newFocusWindow != ancestor)
-				for (UWindow* w = newFocusWindow->parentOwner(); w && w != ancestor; w = w->parentOwner())
-				{
-					w->FocusEnteredDescendant(newFocusWindow);
-				}
-
-			if (newFocusWindow->focusSound())
-				PlaySound(newFocusWindow->focusSound(), {}, {}, {}, {});
+			target = w;
+			break;
 		}
 	}
+	if (FocusWindow() == target)
+		return true;
+	if (target)
+	{
+		if (!target->IsTraversable(true))
+			return false;
+		if (UModalWindow* modal = UObject::TryCast<UModalWindow>(target->GetModalWindow()))
+			modal->preferredFocus() = target;
+	}
+
+	UWindow* oldFocusWindow = FocusWindow();
+	FocusWindow() = target;
+	if (oldFocusWindow)
+	{
+		oldFocusWindow->FocusLeftWindow();
+		oldFocusWindow->PlaySound(oldFocusWindow->unfocusSound(), {}, {}, {}, {});
+	}
+	for (UWindow* w = oldFocusWindow; w; w = w->parentOwner())
+		w->FocusLeftDescendant(oldFocusWindow);
+	if (target)
+	{
+		target->AskParentToShowArea(0.0f, 0.0f, target->Width(), target->Height());
+		target->PlaySound(target->focusSound(), {}, {}, {}, {});
+		target->FocusEnteredWindow();
+	}
+	for (UWindow* w = target; w; w = w->parentOwner())
+		w->FocusEnteredDescendant(target);
 	return true;
 }
 

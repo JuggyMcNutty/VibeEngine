@@ -41,13 +41,16 @@ public:
 	void SetValue(float NewValue);
 	void SetValueFormat(const std::string& newFmt);
 	void SetValueRange(float newFrom, float newTo);
+	void SetRanges(int newSpan, int newNumTicks);
 
-	void InitWindow() override;
+	void InitDefaults() override;
 	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
+	void ConfigurationChanged() override;
 	void DrawWindow(UGC* gc) override;
 	bool MouseButtonPressed(float pointX, float pointY, EInputKey button, int numClicks) override;
 	bool MouseButtonReleased(float pointX, float pointY, EInputKey button, int numClicks) override;
 	void MouseMoved(float newX, float newY) override;
+	void Tick(float timeElapsed) override;
 
 	float& RemainingTime() { return Value<float>(PropOffsets_ScaleWindow.RemainingTime); }
 	float& ThumbHeight() { return Value<float>(PropOffsets_ScaleWindow.ThumbHeight); }
@@ -127,12 +130,18 @@ public:
 	std::string& valueFmt() { return Value<std::string>(PropOffsets_ScaleWindow.valueFmt); }
 
 private:
-	void DrawHorzScrollbar(UGC* gc);
-	void DrawVertScrollbar(UGC* gc);
-	void DrawHorzSlider(UGC* gc);
-	void DrawVertSlider(UGC* gc);
-	void DispatchScalePositionChanged(int newTickPosition, float newValue, bool bFinal);
+	float TickToValue(int tick);
+	int ValueToTick(float value);
+	float TickToPixel(int tick);
+	int PixelToTick(float pixel);
+	void ChangeThumbPosition(int newPosition, bool bForce, bool bFinal);
+	void ChangeScalePosition(bool bFinal);
+	void ChangeScaleAttributes();
+	void ComputeTextureSize(UTexture* tex, float width, float height, float border, float& outWidth, float& outHeight);
+	void ComputeThumbConfig();
+	void DrawScaleTexture(UGC* gc, UTexture* tex, float x, float y, float w, float h, bool bRepeat, uint8_t style, const Color& color, float borderSize, const Color& borderColor,
+		UTexture* preCap, UTexture* postCap, float preCapXOff, float preCapYOff, float preCapW, float preCapH, float postCapXOff, float postCapYOff, float postCapW, float postCapH);
 
-	Array<std::string> ticks;
-	float value = 0.0f;
+	// A tick's own text in place of its value (the script's native enumStrings).
+	Array<std::string> enumStrings;
 };

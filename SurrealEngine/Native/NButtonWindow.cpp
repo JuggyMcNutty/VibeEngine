@@ -37,7 +37,8 @@ void NButtonWindow::EnableRightMouseClick(UObject* Self, std::optional<bool> bEn
 void NButtonWindow::PressButton(UObject* Self, std::optional<uint8_t> Key)
 {
 	UButtonWindow* button = UObject::Cast<UButtonWindow>(Self);
-	button->PressButton(Key);
+	// A key left out is Space (XButtonWindow::execPressButton 0x10008c90).
+	button->PressButton(Key ? (EInputKey)*Key : IK_Space);
 }
 
 void NButtonWindow::SetActivateDelay(UObject* Self, std::optional<float> newDelay)

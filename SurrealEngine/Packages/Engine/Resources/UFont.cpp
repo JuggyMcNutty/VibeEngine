@@ -24,6 +24,7 @@ void UFont::Load(ObjectStream* stream)
 			character.USize = stream->ReadInt32();
 			character.VSize = stream->ReadInt32();
 		}
+		charactersPerPage = (int)page.Characters.size();
 	}
 	else
 	{
@@ -100,6 +101,20 @@ FontGlyph UFont::GetGlyph(char c) const
 			glyph = FindGlyph(32);
 	}
 	return glyph;
+}
+
+// A character as Extension's GC finds it (XGC's glyph lookup, Extension.dll
+// 0x10026880): on page c / CharactersPerPage at c % CharactersPerPage, and
+// one not there has no size -- it draws nothing and takes no room.
+FontGlyph UFont::GetPageGlyph(uint8_t c) const
+{
+	if (charactersPerPage <= 0)
+		return {};
+	size_t page = c / charactersPerPage;
+	size_t index = c % charactersPerPage;
+	if (page >= pages.size() || index >= pages[page].Characters.size())
+		return {};
+	return { pages[page].Texture, pages[page].Characters[index] };
 }
 
 FontGlyph UFont::FindGlyph(char c) const

@@ -1,0 +1,24 @@
+# ScrollConsole's mouse, on its schedule (its header): ScrollConsole puts
+# the UI cursor on each part first; here the left button clicks, holds and
+# drags there, and the wheel turns.
+# DXCAP_TIMELINE=<this> vibe/tools/dxcap.sh fork ScrollConsole DX.dx 90
+start 9 press LeftMouse
+start 9.1 release LeftMouse
+start 13 press LeftMouse
+start 14.5 release LeftMouse
+start 17 press LeftMouse
+start 17.1 release LeftMouse
+start 21 press LeftMouse
+start 21.1 release LeftMouse
+start 25 press LeftMouse
+start 25.1 release LeftMouse
+start 29 press LeftMouse
+start 31 release LeftMouse
+start 33 press MouseWheelDown
+start 33.2 press MouseWheelDown
+start 33.4 press MouseWheelDown
+start 37 press MouseWheelUp
+start 47 press LeftMouse
+start 47.1 release LeftMouse
+start 51 press LeftMouse
+start 53 release LeftMouse

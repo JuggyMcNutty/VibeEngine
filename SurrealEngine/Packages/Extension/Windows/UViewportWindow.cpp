@@ -81,10 +81,10 @@ void UViewportWindow::ShowWeapons(std::optional<bool> bShow)
 	bShowWeapons() = !bShow || *bShow;
 }
 
-void UViewportWindow::InitWindow()
+void UViewportWindow::InitDefaults()
 {
+	UWindow::InitDefaults();
 	bClearZ() = true;
-	UWindow::InitWindow();
 }
 
 void UViewportWindow::DrawWindow(UGC* gc)

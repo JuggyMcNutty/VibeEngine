@@ -3,14 +3,6 @@
 #include "Packages/Core/UObject.h"
 #include "UWindow.h"
 
-// Represents a drawable text portion
-struct TextBlock
-{
-	std::string text; // Text stripped of any control codes
-	Color textColor;  // Text color extracted from a |p or |c control code
-	size_t accelPos;  // Accelerator position acquired from the |& control code
-};
-
 class UGC : public UObject
 {
 public:
@@ -22,6 +14,7 @@ public:
 	void DrawBorders(float DestX, float DestY, float destWidth, float destHeight, float leftMargin, float rightMargin, float TopMargin, float BottomMargin, UObject** borders, std::optional<bool> bStretchHorizontally, std::optional<bool> bStretchVertically);
 	void DrawBox(float DestX, float DestY, float destWidth, float destHeight, float OrgX, float OrgY, float boxThickness, UObject* tX);
 	void DrawIcon(float DestX, float DestY, UObject* tX);
+	void DrawIconPattern(float DestX, float DestY, float destWidth, float destHeight, float OrgX, float OrgY, float srcWidth, float srcHeight, UTexture* tex);
 	void DrawPattern(float DestX, float DestY, float destWidth, float destHeight, float OrgX, float OrgY, UObject* tX);
 	void DrawStretchedTexture(float DestX, float DestY, float destWidth, float destHeight, float srcX, float srcY, float srcWidth, float srcHeight, UObject* tX);
 	void DrawText(float DestX, float DestY, float destWidth, float destHeight, const std::string& textStr);
@@ -105,16 +98,43 @@ public:
 	uint32_t EffectivePolyFlags();
 	uint32_t EffectiveTextPolyFlags();
 	void DrawTile(UTexture* tex, const Rectf& dest, const Rectf& src, const Color& c, uint32_t flags);
-	Sizef DrawText(UFont* font, float x, float y, float destWidth, const std::string& text, const Color& c, uint32_t polyflags, bool noDraw = false);
-	Array<TextBlock> FindTextBlocks(const std::string& text, const Color& color);
-	void DrawTextBlockRange(float x, float y, const Array<TextBlock>& textBlocks, size_t start, size_t end, UFont* font, uint32_t polyflags);
-	vec2 GetTextSize(UFont* font, const std::string& text);
+
+	// What the text's codes have set as a line is read (the original's
+	// XTextState): bold, a colour of its own, a line break before, and the
+	// next character an accelerator.
+	struct TextState
+	{
+		bool bold = false;
+		bool ownColor = false;
+		bool afterBreak = false;
+		bool accel = false;
+		Color color = { 0, 0, 0, 255 };
+	};
+	uint8_t GetNextChar(const uint8_t*& p, TextState& state, const uint8_t* end);
+	void ReadColor(const uint8_t*& p, Color& color, const uint8_t* end);
+	bool ParseLine(const uint8_t* text, TextState state, const uint8_t* end, float wrap, const uint8_t*& next, TextState& stateOut, int& length, float& width);
+	const uint8_t* GetLine(TextState& state, float wrap, const uint8_t*& text, const uint8_t* end, float& width, int& length);
+	void DrawChar(UFont* font, uint8_t ch, const Color& color, bool accel, float x, float y, float& outX, float& outHeight);
 
 	void ResetClip(Rectf box);
 	void PushClip(Rectf box);
 	void PopClip();
 
 	bool SpecialTextEnabled = false;
+	UTexture* DefaultUnderlineTexture = nullptr;
+
+	// A window's text measured with the window's own fonts and text
+	// settings, as the original measures it with the window's own GC; the
+	// shared GC's are put back after.
+	struct TextSettings
+	{
+		UFont* normalFont = nullptr;
+		UFont* boldFont = nullptr;
+		bool specialText = false;
+		float vspacing = 0.0f;
+	};
+	TextSettings UseTextSettings(UWindow* window);
+	void RestoreTextSettings(const TextSettings& settings);
 
 	float offsetX = 0.0f;
 	float offsetY = 0.0f;

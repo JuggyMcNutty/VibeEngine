@@ -18,6 +18,7 @@ void RenderSubsystem::PreRenderWindows(UCanvas* canvas)
 		return;
 
 	engine->dxRootWindow->UpdateLayout();
+	engine->dxRootWindow->SeedFocus();
 }
 
 void RenderSubsystem::PostRenderWindows(UCanvas* canvas)
@@ -133,7 +134,7 @@ void RenderSubsystem::ResetWindowGC(UWindow* window, float offsetX, float offset
 	engine->dxgc->tileColor() = { 255, 255, 255, 255 };
 	//engine->dxgc->tilePlane() = {};
 	engine->dxgc->underlineHeight() = 0.0f;
-	engine->dxgc->underlineTexture() = nullptr;
+	engine->dxgc->underlineTexture() = engine->dxgc->DefaultUnderlineTexture;
 	engine->dxgc->vMultiplier() = 0;
 	engine->dxgc->SpecialTextEnabled = false;
 
@@ -162,7 +163,10 @@ void RenderSubsystem::DrawWindow(UWindow* window, float offsetX, float offsetY)
 	if (window->parentOwner())
 		engine->dxgc->PushClip(engine->dxgc->ScaleRect(Rectf::xywh(offsetX, offsetY, window->Width(), window->Height())));
 
+	// The window's background, then its own drawing, as the original's
+	// XWindow::DrawTree has them.
 	ResetWindowGC(window, offsetX, offsetY);
+	window->DrawBackground(engine->dxgc);
 	window->DrawWindow(engine->dxgc);
 
 	for (UWindow* child = window->firstChild(); child; child = child->nextSibling())

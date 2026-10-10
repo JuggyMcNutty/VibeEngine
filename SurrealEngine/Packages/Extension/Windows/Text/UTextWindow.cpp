@@ -129,60 +129,110 @@ void UTextWindow::SetWordWrap(bool bNewWordWrap)
 	}
 }
 
-void UTextWindow::InitWindow()
+// The original's XTextWindow::Init (0x10045af0): margins of 3, centred both
+// ways, word wrap on, no line limits, the text its own accelerator.
+void UTextWindow::InitDefaults()
 {
-	SetFont(engine->canvas->SmallFont());
-	UWindow::InitWindow();
+	UWindow::InitDefaults();
+	hMargin() = 3.0f;
+	vMargin() = 3.0f;
+	MinWidth() = 0.0f;
+	HAlign() = (uint8_t)EHAlign::Center;
+	VAlign() = (uint8_t)EVAlign::Center;
+	bWordWrap() = true;
+	minLines() = -1;
+	MaxLines() = -1;
+	Text() = "";
+	EnableTextAsAccelerator(true);
 }
 
+// The original's XTextWindow::ParentRequestedPreferredSize (0x100465a0),
+// measured with the window's own fonts and text settings: the text's extent
+// (wrapped at the width given less the margins, with word wrap on and a
+// width given), held within the line limits when the height is not given,
+// plus the margins; with no text, the background's size, else as the base
+// window asks; never narrower than the minimum width when no width is
+// given.
 void UTextWindow::ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight)
 {
-	//if (!Text().empty()) // Is this needed?
+	UGC* gc = engine->dxgc;
+	UGC::TextSettings saved = gc->UseTextSettings(this);
+
+	if (!Text().empty())
 	{
-		float xExtent = 0.0f, yExtent = 0.0f;
-		UObject* oldNormalFont = nullptr;
-		UObject* oldBoldFont = nullptr;
-		engine->dxgc->GetFonts(oldNormalFont, oldBoldFont);
-		engine->dxgc->SetFonts(normalFont(), boldFont());
-		engine->dxgc->GetTextExtent(bWidthSpecified ? std::max(preferredWidth, MinWidth()) : 100000.0f, xExtent, yExtent, Text());
-		engine->dxgc->SetFonts(oldNormalFont, oldBoldFont);
-
-		if (UFont* font = normalFont())
+		if (bHeightSpecified || (minLines() < 0 && MaxLines() < 0))
 		{
-			int lineHeight = font->GetGlyph('X').VSize;
-			int minHeight = minLines() * lineHeight;
-			int maxHeight = MaxLines() * lineHeight;
-			if (maxHeight > 0 && minHeight <= maxHeight)
-				yExtent = std::clamp(yExtent, (float)minHeight, (float)maxHeight);
+			float wrap = (bWidthSpecified && bWordWrap()) ? preferredWidth - (hMargin() + hMargin()) : 0.0f;
+			gc->GetTextExtent(wrap, preferredWidth, preferredHeight, Text());
 		}
-
-		xExtent = std::max(xExtent, MinWidth());
-
-		float xMargin = hMargin();
-		float yMargin = vMargin();
-		if (!bWidthSpecified)
-			preferredWidth = xExtent + xMargin * 2.0f;
+		else
+		{
+			if (bWidthSpecified && bWordWrap())
+			{
+				float width = 0.0f;
+				gc->GetTextExtent(preferredWidth - (hMargin() + hMargin()), width, preferredHeight, Text());
+			}
+			else
+			{
+				gc->GetTextExtent(0.0f, preferredWidth, preferredHeight, Text());
+			}
+			float fontHeight = gc->GetFontHeight(true);
+			float height = preferredHeight;
+			if (minLines() >= 0 && minLines() * fontHeight > preferredHeight)
+				height = minLines() * fontHeight;
+			if (MaxLines() >= 0 && preferredHeight > MaxLines() * fontHeight)
+				height = MaxLines() * fontHeight;
+			preferredHeight = height;
+		}
+		preferredWidth += hMargin() + hMargin();
+		preferredHeight += vMargin() + vMargin();
+	}
+	else if (!Background())
+	{
+		// The base window's: the script's say. A width not asked for is
+		// the minimum width then -- 0 for an empty text window -- and a
+		// height not asked for stays -1, the window's own height.
+		UWindow::ParentRequestedPreferredSize(bWidthSpecified, preferredWidth, bHeightSpecified, preferredHeight);
+	}
+	else
+	{
+		preferredHeight = (float)Background()->VSize();
 		if (!bHeightSpecified)
-			preferredHeight = yExtent + yMargin * 2.0f;
+		{
+			if (minLines() >= 0)
+				preferredHeight = minLines() * gc->GetFontHeight(true);
+			else if (MaxLines() >= 0)
+				preferredHeight = MaxLines() * gc->GetFontHeight(true);
+		}
+		preferredWidth = (float)Background()->USize();
 	}
 
-	UWindow::ParentRequestedPreferredSize(bWidthSpecified, preferredWidth, bHeightSpecified, preferredHeight);
+	if (!bWidthSpecified && preferredWidth < MinWidth())
+		preferredWidth = MinWidth();
+
+	gc->RestoreTextSettings(saved);
 }
 
+// The original's (XTextWindow::ParentRequestedGranularity 0x10046880): a
+// line down -- the font's height with the line spacing -- a pixel across;
+// then the script's say.
+void UTextWindow::ParentRequestedGranularity(float& hGranularity, float& vGranularity)
+{
+	UGC* gc = engine->dxgc;
+	UGC::TextSettings saved = gc->UseTextSettings(this);
+	vGranularity = gc->GetFontHeight(true);
+	hGranularity = 1.0f;
+	gc->RestoreTextSettings(saved);
+	UWindow::ParentRequestedGranularity(hGranularity, vGranularity);
+}
+
+// The original's XTextWindow::Draw (0x10046930): the GC set to the text's
+// alignments and word wrap, the script's DrawWindow, then the text within
+// the margins.
 void UTextWindow::DrawWindow(UGC* gc)
 {
-	if (normalFont()) // When should text windows draw their text? They are used for buttons, which sometimes draw themselves via UI
-	{
-		float xMargin = hMargin();
-		float yMargin = vMargin();
-		float w = Width() - 2.0f * xMargin;
-		float h = Height() - 2.0f * yMargin;
-		if (w > 0.0f && h > 0.0f)
-		{
-			gc->SetAlignments(HAlign(), VAlign());
-			gc->DrawText(xMargin, yMargin, w, h, Text());
-		}
-		// DrawDebugBox(gc);
-	}
+	gc->SetAlignments(HAlign(), VAlign());
+	gc->EnableWordWrap(bWordWrap());
 	UWindow::DrawWindow(gc);
+	gc->DrawText(hMargin(), vMargin(), Width() - (hMargin() + hMargin()), Height() - (vMargin() + vMargin()), Text());
 }

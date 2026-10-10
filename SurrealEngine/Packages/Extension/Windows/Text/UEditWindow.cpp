@@ -1,6 +1,8 @@
 
 #include "Precomp.h"
 #include "UEditWindow.h"
+#include "VM/ScriptCall.h"
+#include "Packages/Core/Properties/UStringProperty.h"
 #include "Engine.h"
 #include "Packages/Extension/Windows/UGC.h"
 #include "Packages/Engine/Resources/UFont.h"
@@ -190,49 +192,97 @@ void UEditWindow::TextModifiedByScript()
 	selectEnd() = insertPos();
 }
 
+// The original's XEditWindow::InsertText (0x1001e3c0): each character
+// through the filter -- a single line drops line breaks, FilterChar may
+// change or refuse one -- and nothing done when none passes; a change
+// without undo clears the undo list. What passes replaces the selection at
+// the insertion point, cut to what MaxSize leaves room for.
 bool UEditWindow::InsertText(std::optional<std::string> InsertText, std::optional<bool> bUndo, std::optional<bool> bSelect)
 {
-	// Note: bSelect is never set to true
-
-	if (InsertText.has_value())
+	const std::string& input = InsertText.value_or("");
+	std::string filtered;
+	for (char c : input)
 	{
-		if (InsertText.value() == "|n" && bSingleLine())
-		{
-			for (UWindow* cur = this; cur != nullptr; cur = cur->parentOwner())
-			{
-				if (EditActivated(this, HasTextChanged()))
-					break;
-			}
-			return true;
-		}
+		if (bSingleLine() && c == '\n')
+			continue;
+		std::string ch(1, c);
+		if (FilterChar(ch) && !ch.empty())
+			filtered += ch[0];
+	}
+	if (!input.empty() && filtered.empty())
+		return false;
 
-		std::string text = Text();
-		std::string removed;
-		int selStart = 0, selCount = 0;
-		GetSelectedArea(selStart, selCount);
-		if (selCount > 0)
-		{
-			removed = text.substr(selStart, selCount);
-			text = text.substr(0, selStart) + text.substr(selStart + selCount);
-			if (insertPos() >= selStart + selCount)
-				insertPos() -= selCount;
-			else if (insertPos() > selStart)
-				insertPos() = selStart;
-		}
-		int changePos = insertPos();
-		text = text.substr(0, insertPos()) + InsertText.value() + text.substr(insertPos());
-		insertPos() += (int)InsertText.value().size();
-		selectStart() = insertPos();
-		selectEnd() = insertPos();
-		SetText(text);
+	if (!bUndo.value_or(false))
+	{
+		ClearUndo();
 		SetTextChangedFlag(true);
-		DispatchTextChanged(true);
-
-		if (bUndo.value_or(false))
-			AddUndo(changePos, std::move(removed), InsertText.value());
 	}
 
-	return true; // Unknown what this means. Script doesn't seem to use it for anything.
+	std::string text = Text();
+	int selStart = 0, selCount = 0;
+	GetSelectedArea(selStart, selCount);
+	int insertLength = (int)filtered.size();
+	if (maxSize() > 0)
+	{
+		if ((int)text.size() > maxSize())
+		{
+			SetText(text.substr(0, maxSize()));
+			ClearUndo();
+			SetTextChangedFlag(true);
+			SetInsertionPoint(0, false);
+			return true;
+		}
+		if (selCount < insertLength)
+		{
+			int over = insertLength + (int)text.size() - maxSize() - selCount;
+			if (over > 0)
+			{
+				insertLength -= over;
+				if (insertLength < 0)
+					return true;
+			}
+		}
+		filtered = filtered.substr(0, insertLength);
+	}
+	if (selCount <= 0 && filtered.empty())
+		return true;
+
+	std::string removed;
+	if (selCount > 0)
+	{
+		removed = text.substr(selStart, selCount);
+		text = text.substr(0, selStart) + text.substr(selStart + selCount);
+		if (insertPos() >= selStart + selCount)
+			insertPos() -= selCount;
+		else if (insertPos() > selStart)
+			insertPos() = selStart;
+	}
+	int changePos = insertPos();
+	text = text.substr(0, insertPos()) + filtered + text.substr(insertPos());
+	insertPos() += (int)filtered.size();
+	selectStart() = insertPos();
+	selectEnd() = insertPos();
+	SetText(text);
+	SetTextChangedFlag(true);
+	DispatchTextChanged(true);
+
+	if (bUndo.value_or(false))
+		AddUndo(changePos, std::move(removed), filtered);
+
+	return true;
+}
+
+// The original's XEditWindow::FilterChar (0x10021830): upper case when only
+// upper case is allowed, then the script's FilterChar, which may refuse the
+// character or give another; with none, every character passes.
+bool UEditWindow::FilterChar(std::string& ch)
+{
+	if (bUppercaseOnly() && ch[0] >= 'a' && ch[0] <= 'z')
+		ch[0] -= 32;
+	if (!FindEventFunction(this, "FilterChar"))
+		return true;
+	auto stringProp = GC::Alloc<UStringProperty>("", nullptr, ObjectFlags::NoFlags);
+	return CallEvent(this, "FilterChar", { ExpressionValue::Variable(&ch, stringProp) }).ToBool();
 }
 
 bool UEditWindow::IsEditingEnabled()
@@ -412,12 +462,36 @@ void UEditWindow::SetTextChangedFlag(std::optional<bool> bSet)
 	textChanged = bSet ? *bSet : true;
 }
 
-void UEditWindow::InitWindow()
+// The original's XEditWindow::Init (0x1001cea0): text from the top left, 3
+// in from the sides, editable and on several lines -- no game script makes
+// one single-line, so Enter is the script's line break everywhere -- a white
+// insertion point, grey selection, up to 200000 characters and 64 undos, a
+// cursor blinking each second after 0.75 s, no special text, and selectable.
+void UEditWindow::InitDefaults()
 {
-	ULargeTextWindow::InitWindow();
-	blinkPeriod() = 0.5f;
+	ULargeTextWindow::InitDefaults();
+	HAlign() = (uint8_t)EHAlign::Left;
+	VAlign() = (uint8_t)EVAlign::Top;
+	hMargin() = 3.0f;
+	vMargin() = 0.0f;
 	bEditable() = true;
-	bSingleLine() = true; // Does it default to single or multi line?
+	bSingleLine() = false;
+	bUppercaseOnly() = false;
+	insertPos() = 0;
+	insertHookPos() = 0;
+	insertType() = 0;
+	selectStart() = 0;
+	selectEnd() = 0;
+	maxSize() = 200000;
+	insertColor() = { 255, 255, 255, 255 };
+	selectColor() = { 196, 196, 196, 255 };
+	inverseColor() = { 0, 0, 0, 255 };
+	maxUndos() = 64;
+	blinkStart() = 0.75f;
+	blinkPeriod() = 1.0f;
+	dragDelay() = 0.0f;
+	bSpecialText() = false;
+	bIsSelectable() = true;
 }
 
 void UEditWindow::Tick(float timeElapsed)
@@ -496,22 +570,42 @@ void UEditWindow::DrawWindow(UGC* gc)
 	// DrawDebugBox(gc);
 }
 
+// The original's XEditWindow::KeyPressed (0x10021290): the script's first;
+// then, editing on, a typed character other than the console's ` and ~ is
+// inserted with undo, and plays the type sound.
 bool UEditWindow::KeyPressed(std::string key)
 {
-	if (ULargeTextWindow::KeyPressed(key))
-		return true;
-
-	if (key.empty() || !IsEditingEnabled())
-		return false;
-
-	if (key.front() >= 32)
-		InsertText(key, true, IsKeyDown(IK_Shift));
-
-	return true;
+	bool handled = ULargeTextWindow::KeyPressed(key);
+	if (bEditable() && key.size() == 1 && key[0] != '`' && key[0] != '~' && (uint8_t)key[0] >= 0x20)
+	{
+		if (InsertText(key, true, false))
+		{
+			PlayEditSound(typeSound(), {}, {});
+			return true;
+		}
+	}
+	return handled;
 }
 
+// The original's XEditWindow::VirtualKeyPressed (0x10021480): Enter plays the
+// enter sound, and in an editable single line activates the edit
+// (EditActivated up the parents) without the script's hearing of it; all
+// else is the script's, its Enter inserting a line break.
 bool UEditWindow::VirtualKeyPressed(EInputKey key, bool bRepeat)
 {
+	if (key == IK_Enter)
+	{
+		PlayEditSound(enterSound(), {}, {});
+		if (bSingleLine() && bEditable())
+		{
+			for (UWindow* cur = this; cur != nullptr; cur = cur->parentOwner())
+			{
+				if (cur->EditActivated(this, HasTextChanged()))
+					break;
+			}
+			return true;
+		}
+	}
 	return ULargeTextWindow::VirtualKeyPressed(key, bRepeat);
 }
 

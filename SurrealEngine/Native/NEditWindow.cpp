@@ -106,8 +106,10 @@ void NEditWindow::HasTextChanged(UObject* Self, BitfieldBool& ReturnValue)
 
 void NEditWindow::InsertText(UObject* Self, std::optional<std::string> InsertText, std::optional<bool> bUndo, std::optional<bool> bSelect, BitfieldBool& ReturnValue)
 {
+	// As the original's exec: the text through ConvertScriptString, no undo
+	// and no selection unless asked.
 	UEditWindow* editwindow = UObject::Cast<UEditWindow>(Self);
-	ReturnValue = editwindow->InsertText(InsertText, bUndo, bSelect);
+	ReturnValue = editwindow->InsertText(editwindow->ConvertScriptString(InsertText.value_or("")), bUndo.value_or(false), bSelect.value_or(false));
 }
 
 void NEditWindow::IsEditingEnabled(UObject* Self, BitfieldBool& ReturnValue)

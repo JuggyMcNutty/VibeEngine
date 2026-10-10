@@ -7,6 +7,11 @@ class UTabGroupWindow : public UWindow
 public:
 	using UWindow::UWindow;
 
+	void InitDefaults() override;
+	void ParentRequestedPreferredSize(bool bWidthSpecified, float& preferredWidth, bool bHeightSpecified, float& preferredHeight) override;
+	void ConfigurationChanged() override;
+	void ChildRequestedVisibilityChange(UWindow* childWin, bool bNewVisibility) override;
+
 	BitfieldBool bSizeChildrenToParent() { return BoolValue(PropOffsets_TabGroupWindow.bSizeChildrenToParent); }
 	BitfieldBool bSizeParentToChildren() { return BoolValue(PropOffsets_TabGroupWindow.bSizeParentToChildren); }
 	//DynamicArray& colMajorWindowList() { return Value<DynamicArray>(PropOffsets_TabGroupWindow.colMajorWindowList); }
