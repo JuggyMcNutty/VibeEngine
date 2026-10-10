@@ -254,10 +254,8 @@ The handheld's numbers are [the Smart Pro's Performance](https://github.com/Jugg
 `LauncherSettings` reads the `Gamepad` and `Performance` blocks
 ([the keys](#settings-and-environment)). Distant AI (0008, 0022) is `UActor::ThinkThisFrame`,
 asked each tick; a pawn counts as seen when the renderer drew it this frame (`LastVisibleFrame`).
-A pawn neither seen nor within 1,500 units runs its tick and state code every third frame, beyond
-4,000 units every sixth, the tick given the time it missed; its physics and timers run every frame.
 With it on, Liberty Island's pawns move and change state as without it: `MoveConsole`'s 52 within
-the original's tolerance, `AIConsole`'s states at 8 and 20 s the original's.
+`move.py`'s tolerance, `AIConsole`'s states at 8 and 20 s the original's.
 Render scale (0009, 0038) is `RenderDevice::GetRenderScale`: a device whose
 `SupportsRenderScale()` says so (Vulkan, GL) makes its scene buffers at `GetRenderWidth()` by
 `GetRenderHeight()` and scales them to the window as it presents; the viewport, the canvas and
@@ -274,8 +272,8 @@ mover's, with the map it last drew; the clipper's occlusion grid one row per ima
 non-SSE (ARM) build skipping the clip for triangles inside the view (0020, an upstream bug), a
 surface clipped once and filled into the grid as one polygon, a span to a row
 (`BspClipper::DrawPolygon`), and a span that closes a gap in a row going on into the gap after it
-(`BspClipper::DrawSpan`, an upstream bug: it passed that gap over, leaving it open, so what lay
-behind counted as showing and was drawn); one-sided surfaces seen from behind skipped before the
+(`BspClipper::DrawSpan`; upstream's passes that gap over, leaving it open, so what lies behind
+counts as showing and is drawn); one-sided surfaces seen from behind skipped before the
 visibility test (0011); a surface's points gathered only when a test needs them (0021); each mesh
 vertex animated, lit and fogged once a draw (0018), and a run of faces with one texture drawn in one
 device call, set up once (0019; the GL device's `DrawGouraudTriangles` too); a portal's spans put in

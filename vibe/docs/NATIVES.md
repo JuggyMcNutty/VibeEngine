@@ -132,9 +132,8 @@ augmentation draws through a wall stays drawn while it is in view
 
 - **The pixels.** The fork's grid takes a pixel whose centre a polygon
   covers; the original's span buffer, one whose lower right corner it covers
-  (`Render.dll`'s rasterizer: rows from the one the top edge falls in, each
-  edge's x where it crosses the row's lower boundary). A sliver under a
-  pixel tall can show in one and not the other.
+  ([the pixels](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)).
+  A sliver under a pixel tall can show in one and not the other.
 - **One span buffer** for the frame, where the original keeps one per zone.
   A buffer per zone would change no test in 15,500 at the starts of Liberty
   Island, UNATCO HQ and Battery Park: the walls round a portal are drawn
@@ -368,7 +367,8 @@ crate rises and bobs at the surface at the original's speeds), swimming
 (`SwimConsole`: the player and a troop falling or thrown into water are put
 back at the water line and swim on, the player stopped as its head goes
 under and held to 0.3 of `WaterSpeed`, as it walks whenever it swims; up out
-of the water it hops and falls back in, bobbing), the speed a pawn walks and
+of the water it hops and falls back in, bobbing; a pawn walking into water is
+unchecked in a run), the speed a pawn walks and
 swims at (`calcVelocity`; one that stops brakes to a standstill), ladders
 (`LadderConsole`: a player at a ladder's foot hangs there, climbs as it
 pushes into it, goes down looking down and steps off onto the top; the same
@@ -386,11 +386,6 @@ Differs:
 - **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so a player can tell
   which engine they run ([the version](ENGINE.md#running-on-our-devices)). The original's is
   "Mon Mar 19 12:06:14 2001 v1.112fm".
-- **The player's name in a net game**: a name the player never chose -- none,
-  or the game's stock `Player` -- logs in as `VibePlayer`, a client's to its
-  server and a listen server's host's, by choice, so the fork's players show
-  as such (`Engine::SetMultiplayerName`). A name the player chose is kept;
-  single player, the menus and the inis keep the game's.
 - **The engine's own rotations** (the view, movement) take exact angles;
   the scripts' conversions take the original's sine table
   ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
@@ -433,8 +428,7 @@ loaded in turn (`reload-fresh.txt`), twenty loads: 522 MB at the end, 528 MB at 
 each island load's collection leaves the same 43,054 objects and frees some
 130 textures and 20 sounds. Liberty Island and UNATCO HQ through `Current`
 (`reload-current.txt`): 522 MB at most throughout. A collection takes 28 to
-66 ms there; on the Smart Pro 200 to 265 ms, measured before names were
-collected.
+66 ms there; on the Smart Pro 200 to 265 ms without the name walk.
 
 **Names** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
 a spawned actor and an AI event's object are named as the original names
@@ -587,7 +581,9 @@ through `Pawn.ClientHearSound`
 `ServeConsole`'s beeps, the client recorded).
 Each runs against the original as client and as server: `ServeConsole`,
 `JoinConsole`, `RejoinConsole`, `TravelServeConsole`, `TravelJoinConsole`,
-`NetConsole`. Until its pawn arrives, a joining fork draws no world. The
+`NetConsole`. The fork joins live public servers, the mods they run included
+(MTL, ANNA, CDX, DXAG, SG), and stays in. Until its pawn arrives, a joining
+fork draws no world. The
 server-only stubs are under
 [not needed for single player](#not-needed-for-single-player). Differs:
 
@@ -608,22 +604,24 @@ server-only stubs are under
   144 frames a second, 4 at 200 and none at some 1,300 (uncapped on the
   desktop with no vsync), as the original server's reach the fork's, 6 to 8:
   the first goes as the host stops, its last step's packet just sent.
-- **A server's corrections** (`ClientAdjustPosition`), the fork a client of
-  the original's own server here, a stock game: walking in the open, none;
-  sliding along a wall and stopping there, 1.5 to 2.6 units, the fork's player
-  nearer the wall ([small](#small)), as often as the server checks the
-  client's place (180 / its speed s) while it is off by over 1.7: in one run
-  three times, in another some 13 a second; standing, the update every 2 s takes it
-  0.06 down, its height over the floor. For its first seconds in, until the
-  server's augmentation manager reaches it, the player walks at 100 where the
-  server runs it (the game's `GetCurrentGroundSpeed` gives 0 without one), and
-  a walk then is corrected by up to 36 units: the server sends the original's
-  client the same, as fast. The public servers run mods (MTL, ANNA, CDX, DXAG,
-  SG) whose player classes correct by functions of their own; the fork joins
-  each and stays in.
+- **A server's corrections** (`ClientAdjustPosition`; the fork a client of
+  the original's server, a stock game): at a wall the fork's player stops
+  nearer it ([small](#small)), so the server moves it 1.5 to 2.6 units each
+  time it checks the client's place (every 180 / the connection's speed s)
+  and finds it off by over 1.7; standing, its update every 2 s takes it 0.06
+  down. Walking in the open, none.
+- **The player's name in a net game**: a name the player never chose -- none,
+  or the game's stock `Player` -- logs in as `VibePlayer`, a client's to its
+  server and a listen server's host's, by choice, so the fork's players show
+  as such (`Engine::SetMultiplayerName`). A name the player chose is kept;
+  single player, the menus and the inis keep the game's.
 
 As in the original:
 
+- For a player's first seconds in, until the server's augmentation manager
+  reaches its client, the client walks at 100 where the server runs it at 230
+  (`GetCurrentGroundSpeed` gives 0 without one), and the server corrects a
+  walk by up to 36 units.
 - A game hosted from the menus is never listed on a master server: an uplink
   announces a server only with its `DoUplink` set, which the game's
   `DeusEx.ini` does not set ([the master server](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-master-server)).

@@ -31,7 +31,8 @@
 # DXCAP_DISPLAY), each in a 1280x720 window (DXCAP_WINDOW=<w>x<h> another
 # size), the fork through its window's X11 backend: one X server and the GPU
 # for both. DXCAP_RENDERER=D3D draws the original through D3DDrv, the game's
-# own renderer, instead of OpenGLDrv: the same frames, gamma ramp and all. DXCAP_AUDIO=1 gives
+# own renderer, instead of OpenGLDrv: the same picture, gamma ramp and all,
+# though the grabber can miss its shots (vibe/docs/DEVELOPMENT.md, shots). DXCAP_AUDIO=1 gives
 # the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
 # engine's audio to a private sink instead of the speakers and records it into
 # the run's audio.wav, with the music off (vibe/tools/dxcap/sound.py reads it).

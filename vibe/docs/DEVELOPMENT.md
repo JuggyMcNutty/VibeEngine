@@ -49,7 +49,7 @@ game's files into `build/dxcap` by absolute path, and after a move `compile` doe
 are gone.
 
 - **The ini.** Each run gets a private ini made from the game's `DeusEx.ini` and `User.ini`: the
-  console class, a 1280x720 window (`DXCAP_WINDOW`), 333networks' master server for the Join
+  console class, the run's window size, 333networks' master server for the Join
   Internet screen (the game names GameSpy's, which is closed), no uplink, and `OpenGLDrv` for the
   original. Both engines take the game's settings from it; the game's inis are never written.
 - **`Settings.json`.** The fork's renderer, MSAA, VSync, gamma mode, `GammaCorrectScreenshots`,
@@ -63,7 +63,7 @@ are gone.
 |---|---|
 | `DX_ROOT=<dir>` | the parent folder, if not the one this clone is in |
 | `DXCAP_DISPLAY=<display>` | another X display than `$DISPLAY`, the desktop's ([the display](#the-display)) |
-| `DXCAP_WINDOW=<w>x<h>` | both engines' window that size, not 1280x720: at 4:3 their views are the same ([the view's width](NATIVES.md#the-views-width)) |
+| `DXCAP_WINDOW=<w>x<h>` | both engines' window that size ([the display](#the-display)): at 4:3 their views are the same ([the view's width](NATIVES.md#the-views-width)) |
 | `DXCAP_AUDIO=1` | the fork with real audio; it is silent otherwise |
 | `DXCAP_RECORD=1` | either engine's sound recorded into the run's `audio.wav` (a private null sink, `PULSE_SINK`, and `parecord`); the music off |
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
@@ -207,8 +207,8 @@ server sends the player (`ClientAdjustPosition`), how far it moved it; a run dro
 exits. A join downloads what the fork lacks into the game's `Cache`. Which servers are up, and
 how full: `https://master.333networks.com/json/deusex`. Pick an empty server. Most run a mod
 (MTL, ANNA and others) whose player class replaces the stock moves and corrections, its names
-hidden: for the stock game's, serve the original here (`original ServeConsole 300`) and run
-`live 127.0.0.1:7790`.
+hidden: for the stock game's, serve the original here as for the [net tests](#net-tests)
+(`original ServeConsole 300`, its port bound) and run `live 127.0.0.1:7790`.
 
 ### Shots
 
