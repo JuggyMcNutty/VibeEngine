@@ -116,7 +116,7 @@ the run. *Either*: one engine on each side of a pair.
 | `AugVisionConsole` | both | an NPC behind a wall that the vision augmentation draws: its time since drawn, the augmentation off, on, on and turned about, off | `DXAUGVIS:` | |
 | `PortalConsole` | both | a map opened at a portal (`open <map>#<portal>`): the level's URL, where the player lands | `DXPORTAL:` | |
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
-| `GetConsole` | both | the console's `GET` and `SET`; the main menu | `DXGET:` | |
+| `GetConsole` | both | the console's `GET` and `SET`, the audio device's `EffectsChannels` among them; the main menu | `DXGET:` | |
 | `PerfConsole` | both | what a frame costs: the map (`TargetMap`, Liberty Island by default) from its start, the player idle, the view held; from 15 s in, sixty one-second windows on the wall clock; the original's own cycle counters | `DXPERF:` | `vibe/tools/perf/frame-report.py`, with `DXCAP_PERF=1` ([measuring both engines](#measuring-both-engines)) |
 | `PerfTurnConsole` | both | `PerfConsole` with the view turning 45 degrees a second | `DXPERF:` | the same |
 | `BeltConsole` | both | the object belt | `DXBELT:` | |

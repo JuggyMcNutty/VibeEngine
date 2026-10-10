@@ -5,8 +5,10 @@
 // float, an int, a bool, an enum byte, and a GET the multiplayer Host screen
 // makes) logged with what GET gives; then SETs of a bare class name's
 // value, a value with spaces and a value the player has too, each read
-// back; then the main menu opened and shot 2 s later, its pointer drawn,
-// and an exit.
+// back; then the audio device's EffectsChannels, as the Sound menu reads
+// and writes it, set within its range, above it and below it, each read
+// back, and put back; then the main menu opened and shot 2 s later, its
+// pointer drawn, and an exit.
 //=============================================================================
 class GetConsole extends Console;
 
@@ -58,6 +60,14 @@ event Tick(float Delta)
 	LogGet(P, "GameReplicationInfo ServerName");
 	P.ConsoleCommand("set PlayerPawn MouseSensitivity 5.5");
 	Log("DXGET: the player's MouseSensitivity after a set " $ P.MouseSensitivity);
+	LogGet(P, "ini:Engine.Engine.AudioDevice EffectsChannels");
+	P.ConsoleCommand("set ini:Engine.Engine.AudioDevice EffectsChannels 8");
+	LogGet(P, "ini:Engine.Engine.AudioDevice EffectsChannels");
+	P.ConsoleCommand("set ini:Engine.Engine.AudioDevice EffectsChannels 64");
+	LogGet(P, "ini:Engine.Engine.AudioDevice EffectsChannels");
+	P.ConsoleCommand("set ini:Engine.Engine.AudioDevice EffectsChannels -5");
+	LogGet(P, "ini:Engine.Engine.AudioDevice EffectsChannels");
+	P.ConsoleCommand("set ini:Engine.Engine.AudioDevice EffectsChannels 16");
 	if (DeusExPlayer(P) != None)
 		DeusExPlayer(P).ShowMainMenu();
 	ShotTime = MenuTime + 2.0;

@@ -49,7 +49,7 @@ public:
 	bool ReverseStereo = false;
 	int Latency = 40;
 	AudioFrequency OutputRate = 44100;
-	int Channels = 16;
+	int Channels = 16;            // Deus Ex's EffectsChannels; the channels in use are SetChannelCount's
 	uint8_t MusicVolume = 160;
 	uint8_t SoundVolume = 200;
 	uint8_t SpeechVolume = 255;   // Deus Ex's Speech slider; other games play speech at SoundVolume
@@ -67,7 +67,7 @@ public:
 	void SetViewport(UViewport* InViewport);
 	UViewport* GetViewport() { return m_Viewport; }
 
-	void Update(const mat4& listener);
+	void Update();
 
 	bool PlaySound(UActor* Actor, int Id, USound* Sound, vec3 Location, float Volume, float Radius, float Pitch, bool isTalk);
 	void StopSound(UActor* Actor, int Id);
@@ -88,9 +88,10 @@ public:
 	void PurgeDying();
 
 private:
+	void SetChannelCount();
 	void StartAmbience();
 	void UpdateAmbience();
-	void UpdateSounds(const mat4& listener, float timeStep);
+	void UpdateSounds(float timeStep);
 	void UpdateObstruction(PlayingSound& Playing, float timeStep);
 	void GalaxyVoice(const PlayingSound& Playing, int& volume, int& panning);
 

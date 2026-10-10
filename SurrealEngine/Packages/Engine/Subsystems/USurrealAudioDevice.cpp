@@ -18,6 +18,11 @@
 
 static float square(float x) { return x * x; }
 
+// The channel count's name: Galaxy's EffectsChannels for Deus Ex, which its
+// Sound menu reads and writes (galaxy-dll.md, Settings); Channels for other
+// games.
+static const char* ChannelsKey() { return engine->LaunchInfo.IsDeusEx() ? "EffectsChannels" : "Channels"; }
+
 std::string USurrealAudioDevice::GetPropertyAsString(const NameString& propertyName) const
 {
 	if (propertyName == "Class")
@@ -46,7 +51,7 @@ std::string USurrealAudioDevice::GetPropertyAsString(const NameString& propertyN
 		return IniPropertyConverter<int>::ToString(Latency);
 	else if (propertyName == "OutputRate")
 		return IniPropertyConverter<AudioFrequency>::ToString(OutputRate);
-	else if (propertyName == "Channels")
+	else if (propertyName == ChannelsKey())
 		return IniPropertyConverter<int>::ToString(Channels);
 	else if (propertyName == "MusicVolume")
 		return IniPropertyConverter<uint8_t>::ToString(MusicVolume);
@@ -89,8 +94,14 @@ void USurrealAudioDevice::SetPropertyFromString(const NameString& propertyName, 
 		Latency = IniPropertyConverter<int>::FromString(value);
 	else if (propertyName == "OutputRate")
 		OutputRate = IniPropertyConverter<AudioFrequency>::FromString(value);
-	else if (propertyName == "Channels")
+	else if (propertyName == ChannelsKey())
+	{
 		Channels = IniPropertyConverter<int>::FromString(value);
+		// Galaxy's channel loops read EffectsChannels as it stands: a SET takes
+		// the channels in use at once (galaxy-dll.md, Settings).
+		if (engine->LaunchInfo.IsDeusEx() && m_Viewport)
+			SetChannelCount();
+	}
 	else if (propertyName == "MusicVolume")
 		MusicVolume = IniPropertyConverter<uint8_t>::FromString(value);
 	else if (propertyName == "SoundVolume")
@@ -126,7 +137,7 @@ void USurrealAudioDevice::LoadProperties(const NameString& from)
 	ReverseStereo = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "ReverseStereo", ReverseStereo);
 	Latency = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "Latency", Latency);
 	OutputRate = IniPropertyConverter<AudioFrequency>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "OutputRate", OutputRate);
-	Channels = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "Channels", Channels);
+	Channels = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, ChannelsKey(), Channels);
 	MusicVolume = IniPropertyConverter<uint8_t>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "MusicVolume", MusicVolume);
 	SoundVolume = IniPropertyConverter<uint8_t>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "SoundVolume", SoundVolume);
 	SpeechVolume = IniPropertyConverter<uint8_t>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "SpeechVolume", SpeechVolume);
@@ -148,7 +159,7 @@ void USurrealAudioDevice::SaveConfig()
 	engine->packages->SetIniValue("System", Class, "ReverseStereo", IniPropertyConverter<bool>::ToString(ReverseStereo));
 	engine->packages->SetIniValue("System", Class, "Latency", IniPropertyConverter<int>::ToString(Latency));
 	engine->packages->SetIniValue("System", Class, "OutputRate", IniPropertyConverter<AudioFrequency>::ToString(OutputRate));
-	engine->packages->SetIniValue("System", Class, "Channels", IniPropertyConverter<int>::ToString(Channels));
+	engine->packages->SetIniValue("System", Class, ChannelsKey(), IniPropertyConverter<int>::ToString(Channels));
 	engine->packages->SetIniValue("System", Class, "MusicVolume", IniPropertyConverter<uint8_t>::ToString(MusicVolume));
 	engine->packages->SetIniValue("System", Class, "SoundVolume", IniPropertyConverter<uint8_t>::ToString(SoundVolume));
 	engine->packages->SetIniValue("System", Class, "SpeechVolume", IniPropertyConverter<uint8_t>::ToString(SpeechVolume));
@@ -192,12 +203,24 @@ void USurrealAudioDevice::SetViewport(UViewport* InViewport)
 			if (m_Viewport->Actor()->Song() && m_Viewport->Actor()->Transition() == MTRAN_None)
 				m_Viewport->Actor()->Transition() = MTRAN_Instant;
 
-			PlayingSounds.resize(std::min(Channels, m_Device->GetTotalChannels()));
+			SetChannelCount();
 		}
 	}
 }
 
-void USurrealAudioDevice::Update(const mat4& listener)
+// The channels in use: the setting held to the device's channels, as Galaxy's
+// PostEditChange holds EffectsChannels to its 32 channel records; the setting
+// itself stays as set, as GET and the ini give it (galaxy-dll.md, Settings).
+// The sounds on channels past the count stop.
+void USurrealAudioDevice::SetChannelCount()
+{
+	size_t count = (size_t)std::clamp(Channels, 0, m_Device->GetTotalChannels());
+	for (size_t i = count; i < PlayingSounds.size(); i++)
+		StopSound(i);
+	PlayingSounds.resize(count);
+}
+
+void USurrealAudioDevice::Update()
 {
 	// The update's own time step, 0 to 1 s, as Galaxy's (galaxy-dll.md, Each
 	// frame); the obstruction fade runs on it.
@@ -207,7 +230,7 @@ void USurrealAudioDevice::Update(const mat4& listener)
 
 	StartAmbience();
 	UpdateAmbience();
-	UpdateSounds(listener, timeStep);
+	UpdateSounds(timeStep);
 	UpdateMusic(timeStep);
 	UpdateReverb();
 
@@ -353,7 +376,7 @@ void USurrealAudioDevice::UpdateLipSync(PlayingSound& Playing)
 	pawn->nextPhoneme() = std::string(1, letter);
 }
 
-void USurrealAudioDevice::UpdateSounds(const mat4& listener, float timeStep)
+void USurrealAudioDevice::UpdateSounds(float timeStep)
 {
 	if (!m_Viewport || !m_Viewport->Actor())
 		return;

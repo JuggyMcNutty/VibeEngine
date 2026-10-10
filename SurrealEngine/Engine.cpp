@@ -843,11 +843,8 @@ UnrealMipmap* Engine::PlayVideo(VideoPlayer* video, UnrealMipmap* background)
 
 void Engine::UpdateAudio()
 {
-	mat4 translate = mat4::translate(vec3(0.0f) - CameraLocation);
-	mat4 listener = Coords::ViewToAudioDev().ToMatrix() * Coords::Rotation(CameraRotation).ToMatrix() * translate;
-
 	audiodev->SetViewport(viewport);
-	audiodev->Update(listener);
+	audiodev->Update();
 }
 
 // A class default as the original's GET gives it (Core.dll's

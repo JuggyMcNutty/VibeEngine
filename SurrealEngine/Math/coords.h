@@ -27,7 +27,6 @@ public:
 	static Coords InverseRotation(const Rotator& rotator);
 
 	static Coords ViewToRenderDev();
-	static Coords ViewToAudioDev();
 
 	void GetAxes(vec3& X, vec3& Y, vec3& Z) const;
 	void GetUnAxes(vec3& X, vec3& Y, vec3& Z) const;
@@ -214,16 +213,6 @@ inline void Coords::GetUnAxes(vec3& X, vec3& Y, vec3& Z) const
 }
 
 inline Coords Coords::ViewToRenderDev()
-{
-	Coords coords;
-	coords.Origin = { 0.0f, 0.0f, 0.0f };
-	coords.XAxis = vec3(0.0f, 0.0f, 1.0f);
-	coords.YAxis = vec3(1.0f, 0.0f, 0.0f);
-	coords.ZAxis = vec3(0.0f, -1.0f, 0.0f);
-	return coords;
-}
-
-inline Coords Coords::ViewToAudioDev()
 {
 	Coords coords;
 	coords.Origin = { 0.0f, 0.0f, 0.0f };

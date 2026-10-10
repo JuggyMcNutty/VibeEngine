@@ -338,6 +338,13 @@ Differs:
 - Not carried: Galaxy's quirk with the Sound and Speech sliders equal, both
   kinds of sound scaled by the slider once more.
 - Not carried: the original's 1/256 volume floor, an integer artifact.
+- A change to `EffectsChannels` (the Sound menu's Effects Channels) applies at
+  once, held to 0-32, as the original's. The sounds on channels past a lowered
+  count stop, where the original's play on out of its reach, and a raised
+  count's channels are voices of their own, where the original's are its
+  music's ([settings](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#settings)).
+- Not carried: the holds a `SET` puts on `DopplerSpeed` and `AmbientFactor`,
+  which no menu sets.
 - An ambient sound on a light follows its blink and strobe on the fork's
   timing ([lighting](#lighting)).
 - A sound's ID packs a number the fork gives each object that plays one,
