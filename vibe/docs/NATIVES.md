@@ -231,9 +231,14 @@ Still the fork's own:
     lowest bit of its turn count and its strobe turns over each frame, both
     at the frame rate;
   - a flicker drawn at most 25 times a second;
-  - the sample points of a map's texels: a spotlight's pool on a wall sits
-    some half a texel off the original's across it, one side up to 24% over
-    `D3DDrv`'s toward its edge and the other up to 30% under (`LightConsole`);
+  - the sample points of a map's texels: the builders
+    (`LightmapBuilder::CalcRowLines`, and the fog maps' in `FogmapBuilder`)
+    light texel i at `Pan.X + (i − ½) × UScale` along U. The original lights
+    it at `Pan.X + i × UScale`, where both engines draw its centre
+    ([a texel's place](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps));
+    along V they agree. So a spotlight's pool on a wall sits half a texel
+    off the original's across it, one side up to 24% over `D3DDrv`'s toward
+    its edge and the other up to 30% under (`LightConsole`);
   - `LE_CloudCast`, the plain shape, built once, where the original re-runs
     it every frame (its table counts the shape as changing): the same light.
 - **Meshes**
@@ -265,13 +270,39 @@ fork shot meets the original's frames:
   `LaserConsole`'s corridor within 0.9%.
 - 06_HongKong_WanChai_Underworld's floor under its two disco lights
   (`LightConsole` on `Light2` and `Light21`) is 0.35 to 0.57 of `D3DDrv`'s
-  frames, the lights reaching it all steady, and the same under other light
-  shapes; why is unread.
+  frames, and the same under other light shapes. The disco lights do not
+  light it: they are `bSpecialLit`, and its surfaces (BSP surface 1251
+  under `Light2`, 1230 under `Light21`; `CoreTexStone.Stone.ShnyBlacMarbl_A`
+  with the detail texture `DStone_A`) are not `PF_SpecialLit`. Their light
+  maps hold `ZoneInfo1`'s ambient (brightness 20, saturation 50) and, on
+  1251, the steady `Light63`; why the fork's floor is darker is unread.
 
 ### The screen flash
 
 Matches the original ([the rest of a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-rest-of-a-frame));
 `FlashConsole`.
+
+### Draw order and movers
+
+Differs, read from the code (`VisibleFrame::Draw`, `VisibleBrush`); no
+console compares it yet:
+
+- **What stands behind glass.** The fork draws the solid actors before the
+  translucent and modulated world surfaces, so glass blends over a mesh
+  behind it. The original draws the world's surfaces, glass included, then
+  its actors
+  ([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)),
+  so the mesh shows over the glass there.
+- **The translucent list**: those surfaces with their decals, the meshes'
+  translucent faces, every sprite, the render iterators' items and the
+  movers' translucent polygons, by the distance of one point of each,
+  nearest first. A mesh's own translucent faces go in face order.
+- **Movers** are drawn as their brushes, through their own matrix, after
+  the world's surfaces, with no depth bias. The original files their
+  polygons into the level's BSP and drops what lands in solid.
+- **Each mover polygon is drawn twice**: `VisibleBrush::Draw` runs its loop
+  twice and nothing reads the pass. A translucent or modulated one, glass
+  among them, blends twice.
 
 ### Fire, water and ice textures
 
@@ -806,6 +837,14 @@ A mod gets the original's loader:
   (`IniConsole`). Those read by hand, though, take an empty value for none:
   a float or a string keeps the fork's default where the original's is 0 or
   empty.
+
+Differs:
+
+- **Macro textures**, which no stock texture has: the fork multiplies a
+  surface by its macro texture once, at the one-pass light map's scale.
+  `D3DDrv` draws it in the modulated blend, twice its colour, and the light
+  map in a second pass, twice as bright
+  ([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)).
 
 ## Multiplayer
 

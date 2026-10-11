@@ -311,6 +311,9 @@ textures, blend, depth), forgotten wherever else that state is set.
 - **ES 3.2, not 3.0**: RGBA16F (the scene buffers with `Hdr`) is colour-renderable only from ES
   3.2 core, and the shaders bind their samplers with `layout(binding)`, which GLSL ES 3.00 lacks.
   `gl_FragCoord.w` is 1/w on ES as on desktop, so the detail-texture distance fade is unchanged.
+- **Antialiasing on ES is untried**: the multisampled scene buffers are made with
+  `glTexImage2DMultisample`, which ES lacks (ES 3.1 has `glTexStorage2DMultisample`). The Smart
+  Pro's launcher keeps antialiasing off.
 - **The desktop context**: every Linux window backend asks for a desktop 4.2 core context, as the
   shaders are GLSL 4.20 (`CompileGlsl` prepends `#version 420`): a driver without 4.2 fails at
   the context, with an error that says so, not at a shader.
@@ -328,6 +331,12 @@ textures, blend, depth), forgotten wherever else that state is set.
 - `ReadPixels` reads the buffer as it is, the right way up (upstream's is an `#if 0` stub of
   D3D11 code, its shots black); `Exit()` runs once and tolerates a failed unmap, as the intro
   can end the game after the window's context is gone.
+- **Upstream's, not yet fixed**: the present pass binds no sampler objects, so it reads the
+  post-process image and the dither texture through whatever samplers the frame's last draw left
+  on units 0 and 1 (`DrawEntry`), and the render-scale upscale can come out point-sampled or
+  wrapped at the edges. Anisotropy goes only on the point-sampled samplers
+  (`CreateSceneSamplers`). On desktop GL, `DepthClipEnable = false` turns depth clamping off,
+  where it means to turn it on.
 
 ### Script VM
 
