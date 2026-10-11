@@ -297,8 +297,8 @@ as the original's frames: the room seen through 05_NYC_UNATCOMJ12lab's
 `BreakableGlass16` and 03_NYC_Airfield's `BreakableGlass2` within 2%, and
 behind the first an unlit crate within 0.3% and an unlit sprite drawn
 `STY_Normal` within 0.5%, the glass adding 7.8 of 255 over the sprite to
-the original's 8.5. Differs, read from the code (`VisibleFrame::Draw`,
-`VisibleMesh`, `VisibleBrush`):
+the original's 8.5. Differs (`VisibleFrame::Draw`, `VisibleMesh`,
+`VisibleBrush`):
 
 - **Back to front** by the distance of one point of each, where the
   original's lists run in the order its BSP walk met them.
@@ -311,11 +311,12 @@ the original's 8.5. Differs, read from the code (`VisibleFrame::Draw`,
   an MIB and Anna Navarre, face on, come out the same in either order, the
   MIB's lenses within 0.5% of `D3DDrv`'s.
 - **Movers** are drawn as their brushes, through their own matrix, with no
-  depth bias: their opaque polygons with the solid actors, their
-  translucent ones among the surfaces. The original files their polygons
-  into the level's BSP and drops what lands in solid. A mover
-  hidden after it is filed stays drawn there in the original, where the
-  fork stops drawing it (`GlassConsole`); no stock script hides a mover.
+  depth bias of their own (the Vulkan device's on every translucent draw
+  aside: [rendering](ENGINE.md#rendering)): their opaque polygons with the
+  solid actors, their translucent ones among the surfaces. The original files their polygons
+  into the level's BSP and drops what lands in solid. A mover hidden after
+  it is filed stays drawn there in the original, where the fork stops
+  drawing it (`GlassConsole`); no stock script hides a mover.
 
 ### Fire, water and ice textures
 

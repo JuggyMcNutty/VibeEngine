@@ -292,7 +292,10 @@ in `SurrealEngine/Render/` (`VisibleFrame.cpp`, `VisibleMesh.cpp`), `SurrealEngi
 anything it uses is touched; a swapchain rebuild waits for the device; 0004). Without
 `VK_EXT_descriptor_indexing` it binds a descriptor set per batch instead of bindless textures
 (0002). It decodes on the CPU what the GPU cannot sample or filter: BC1–5, RGB8, RGBA32F (0002),
-and converts the lightmaps for upload in NEON on ARM (0024).
+and converts the lightmaps for upload in NEON on ARM (0024). Its translucent, modulated and
+highlighted draws take upstream's depth bias toward the viewer, a step and a slope of 1; the GL
+device's take none, nor do `D3DDrv`'s but its detail pass
+([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures)).
 
 **The GL device** runs desktop GL 4.2+ and OpenGL ES 3.2 from one code path (0035–0042):
 `RenderAPI::GLES` and `RenderDeviceType::GLES`, an ES 3.2 context from every window backend

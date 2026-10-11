@@ -254,6 +254,10 @@ hidden: for the stock game's, serve the original here as for the [net tests](#ne
   present pass applies gamma (`GammaCorrectScreenshots` off), so a fork shot takes that gamma
   before its brightness is compared: `magick <shot> -gamma 1.5 <out>`
   ([brightness](NATIVES.md#brightness)).
+- **The presented frame.** A fork shot is the scene before the present pass, so the
+  render-scale upscale and the gamma do not show in it. `grab.py` reads the fork's window too,
+  by its name, `Deus Ex (v1112fm) - Surreal Engine`; at a render scale under 1 the mark's blocks
+  are scaled with the frame, and the shot numbers it reads from them are wrong.
 - A renderer that fails to start falls back to `SoftDrv` without a word, its frames passing for
   the renderer's: the script then fails, naming the log's `Bound to SoftDrv`.
 
