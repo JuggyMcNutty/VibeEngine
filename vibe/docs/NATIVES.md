@@ -514,7 +514,11 @@ Every other native the scripted runs compare matches the original
 [`Engine.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md)):
 the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
 frob target, through decorations), sight (`SightConsole`), the reach tests
-(`ReachConsole`), falls, a whole frame at once in the original's steps,
+(`ReachConsole`), the look up and down stairs (`StairConsole`: every answer
+of `Pawn.FindStairRotation` alike on Liberty Island's pier and
+`SlideConsole`'s slope,
+[small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),
+falls, a whole frame at once in the original's steps,
 each by its mean velocity (a pawn's air control, a bounce left to the
 script, a wall slid along, a landing ending the frame's move), coming to
 rest where the original's do at 60 frames a second and at 20, and their
@@ -659,8 +663,6 @@ engine's own objects are not deleted (the log says so).
 
 ## Small
 
-- **`Pawn.FindStairRotation` 524**: the probe distances and the easing rate
-  are the fork's own reading ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
 - **Window sounds**: an unset window volume falls back to full; the native
   default is unread ([window sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#window-sounds)).
 - **A long frame**: the actors' step is at most 0.4 s, as the original's

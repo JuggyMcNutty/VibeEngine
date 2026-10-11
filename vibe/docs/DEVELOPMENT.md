@@ -117,6 +117,7 @@ the run. *Either*: one engine on each side of a pair.
 | `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators | `DXVIS:` | |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
 | `StandConsole` | both | where a walking player rests over the floor, and how near a wall it walks into it stops | `DXSTAND:` | |
+| `StairConsole` | both | `Pawn.FindStairRotation` asked straight: the player stood along the pier to its edge and across `SlideConsole`'s slope, facing both ways, from three pitches and three frames | `DXSTAIR:` | the two logs' answers diffed |
 | `StompConsole` | both | a pawn landing on another, and on crates: the player onto Paul's head, Paul onto the player's, the player onto a crate that cannot be a base and onto a breakable one | `DXSTOMP:` | |
 | `RestConsole` | both | where a falling decoration rests; a crate and the player dropped over the pier's edge | `DXREST:` | |
 | `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |

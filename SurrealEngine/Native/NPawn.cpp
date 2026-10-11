@@ -164,14 +164,91 @@ void NPawn::FindRandomDest(UObject* Self, std::optional<bool> bClearPaths, UObje
 	ReturnValue = selfPawn->FindRandomDest();
 }
 
-// Deus Ex's Look Up Stairs: the original (UE1's own, engine-dll.md, Small)
-// probes the floor ahead at eye height with a frame of 0.33 s or less and
-// eases the view pitch toward looking down (-5000) or up (5400) a flight of
-// stairs, or back to level. The probe distances and the easing rate are the
-// fork's reading of that; the targets and the frame gate are the original's.
+// Deus Ex's Look Up Stairs, the original's (APawn::execFindStairRotation,
+// Engine.dll 0x103bb880; dx-reverse-info/engine-dll.md, small): with a frame
+// of 0.33 s or less, a box of the pawn's radius by 1 against the level and
+// the movers looks 2h ahead from the eye, h its CollisionHeight plus its
+// BaseEyeHeight; past 0.8h of room, down 3h from halfway: a floor under
+// 0.7h - 6 down is stairs up if the floor at the far end is 10 nearer, one
+// over 0.7h + 6 stairs down if a line from the feet meets nothing 0.9 of the
+// way and the far end's floor is 10 farther. The pitch -- over 0x8000 made
+// negative in place first -- eases toward 5400 up, -5000 down, or level (or
+// its own, when it already looks that way), at 8, or 8000 over the
+// difference (whole) under 1000, times the frame, at most the whole way.
+static int DeusExFindStairRotation(UPawn* pawn, float deltaTime)
+{
+	Rotator& view = pawn->ViewRotation();
+	if (deltaTime > 0.33f)
+		return view.Pitch;
+	if (view.Pitch > 0x8000)
+		view.Pitch = (view.Pitch & 0xffff) - 0x10000;
+
+	vec3 dir, y, z;
+	Coords::TableRotation(Rotator(0, view.Yaw, view.Roll)).GetAxes(dir, y, z);
+	vec3 eye = pawn->Location() + vec3(0.0f, 0.0f, pawn->BaseEyeHeight());
+	float height = pawn->CollisionHeight() + pawn->BaseEyeHeight();
+	vec3 slice(pawn->CollisionRadius(), pawn->CollisionRadius(), 1.0f);
+	TraceFlags flags;
+	flags.movers = true;
+	flags.world = true;
+	auto time = [&](const vec3& start, const vec3& end, const vec3& extent) {
+		CollisionHit hit = pawn->XLevel()->Collision.TraceFirstHit(start, end, pawn, extent, flags);
+		return hit.Actor ? hit.Fraction : 1.0f;
+	};
+
+	int stairRot = 0;
+	float dist = 2.0f * height * time(eye, eye + dir * (2.0f * height), slice);
+	if (dist > 0.8f * height)
+	{
+		float down = 3.0f * height;
+		vec3 spot = eye + dir * (0.5f * dist);
+		float t = time(spot, spot - vec3(0.0f, 0.0f, down), slice);
+		if (t < 1.0f)
+		{
+			float firstDown = down * t;
+			if (firstDown < 0.7f * height - 6.0f)
+			{
+				spot = eye + dir * dist;
+				t = time(spot, spot - vec3(0.0f, 0.0f, down), slice);
+				stairRot = std::max(0, view.Pitch);
+				if (down * t < firstDown - 10.0f)
+					stairRot = 5400;
+			}
+			else if (firstDown > 0.7f * height + 6.0f)
+			{
+				if (time(pawn->Location(), pawn->Location() + dir * (0.9f * dist), vec3(0.0f)) == 1.0f)
+				{
+					spot = eye + dir * dist;
+					t = time(spot, spot - vec3(0.0f, 0.0f, down), slice);
+					stairRot = std::min(0, view.Pitch);
+					if (down * t > firstDown + 10.0f)
+						stairRot = -5000;
+				}
+			}
+		}
+	}
+
+	// In single precision, as the original's sums come out: 3000 eased 0.4
+	// of the way is 1800, not 1799
+	int diff = std::abs(view.Pitch - stairRot);
+	if (diff > 0)
+	{
+		float rate = diff < 1000 ? (float)(8000 / diff) : 8.0f;
+		float portion = std::min(rate * deltaTime, 1.0f);
+		stairRot = (int)((1.0f - portion) * (float)view.Pitch + (float)stairRot * portion);
+	}
+	return stairRot;
+}
+
+// Another game's: the fork's own reading of UE1's.
 void NPawn::FindStairRotation(UObject* Self, float DeltaTime, int& ReturnValue)
 {
 	UPawn* pawn = UObject::Cast<UPawn>(Self);
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		ReturnValue = DeusExFindStairRotation(pawn, DeltaTime);
+		return;
+	}
 
 	int pitch = pawn->ViewRotation().Pitch & 0xffff;
 	if (pitch > 0x8000)
