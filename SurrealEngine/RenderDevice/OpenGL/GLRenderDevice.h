@@ -231,6 +231,11 @@ public:
 		std::shared_ptr<GLProgram> PresentProgram[16];
 		std::shared_ptr<GLBuffer> PresentConstantBuffer;
 		std::shared_ptr<GLTexture2D> DitherTexture;
+		// The post-process passes' own samplers, as the Vulkan device's: a
+		// sampler object on a unit overrides the texture's own state, and the
+		// scene's draws leave theirs bound
+		std::shared_ptr<GLSampler> PPLinearClamp;
+		std::shared_ptr<GLSampler> PPNearestRepeat;
 		std::shared_ptr<GLBlendState> BlendState;
 		std::shared_ptr<GLDepthStencilState> DepthStencilState;
 		std::shared_ptr<GLRasterizerState> RasterizerState;

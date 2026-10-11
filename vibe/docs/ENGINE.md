@@ -331,12 +331,17 @@ textures, blend, depth), forgotten wherever else that state is set.
 - `ReadPixels` reads the buffer as it is, the right way up (upstream's is an `#if 0` stub of
   D3D11 code, its shots black); `Exit()` runs once and tolerates a failed unmap, as the intro
   can end the game after the window's context is gone.
-- **Upstream's, not yet fixed**: the present pass binds no sampler objects, so it reads the
-  post-process image and the dither texture through whatever samplers the frame's last draw left
-  on units 0 and 1 (`DrawEntry`), and the render-scale upscale can come out point-sampled or
-  wrapped at the edges. Anisotropy goes only on the point-sampled samplers
-  (`CreateSceneSamplers`). On desktop GL, `DepthClipEnable = false` turns depth clamping off,
-  where it means to turn it on.
+- **The post-process passes bind their own samplers**, as the Vulkan device's do: the present,
+  the bloom and the gamma-corrected read-back sample the image linearly, held at its edges, and
+  the dither texel for texel (`PresentPass.PPLinearClamp`, `PPNearestRepeat`). A sampler object
+  on a unit overrides the texture's own state, and the scene's draws leave theirs bound
+  (`DrawEntry`): without its own, the render-scale upscale would take the last draw's,
+  point-sampled after the HUD's text.
+- **Anisotropy** (8) goes on every scene sampler, as the Vulkan device's, where the driver has
+  it (`CreateSceneSamplers`).
+- **Depth is clamped** at the near and far planes on desktop GL, as the Vulkan device clamps it
+  (the weapon close up): `DepthClipEnable` is D3D11's, off meaning a clamp. ES has no clamp and
+  clips there.
 
 ### Script VM
 

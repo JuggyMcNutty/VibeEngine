@@ -579,8 +579,8 @@ void GLRenderDevice::CreateSceneSamplers()
 #else
 		glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, (i & 1) ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR);
 		glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, (i & 1) ? GL_NEAREST : GL_LINEAR);
-		if ((i & 1) && SamplerAnisotropy)
-			glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f); // needs EXT_texture_filter_anisotropic
+		if (SamplerAnisotropy) // every scene sampler, as the Vulkan device's; needs EXT_texture_filter_anisotropic
+			glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
 #endif
 		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, addressmode);
 		glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, addressmode);
@@ -662,6 +662,8 @@ void GLRenderDevice::ReleasePresentPass()
 	for (auto& shader : PresentPass.Present) shader.reset();
 	PresentPass.PresentConstantBuffer.reset();
 	PresentPass.DitherTexture.reset();
+	PresentPass.PPLinearClamp.reset();
+	PresentPass.PPNearestRepeat.reset();
 	PresentPass.BlendState.reset();
 	PresentPass.DepthStencilState.reset();
 	PresentPass.RasterizerState.reset();
@@ -743,9 +745,11 @@ void GLRenderDevice::RunBloomPass()
 	SetBufferData(GL_UNIFORM_BUFFER, GL_STREAM_DRAW, BloomPass.ConstantBuffer.get(), &pushconstants, sizeof(GLBloomPushConstants));
 
 	GLBuffer* cbs[1] = { BloomPass.ConstantBuffer.get() };
+	GLSampler* samplers[1] = { PresentPass.PPLinearClamp.get() };
 	glBindVertexArray(PresentPass.PPStepLayout->Handle);
 	SetRasterizerState(PresentPass.RasterizerState.get());
 	SetUniformBuffers(0, 1, cbs);
+	SetSamplers(0, 1, samplers);
 	SetDepthStencilState(PresentPass.DepthStencilState.get());
 	SetBlendState(PresentPass.BlendState.get());
 
@@ -959,6 +963,24 @@ void GLRenderDevice::CreatePresentPass()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 8, 8, 0, GL_RED, GL_FLOAT, ditherdata);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	ThrowIfGLError("CreateTexture2D(DitherTexture) failed");
+
+	// The image scaled up to the window filtered and held at its edges; the
+	// dither tiled texel for texel
+	auto createSampler = [&](GLint filter, GLint addressmode, const char* name)
+	{
+		auto sampler = std::make_shared<GLSampler>();
+		glBindSampler(0, sampler->Handle); // the name becomes a sampler object at its first bind
+		SetDebugName(sampler, name);
+		glSamplerParameteri(sampler->Handle, GL_TEXTURE_MIN_FILTER, filter);
+		glSamplerParameteri(sampler->Handle, GL_TEXTURE_MAG_FILTER, filter);
+		glSamplerParameteri(sampler->Handle, GL_TEXTURE_WRAP_S, addressmode);
+		glSamplerParameteri(sampler->Handle, GL_TEXTURE_WRAP_T, addressmode);
+		glBindSampler(0, 0);
+		ThrowIfGLError("Could not create sampler");
+		return sampler;
+	};
+	PresentPass.PPLinearClamp = createSampler(GL_LINEAR, GL_CLAMP_TO_EDGE, "PresentPass.PPLinearClamp");
+	PresentPass.PPNearestRepeat = createSampler(GL_NEAREST, GL_REPEAT, "PresentPass.PPNearestRepeat");
 
 	GLBlendDesc blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = true;
@@ -1206,7 +1228,9 @@ void GLRenderDevice::Unlock(bool Blit)
 		GLBuffer* cbs[1] = { PresentPass.PresentConstantBuffer.get() };
 		SetUniformBuffers(0, 1, cbs);
 		GLTexture2D* psResources[] = { SceneBuffers.PPImage[0].get(), PresentPass.DitherTexture.get() };
+		GLSampler* psSamplers[] = { PresentPass.PPLinearClamp.get(), PresentPass.PPNearestRepeat.get() };
 		SetTextures(0, 2, psResources);
+		SetSamplers(0, 2, psSamplers);
 		SetDepthStencilState(PresentPass.DepthStencilState.get());
 		SetBlendState(PresentPass.BlendState.get());
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1883,9 +1907,11 @@ void GLRenderDevice::ReadPixels(TextureColor* Pixels)
 
 		GLBuffer* cbs[1] = { PresentPass.PresentConstantBuffer.get() };
 		GLTexture2D* psResources[] = { SceneBuffers.PPImage[0].get(), PresentPass.DitherTexture.get() };
+		GLSampler* psSamplers[] = { PresentPass.PPLinearClamp.get(), PresentPass.PPNearestRepeat.get() };
 		SetRasterizerState(PresentPass.RasterizerState.get());
 		SetUniformBuffers(0, 1, cbs);
 		SetTextures(0, 2, psResources);
+		SetSamplers(0, 2, psSamplers);
 		SetDepthStencilState(PresentPass.DepthStencilState.get());
 		SetBlendState(PresentPass.BlendState.get());
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -2106,14 +2132,15 @@ void GLRenderDevice::SetRasterizerState(GLRasterizerState* rasterizerState)
 	glFrontFace(rasterizerState->desc.FrontCounterClockwise ? GL_CCW : GL_CW);
 
 	// GL_DEPTH_CLAMP and GL_MULTISAMPLE are desktop GL only (GL_INVALID_ENUM
-	// on ES); ES always rasterizes the samples its target carries and clips at
-	// the frustum, which is what the two states describe here anyway.
+	// on ES); ES always rasterizes the samples its target carries, and clips
+	// at the near and far planes. DepthClipEnable is D3D11's: off, depth is
+	// clamped there instead, as the Vulkan device's is (the weapon close up).
 	if (!IsGLES)
 	{
 		if (rasterizerState->desc.DepthClipEnable)
-			glEnable(GL_DEPTH_CLAMP);
-		else
 			glDisable(GL_DEPTH_CLAMP);
+		else
+			glEnable(GL_DEPTH_CLAMP);
 
 		if (rasterizerState->desc.MultisampleEnable)
 			glEnable(GL_MULTISAMPLE);
