@@ -224,8 +224,10 @@ void UPawn::DeusExPhysSwimming(float deltaTime)
 
 	if (remaining > 0.01f)
 	{
+		// The fall goes on from the swim's one step (physSwimming's count
+		// as a frame enters it).
 		if (Physics() == PHYS_Falling)
-			TickFalling(remaining);
+			TickFalling(remaining, 1);
 		else if (Physics() == PHYS_Flying)
 			TickFlying(remaining);
 	}

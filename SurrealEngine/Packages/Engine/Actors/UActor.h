@@ -399,8 +399,9 @@ public:
 
 	void TickPhysics(float elapsed);
 	void TickWalking(float elapsed);
-	void TickFalling(float elapsed);
-	void DeusExTickFalling(float deltaTime);
+	// Deus Ex's from a walk or a swim go on with its count of steps.
+	void TickFalling(float elapsed, int iterations = 0);
+	void DeusExTickFalling(float deltaTime, int iterations = 0);
 	void TickSwimming(float elapsed);
 	void TickFlying(float elapsed);
 	void TickProjectile(float elapsed);

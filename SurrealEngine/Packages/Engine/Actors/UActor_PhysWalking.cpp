@@ -347,7 +347,7 @@ void UPawn::DeusExPhysWalking(float deltaTime)
 					if (Physics() == PHYS_Falling)
 					{
 						if (remaining > 0.01f)
-							TickFalling(remaining);
+							TickFalling(remaining, iterations);
 					}
 					else if (Physics() == PHYS_Flying)
 					{
@@ -438,7 +438,7 @@ void UPawn::DeusExPhysWalking(float deltaTime)
 					Velocity() = (Location() - OldLocation()) / (deltaTime - remaining);
 				Velocity().z = velZ;
 				if (remaining > 0.01f)
-					TickFalling(remaining);
+					TickFalling(remaining, iterations);
 				return;
 			}
 			TryMoveHeldOff(desiredMove * remaining);

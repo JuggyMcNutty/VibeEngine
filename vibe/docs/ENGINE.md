@@ -359,10 +359,12 @@ swimming, flying, a player's ladders, the speed pawns move at and how they turn,
 `physicsRotation`, a fall ending its frame where it lands; [implemented, not as the
 original](NATIVES.md#implemented-not-as-the-original)), in
 `SurrealEngine/Collision/TopLevel/TraceTest.cpp`, `UActor_Phys*.cpp` and `UPawn_Tick.cpp`. A
-walking, swimming or flying pawn takes the rest of the frame at once, as the original's does --
-the walk in its own steps (`UPawn::DeusExPhysWalking`) --, so its speed, its slides and the move
-it hands on are the original's at any frame rate; the other physics, a fall among them, still
-takes a frame in steps of at most 0.02 s (`UActor::TickPhysics`).
+walking, swimming or flying pawn, and anything falling, takes the rest of the frame at once, as
+the original's does -- the walk and the fall in their own steps (`UPawn::DeusExPhysWalking`,
+`UActor::DeusExTickFalling`), a fall a walk or a swim hands over going on with its count of
+steps --, so its speed, its slides, where it comes to rest and the move it hands on are the
+original's at any frame rate; the other physics still take a frame in steps of at most 0.02 s
+(`UActor::TickPhysics`).
 
 ### Objects and memory
 

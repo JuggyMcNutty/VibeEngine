@@ -10,12 +10,12 @@
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Engine.h"
 
-void UActor::TickFalling(float elapsed)
+void UActor::TickFalling(float elapsed, int iterations)
 {
 	// Deus Ex's actors fall as the original's do.
 	if (engine->LaunchInfo.IsDeusEx())
 	{
-		DeusExTickFalling(elapsed);
+		DeusExTickFalling(elapsed, iterations);
 		return;
 	}
 
@@ -147,15 +147,14 @@ void UActor::TickFalling(float elapsed)
 // on, a bounce gives HitWall, a floor (normal over 0.7) lands, a wall is slid
 // along; the velocity after is the move's own, doubled less the old when it
 // gained downward or the old was not falling, held to the zone's terminal
-// velocity. The original falls a whole frame in its steps and stops where it
-// lands, handing the landing the rest of the frame: so here a landing, a
+// velocity. It falls a whole frame (TickPhysics) in steps of at most 0.1 s,
+// up to 8 counting the walk's or the swim's that hands it over, and stops
+// where it lands, handing the landing the rest of the frame: a landing, a
 // stop and a hand-over to swimming end the frame's physics (EndPhysicsFrame),
 // the rest of the frame theirs. A player on a ladder climbs it instead
 // (DeusExLadder). Not here: the original's split of a step at the top of a
-// rise, which needs a step over 0.03 s: the fork's are 0.02 at most
-// (TickPhysics) but for the rest of a frame a walk, a swim or a flight hands
-// over.
-void UActor::DeusExTickFalling(float deltaTime)
+// rise.
+void UActor::DeusExTickFalling(float deltaTime, int iterations)
 {
 	UPawn* pawn = UObject::TryCast<UPawn>(this);
 	if (pawn && pawn->DeusExLadder(deltaTime))
@@ -209,7 +208,6 @@ void UActor::DeusExTickFalling(float deltaTime)
 	}
 
 	float remaining = deltaTime;
-	int iterations = 0;
 	int bounces = 0;
 	while (remaining > 0.0f && iterations < 8)
 	{

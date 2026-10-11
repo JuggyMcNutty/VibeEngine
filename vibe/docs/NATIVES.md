@@ -502,11 +502,12 @@ Every other native the scripted runs compare matches the original
 [`Engine.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md)):
 the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
 frob target, through decorations), sight (`SightConsole`), the reach tests
-(`ReachConsole`), falls, each step by its mean velocity (a pawn's air
-control, a bounce left to the script, a wall slid along, a landing ending
-the frame's move), coming to rest and their landing on a ledge -- a crate nudged off it, a pawn fitted clear
-of it and pushed on at random
-(`RestConsole`,
+(`ReachConsole`), falls, a whole frame at once in the original's steps,
+each by its mean velocity (a pawn's air control, a bounce left to the
+script, a wall slid along, a landing ending the frame's move), coming to
+rest where the original's do at 60 frames a second and at 20, and their
+landing on a ledge -- a crate nudged off it, a pawn fitted clear of it and
+pushed on at random (`RestConsole`,
 [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving))
 --, a pawn landing on another or on a decoration that cannot be its base,
 which the scripts' `SupportActor` bounces off 50 up and 25 to 50 sideways at
@@ -650,18 +651,20 @@ engine's own objects are not deleted (the log says so).
   are the fork's own reading ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
 - **Window sounds**: an unset window volume falls back to full; the native
   default is unread ([window sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#window-sounds)).
-- **Resting after a fall** ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)):
-  the fork's player lands at Liberty Island's start 0.05 higher than the
-  original's, 4.80 over the floor to 4.75, and stands there (`StandConsole`,
-  `RestConsole`; a line straight down meets the floor half a unit higher).
-  Unexplained.
 - **A long frame**: the actors' step is at most 0.4 s, as the original's
   ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)).
   The frame's time on the level's clock is held to 1 s; the original's
   first frame on a level it travels to takes in the whole load, some 1.5 s
-  on Liberty Island (`AIConsole`). Not carried: the original's floor of
-  5 ms, the step of every tick past 200 frames a second, which would run the
-  game fast there.
+  on Liberty Island, of which its actors get 0.4 (`AIConsole`), where the
+  fork's is a frame of its own, a tenth of a second or so. So the player's
+  fall at the island's start lands elsewhere: the original's first step,
+  0.1 s, a move of 4.75 units down, meets the floor too near to go anywhere
+  ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)),
+  where the fork's shorter step lands it lower, and the walk lifts it twice,
+  not once: the fork's player stands 4.80 over the floor to the original's
+  4.75 (`StandConsole`; a line straight down meets the floor half a unit
+  higher). Not carried: the original's floor of 5 ms, the step of every tick
+  past 200 frames a second, which would run the game fast there.
 - **Input axes**: an axis a console command sets is used as it is; the
   original's input scales it (the harness's `StandConsole` and `JoinConsole`
   allow for it).
