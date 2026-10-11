@@ -156,6 +156,35 @@ need_display() {
     DISPLAY="$XDISPLAY" xdotool getdisplaygeometry > /dev/null 2>&1 ||
         die "no X display at $XDISPLAY (the desktop's Xwayland; xdotool is needed too)"
 }
+# Wine gives a window the focus only once it can grab the pointer itself
+# (winex11's set_focus tries every 10 ms): while another X client holds a
+# pointer grab, the original stops at its first focus change, in its message
+# pump, its window black. A held grab: an ImageMagick import given a window
+# that had gone, waiting for a click on another (vibe/tools/dxcap/grab.py).
+need_free_pointer() {
+    DISPLAY="$XDISPLAY" python3 - <<'EOF' && return 0
+import ctypes, sys
+x = ctypes.cdll.LoadLibrary('libX11.so.6')
+x.XOpenDisplay.restype = ctypes.c_void_p
+x.XOpenDisplay.argtypes = [ctypes.c_char_p]
+x.XDefaultRootWindow.restype = ctypes.c_ulong
+x.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+x.XGrabPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_uint,
+                           ctypes.c_int, ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+x.XUngrabPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+x.XCloseDisplay.argtypes = [ctypes.c_void_p]
+d = x.XOpenDisplay(None)
+if not d:
+    sys.exit(2)
+# GrabSuccess is 0, AlreadyGrabbed 1.
+grabbed = x.XGrabPointer(d, x.XDefaultRootWindow(d), 0, 0, 1, 1, 0, 0, 0)
+if grabbed == 0:
+    x.XUngrabPointer(d, 0)
+x.XCloseDisplay(d)
+sys.exit(1 if grabbed else 0)
+EOF
+    die "another X client holds the pointer grabbed on $XDISPLAY: the original would stop at its first focus change. An import waiting for a click? $(pgrep -a -x import | tr '\n' ' ')"
+}
 wine_run() {
     env WINEPREFIX="$PREFIX" WINEDEBUG=-all \
         WINEDLLOVERRIDES="winemenubuilder.exe=d" "$WINE" "$@"
@@ -400,6 +429,7 @@ cmd_original() {
     [ -f "$CAP/System/DXCapture.u" ] || die "vibe/tools/dxcap.sh compile first"
     command -v import >/dev/null || die "ImageMagick's import is needed to grab the original's window"
     need_display
+    need_free_pointer
     need_perf
     ensure_prefix
     local ini="$CAP/System/Original.ini" userini="$CAP/System/OriginalUser.ini"

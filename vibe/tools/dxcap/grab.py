@@ -2,15 +2,21 @@
 """Keeps the marked frames of a window's grabs.
 
 Reads the window of that name on an X display five times a second
-(xdotool's search, ImageMagick's import) until killed. A frame whose view
-carries CaptureConsole's mark -- a magenta block, then the shot's number in
-eight black or white blocks of 12 pixels -- is written as ShotNNNN.ppm to the
-output folder, cropped to the view from the mark's corner; the last one of
-each number wins, the steadiest.
+(xdotool's search, ImageMagick's import) until killed, its import with it. A
+frame whose view carries CaptureConsole's mark -- a magenta block, then the
+shot's number in eight black or white blocks of 12 pixels -- is written as
+ShotNNNN.ppm to the output folder, cropped to the view from the mark's corner;
+the last one of each number wins, the steadiest.
+
+import given a window that has gone (the game closing or making its window
+again since the search) asks for one to be clicked, holding the pointer
+grabbed until then, and a held grab stops Wine at its next focus change
+(vibe/docs/DEVELOPMENT.md, running the original): each import has 2 s.
 
     grab.py <out dir> <display> <window name pattern> <view width> <view height>
 """
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -76,12 +82,17 @@ def grab(env, name):
     ids = found.stdout.split()
     if not ids:
         return None
-    shot = subprocess.run(['import', '-window', ids[0], '-depth', '8', 'ppm:-'],
-                          env=env, capture_output=True)
+    try:
+        shot = subprocess.run(['import', '-window', ids[0], '-depth', '8', 'ppm:-'],
+                              env=env, capture_output=True, timeout=2)
+    except subprocess.TimeoutExpired:
+        return None
     return parse_ppm(shot.stdout)
 
 
 def main():
+    # Killed, it exits through subprocess.run, which kills its import.
+    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(0))
     out, display, name = sys.argv[1], sys.argv[2], sys.argv[3]
     vw, vh = int(sys.argv[4]), int(sys.argv[5])
     os.makedirs(out, exist_ok=True)

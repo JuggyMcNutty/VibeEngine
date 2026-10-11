@@ -267,10 +267,14 @@ hidden: for the stock game's, serve the original here as for the [net tests](#ne
   so the recreated launcher's `DeusEx`, installed beside `DeusEx.exe`, cannot stand in for the
   `DeusEx` package there. The run's log, `Running.ini` (a stale one opens the recovery wizard,
   which waits for a click) and shots stay in the view, never in the game's folder.
-- **A run can hang**, at any point, in the game's message pump (`PeekMessage`, in
-  `DeusEx.exe`'s `MainLoop`): its window black and its log cut short, until the harness
-  kills it. The same run started again later runs. `wine taskkill /im DeusEx.exe`, without
-  `/f`, in the run's prefix closes a running original cleanly, its log written.
+- **It stops at its first focus change while another X client holds the pointer
+  grabbed**: Wine gives a window the focus only once it can grab the pointer itself, and
+  tries until it can, in the game's message pump, the window black and the log cut at
+  4 KB. ImageMagick's `import`, given a window that has gone, grabs the pointer and waits
+  for a click on another, which a Wayland desktop never sends it: `grab.py` gives each
+  import 2 s and kills it with itself, and `original` refuses to start while the pointer
+  is grabbed, naming any `import` left. `wine taskkill /im DeusEx.exe`, without `/f`, in
+  the run's prefix closes a running original cleanly, its log written.
 - `dxcap.sh`'s comments document the rest of its set-up: vkd3d's libraries in the prefix for
   `D3DDrv`, no Wine desktop, and only the game's own process killed at the end, never the
   wineserver.
