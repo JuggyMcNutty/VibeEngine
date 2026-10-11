@@ -31,15 +31,11 @@ bool VisibleBrush::Draw(VisibleFrame* frame, UActor* actor, bool translucentPass
 	frame->Device->SetSceneNode(&brushframe);
 	bool needTranslucentPass = false;
 
+	// Each polygon once: a translucent or modulated one blends again each
+	// time it is drawn
 	for (const Poly& poly : brush->Polys->Polys)
 	{
-		if (DrawBrushPoly(frame, brush, poly, 0, mover, translucentPass))
-			needTranslucentPass = true;
-	}
-
-	for (const Poly& poly : brush->Polys->Polys)
-	{
-		if (DrawBrushPoly(frame, brush, poly, 1, mover, translucentPass))
+		if (DrawBrushPoly(frame, brush, poly, mover, translucentPass))
 			needTranslucentPass = true;
 	}
 
@@ -47,7 +43,7 @@ bool VisibleBrush::Draw(VisibleFrame* frame, UActor* actor, bool translucentPass
 	return needTranslucentPass;
 }
 
-bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly& poly, int pass, UMover* mover, bool translucentPass)
+bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly& poly, UMover* mover, bool translucentPass)
 {
 	uint32_t PolyFlags = poly.PolyFlags;
 

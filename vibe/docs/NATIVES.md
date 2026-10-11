@@ -284,25 +284,30 @@ Matches the original ([the rest of a frame](https://github.com/JuggyMcNutty/dx-r
 
 ### Draw order and movers
 
-Differs, read from the code (`VisibleFrame::Draw`, `VisibleBrush`); no
-console compares it yet:
+Matches the original's order
+([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)):
+after the portals, the opaque surfaces, then the solid actors, then the
+translucent and modulated surfaces with the translucent actors, so glass
+blends over a mesh behind it in both engines. `GlassConsole`'s glass movers
+come out as the original's frames: the room seen through
+05_NYC_UNATCOMJ12lab's `BreakableGlass16` and 03_NYC_Airfield's
+`BreakableGlass2` within 2%, an unlit crate behind the first within 0.3%.
+Differs, read from the code (`VisibleFrame::Draw`, `VisibleBrush`):
 
-- **What stands behind glass.** The fork draws the solid actors before the
-  translucent and modulated world surfaces, so glass blends over a mesh
-  behind it. The original draws the world's surfaces, glass included, then
-  its actors
-  ([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)),
-  so the mesh shows over the glass there.
 - **The translucent list**: those surfaces with their decals, the meshes'
   translucent faces, every sprite, the render iterators' items and the
   movers' translucent polygons, by the distance of one point of each,
-  nearest first. A mesh's own translucent faces go in face order.
+  nearest first; a mesh's own translucent faces go in face order. The
+  original draws its surfaces back to front as its BSP walk met them, then
+  the actors drawn `STY_Translucent`, back to front; an actor of another
+  style goes with the solid ones, its translucent faces with it. The
+  translucent blend comes out the same in either order; a modulated or
+  highlighted one over it does not.
 - **Movers** are drawn as their brushes, through their own matrix, after
   the world's surfaces, with no depth bias. The original files their
-  polygons into the level's BSP and drops what lands in solid.
-- **Each mover polygon is drawn twice**: `VisibleBrush::Draw` runs its loop
-  twice and nothing reads the pass. A translucent or modulated one, glass
-  among them, blends twice.
+  polygons into the level's BSP and drops what lands in solid. A mover
+  hidden after it is filed stays drawn there in the original, where the
+  fork stops drawing it (`GlassConsole`); no stock script hides a mover.
 
 ### Fire, water and ice textures
 

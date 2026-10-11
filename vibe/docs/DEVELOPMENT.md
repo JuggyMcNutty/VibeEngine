@@ -69,9 +69,9 @@ are gone.
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
-| `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`; `MeshConsole`'s `LODBias`, `NoDetail`) |
+| `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`; `GlassConsole`'s `Pick`, `GlassName`, `View`, `Behind`; `MeshConsole`'s `LODBias`, `NoDetail`) |
 | `DXCAP_USERINI=<file>` | a run's `User.ini` made from that file, in place of the game's (`IniConsole`'s keys given twice) |
-| `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s, `EndgameConsole`'s, `VisibleConsole`'s, `MoverConsole`'s, `LightConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
+| `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s, `EndgameConsole`'s, `VisibleConsole`'s, `MoverConsole`'s, `LightConsole`'s, `GlassConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
 | `DXCAP_NOVSYNC=1` | Mesa's GL draws either engine without waiting for the display (`vblank_mode=0`): the original's `OpenGLDrv` asks for no swap interval and gets the driver's vsync |
 | `DXCAP_FPS=<n>` | either engine held to n frames a second: MangoHud's limiter, its display off (`mangohud`, and `lib32-mangohud` for the original's 32-bit process) |
@@ -101,6 +101,7 @@ the run. *Either*: one engine on each side of a pair.
 | `MeshConsole` | both | meshes lit on the pier; with `LODBias` set, at less detail; with `NoDetail`, the detail textures off | `DXMESH:` | |
 | `LightConsole` | both | a light of one effect (`Effect`, the spotlight by default) on `TargetMap`, among those whose axis meets the world, by name (`LightName`) or place in name order (`Pick`): the view `View` units off the spot it lights, facing it, the HUD hidden, conversations stopped, the lights reaching the spot logged, four marked shots, with `ShotAt` at that moment of the level's time, its clock slowed; `Pick=-1` lists the map's lights with an effect | `DXLIGHT:` | |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` | |
+| `GlassConsole` | both | a glass mover (a `DeusExMover` whose `FragmentClass` is `GlassFragment`) on `TargetMap`, by name (`GlassName`) or place in name order (`Pick`): the view `View` units off it, the HUD hidden, the player unseen by the NPCs; two marked shots of the glass, two with an unlit crate `Behind` units beyond it, two with the glass hidden, two with it broken; `Pick=-1` lists the map's glass movers | `DXGLASS:` | |
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` | |
 | `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` | |
 | `AIConsole` | both | every NPC's state, orders, enemy, time since drawn, and whether the level lets the camera see it; the camera | `DXAI:`, `DXAISTATE:` | |

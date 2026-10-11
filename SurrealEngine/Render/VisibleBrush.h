@@ -12,5 +12,5 @@ public:
 	bool Draw(VisibleFrame* frame, UActor* actor, bool translucentPass);
 
 private:
-	bool DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly& poly, int pass, UMover* mover, bool translucentPass);
+	bool DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly& poly, UMover* mover, bool translucentPass);
 };
