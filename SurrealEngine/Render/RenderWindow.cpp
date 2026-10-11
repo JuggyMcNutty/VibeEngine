@@ -126,7 +126,9 @@ void RenderSubsystem::ResetWindowGC(UWindow* window, float offsetX, float offset
 	engine->dxgc->gcFree() = nullptr;
 	engine->dxgc->gcOwner() = nullptr;
 	engine->dxgc->gcStack() = nullptr;
-	engine->dxgc->hMultiplier() = 0;
+	// The root's multipliers, as the original's GC is given them
+	// (XGC::SetMultipliers from XRootWindow::PaintWindows)
+	engine->dxgc->hMultiplier() = (int)UWindow::GetVirtualScale();
 	engine->dxgc->normalFont() = nullptr;
 	//engine->dxgc->textPlane() = {}
 	engine->dxgc->textPolyFlags() = 0;
@@ -135,7 +137,7 @@ void RenderSubsystem::ResetWindowGC(UWindow* window, float offsetX, float offset
 	//engine->dxgc->tilePlane() = {};
 	engine->dxgc->underlineHeight() = 0.0f;
 	engine->dxgc->underlineTexture() = engine->dxgc->DefaultUnderlineTexture;
-	engine->dxgc->vMultiplier() = 0;
+	engine->dxgc->vMultiplier() = (int)UWindow::GetVirtualScale();
 	engine->dxgc->SpecialTextEnabled = false;
 
 	// Copy state from window

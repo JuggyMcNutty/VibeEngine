@@ -99,6 +99,11 @@ void UWindow::UpdateLayout()
 		{
 			ConfigureChild(0.0f, 0.0f, virtualWidth, virtualHeight);
 		}
+		if (URootWindow* root = UObject::TryCast<URootWindow>(this))
+		{
+			root->hMultiplier() = (int)virtualScale;
+			root->vMultiplier() = (int)virtualScale;
+		}
 
 		// Center the virtual viewbox
 		UsedX = std::round((engine->viewport->ViewportWidth() - virtualWidth * virtualScale) * 0.5f) / virtualScale;
@@ -205,8 +210,13 @@ std::string UWindow::FormatScriptFloat(const std::string& format, double value)
 
 float UWindow::GetVirtualScale()
 {
-	// Assume it was originally designed for 800x600. Find the closest clean integer scale factor.
-	return std::max(std::round(engine->viewport->ViewportHeight() / 600.0f), 1.0f);
+	// The original's multiplier (XRootWindow::ResizeRoot, Extension.dll
+	// 0x1003adf0): the smaller of the viewport's width over 640 and its
+	// height over 480, each truncated, at least 1 -- the largest whole
+	// multiple of 640x480 the viewport holds
+	int width = engine->viewport->ViewportWidth();
+	int height = engine->viewport->ViewportHeight();
+	return (float)std::max(std::min(width / 640, height / 480), 1);
 }
 
 void UWindow::AddActorRef(UObject* refActor)

@@ -4,7 +4,10 @@
 // text window, an empty label placed as the computers place theirs (SetPos,
 // SetText("")), and a text window given text and then emptied. Each is
 // logged ("DXSIZE:") as made, on the next frames, and with its preferred
-// size asked (QueryPreferredSize). Then an exit.
+// size asked (QueryPreferredSize). Then an exit. First the viewport's size,
+// the root's, the UI's scale (the viewport's height over the root's; the
+// root's multipliers are private, which GetPropertyText does not read), and
+// the main menu's place and size.
 //=============================================================================
 class SizeConsole extends Console;
 
@@ -15,6 +18,8 @@ var Window Plain;
 var TextWindow Empty;
 var MenuUISmallLabelWindow Label;
 var TextWindow Emptied;
+var DeusExRootWindow SizedRoot;
+var bool bRootLogged;
 
 function LogSize(string Label, Window W)
 {
@@ -34,6 +39,21 @@ function LogAll(string When)
 	LogSize("  emptied text window", Emptied);
 }
 
+event PostRender(canvas C)
+{
+	local Window Top;
+
+	Super.PostRender(C);
+	if (bRootLogged || SizedRoot == None || Step < 2)
+		return;
+	bRootLogged = true;
+	Log("DXSIZE: viewport " $ C.ClipX $ "x" $ C.ClipY $ ", root " $ SizedRoot.width $ "x" $ SizedRoot.height
+		$ " at " $ SizedRoot.x $ "," $ SizedRoot.y $ ", scale " $ (C.ClipY / SizedRoot.height));
+	Top = SizedRoot.GetTopWindow();
+	if (Top != None)
+		Log("DXSIZE: main menu " $ Top.Class $ " at " $ Top.x $ "," $ Top.y $ " size " $ Top.width $ "x" $ Top.height);
+}
+
 event Tick(float Delta)
 {
 	local PlayerPawn P;
@@ -45,6 +65,7 @@ event Tick(float Delta)
 	P = Viewport.Actor;
 	RunTime += Delta;
 	Root = DeusExRootWindow(DeusExPlayer(P).rootWindow);
+	SizedRoot = Root;
 
 	switch (Step)
 	{

@@ -380,6 +380,12 @@ but for what is listed below. The same, read from the original's code:
 - **A GC's style** sets only how tiles draw: text stays masked, translucent
   only by `EnableTranslucentText`, so the frob label over its modulated
   backing reads as the original's (`FrobConsole`'s shots).
+- **The scale** is the original's, its root's one multiplier: the largest
+  whole multiple of 640x480 the screen holds, at least 1
+  ([the root window](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#the-root-window)).
+  `SizeConsole` at 1600x900 and 1276x960 (1, where the screen's height over
+  600 gave 2), `MenuConsole` and `ScreenConsole` at 1600x900: the windows'
+  places and sizes alike.
 - **The frob highlight's box** (`ConvertVectorToCoordinates`) is projected by
   the main scene's view into the root window's coordinates: `FrobConsole`'s
   boxes round two decorations, the crosshair on their middle and turned 5
@@ -409,11 +415,12 @@ Differs:
   asks again, where the original's goes back to its alignment when the
   parent's next layout leaves it out; read from both codes, a hidden window
   takes a parent's `ConfigureChild`, where the original's only counts itself
-  placed. The root window is 4:3 (960 wide at 1280x720), where the
-  original's is the whole viewport, so a cutscene letterboxes at 16:9; its
-  children lie across the screen up to 16:9, their `x` the screen's. The
-  UI's scale is the screen's height over 600, rounded, where the original's
-  is the smaller whole multiple of 640x480 the screen holds.
+  placed. The root window is 4:3 (960 wide at 1280x720) by choice, where the
+  original's is the whole viewport: the stock
+  `ConWindowActive.CalculateWindowSizes` gives a cutscene's subtitles no
+  height on a root 16:9 or wider, the Smart Pro's among them, so a cutscene
+  letterboxes at 16:9. The root's children lie across the screen up to 16:9,
+  their `x` the screen's.
 - **A large text window and an edit field** draw their lines through the GC,
   read from both codes, whose block of lines ends in one more spacing than
   the original's rows: in a window taller than its text, lines centred or
