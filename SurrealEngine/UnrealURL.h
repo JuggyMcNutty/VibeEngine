@@ -13,7 +13,7 @@ public:
 	UnrealURL(std::string urlString);
 
 	void AddOrReplaceOption(const std::string& newvalue);
-	bool HasOption(const std::string& name) const;
+	bool HasOption(std::string name) const;
 	std::string GetOption(std::string name) const;
 	std::string GetAddressURL() const;
 	std::string GetOptions() const;

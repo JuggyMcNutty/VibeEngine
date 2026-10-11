@@ -194,8 +194,10 @@ void UnrealURL::AddOrReplaceOption(const std::string& newvalue)
 	}
 }
 
-bool UnrealURL::HasOption(const std::string& name) const
+bool UnrealURL::HasOption(std::string name) const
 {
+	for (char& c : name) c = std::tolower(c);
+
 	for (const std::string& option : Options)
 	{
 		if ((option.size() >= name.size() + 1 && option[name.size()] == '=') || option.size() == name.size())

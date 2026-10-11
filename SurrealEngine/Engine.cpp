@@ -929,19 +929,29 @@ void Engine::ClientTravel(const std::string& newURL, ETravelType travelType, boo
 	// If the URL doesn't contain the player info, add them here.
 	// As they have to persist somehow. Only the keys the ini has, as the
 	// original's default URL takes them (FURL::LoadURLConfig): a login's
-	// URL carries no empty team= or skin= the player never set.
-	for (std::string optionKey : { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" })
+	// URL carries no empty team= or skin= the player never set. The seven
+	// keys the URL has are written to the ini, as the original's LoadMap
+	// saves them (SaveURLConfig).
+	const char* playerKeys[] = { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" };
+	if (engine->LaunchInfo.ue1Version > 219)
 	{
-		std::string value;
-		if (engine->LaunchInfo.ue1Version > 219)
+		for (const char* optionKey : playerKeys)
 		{
 			if (url.HasOption(optionKey))
 				engine->packages->SetIniValue("User", "DefaultPlayer", optionKey, url.GetOption(optionKey));
-			else if (packages->FindIniValue("user", "DefaultPlayer", optionKey, value))
+		}
+		for (const std::string& optionKey : DefaultPlayerOptionKeys())
+		{
+			std::string value;
+			if (!url.HasOption(optionKey) && packages->FindIniValue("user", "DefaultPlayer", optionKey, value))
 				url.AddOrReplaceOption(optionKey + "=" + value);
 		}
-		else
+	}
+	else
+	{
+		for (std::string optionKey : playerKeys)
 		{
+			std::string value;
 			if (url.HasOption(optionKey))
 				engine->packages->SetIniValue("System", "URL", optionKey, url.GetOption(optionKey));
 			else if (packages->FindIniValue("System", "URL", optionKey, value))
@@ -997,13 +1007,29 @@ UnrealURL Engine::GetDefaultURL(const std::string& map)
 
 	if (!teleporterTag.empty())
 		url.Portal = teleporterTag;
-	for (std::string optionKey : { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" })
+	for (const std::string& optionKey : DefaultPlayerOptionKeys())
 	{
 		std::string value;
 		if (packages->FindIniValue("user", "DefaultPlayer", optionKey, value))
 			url.Options.push_back(optionKey + "=" + value);
 	}
 	return url;
+}
+
+Array<std::string> Engine::DefaultPlayerOptionKeys()
+{
+	Array<std::string> keys;
+	if (LaunchInfo.IsDeusEx())
+	{
+		for (const NameString& key : packages->GetIniKeysFromSection("user", "DefaultPlayer"))
+			keys.push_back(key.ToString());
+	}
+	else
+	{
+		for (const char* key : { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" })
+			keys.push_back(key);
+	}
+	return keys;
 }
 
 void Engine::LoadEntryMap()
