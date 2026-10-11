@@ -553,8 +553,17 @@ bool UPawn::PickWallAdjust()
 	return false;
 }
 
+// Deus Ex's is the original's (APawn::execEAdjustJump 0x103bc110): the
+// pawn's velocity made a jump to its Destination by SuggestJumpVelocity.
 vec3 UPawn::EAdjustJump()
 {
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		vec3 vel = Velocity();
+		SuggestJumpVelocity(Destination(), vel);
+		return vel;
+	}
+
 	UZoneInfo* zone = FootRegion().Zone;
 	vec3 gravity = zone ? zone->ZoneGravity() : vec3(0.0f, 0.0f, -980.0f);
 

@@ -103,13 +103,15 @@ Matches the original ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/b
 [reaching](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#reaching),
 [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)):
 `MoveConsole` (`move.py`) has all 52 of Liberty Island's pawns move within
-15% (or 200 units) of the original's distance. A dead robot frozen in
-`Dying` for good is the original's own behaviour, and the rest of a death
-is alike too (`DeathConsole`). Differs:
+15% (or 200 units) of the original's distance. Each that walks to a spot and
+stops there ends where the original's does, within a unit, though 25 to 110
+units short of its distance: the console counts from its first line, 2 s in
+by its own clock, which in the original's run takes in the island's first
+frame, the load's, some 1.5 s of which the actors get 0.4 s
+([a long frame](#small)). By then the fork's pawns are further along their
+first walk. A dead robot frozen in `Dying` for good is the original's own
+behaviour, and the rest of a death is alike too (`DeathConsole`). Differs:
 
-- **Four pawns stop short of a path node** the original's reaches:
-  SecurityBot3, Terrorist15, Terrorist20 and Terrorist29, some 45 to 105
-  units short of its distance. Unexplained.
 - **`ReachConsole`**: 143 of 144 verdicts alike and 134 answers to the unit.
   The other ten, from the island's two patrolling security bots asked where
   their patrols had taken them, are 26 to 67 units off.
@@ -504,14 +506,28 @@ crate rises and bobs at the surface at the original's speeds), swimming
 (`SwimConsole`: the player and a troop falling or thrown into water are put
 back at the water line and swim on, the player stopped as its head goes
 under and held to 0.3 of `WaterSpeed`, as it walks whenever it swims; up out
-of the water it hops and falls back in, bobbing; a pawn walking into water is
-unchecked in a run), the speed a pawn walks and
-swims at (`calcVelocity`; one that stops brakes to a standstill), ladders
-(`LadderConsole`: a player at a ladder's foot hangs there, climbs as it
-pushes into it, goes down looking down and steps off onto the top; the same
-check's slide of a walking player on a texture with a `Friction` under 1 is
-unchecked in a run) and flying, by which a player climbs (a flying NPC's
-flight is unchecked in a run),
+of the water it hops and falls back in, bobbing), walking, a whole frame at
+once in the original's steps, a slope slid down where the zone's ground
+friction is low, and its ledges: a pawn that cannot jump stopped there, its
+move given up, any other given `Falling` (`WadeConsole`: a troop walking
+off the pier given the jump `ScriptedPawn`'s `FallingState` aims at its
+destination, `EAdjustJump`, into the water or across it, with `bCanSwim`
+off, and stopped at the edge with `bCanJump` off; one walking down
+14_OceanLab_Lab's steps into the sea, the stock maps' one shore), the
+speed a pawn walks and swims at (`calcVelocity`, once a frame; one that
+stops brakes to a standstill), ladders (`LadderConsole`: a player at a
+ladder's foot hangs there, climbs as it pushes into it, goes down looking
+down and steps off onto the top) and the same check's slide of a walking
+player on a texture with a `Friction` under 1 (`SlideConsole`: on a slope
+at a `Friction` of 0.5 and 0, the glide to a stop and the slide down a
+slope in a zone of ground friction 0.2, at 60 and 20 frames a second; the
+game's one such texture, `Slippery_Metal`, covers two slopes in
+14_Oceanlab_Silo), flying, by which a player climbs (`FlightConsole`: a
+gull flying into the pier's wall, level and rising, toward the player,
+taking off as it walks off the pier, and its `LongFall` 2.5 s into a drop
+into the water; the stock gull's own flight plausible), the pawns' turning
+(the pitch at half a turn a second toward level when walking or falling,
+held within `RotationRate`'s),
 `SetLocation`, the rotators' conversions (`RotatorConsole`,
 702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
 `MidConsole`'s ten probes of both, and `Object.DynamicLoadObject` with a
@@ -526,6 +542,9 @@ Differs:
 - **The engine's own rotations** (the view, movement) take exact angles;
   the scripts' conversions take the original's sine table
   ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
+  At 20 frames a second `FlightConsole`'s gull, flown level into the pier's
+  wall, turns and slides some 18 units along it in the original, where the
+  fork's stays put.
 - **A box started inside a cylinder** keeps the least penetration's normal;
   the original's is level, out from the axis, as a line's is in both
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
@@ -616,19 +635,18 @@ engine's own objects are not deleted (the log says so).
   are the fork's own reading ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
 - **Window sounds**: an unset window volume falls back to full; the native
   default is unread ([window sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#window-sounds)).
-- **Walking over the floor** ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)):
-  a walking pawn floats over its floor as the original's does, but the
-  original leaves one its trace finds 1.9 to 2.4 away as it is, where the
-  fork's own step down always brings it nearer. The fork's player stands 4.8
-  over the floor every time (a `MaxStepHeight` of 25), the original's 4.6 to
-  5.1 as it came to rest (`StandConsole`).
-- **Walking into a wall**: the fork's player stops some 1.4 units nearer a
-  wall than the original's, as a server of the original's has it
-  ([multiplayer](#multiplayer)). Unread.
+- **Resting after a fall** ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)):
+  the fork's player lands at Liberty Island's start 0.05 higher than the
+  original's, 4.80 over the floor to 4.75, and stands there (`StandConsole`,
+  `RestConsole`; a line straight down meets the floor half a unit higher).
+  Unexplained.
 - **A long frame**: the actors' step is at most 0.4 s, as the original's
   ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)).
-  Not carried: its floor of 5 ms, the step of every tick past 200 frames a
-  second, which would run the game fast there.
+  The frame's time on the level's clock is held to 1 s; the original's
+  first frame on a level it travels to takes in the whole load, some 1.5 s
+  on Liberty Island (`AIConsole`). Not carried: the original's floor of
+  5 ms, the step of every tick past 200 frames a second, which would run the
+  game fast there.
 - **Input axes**: an axis a console command sets is used as it is; the
   original's input scales it (the harness's `StandConsole` and `JoinConsole`
   allow for it).
@@ -744,11 +762,12 @@ server-only stubs are under
   desktop with no vsync), as the original server's reach the fork's, 6 to 8:
   the first goes as the host stops, its last step's packet just sent.
 - **A server's corrections** (`ClientAdjustPosition`; the fork a client of
-  the original's server, a stock game): at a wall the fork's player stops
-  nearer it ([small](#small)), so the server moves it 1.5 to 2.6 units each
-  time it checks the client's place (every 180 / the connection's speed s)
-  and finds it off by over 1.7; standing, its update every 2 s takes it 0.06
-  down. Walking in the open, none.
+  the original's server, a stock game): one as the player starts walking,
+  some 5 units, its first moves' latency; one at its spawn, 2.4 units up. A
+  client runs no level's `SupportActor`, a simulated proxy running only
+  simulated functions, so its player's floor is never its base, and the
+  walk, as the original's, lifts a pawn only over its base: landed, it rests
+  2.4 lower than the server's. At a wall 0.02 units; standing, none.
 - **The player's name in a net game**: a name the player never chose -- none,
   or the game's stock `Player` -- logs in as `VibePlayer`, a client's to its
   server and a listen server's host's, by choice, so the fork's players show

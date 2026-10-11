@@ -19,9 +19,15 @@ void UActor::TickPhysics(float elapsed)
 	for (float timeLeft = elapsed; timeLeft > 0.0f && !bDeleteMe(); timeLeft -= 0.02f)
 	{
 		float physTimeElapsed = std::min(timeLeft, 0.02f);
+		int mode = Physics();
+		// Deus Ex's pawns walk, swim and fly the rest of the frame at once,
+		// as the original's physWalking, physSwimming and physFlying take a
+		// whole tick, handing what they leave to the physics they end in.
+		bool wholeFrame = (mode == PHYS_Walking || mode == PHYS_Swimming || mode == PHYS_Flying) && bIsPawn() && engine->LaunchInfo.IsDeusEx();
+		if (wholeFrame)
+			physTimeElapsed = timeLeft;
 		PhysicsFrameLeft = timeLeft - physTimeElapsed;
 		PhysicsFrameEnded = false;
-		int mode = Physics();
 		if (mode != PHYS_None)
 		{
 			switch (mode)
@@ -47,7 +53,7 @@ void UActor::TickPhysics(float elapsed)
 		}
 
 		CheckPendingTouch();
-		if (PhysicsFrameEnded)
+		if (PhysicsFrameEnded || wholeFrame)
 			break;
 	}
 	PhysicsFrameLeft = 0.0f;

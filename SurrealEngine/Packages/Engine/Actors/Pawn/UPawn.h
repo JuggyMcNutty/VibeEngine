@@ -19,6 +19,7 @@ public:
 
 	void Tick(float elapsed) override;
 	void TickRotating(float elapsed) override;
+	void DeusExPhysicsRotation(float deltaTime);
 
 	void InitActorZone() override;
 	void UpdateActorZone() override;
@@ -74,8 +75,10 @@ public:
 	void DeusExStartSwimming(const vec3& oldVelocity, float timeTick, float remaining);
 	float DeusExSwim(const vec3& delta, CollisionHit& hit);
 	void DeusExStepUp(const vec3& gravDir, const vec3& desiredDir, vec3 delta, CollisionHit& hit);
-	// The speed Deus Ex's pawns walk and swim at, the original's calcVelocity
+	// Deus Ex's walking, the original's, a whole frame at once, and the
+	// speed Deus Ex's pawns walk and swim at, the original's calcVelocity
 	// (UActor_PhysWalking.cpp).
+	void DeusExPhysWalking(float deltaTime);
 	void DeusExCalcVelocity(const vec3& accelDir, float deltaTime, float maxSpeed, float friction, bool fluid, bool brake, bool buoyant);
 	// Deus Ex's flying, the original's, and its ladders, which a player
 	// climbs by flying (UActor_PhysFlying.cpp): true when the ladder check

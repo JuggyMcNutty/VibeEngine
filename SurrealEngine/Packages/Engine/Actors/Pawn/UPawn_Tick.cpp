@@ -118,9 +118,14 @@ void UPawn::Tick(float elapsed)
 			{
 				StateFrame->LatentState = LatentRunState::Continue;
 			}
-			else
+			else if (deusEx)
 			{
-				// To do: need to send a LongFall event if the fall state lasts long enough
+				// The original's poll (APawn::execPollWaitForLanding
+				// 0x103bb730): the fall counted down from 2.5 s
+				// (LatentFloat); past it, LongFall each tick.
+				LatentFloat() -= elapsed;
+				if (LatentFloat() < 0.0f)
+					CallEvent(this, "LongFall");
 			}
 		}
 	}
@@ -208,6 +213,12 @@ void UPawn::TickRotating(float elapsed)
 	if (Physics() == PHYS_Spider)
 		return;
 
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		DeusExPhysicsRotation(elapsed);
+		return;
+	}
+
 	bRotateToDesired() = true;
 	bFixedRotationDir() = false;
 
@@ -242,6 +253,42 @@ void UPawn::TickRotating(float elapsed)
 	{
 		CallEvent(this, EventName::EndedRotation);
 	}
+}
+
+// APawn::physicsRotation (Engine.dll 0x103c9f30; dx-reverse-info/
+// engine-dll.md, moving: turning), Deus Ex's for a pawn that is not a
+// player: it rotates to DesiredRotation, its yaw the shortest way at
+// RotationRate's yaw a second; its pitch, when it is not the desired one,
+// the shortest way at half a turn a second, toward 0 walking or falling and
+// the desired pitch otherwise, then held within RotationRate's pitch of
+// level; its roll 0. A player's: UPlayerPawn::TickRotating. No
+// EndedRotation.
+void UPawn::DeusExPhysicsRotation(float deltaTime)
+{
+	bRotateToDesired() = true;
+	bFixedRotationDir() = false;
+
+	int yaw = Rotation().Yaw;
+	int pitch = Rotation().Pitch;
+	if (DesiredRotation().Yaw != yaw)
+		yaw = Rotator::TurnToShortest(yaw, DesiredRotation().Yaw, (int)std::abs(RotationRate().Yaw * deltaTime));
+	if (DesiredRotation().Pitch != pitch)
+	{
+		int target = (Physics() == PHYS_Walking || Physics() == PHYS_Falling) ? 0 : DesiredRotation().Pitch;
+		pitch = Rotator::TurnToShortest(pitch, target, (int)(deltaTime * 32768.0f));
+		int limit = RotationRate().Pitch;
+		if (pitch >= 0x8000)
+		{
+			if (pitch < 0x10000 - limit)
+				pitch = 0x10000 - limit;
+		}
+		else if (pitch > limit)
+		{
+			pitch = limit;
+		}
+	}
+	if (pitch != Rotation().Pitch || yaw != Rotation().Yaw || Rotation().Roll != 0)
+		SetRotation(Rotator(pitch, yaw, 0));
 }
 
 bool UPawn::TickRotateTo(const vec3& target)
@@ -520,6 +567,14 @@ void UPawn::TurnToward(UActor* newTarget)
 
 void UPawn::WaitForLanding()
 {
+	// Deus Ex's waits only when falling, LongFall 2.5 s on (APawn::
+	// execWaitForLanding 0x103bb6f0).
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		LatentFloat() = 2.5f;
+		if (Physics() != PHYS_Falling)
+			return;
+	}
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::WaitForLanding;
 }

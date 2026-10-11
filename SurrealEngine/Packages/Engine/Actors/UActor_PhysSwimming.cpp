@@ -121,9 +121,8 @@ void UActor::TickSwimming(float elapsed)
 }
 
 // Deus Ex's swimming, the original's (Engine.dll; dx-reverse-info/
-// engine-dll.md, moving: into the water, swimming). The original swims a
-// whole tick in one move, as the fork's sub-step of the tick is swum here. A
-// player on a ladder climbs it instead (DeusExLadder).
+// engine-dll.md, moving: into the water, swimming), a whole frame in one
+// move (TickPhysics). A player on a ladder climbs it instead (DeusExLadder).
 
 namespace
 {

@@ -62,6 +62,16 @@ void UPlayerPawn::TickRotating(float elapsed)
 	if (Physics() == PHYS_Spider)
 		return;
 
+	// Deus Ex's, the original's APawn::physicsRotation for a player
+	// (Engine.dll 0x103c9f30): only its roll is set to 0, when its rotation is
+	// not the desired one or its RotationRate has a roll.
+	if (engine->LaunchInfo.IsDeusEx())
+	{
+		if ((Rotation() != DesiredRotation() || RotationRate().Roll > 0) && Rotation().Roll != 0)
+			SetRotation(Rotator(Rotation().Pitch, Rotation().Yaw, 0));
+		return;
+	}
+
 	Rotator rot = Rotation();
 
 	// To do: apply RotationRate().Roll

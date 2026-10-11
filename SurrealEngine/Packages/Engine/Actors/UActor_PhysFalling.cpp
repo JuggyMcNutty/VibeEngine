@@ -152,8 +152,9 @@ void UActor::TickFalling(float elapsed)
 // stop and a hand-over to swimming end the frame's physics (EndPhysicsFrame),
 // the rest of the frame theirs. A player on a ladder climbs it instead
 // (DeusExLadder). Not here: the original's split of a step at the top of a
-// rise, which needs a step over 0.03 s and the fork's are 0.02 at most
-// (TickPhysics).
+// rise, which needs a step over 0.03 s: the fork's are 0.02 at most
+// (TickPhysics) but for the rest of a frame a walk, a swim or a flight hands
+// over.
 void UActor::DeusExTickFalling(float deltaTime)
 {
 	UPawn* pawn = UObject::TryCast<UPawn>(this);

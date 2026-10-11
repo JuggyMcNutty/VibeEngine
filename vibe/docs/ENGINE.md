@@ -350,14 +350,18 @@ Collision, for every game: a ray trace hands each BSP child only its part of the
 and tests a polygon's plane before its vertex count and surface (0030); sight lines test the
 actors of only the cells they cross (0026); each cell's actors sit in an open-addressed table,
 found by `CollisionSystem::FindCell`, where upstream keeps a `std::unordered_map` of
-`std::list`s (0031); moves and traces go without casts and heap allocations (0032); a walking
-pawn steps to the ground with its dry run's trace (0027). Deus Ex's traces, moves and physics
-are `Engine.dll`'s (its backoffs, `FindSpot` and encroachment, moves held off what they meet as
-`ULevel::MoveActor` holds them, landing as `processLanded`; falling, swimming, flying, a
-player's ladders and the speed pawns move at, as `physFalling`, `physSwimming`, `physFlying`
-and `calcVelocity`, a fall ending its frame where it lands; [implemented, not as the
+`std::list`s (0031); moves and traces go without casts and heap allocations (0032); another
+game's walking pawn steps to the ground with its dry run's trace (0027). Deus Ex's traces, moves
+and physics are `Engine.dll`'s (its backoffs, `FindSpot` and encroachment, moves held off what
+they meet as `ULevel::MoveActor` holds them, landing as `processLanded`; walking, falling,
+swimming, flying, a player's ladders, the speed pawns move at and how they turn, as
+`physWalking`, `physFalling`, `physSwimming`, `physFlying`, `calcVelocity` and
+`physicsRotation`, a fall ending its frame where it lands; [implemented, not as the
 original](NATIVES.md#implemented-not-as-the-original)), in
-`SurrealEngine/Collision/TopLevel/TraceTest.cpp` and `UActor_Phys*.cpp`. The physics still
+`SurrealEngine/Collision/TopLevel/TraceTest.cpp`, `UActor_Phys*.cpp` and `UPawn_Tick.cpp`. A
+walking, swimming or flying pawn takes the rest of the frame at once, as the original's does --
+the walk in its own steps (`UPawn::DeusExPhysWalking`) --, so its speed, its slides and the move
+it hands on are the original's at any frame rate; the other physics, a fall among them, still
 takes a frame in steps of at most 0.02 s (`UActor::TickPhysics`).
 
 ### Objects and memory
