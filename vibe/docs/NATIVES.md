@@ -260,9 +260,11 @@ Vulkan, with descriptor indexing and without (the Smart Pro's), are within
 fork shot meets the original's frames:
 [scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines). Differs:
 
-- `MeshConsole`'s Liberty Island pier, where nothing is in hand, is 1.7 to
-  3.0% under `D3DDrv`'s frames, half a level to a level; why is unread. Its
-  crate, box and barrel are within 0.8%, Paul Denton a level over, and
+- `MeshConsole`'s Liberty Island pier, where nothing is in hand, is 1.6%
+  under `D3DDrv`'s frames with the detail textures on, and 0.7% over with
+  them off in both (`NoDetail`): the fork draws the pier's detail texture,
+  the original none ([the menus' settings](#the-menus-settings)). Its crate,
+  box and barrel are within 0.8%, Paul Denton a level over, and
   `LaserConsole`'s corridor within 0.9%.
 - 06_HongKong_WanChai_Underworld's floor under its two disco lights
   (`LightConsole` on `Light2` and `Light21`) is 0.35 to 0.57 of `D3DDrv`'s
@@ -452,9 +454,6 @@ its menu and saved with OK, reads back alike in both engines -- the menu's
 value and its setting's `GET` -- and steps back (`SettingsConsole`). A
 volume slider moved but not yet saved plays its new level while `GET` still
 reads the saved one, as the original's subsystem and class default differ.
-Detail Textures draws or leaves the world's detail textures, as the
-original's render device does
-([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures)).
 With Decals off no new decal attaches
 ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)) and the
 ones on the walls are not drawn
@@ -466,6 +465,14 @@ ones on the walls are not drawn
   window's own and the screen's, a choice resizing the window and kept as
   its size; full screen, the screen's size alone, the fork's full screen
   being a borderless window that size.
+- **Detail Textures** draws or leaves the world's detail textures in one
+  pass in the shaders, not `D3DDrv`'s three; the original's draws none
+  either way, run here under Wine, `D3DDrv` and `OpenGLDrv` alike: its
+  frames are the same with the setting on and off, though each condition
+  read holds but one, the client it reads through a static pointer
+  ([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures);
+  `MeshConsole` with `NoDetail`). The fork's darken Liberty Island's pier
+  2.3% ([brightness](#brightness)).
 - **World and Object Texture Detail** are kept and read back, but every
   texture draws at full detail; **Low Sound Quality** is kept, but every
   sound plays at its own; 16-bit **Texture Color Depth** is kept, the fork

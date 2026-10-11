@@ -6,12 +6,18 @@
 // each one's place and look logged, then two shots 2 s apart once they have
 // settled; then exit. LODBias ([DXCapture.MeshConsole], 0 by default: as the
 // map has it) is given to all four, a mesh's detail falling with it as with
-// distance (dx-reverse-info render-dll.md, mesh detail).
+// distance (dx-reverse-info render-dll.md, mesh detail). With NoDetail the
+// detail textures are turned off first, as the Display menu turns them off
+// (set ini:Engine.Engine.GameRenderDevice DetailTextures False). The pier's
+// floor, compared in NATIVES.md (brightness), is two bands of a 1024x768
+// shot's planks, either side of Paul's feet: x 180 to 460 and 580 to 750,
+// y 640 to 760.
 // Each line is logged with "DXMESH:" in front.
 //=============================================================================
 class MeshConsole extends Console;
 
 var config float LODBias;
+var config bool NoDetail;
 
 var float MapTime;
 var float StepTime;
@@ -111,6 +117,11 @@ event Tick(float Delta)
 	{
 		if (InStr(Caps(P.Level.GetLocalURL()), "01_NYC_UNATCOISLAND") >= 0 && MapTime > 6.0 && DXP != None)
 		{
+			if (NoDetail)
+			{
+				P.ConsoleCommand("set ini:Engine.Engine.GameRenderDevice DetailTextures False");
+				Log("DXMESH: detail textures " $ P.ConsoleCommand("get ini:Engine.Engine.GameRenderDevice DetailTextures"));
+			}
 			R = P.ViewRotation;
 			R.Pitch = 0;
 			P.ViewRotation = R;
