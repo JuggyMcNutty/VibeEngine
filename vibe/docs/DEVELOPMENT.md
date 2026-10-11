@@ -69,7 +69,7 @@ are gone.
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
-| `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to (`MissionConsole`'s, `PerfConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
+| `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
 | `DXCAP_NOVSYNC=1` | Mesa's GL draws either engine without waiting for the display (`vblank_mode=0`): the original's `OpenGLDrv` asks for no swap interval and gets the driver's vsync |
 | `DXCAP_FPS=<n>` | either engine held to n frames a second: MangoHud's limiter, its display off (`mangohud`, and `lib32-mangohud` for the original's 32-bit process) |
@@ -107,9 +107,12 @@ the run. *Either*: one engine on each side of a pair.
 | `FloatConsole` | both | the crates in the water by the pier, every quarter second | `DXFLOAT:` | |
 | `SwimConsole` | both | at the pier's edge, every tick for 4 s: the player falling into the water from three heights, diving, swimming up; a troop dropped and thrown in | `DXSWIM:` | |
 | `LadderConsole` | both | Liberty Island's first ladder found from the navigation points, every tick: the player at its foot, climbing 1 s, hanging, going down looking down, hanging, climbing onto the top | `DXLADDER:` | |
+| `WadeConsole` | both | at the ledge over water nearest the player's start, its blockers made not to collide, every tick for 6 s: a troop walking off it -- into the water, with `bCanSwim` off, with `bCanJump` off, across the water; with `TargetMap`, a troop walking down a shore into water, of the stock maps 14_OceanLab_Lab's alone | `DXWADE:` | `track.py <original run> <fork run>` |
+| `FlightConsole` | both | at the pier's edge, every tick for 5 s: a gull flying into the pier's wall level and rising, toward the player, walking off the pier, dropped into the water; a stock gull's own flight, 15 s | `DXFLIGHT:` | `track.py` |
+| `SlideConsole` | both | every tick for 4 to 7 s: the player on a slope whose texture's `Friction` is 0.5, then 0; gliding to a stop in a zone of ground friction 0.2; on a slope in such a zone | `DXSLIDE:` | `track.py`, at `DXCAP_FPS=60` and `20` |
 | `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators | `DXVIS:` | |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
-| `StandConsole` | both | where a walking player rests over the floor | `DXSTAND:` | |
+| `StandConsole` | both | where a walking player rests over the floor, and how near a wall it walks into it stops | `DXSTAND:` | |
 | `StompConsole` | both | a pawn landing on another, and on crates: the player onto Paul's head, Paul onto the player's, the player onto a crate that cannot be a base and onto a breakable one | `DXSTOMP:` | |
 | `RestConsole` | both | where a falling decoration rests; a crate and the player dropped over the pier's edge | `DXREST:` | |
 | `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |
@@ -264,6 +267,10 @@ hidden: for the stock game's, serve the original here as for the [net tests](#ne
   so the recreated launcher's `DeusEx`, installed beside `DeusEx.exe`, cannot stand in for the
   `DeusEx` package there. The run's log, `Running.ini` (a stale one opens the recovery wizard,
   which waits for a click) and shots stay in the view, never in the game's folder.
+- **A run can hang**, at any point, in the game's message pump (`PeekMessage`, in
+  `DeusEx.exe`'s `MainLoop`): its window black and its log cut short, until the harness
+  kills it. The same run started again later runs. `wine taskkill /im DeusEx.exe`, without
+  `/f`, in the run's prefix closes a running original cleanly, its log written.
 - `dxcap.sh`'s comments document the rest of its set-up: vkd3d's libraries in the prefix for
   `D3DDrv`, no Wine desktop, and only the game's own process killed at the end, never the
   wineserver.

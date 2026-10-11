@@ -47,8 +47,9 @@
 # run's server find packages in <dir> too, each named in its ServerPackages,
 # so that a client, whose paths lack <dir>, downloads them.
 # DXCAP_MISSION_MAP=<map> names, through the run's ini, the map a run's
-# console travels to (MissionConsole's and PerfConsole's TargetMap): an
-# original run starts at its menu map, a fork run at the map it is given.
+# console travels to, its TargetMap (MissionConsole's, StaticConsole's,
+# WadeConsole's, ScreenConsole's, PerfConsole's): an original run starts at
+# its menu map, a fork run at the map it is given.
 # DXCAP_ENGINE=<binary> runs another build of the fork than linux-x86_64's
 # (an ASan build). DXCAP_MEMLOG=1 logs a fork run's resident memory each
 # second into the run's memlog.txt: seconds since the start, then MB.
