@@ -23,6 +23,7 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	FrameCounter = engine->render->FrameCounter++;
 	MirrorFlag = mirrorFlag;
 	PortalDepth = portalDepth;
+	DeusExOrder = engine->LaunchInfo.IsDeusEx();
 
 	SetupSceneFrame(worldToView);
 
@@ -51,7 +52,8 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 
 	OpaqueNodes.clear();
 	Actors.clear();
-	Translucents.clear();
+	for (Array<VisibleTranslucent>& list : Translucents)
+		list.clear();
 	Coronas.clear();
 	Portals.clear();
 
@@ -407,7 +409,7 @@ void VisibleFrame::ProcessRenderIterators()
 			visitem.ScaleGlow = item->ScaleGlow();
 
 			vec3 v = location - ViewLocation.xyz();
-			Translucents.emplace_back(visitem, dot(v, v));
+			AddTranslucent(ActorTranslucentList(item), VisibleTranslucent(visitem, dot(v, v)));
 		}
 	}
 }
@@ -747,13 +749,27 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
 		UModel* model = engine->Level->Model;
 		const BspSurface& surface = model->Surfaces[node->Surf];
 		vec3 v = model->Points[surface.pBase] - ViewLocation.xyz();
-		Translucents.emplace_back(info, dot(v, v));
+		AddTranslucent(TranslucentSurfaces, VisibleTranslucent(info, dot(v, v)));
 	}
+}
+
+void VisibleFrame::AddTranslucent(TranslucentList list, const VisibleTranslucent& item)
+{
+	Translucents[DeusExOrder ? list : TranslucentSurfaces].push_back(item);
 }
 
 void VisibleFrame::SortTranslucent()
 {
-	std::sort(Translucents.begin(), Translucents.end(), [](const VisibleTranslucent& a, const VisibleTranslucent& b) { return a.DistSqr < b.DistSqr; });
+	// By the distance of one point of each: back to front for Deus Ex, as
+	// the original's lists run in the order its walk met them, each new one
+	// at the head; nearest first for the other games
+	for (Array<VisibleTranslucent>& list : Translucents)
+	{
+		if (DeusExOrder)
+			std::sort(list.begin(), list.end(), [](const VisibleTranslucent& a, const VisibleTranslucent& b) { return a.DistSqr > b.DistSqr; });
+		else
+			std::sort(list.begin(), list.end(), [](const VisibleTranslucent& a, const VisibleTranslucent& b) { return a.DistSqr < b.DistSqr; });
+	}
 }
 
 int VisibleFrame::FindZoneAt(const vec3& location)
@@ -828,8 +844,11 @@ void VisibleFrame::DrawOpaqueActors()
 void VisibleFrame::DrawTranslucent()
 {
 	Device->SetSceneNode(&Frame);
-	for (VisibleTranslucent& translucent : Translucents)
-		translucent.Draw(this);
+	for (Array<VisibleTranslucent>& list : Translucents)
+	{
+		for (VisibleTranslucent& translucent : list)
+			translucent.Draw(this);
+	}
 }
 
 // A portal's spans by row, and each row's by x0, as BspClipper::Setup reads
@@ -966,7 +985,7 @@ void VisibleFrame::DrawPortals()
 					UModel* model = engine->Level->Model;
 					const BspSurface& surface = model->Surfaces[info.Node->Surf];
 					vec3 v = model->Points[surface.pBase] - ViewLocation.xyz();
-					Translucents.emplace_back(info, dot(v, v));
+					AddTranslucent(TranslucentSurfaces, VisibleTranslucent(info, dot(v, v)));
 				}
 			}
 		}

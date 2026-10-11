@@ -82,22 +82,24 @@ void VisibleActor::DrawOpaque(VisibleFrame* frame)
 		if (vismesh.DrawMesh(frame, Actor, false, false))
 		{
 			vec3 v = Actor->Location() - frame->ViewLocation.xyz();
-			frame->Translucents.emplace_back(*this, dot(v, v));
+			frame->AddTranslucent(VisibleFrame::ActorTranslucentList(Actor), VisibleTranslucent(*this, dot(v, v)));
 		}
 	}
 	else if (Type == DT_Sprite || Type == DT_SpriteAnimOnce)
 	{
-		// Assume all sprites are translucent for now
+		// A sprite is drawn with the translucent parts, in the list its style takes
 		vec3 v = Actor->Location() - frame->ViewLocation.xyz();
-		frame->Translucents.emplace_back(*this, dot(v, v));
+		frame->AddTranslucent(VisibleFrame::ActorTranslucentList(Actor), VisibleTranslucent(*this, dot(v, v)));
 	}
 	else if (Type == DT_Brush)
 	{
+		// A mover's translucent polygons go with the level's surfaces, as
+		// the original files a mover's polygons into the level's BSP
 		VisibleBrush visbrush;
 		if (visbrush.Draw(frame, Actor, false))
 		{
 			vec3 v = Actor->Location() - frame->ViewLocation.xyz();
-			frame->Translucents.emplace_back(*this, dot(v, v));
+			frame->AddTranslucent(VisibleFrame::TranslucentSurfaces, VisibleTranslucent(*this, dot(v, v)));
 		}
 	}
 }

@@ -30,13 +30,23 @@ public:
 
 	Array<VisibleNode> OpaqueNodes;
 	Array<VisibleActor> Actors;
-	Array<VisibleTranslucent> Translucents;
 	Array<VisibleCorona> Coronas;
 	Array<VisiblePortal> Portals;
 
 	// Whether an actor counts as drawn, for its LastRenderTime: stamped only
 	// if some piece of its proxy survives the world in front of it.
 	void AddOcclusionProxy(UActor* actor);
+
+	// What is drawn after the opaque world and actors. Deus Ex's goes in
+	// three lists, each back to front, as its DrawFrame draws them
+	// (dx-reverse-info/render-dll.md, a frame): the parts of the actors not
+	// drawn translucent -- a mesh's translucent faces, a sprite of another
+	// style --, then the translucent and modulated surfaces, the movers'
+	// among them, then the actors drawn translucent (STY_Translucent). Other
+	// games keep upstream's one list, nearest first.
+	enum TranslucentList { SolidActorParts, TranslucentSurfaces, TranslucentActors, NumTranslucentLists };
+	void AddTranslucent(TranslucentList list, const VisibleTranslucent& item);
+	static TranslucentList ActorTranslucentList(UActor* actor) { return actor->Style() == STY_Translucent ? TranslucentActors : SolidActorParts; }
 
 	// The actor's rectangle on the frame, as the original's sprite setup
 	// makes it (Render.dll FDynamicSprite::Setup 0x10b23910): a mesh's
@@ -78,6 +88,9 @@ private:
 	void ProcessNodeSurface(BspNode* node, bool front);
 	void ProcessRenderIterators();
 	void SortTranslucent();
+
+	Array<VisibleTranslucent> Translucents[NumTranslucentLists];
+	bool DeusExOrder = false;
 
 	void DrawOpaqueNodes();
 	void DrawOpaqueActors();

@@ -286,26 +286,29 @@ Matches the original ([the rest of a frame](https://github.com/JuggyMcNutty/dx-r
 
 Matches the original's order
 ([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)):
-after the portals, the opaque surfaces, then the solid actors, then the
-translucent and modulated surfaces with the translucent actors, so glass
-blends over a mesh behind it in both engines. `GlassConsole`'s glass movers
-come out as the original's frames: the room seen through
-05_NYC_UNATCOMJ12lab's `BreakableGlass16` and 03_NYC_Airfield's
-`BreakableGlass2` within 2%, an unlit crate behind the first within 0.3%.
-Differs, read from the code (`VisibleFrame::Draw`, `VisibleBrush`):
+after the portals, the opaque surfaces with their decals and the solid
+actors; then, each back to front, the parts of the actors not drawn
+translucent (a mesh's translucent faces, a sprite of another style), the
+translucent and modulated surfaces with their decals, the movers' among
+them, and the actors drawn translucent (`STY_Translucent`), a render
+iterator's items by its proxy's style. So glass blends over a mesh or a
+sprite behind it in both engines. `GlassConsole`'s glass movers come out
+as the original's frames: the room seen through 05_NYC_UNATCOMJ12lab's
+`BreakableGlass16` and 03_NYC_Airfield's `BreakableGlass2` within 2%, and
+behind the first an unlit crate within 0.3% and an unlit sprite drawn
+`STY_Normal` within 0.5%, the glass adding 7.8 of 255 over the sprite to
+the original's 8.5. Differs, read from the code (`VisibleFrame::Draw`,
+`VisibleMesh`, `VisibleBrush`):
 
-- **The translucent list**: those surfaces with their decals, the meshes'
-  translucent faces, every sprite, the render iterators' items and the
-  movers' translucent polygons, by the distance of one point of each,
-  nearest first; a mesh's own translucent faces go in face order. The
-  original draws its surfaces back to front as its BSP walk met them, then
-  the actors drawn `STY_Translucent`, back to front; an actor of another
-  style goes with the solid ones, its translucent faces with it. The
-  translucent blend comes out the same in either order; a modulated or
-  highlighted one over it does not.
-- **Movers** are drawn as their brushes, through their own matrix, after
-  the world's surfaces, with no depth bias. The original files their
-  polygons into the level's BSP and drops what lands in solid. A mover
+- **Back to front** by the distance of one point of each, where the
+  original's lists run in the order its BSP walk met them.
+- **A mesh's translucent faces** are drawn after all its opaque ones. The
+  original draws them in face order among them, so one drawn before an
+  opaque face behind it is lost where that face writes over it.
+- **Movers** are drawn as their brushes, through their own matrix, with no
+  depth bias: their opaque polygons with the solid actors, their
+  translucent ones among the surfaces. The original files their polygons
+  into the level's BSP and drops what lands in solid. A mover
   hidden after it is filed stays drawn there in the original, where the
   fork stops drawing it (`GlassConsole`); no stock script hides a mover.
 

@@ -9,11 +9,13 @@
 // box along its thinnest side, on the side with more room, facing its
 // middle; the player out of the world, with no shadow, unseen by the NPCs,
 // the HUD hidden, conversations and datalinks stopped as they start. Two
-// shots 2 s apart of the glass alone; then a large crate's mesh, unlit and
-// with no collision, stood Behind units (64 by default) beyond the glass's
-// far face, and two more; the glass hidden, and two more; the glass shown
-// and broken (BlowItUp, which moves it away), and 5 s on two more, of the
-// crate alone. Each shot marked for the original's grabber; then exit.
+// shots 2 s apart of the glass alone; then, Behind units (64 by default)
+// beyond the glass's far face, a quarter of its width to each side, a large
+// crate's mesh and a dark grey square sprite drawn STY_Normal, both unlit
+// and with no collision, and two more; the glass hidden, and two more; the
+// glass shown and broken (BlowItUp, which moves it away), and 5 s on two
+// more, of the crate and the sprite alone. Each shot marked for the
+// original's grabber; then exit.
 // Pick -1 is a census instead: every glass mover, its box and the room on
 // each side, then an exit. Each line is logged with "DXGLASS:" in front.
 //=============================================================================
@@ -32,8 +34,8 @@ var int Phase;
 var int ShotsTaken;
 var Object Stopped;
 var DeusExMover Glass;
-var Effects Crate;
-var vector Middle, Eye, CrateSpot;
+var Effects Crate, Sign;
+var vector Middle, Eye, CrateSpot, SignSpot;
 
 // The mark for the original's screen grabber, as CaptureConsole's.
 var int MarkShot;
@@ -134,6 +136,30 @@ function vector Thinnest(vector Min, vector Max, out float Half)
 	return vect(0,0,1);
 }
 
+// The pane's widest side across A (the thinnest's axis) and its half extent
+function vector Widest(vector Min, vector Max, vector A, out float Half)
+{
+	local vector E, W;
+	E = (Max - Min) * 0.5;
+	Half = -1;
+	if (A.X == 0 && E.X > Half)
+	{
+		Half = E.X;
+		W = vect(1,0,0);
+	}
+	if (A.Y == 0 && E.Y > Half)
+	{
+		Half = E.Y;
+		W = vect(0,1,0);
+	}
+	if (A.Z == 0 && E.Z > Half)
+	{
+		Half = E.Z;
+		W = vect(0,0,1);
+	}
+	return W;
+}
+
 // How far the world is from the box's face along Dir, up to Most
 function float Room(PlayerPawn P, vector From, vector Dir, float Most)
 {
@@ -172,8 +198,8 @@ function Census(PlayerPawn P)
 function bool Choose(PlayerPawn P)
 {
 	local DeusExMover G, Cands[64], T;
-	local vector Min, Max, A;
-	local float Half, Near, Far, Dist;
+	local vector Min, Max, A, W, Back;
+	local float Half, Near, Far, Dist, Width;
 	local int Count, i;
 
 	foreach P.AllActors(class'DeusExMover', G)
@@ -218,9 +244,12 @@ function bool Choose(PlayerPawn P)
 	if (Dist <= 0)
 		Dist = 64;
 	Far = Room(P, Middle - A * (Half + 2), -A, Dist + 64);
-	CrateSpot = Middle - A * (Half + FMin(Dist, Far - 48));
+	Back = Middle - A * (Half + FMin(Dist, Far - 48));
+	W = Widest(Min, Max, A, Width);
+	CrateSpot = Back - W * (Width * 0.5);
+	SignSpot = Back + W * (Width * 0.5);
 	Log("DXGLASS: chosen " $ Glass.Name $ " at " $ Glass.Location $ " box " $ Min $ " to " $ Max $ " middle " $ Middle
-		$ " eye " $ Eye $ " room " $ Near $ " crate at " $ CrateSpot $ " room behind " $ Far
+		$ " eye " $ Eye $ " room " $ Near $ " crate at " $ CrateSpot $ " sprite at " $ SignSpot $ " room behind " $ Far
 		$ " zone " $ Glass.Region.Zone.Name $ " style " $ int(Glass.Style) $ " glow " $ Glass.ScaleGlow);
 	return true;
 }
@@ -257,6 +286,28 @@ function StandCrate(PlayerPawn P)
 	// Unlit, so what is drawn over it is all that changes it
 	Crate.bUnlit = true;
 	Log("DXGLASS: crate " $ Crate.Name $ " at " $ Crate.Location $ " mesh " $ Crate.Mesh $ " zone " $ Crate.Region.Zone.Name);
+
+	// A sprite of a style other than translucent goes with the solid
+	// actors, before the glass, in the original's frame; 48 units across,
+	// a quarter bright, where the glass's light shows most
+	Sign = P.Spawn(class'Effects',,, SignSpot);
+	if (Sign == None)
+	{
+		Log("DXGLASS: no sprite");
+		return;
+	}
+	Sign.SetCollision(false, false, false);
+	Sign.bCollideWorld = false;
+	Sign.SetPhysics(PHYS_None);
+	Sign.LifeSpan = 0;
+	Sign.bHidden = false;
+	Sign.DrawType = DT_Sprite;
+	Sign.Style = STY_Normal;
+	Sign.Texture = Texture'Solid';
+	Sign.bUnlit = true;
+	Sign.ScaleGlow = 0.25;
+	Sign.DrawScale = 48.0 / Texture'Solid'.USize;
+	Log("DXGLASS: sprite " $ Sign.Name $ " at " $ Sign.Location $ " texture " $ Sign.Texture $ " scale " $ Sign.DrawScale $ " zone " $ Sign.Region.Zone.Name);
 }
 
 event Tick(float Delta)
