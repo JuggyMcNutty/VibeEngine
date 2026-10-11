@@ -57,12 +57,28 @@ void LightEffect::Run(UActor* light, int width, const LightmapSpan* spans, size_
 
 	uint8_t effect = light->LightEffect();
 	EffectFunc func = (effect <= LE_Unused) ? Effects[effect] : &LightEffect::NoneEffect;
-	// Deus Ex's torch and fire wavers and watery shimmer are shaped as a
-	// plain light, their texels dimmed at random as they are added
-	// (LightmapBuilder::AddLightContributionDX), and the omni bump map is a
-	// plain light too (dx-reverse-info/render-dll.md, light maps)
-	if (args.smoothFalloff && (effect == LE_TorchWaver || effect == LE_FireWaver || effect == LE_WateryShimmer || effect == LE_OmniBumpMap))
-		func = &LightEffect::NoneEffect;
+	// Deus Ex's are Render.dll's own (dx-reverse-info/render-dll.md, light
+	// maps): the torch and fire wavers and watery shimmer shaped as a plain
+	// light, their texels dimmed at random as they are added
+	// (LightmapBuilder::AddLightContributionDX), the omni bump map a plain
+	// light too, and the shapes of their own below
+	if (args.smoothFalloff)
+	{
+		switch (effect)
+		{
+		case LE_TorchWaver: case LE_FireWaver: case LE_WateryShimmer: case LE_OmniBumpMap: func = &LightEffect::NoneEffect; break;
+		case LE_NonIncidence: func = &LightEffect::NonIncidenceEffectDX; break;
+		case LE_Cylinder: func = &LightEffect::CylinderEffectDX; break;
+		case LE_SlowWave: func = &LightEffect::SlowWaveEffectDX; break;
+		case LE_FastWave: func = &LightEffect::FastWaveEffectDX; break;
+		case LE_Searchlight: func = &LightEffect::SearchlightEffectDX; break;
+		case LE_Rotor: func = &LightEffect::RotorEffectDX; break;
+		case LE_Disco: func = &LightEffect::DiscoEffectDX; break;
+		case LE_Shock: func = &LightEffect::ShockEffectDX; break;
+		case LE_Shell: func = &LightEffect::ShellEffectDX; break;
+		case LE_Interference: func = &LightEffect::InterferenceEffectDX; break;
+		}
+	}
 	for (size_t i = 0; i < count; i++)
 	{
 		const LightmapSpan& span = spans[i];
@@ -480,6 +496,224 @@ void LightEffect::SearchlightEffect(LightEffectArgs* args)
 		{
 			result[i] = 0.0f;
 		}
+	}
+}
+
+// Deus Ex's shapes, Render.dll's own functions' (dx-reverse-info
+// render-dll.md, light maps): each within the light's radius but the
+// cylinder, rounded down, the waves', searchlight's, rotor's and disco's on
+// the plain shape. d is the texel less the light, t the level's time.
+
+// The plain shape (SpatialPlain): the shadow byte x (1 - 3v^2 + 2v^3) x the
+// light's angle's cosine to the surface; below 0 past the radius.
+float LightEffect::PlainDX(const LightEffectArgs* args, int i, vec3& d)
+{
+	d = args->locations[i] - args->LightLocation;
+	float lensqr = dot(d, d);
+	float distsqr = lensqr * args->invRadiusSquared;
+	if (distsqr >= 1.0f)
+		return -1.0f;
+	float len = std::sqrt(lensqr);
+	float angle = len > 0.0f ? std::abs(dot(d, args->N)) / len : 1.0f;
+	return args->shadowmap[i] * LightDistanceFalloff(distsqr) * angle;
+}
+
+// LE_NonIncidence (0x10b054e0): (1.02 - d / r) x the shadow byte, with no
+// angle. Its byte is not held: over 255, within 1.4% of the radius from the
+// light, it wraps.
+void LightEffect::NonIncidenceEffectDX(LightEffectArgs* args)
+{
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d = args->locations[i] - args->LightLocation;
+		float distsqr = dot(d, d) * args->invRadiusSquared;
+		if (distsqr >= 1.0f)
+		{
+			args->result[i] = 0.0f;
+			continue;
+		}
+		int value = (int)std::floor(args->shadowmap[i] * (1.02f - std::sqrt(distsqr)));
+		args->result[i] = (float)(value & 255);
+	}
+}
+
+// LE_Cylinder (0x10b04a80): the shadow byte x (1 - (dx^2 + dy^2) / r^2), held
+// at 0, with no angle and no height.
+void LightEffect::CylinderEffectDX(LightEffectArgs* args)
+{
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d = args->locations[i] - args->LightLocation;
+		args->result[i] = std::floor(args->shadowmap[i] * std::max(1.0f - (d.x * d.x + d.y * d.y) * args->invRadiusSquared, 0.0f));
+	}
+}
+
+// LE_SlowWave (0x10b03de0): x 0.7 + 0.3 sin(2 pi (n - 35 t) / 64), n the
+// distance in whole units; LE_FastWave's (0x10b040b0) n a quarter of that,
+// rounded down, over 32.
+void LightEffect::WaveEffectDX(LightEffectArgs* args, bool fast)
+{
+	double t35 = args->light->Level()->TimeSeconds() * 35.0;
+	double scale = 6.283185307179586 / (fast ? 32.0 : 64.0);
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d;
+		float plain = PlainDX(args, i, d);
+		if (plain < 0.0f)
+		{
+			args->result[i] = 0.0f;
+			continue;
+		}
+		int n = (int)length(d);
+		if (fast)
+			n >>= 2;
+		args->result[i] = std::floor(plain * (float)(0.7 + 0.3 * std::sin((n - t35) * scale)));
+	}
+}
+
+void LightEffect::SlowWaveEffectDX(LightEffectArgs* args)
+{
+	WaveEffectDX(args, false);
+}
+
+void LightEffect::FastWaveEffectDX(LightEffectArgs* args)
+{
+	WaveEffectDX(args, true);
+}
+
+// LE_Searchlight (0x10b03770): x (1 + cos a) / 2, a = 4 atan2(dx, dy) +
+// LightPhase x pi / 32 + 35 t / LightPeriod (none without a period) + 2 pi,
+// taken mod 8 pi, between pi and 3 pi, and dark elsewhere; times
+// (dx^2 + dy^2) x 0.00006 near the light's vertical axis. One beam a
+// quarter turn wide.
+void LightEffect::SearchlightEffectDX(LightEffectArgs* args)
+{
+	UActor* light = args->light;
+	double base = light->LightPhase() * 0.09817477042468103 + 6.283185307179586;
+	if (light->LightPeriod() != 0)
+		base += light->Level()->TimeSeconds() * 35.0 / light->LightPeriod();
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d;
+		float plain = PlainDX(args, i, d);
+		double a = std::fmod(std::atan2((double)d.x, (double)d.y) * 4.0 + base, 25.132741228718345);
+		if (plain < 0.0f || a < 3.141592653589793 || a > 9.42477796076938)
+		{
+			args->result[i] = 0.0f;
+			continue;
+		}
+		double beam = (std::cos(a) + 1.0) * 0.5;
+		double across = (d.x * d.x + d.y * d.y) * 0.00006;
+		if (across < 1.0)
+			beam *= across;
+		args->result[i] = std::floor(plain * (float)beam);
+	}
+}
+
+// LE_Rotor (0x10b03ae0): x (1 + cos(3.5 t + 6 atan2(dx, dy))) / 2, blended
+// toward 1 near the light's vertical axis by (dx^2 + dy^2) x 0.0001: six
+// blades. Its period and phase are not read.
+void LightEffect::RotorEffectDX(LightEffectArgs* args)
+{
+	double t = args->light->Level()->TimeSeconds();
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d;
+		float plain = PlainDX(args, i, d);
+		if (plain < 0.0f)
+		{
+			args->result[i] = 0.0f;
+			continue;
+		}
+		double blade = (std::cos(t * 3.5 + std::atan2((double)d.x, (double)d.y) * 6.0) + 1.0) * 0.5;
+		double across = (d.x * d.x + d.y * d.y) * 0.0001;
+		if (across < 1.0)
+			blade = blade * across + 1.0 - across;
+		args->result[i] = std::floor(plain * (float)blade);
+	}
+}
+
+// LE_Disco (0x10b046f0): x (1 - u), u = A + B - A B for A and B each
+// (1 + cos(11 x + 5 t)) / 2, x the azimuth atan2(dx, dy) and the angle from
+// the vertical atan2(across, dz), u faded to nothing near the light's
+// vertical axis by (dx^2 + dy^2) x 0.00005: a grid of spots.
+void LightEffect::DiscoEffectDX(LightEffectArgs* args)
+{
+	double t5 = args->light->Level()->TimeSeconds() * 5.0;
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d;
+		float plain = PlainDX(args, i, d);
+		if (plain < 0.0f)
+		{
+			args->result[i] = 0.0f;
+			continue;
+		}
+		double across2 = (double)d.x * d.x + (double)d.y * d.y;
+		double a = (std::cos(std::atan2((double)d.x, (double)d.y) * 11.0 + t5) + 1.0) * 0.5;
+		double b = (std::cos(std::atan2(std::sqrt(across2), (double)d.z) * 11.0 + t5) + 1.0) * 0.5;
+		double u = b + a - b * a;
+		double fade = across2 * 0.00005;
+		if (fade < 1.0)
+			u *= fade;
+		args->result[i] = std::floor(plain * (float)(1.0 - u));
+	}
+}
+
+// LE_Shock (0x10b043a0): x (0.9 + 0.1 cos(2 pi (n + 4000 t) / 4096))
+// (0.9 + 0.1 sin(2 pi (2n - 4000 t) / 4096)) (0.9 + 0.1 sin(2 pi (n/2 -
+// 4000 t) / 4096)), n the distance in eighths of a unit, n/2 rounded down:
+// three ripples, 512, 256 and 1024 units long, the first coming in.
+void LightEffect::ShockEffectDX(LightEffectArgs* args)
+{
+	double t4000 = args->light->Level()->TimeSeconds() * 4000.0;
+	const double scale = 6.283185307179586 / 4096.0;
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d;
+		float plain = PlainDX(args, i, d);
+		if (plain < 0.0f)
+		{
+			args->result[i] = 0.0f;
+			continue;
+		}
+		int n = (int)(length(d) * 8.0f);
+		double ripple = (0.9 + 0.1 * std::cos((n + t4000) * scale)) * (0.9 + 0.1 * std::sin((2 * n - t4000) * scale)) *
+			(0.9 + 0.1 * std::sin(((n >> 1) - t4000) * scale));
+		args->result[i] = std::floor(plain * (float)ripple);
+	}
+}
+
+// LE_Shell (0x10b05740): the shadow byte x (1 - 10 |d / r - 0.9|) between 0.8
+// and 1 of the radius, else dark: a thin shell, with no fall-off and no angle.
+void LightEffect::ShellEffectDX(LightEffectArgs* args)
+{
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d = args->locations[i] - args->LightLocation;
+		float dist = length(d) * args->invRadius;
+		args->result[i] = (dist > 0.8f && dist < 1.0f) ? std::floor(args->shadowmap[i] * (1.0f - 10.0f * std::abs(dist - 0.9f))) : 0.0f;
+	}
+}
+
+// LE_Interference (0x10b04c80): x (1 + cos(11 x + 5 t)) / 2, x the angle from
+// the light's vertical atan2(across, dz): rings by that angle, disco's second
+// term alone.
+void LightEffect::InterferenceEffectDX(LightEffectArgs* args)
+{
+	double t5 = args->light->Level()->TimeSeconds() * 5.0;
+	for (int i = 0; i < args->size; i++)
+	{
+		vec3 d;
+		float plain = PlainDX(args, i, d);
+		if (plain < 0.0f)
+		{
+			args->result[i] = 0.0f;
+			continue;
+		}
+		double across = std::sqrt((double)d.x * d.x + (double)d.y * d.y);
+		double ring = (std::cos(std::atan2(across, (double)d.z) * 11.0 + t5) + 1.0) * 0.5;
+		args->result[i] = std::floor(plain * (float)ring);
 	}
 }
 

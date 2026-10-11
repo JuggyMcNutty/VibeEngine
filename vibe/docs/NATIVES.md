@@ -202,7 +202,16 @@ within a level or two of 256 of `D3DDrv`'s frames. A spotlight's cone is the
 original's, its cosine `1 − LightCone ÷ 256`, its value rounded down
 (`LightConsole` on 03_NYC_Airfield's `Spotlight7`: along the cone 0.5 to 7%
 under `D3DDrv`'s, as the rest of that frame is, [brightness](#brightness)).
-Still the fork's own:
+The other effects' shapes are Render.dll's own, on the level's time.
+`LightConsole`, shooting both engines at one moment of it (`ShotAt`), has
+06_HongKong_WanChai_Canal's disco `Light343` at 1.00 of `D3DDrv`'s frame,
+where the fork's former shape had 0.74, 02_NYC_BatteryPark's cylinder
+`Light81` at a correlation of 0.98 to the former's 0.90, and
+09_NYC_ShipBelow's slow wave `Light16` at 1.01 of its brightness to the
+former's 0.97. The rest are the reading's alone: the stock views of the
+searchlight, non-incidence and the rotor come out alike with the former
+shapes and these, and no stock light shows a fast wave (99_Endgame2's one is
+dark), shock, shell or interference. Still the fork's own:
 
 - **Light maps**
   - floats, converted on the CPU for the Smart Pro's GPU (engine patches
@@ -221,8 +230,6 @@ Still the fork's own:
   - the sample points of a map's texels: a spotlight's pool on a wall sits
     some half a texel off the original's across it, one side up to 24% over
     `D3DDrv`'s toward its edge and the other up to 30% under (`LightConsole`);
-  - the shapes of the effects whose original is unread (the waves' and the
-    rest), on the plain falloff, as the original's spotlight is;
   - `LE_CloudCast`, the plain shape, built once, where the original re-runs
     it every frame (its table counts the shape as changing): the same light.
 - **Meshes**
@@ -250,6 +257,10 @@ fork shot meets the original's frames:
   3.0% under `D3DDrv`'s frames, half a level to a level; why is unread. Its
   crate, box and barrel are within 0.8%, Paul Denton a level over, and
   `LaserConsole`'s corridor within 0.9%.
+- 06_HongKong_WanChai_Underworld's floor under its two disco lights
+  (`LightConsole` on `Light2` and `Light21`) is 0.35 to 0.57 of `D3DDrv`'s
+  frames, the lights reaching it all steady, the fork's former light shapes
+  alike; why is unread.
 
 ### The screen flash
 
@@ -664,7 +675,9 @@ engine's own objects are not deleted (the log says so).
   not once: the fork's player stands 4.80 over the floor to the original's
   4.75 (`StandConsole`; a line straight down meets the floor half a unit
   higher). Not carried: the original's floor of 5 ms, the step of every tick
-  past 200 frames a second, which would run the game fast there.
+  past 200 frames a second, which would run the game fast there. The level's
+  `TimeDilation` is held to 0.0025 to 25, where the original's is not held
+  (the game sets it only through `SetGameSpeed`, to 0.1 or more).
 - **Input axes**: an axis a console command sets is used as it is; the
   original's input scales it (the harness's `StandConsole` and `JoinConsole`
   allow for it).

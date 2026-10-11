@@ -69,7 +69,7 @@ are gone.
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
-| `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`) |
+| `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`) |
 | `DXCAP_USERINI=<file>` | a run's `User.ini` made from that file, in place of the game's (`IniConsole`'s keys given twice) |
 | `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
@@ -98,7 +98,7 @@ the run. *Either*: one engine on each side of a pair.
 | `CoronaConsole` | both | Liberty Island's lamp coronas; a movable corona light of its own, in the player's BSP leaf and out of it | `DXCORONA:` | |
 | `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` | |
 | `MeshConsole` | both | meshes lit on the pier | `DXMESH:` | |
-| `LightConsole` | both | a light of one effect (`Effect`, the spotlight by default) on `TargetMap`, among those whose axis meets the world, by name (`LightName`) or place in name order (`Pick`): the view `View` units off the spot it lights, facing it, the HUD hidden, four marked shots; `Pick=-1` lists the map's lights with an effect | `DXLIGHT:` | |
+| `LightConsole` | both | a light of one effect (`Effect`, the spotlight by default) on `TargetMap`, among those whose axis meets the world, by name (`LightName`) or place in name order (`Pick`): the view `View` units off the spot it lights, facing it, the HUD hidden, conversations stopped, the lights reaching the spot logged, four marked shots, with `ShotAt` at that moment of the level's time, its clock slowed; `Pick=-1` lists the map's lights with an effect | `DXLIGHT:` | |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` | |
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` | |
 | `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` | |
@@ -239,6 +239,10 @@ hidden: for the stock game's, serve the original here as for the [net tests](#ne
 - **Through `D3DDrv`** the window's contents reach the grabber only every 0.2 to 1.4 s, though
   the game draws some 63 frames a second: a console's mark, up for 0.6 s, can pass ungrabbed,
   and a run keeps 0 to 2 of `MeshConsole`'s 2 shots. `OpenGLDrv`'s window keeps them all.
+- **The desktop awake.** With the monitors blanked (Plasma's energy saving: their DPMS off) no
+  window is viewable and every grab fails, a run keeping no shot. `distrobox-host-exec
+  kscreen-doctor --dpms on` wakes them, and `distrobox-host-exec kde-inhibit --power
+  --screenSaver sleep <seconds>` keeps them on that long.
 - **Gamma.** The original's frames carry its gamma ramp, 1.5 at the runs' Brightness of 0.6, the
   same through `D3DDrv` (`DXCAP_RENDERER=D3D`). The fork's `shot` reads the frame before the
   present pass applies gamma (`GammaCorrectScreenshots` off), so a fork shot takes that gamma

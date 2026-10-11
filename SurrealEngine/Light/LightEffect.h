@@ -86,6 +86,20 @@ private:
 	void SearchlightEffect(LightEffectArgs* args);
 	void OmniBumpMapEffect(LightEffectArgs* args);
 
+	// Deus Ex's, Render.dll's own shapes
+	static float PlainDX(const LightEffectArgs* args, int i, vec3& d);
+	void NonIncidenceEffectDX(LightEffectArgs* args);
+	void CylinderEffectDX(LightEffectArgs* args);
+	void WaveEffectDX(LightEffectArgs* args, bool fast);
+	void SlowWaveEffectDX(LightEffectArgs* args);
+	void FastWaveEffectDX(LightEffectArgs* args);
+	void SearchlightEffectDX(LightEffectArgs* args);
+	void RotorEffectDX(LightEffectArgs* args);
+	void DiscoEffectDX(LightEffectArgs* args);
+	void ShockEffectDX(LightEffectArgs* args);
+	void ShellEffectDX(LightEffectArgs* args);
+	void InterferenceEffectDX(LightEffectArgs* args);
+
 	typedef void (LightEffect::* EffectFunc)(LightEffectArgs* args);
 	static EffectFunc Effects[LE_Unused + 1];
 

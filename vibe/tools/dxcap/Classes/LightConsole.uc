@@ -9,11 +9,17 @@
 // default), or the one named LightName, has the view put View units (150
 // by default) off the spot its axis meets, or short of what is in the way,
 // facing it along the surface's normal: the player out of the world, with
-// no shadow, the HUD hidden. Each candidate,
+// no shadow, the HUD hidden, conversations and datalinks stopped as they
+// start. Each candidate,
 // the spot and the view are logged with "DXLIGHT:", then four shots 2 s
-// apart, each marked for the original's grabber; then exit. Pick -1 is a
-// census of the map instead: every light with an effect, its effect and
-// whether its axis meets the world, then an exit.
+// apart, each marked for the original's grabber; then exit. With ShotAt
+// set, a changing light is shot in both engines at that moment of the
+// level's time: the level's clock is slowed to a tenth 0.3 s before it and
+// to 0.0025 from it, the least the fork's clock takes, and the shots are
+// timed by the wall clock (the level's Hour to Millisecond), which the
+// slowed clock does not stretch. Every light reaching the spot is logged
+// too. Pick -1 is a census of the map instead: every light with an effect,
+// its effect and whether its axis meets the world, then an exit.
 //=============================================================================
 class LightConsole extends Console;
 
@@ -23,13 +29,16 @@ var config int Pick;
 var config int Aim;
 var config string LightName;
 var config float View;
+var config float ShotAt;
 
 var string CurrentMap;
 var float MapTime;
 var float StepTime;
+var float LastReal;
 var int Phase;
 var int ShotsTaken;
 var Actor Chosen;
+var Object Stopped;
 var vector Spot, SpotNormal, Eye;
 
 // The mark for the original's screen grabber, as CaptureConsole's.
@@ -61,6 +70,30 @@ function string MapOf(PlayerPawn P)
 	if (i >= 0)
 		URL = Left(URL, i);
 	return URL;
+}
+
+// A conversation's camera would take the view, and a datalink's text the
+// frame's foot.
+function Silence(DeusExPlayer DXP)
+{
+	if (DXP.dataLinkPlay != None && DXP.dataLinkPlay.con != None && DXP.dataLinkPlay.con != Stopped)
+	{
+		Stopped = DXP.dataLinkPlay.con;
+		Log("DXLIGHT: datalink " $ Stopped.Name $ " stopped");
+		DXP.dataLinkPlay.AbortDataLink();
+	}
+	if (DXP.conPlay != None && DXP.conPlay.con != None && DXP.conPlay.con != Stopped)
+	{
+		Stopped = DXP.conPlay.con;
+		Log("DXLIGHT: conversation " $ Stopped.Name $ " stopped");
+		DXP.conPlay.TerminateConversation();
+	}
+}
+
+// Seconds of the day by the wall clock.
+function float RealTime(LevelInfo L)
+{
+	return L.Hour * 3600.0 + L.Minute * 60.0 + L.Second + L.Millisecond / 1000.0;
 }
 
 function bool AimsAlong()
@@ -199,6 +232,11 @@ function Choose(PlayerPawn P)
 	if (P.Trace(HitLocation, HitNormal, Spot + SpotNormal * Dist, Spot + SpotNormal * 2, false) != None)
 		Dist = FMax(VSize(HitLocation - Spot) - 8, 16);
 	Eye = Spot + SpotNormal * Dist;
+	foreach P.AllActors(class'Actor', T)
+		if (T.LightType != LT_None && VSize(T.Location - Spot) < Radius(T))
+			Log("DXLIGHT: reaching the spot " $ T.Name $ " type " $ int(T.LightType) $ " effect " $ int(T.LightEffect)
+				$ " brightness " $ T.LightBrightness $ " radius " $ T.LightRadius $ " hue " $ T.LightHue $ " saturation " $ T.LightSaturation
+				$ " period " $ T.LightPeriod $ " phase " $ T.LightPhase $ " static " $ T.bStatic $ " " $ VSize(T.Location - Spot) $ " away");
 	Log("DXLIGHT: chosen " $ Chosen.Name $ " spot " $ Spot $ " normal " $ SpotNormal $ " axis " $ Axis(Chosen)
 		$ " axis to normal " $ (-Axis(Chosen) dot SpotNormal) $ " view distance " $ Dist);
 }
@@ -211,6 +249,9 @@ function HoldView(PlayerPawn P)
 	P.EyeHeight = P.BaseEyeHeight;
 	P.SetLocation(Eye - vect(0,0,1) * P.EyeHeight);
 	P.ViewRotation = rotator(Spot - Eye);
+	// Straight down or up the yaw is the rounding's: none.
+	if (Abs(SpotNormal.Z) > 0.9999)
+		P.ViewRotation.Yaw = 0;
 	P.SetRotation(P.ViewRotation);
 }
 
@@ -232,8 +273,17 @@ event Tick(float Delta)
 		MapTime = 0;
 	}
 	MapTime += Delta;
-	StepTime += Delta;
+	if (ShotAt > 0 && P.Level.TimeDilation < 1.0)
+	{
+		if (LastReal > 0 && RealTime(P.Level) >= LastReal)
+			StepTime += RealTime(P.Level) - LastReal;
+		LastReal = RealTime(P.Level);
+	}
+	else
+		StepTime += Delta;
 	P.ReducedDamageType = 'All';
+	if (DXP != None && (M ~= Target()))
+		Silence(DXP);
 
 	if (Phase == 0)
 	{
@@ -278,6 +328,21 @@ event Tick(float Delta)
 	else if (Phase == 1)
 	{
 		HoldView(P);
+		if (ShotAt > 0 && ShotsTaken < 4)
+		{
+			if (P.Level.TimeSeconds >= ShotAt)
+			{
+				if (P.Level.TimeDilation == 1.0)
+					Log("DXLIGHT: the level's time " $ P.Level.TimeSeconds $ " passed ShotAt " $ ShotAt $ " before the view settled");
+				P.Level.TimeDilation = 0.0025;
+			}
+			else
+			{
+				if (StepTime > 3.0 && P.Level.TimeSeconds >= ShotAt - 0.3)
+					P.Level.TimeDilation = 0.1;
+				return;
+			}
+		}
 		// Settled after 3 s; a shot every 2 s from then, the mark shown for
 		// the 0.6 s before each.
 		if (StepTime > 3.0 && ShotsTaken < 4)
@@ -291,7 +356,7 @@ event Tick(float Delta)
 			else
 			{
 				Log("DXLIGHT: shot " $ ShotsTaken $ " view at " $ (P.Location + vect(0,0,1) * P.EyeHeight) $ " rotation " $ P.ViewRotation
-					$ " FOV " $ P.FOVAngle);
+					$ " FOV " $ P.FOVAngle $ " time " $ P.Level.TimeSeconds);
 				P.ConsoleCommand("shot");
 				bMarking = false;
 				ShotsTaken++;
