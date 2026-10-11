@@ -1,10 +1,13 @@
 //=============================================================================
 // ReachConsole: the reachability tests, asked from script in both engines
 // (vibe/docs/DEVELOPMENT.md, scripted runs). At Liberty Island's start, for
-// the first 12 ScriptedPawns by name: AIDirectionReachable along four yaws
-// (a range of 150 to 500 units from the pawn), PointReachable to a spot 300
-// units along each, and ActorReachable to the player and to the nearest
-// three navigation points. Each answer is logged with "DXREACH:"; then exit.
+// the first 12 ScriptedPawns by name, each put back at its home spot first
+// (HomeLoc, which InitializeHomeBase sets before any pawn moves), standing
+// still, so both engines ask the same question wherever a patrol has taken
+// it: AIDirectionReachable along four yaws (a range of 150 to 500 units from
+// the pawn), PointReachable to a spot 300 units along each, and
+// ActorReachable to the player and to the nearest three navigation points.
+// The spot and each answer are logged with "DXREACH:"; then exit.
 //=============================================================================
 class ReachConsole extends Console;
 
@@ -25,7 +28,12 @@ function Probe(PlayerPawn P, ScriptedPawn S)
 	local NavigationPoint N, Nearest[3];
 	local float Dist[3], D;
 	local int k, j;
+	local bool bMoved;
 
+	bMoved = S.SetLocation(S.HomeLoc);
+	S.Velocity = vect(0,0,0);
+	S.Acceleration = vect(0,0,0);
+	Log("DXREACH: " $ S.Name $ " home " $ V(S.HomeLoc) $ " moved " $ bMoved $ " at " $ V(S.Location));
 	for (i = 0; i < 4; i++)
 	{
 		yaw = i * 16384;

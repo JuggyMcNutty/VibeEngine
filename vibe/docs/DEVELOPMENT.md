@@ -102,7 +102,7 @@ the run. *Either*: one engine on each side of a pair.
 | `AIConsole` | both | every NPC's state, orders, enemy, time since drawn, and whether the level lets the camera see it; the camera | `DXAI:`, `DXAISTATE:` | |
 | `StaticConsole` | both | the map's (`TargetMap`) static actors that animate or keep a timer, a life span, physics or a state, at 5 s and at 15 s, and a count by class: an engine that ticks them shows them moving on | `DXSTATIC:` | |
 | `MoveConsole` | both | every pawn's moves, every 2 s for 120 s | `DXMOVE:` | `move.py <original run> <fork run>` |
-| `ReachConsole` | both | `AIDirectionReachable`, `PointReachable`, `ActorReachable` | `DXREACH:` | |
+| `ReachConsole` | both | `AIDirectionReachable`, `PointReachable`, `ActorReachable`, each pawn asked from its home spot | `DXREACH:` | |
 | `TraceConsole` | both | `TraceTexture`'s hits; toward decorations, `TraceActors`, `TraceTexture`, `Trace` and `FastTrace` | `DXTRACE:` | |
 | `FloatConsole` | both | the crates in the water by the pier, every quarter second | `DXFLOAT:` | |
 | `SwimConsole` | both | at the pier's edge, every tick for 4 s: the player falling into the water from three heights, diving, swimming up; a troop dropped and thrown in | `DXSWIM:` | |

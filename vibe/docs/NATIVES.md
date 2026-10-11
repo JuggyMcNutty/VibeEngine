@@ -109,12 +109,10 @@ units short of its distance: the console counts from its first line, 2 s in
 by its own clock, which in the original's run takes in the island's first
 frame, the load's, some 1.5 s of which the actors get 0.4 s
 ([a long frame](#small)). By then the fork's pawns are further along their
-first walk. A dead robot frozen in `Dying` for good is the original's own
-behaviour, and the rest of a death is alike too (`DeathConsole`). Differs:
-
-- **`ReachConsole`**: 143 of 144 verdicts alike and 134 answers to the unit.
-  The other ten, from the island's two patrolling security bots asked where
-  their patrols had taken them, are 26 to 67 units off.
+first walk. `ReachConsole`'s 144 answers, twelve pawns each asked from its
+home spot, are the original's to the unit. A dead robot frozen in `Dying`
+for good is the original's own behaviour, and the rest of a death is alike
+too (`DeathConsole`).
 
 ## Out of sight
 
