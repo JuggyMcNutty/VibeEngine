@@ -18,7 +18,9 @@ the time a map takes to load, so each scenario is laid by its own beeps.
           from 0.5 to 1.5 s after the peak against the first 0.45 s, the
           shot's own length -- what the zone adds;
   pan:    each channel's peak for beeps from a path node to the right, to
-          the left and ahead.
+          the left and ahead, and for the root window's beeps from the
+          screen's left edge, its centre, its right edge and at its own
+          volume.
 
 --onsets reads any recording alone: each sound that starts out of quiet,
 its time and peak, and the longest run of them a second apart -- a net
@@ -294,7 +296,7 @@ def report_reverb(rec, strength, evts, after):
 
 
 def report_pan(rec, offset, rest):
-    pans = [(t, what) for t, what in rest if what.startswith('pan ')]
+    pans = [(t, what) for t, what in rest if what.startswith('pan ') or what.startswith('window ')]
     if offset is None or not pans:
         print('pan: not in the log')
         return
@@ -302,10 +304,10 @@ def report_pan(rec, offset, rest):
     for t, what in pans:
         peaks = rec.channel_peaks(t + offset - 0.05, t + offset + 0.4)
         if len(peaks) != 2:
-            print('  %-5s not stereo' % what[4:])
+            print('  %-19s not stereo' % what)
             continue
-        print('  %-5s %6.2f s  L %6.1f dB  R %6.1f dB  R-L %+5.1f dB' % (
-            what[4:], t, peaks[0], peaks[1], peaks[1] - peaks[0]))
+        print('  %-19s %6.2f s  L %6.1f dB  R %6.1f dB  R-L %+5.1f dB' % (
+            what, t, peaks[0], peaks[1], peaks[1] - peaks[0]))
 
 
 def main():

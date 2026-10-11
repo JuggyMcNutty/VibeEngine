@@ -27,6 +27,9 @@ void UPlayerPawnExt::InitRootWindow()
 		// And with its pointer shown, as the original's init sets it
 		// (XRootWindow::Init): a window may hide it (ShowCursor).
 		engine->dxRootWindow->bCursorVisible() = true;
+		// And with positional sound on, as the original's init sets it: a
+		// window's sound turned by its place across the screen (PlaySound).
+		engine->dxRootWindow->bPositionalSound() = true;
 		engine->dxRootWindow->InitWindow();
 	}
 }

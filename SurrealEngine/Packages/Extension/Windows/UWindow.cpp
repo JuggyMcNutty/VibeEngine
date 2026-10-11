@@ -1233,39 +1233,44 @@ UObject* UWindow::NewChild(UObject* NewClass, std::optional<bool> bShow)
 	return child;
 }
 
-// The original plays a window sound one unit from the player: turned left or
-// right by the point's place across the screen -- a quarter turn at either
-// edge -- when the root has positional sound on, else straight ahead. The
-// point defaults to the window's centre and the volume to the window's own
-// (extension-dll.md, Window sounds).
+// The original's (XWindow::PlaySound 0x10050050, extension-dll.md, window
+// sounds): one unit from the player's place, not its eyes, along the view's
+// yaw -- turned left or right by the point's place across the screen, a
+// quarter turn at either edge, when the root has positional sound on and
+// the window and every window it is in are shown --, with no actor and a
+// channel of its own, a radius of 100 and the volume over 0.99. The point
+// defaults to the window's centre, and a volume of -1 is the window's own,
+// which only SetSoundVolume sets.
 void UWindow::PlaySound(UObject* newsound, std::optional<float> Volume, std::optional<float> Pitch, std::optional<float> posX, std::optional<float> posY)
 {
 	USound* s = UObject::Cast<USound>(newsound);
 	UPlayerPawnExt* player = UObject::Cast<UPlayerPawnExt>(GetPlayerPawn());
-	if (s && player)
+	URootWindow* root = GetRootWindow();
+	if (s && player && root)
 	{
-		int slot = SLOT_Misc;
-		int id = engine->audiodev->SoundId(this, slot);
+		float volume = Volume ? *Volume : -1.0f;
+		if (volume == -1.0f)
+			volume = SoundVolume();
+
+		UWindow* hidden = this;
+		while (hidden && hidden->bIsVisible())
+			hidden = hidden->parentOwner();
 
 		float across = 0.0f;
-		URootWindow* root = GetRootWindow();
-		if (root && root->bPositionalSound())
+		if (!hidden && root->bPositionalSound())
 		{
 			float rootX = 0.0f, rootY = 0.0f;
 			ConvertCoordinates(this, posX ? *posX : Width() * 0.5f, posY ? *posY : Height() * 0.5f, root, rootX, rootY);
-			if (root->Width() > 0.0f)
-				across = std::clamp(rootX / root->Width() * 2.0f - 1.0f, -1.0f, 1.0f);
+			across = std::clamp(rootX * 2.0f / std::max(root->Width(), 1.0f) - 1.0f, -1.0f, 1.0f);
 		}
 
+		Rotator rotation = player->ViewRotation();
+		rotation.Yaw += (int)(across * 16384.0f);
+		rotation.Pitch = 0;
 		vec3 at, left, up;
-		Coords::Rotation(player->Rotation()).GetAxes(at, left, up);
-		float turn = across * (3.14159265f * 0.5f);
-		vec3 location = player->Location() + at * std::cos(turn) - left * std::sin(turn);
-
-		// The window's own volume when it set one (13 windows set 0.25); its
-		// native default is unread, so an unset 0 falls back to full.
-		float volume = Volume ? *Volume : (SoundVolume() > 0.0f ? SoundVolume() : 1.0f);
-		engine->audiodev->PlaySound(player, id, s, location, volume, player->WorldSoundRadius(), Pitch ? *Pitch : 1.0f, false);
+		Coords::Rotation(rotation).GetAxes(at, left, up);
+		const float radius = 100.0f, distance = 1.0f;
+		engine->audiodev->PlaySound(nullptr, 2 * SLOT_None, s, player->Location() + at * distance, volume * radius / (radius - distance), radius, Pitch ? *Pitch : 1.0f, false);
 	}
 }
 

@@ -3,10 +3,12 @@
 // open and behind a wall; who hears a sound the wall's source plays
 // (Actor.PlaySound's hearing test: its range, and the wall's cut to the
 // volume and the range); a sound inside a reverb zone and outside it, then
-// beeps to the right, left and ahead. The game's audio is recorded outside
-// it; three beeps start each scenario, and each move is logged with "DXCAP:"
-// and the console's clock, by which a recording is read
-// (vibe/tools/dxcap/sound.py).
+// beeps to the right, left and ahead, and the root window's beeps
+// (Window.PlaySound) from the screen's left edge, its centre and its right
+// edge at full volume, then at the root's own volume, each twice. The game's
+// audio is recorded outside it; three beeps start each scenario, and each
+// move is logged with "DXCAP:" and the console's clock, by which a recording
+// is read (vibe/tools/dxcap/sound.py).
 //=============================================================================
 class SoundConsole extends Console;
 
@@ -192,6 +194,7 @@ event Tick(float Delta)
 	local bool bFoundOut;
 	local float D, PanTime;
 	local string M;
+	local RootWindow Root;
 
 	Super.Tick(Delta);
 	if (Viewport == None || Viewport.Actor == None)
@@ -457,7 +460,49 @@ event Tick(float Delta)
 				Step++;
 			}
 		}
-		else if (Step >= 20 && StepTime > SETTLE + 35.0)
+		else if (Step == 20 && StepTime > SETTLE + 35.0)
+		{
+			// The window's beeps, the player still facing level: the root's
+			// volume is the class default, which no window's init sets.
+			Root = PlayerPawnExt(P).rootWindow;
+			if (Root == None)
+			{
+				Log("DXCAP: no root window");
+				Phase = 5;
+			}
+			else
+			{
+				Log("DXCAP: window sound volume: Window's default " $ class'Window'.default.soundVolume $ ", the root's " $ Root.soundVolume
+					$ ", positional " $ Root.IsPositionalSoundEnabled());
+				Step++;
+			}
+		}
+		else if (Step >= 21 && Step < 29 && StepTime > SETTLE + 36.5 + 1.5 * (Step - 21))
+		{
+			Root = PlayerPawnExt(P).rootWindow;
+			if ((Step - 21) / 2 == 0)
+			{
+				Log("DXCAP: window left at " $ CapTime);
+				Root.PlaySound(Sound'DeusExSounds.Generic.Beep4', 1.0, 1.0, 0, Root.height / 2);
+			}
+			else if ((Step - 21) / 2 == 1)
+			{
+				Log("DXCAP: window centre at " $ CapTime);
+				Root.PlaySound(Sound'DeusExSounds.Generic.Beep4', 1.0);
+			}
+			else if ((Step - 21) / 2 == 2)
+			{
+				Log("DXCAP: window right at " $ CapTime);
+				Root.PlaySound(Sound'DeusExSounds.Generic.Beep4', 1.0, 1.0, Root.width, Root.height / 2);
+			}
+			else
+			{
+				Log("DXCAP: window own volume at " $ CapTime);
+				Root.PlaySound(Sound'DeusExSounds.Generic.Beep4');
+			}
+			Step++;
+		}
+		else if (Step >= 29 && StepTime > SETTLE + 50.0)
 		{
 			Phase = 5;
 		}

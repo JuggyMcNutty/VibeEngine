@@ -486,8 +486,14 @@ sound an actor plays is the original's too
 ([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds)):
 the player within the radius ÷ √1.3, and with the level's BSP between, at
 0.35 of the volume within 0.77 of that, but for the actor's instigator.
-`SoundConsole` (its hearing test) and `SkipConsole` record both engines.
-Differs:
+`SoundConsole` (its hearing test) and `SkipConsole` record both engines. A
+window's sound is the original's too
+([window sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#window-sounds)):
+in the world, one unit from the player, turned by its place on the screen,
+at the window's own volume, which is 0, unheard, unless the window sets it.
+`SoundConsole`'s root beeps from the screen's left edge, centre and right
+edge come out within 0.2 dB of the original's, panned alike, the one at the
+root's own volume unheard in both. Differs:
 
 - The music plays on an OpenAL source of its own.
 - Not carried: Galaxy's quirk with the Sound and Speech sliders equal, both
@@ -663,8 +669,6 @@ engine's own objects are not deleted (the log says so).
 
 ## Small
 
-- **Window sounds**: an unset window volume falls back to full; the native
-  default is unread ([window sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#window-sounds)).
 - **A long frame**: the actors' step is at most 0.4 s, as the original's
   ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)).
   The frame's time on the level's clock is held to 1 s; the original's
