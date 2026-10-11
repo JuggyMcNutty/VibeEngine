@@ -51,7 +51,8 @@
 # the run's console class those keys in its section of the ini, as
 # DXCAP_MISSION_MAP gives TargetMap (LightConsole's Effect, Pick, LightName,
 # View, Aim and ShotAt; GlassConsole's Pick, GlassName, View and Behind;
-# MeshConsole's LODBias and NoDetail).
+# FaceConsole's MeshOf, Ahead and Distance; MeshConsole's LODBias and
+# NoDetail).
 # DXCAP_MISSION_MAP=<map> names, through the run's ini, the map a run's
 # console travels to, its TargetMap (MissionConsole's, StaticConsole's,
 # WadeConsole's, ScreenConsole's, PerfConsole's, EndgameConsole's,

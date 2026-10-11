@@ -69,7 +69,7 @@ are gone.
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
-| `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`; `GlassConsole`'s `Pick`, `GlassName`, `View`, `Behind`; `MeshConsole`'s `LODBias`, `NoDetail`) |
+| `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`; `GlassConsole`'s `Pick`, `GlassName`, `View`, `Behind`; `FaceConsole`'s `MeshOf`, `Ahead`, `Distance`; `MeshConsole`'s `LODBias`, `NoDetail`) |
 | `DXCAP_USERINI=<file>` | a run's `User.ini` made from that file, in place of the game's (`IniConsole`'s keys given twice) |
 | `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s, `EndgameConsole`'s, `VisibleConsole`'s, `MoverConsole`'s, `LightConsole`'s, `GlassConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
@@ -98,6 +98,7 @@ the run. *Either*: one engine on each side of a pair.
 | `CoronaConsole` | both | Liberty Island's lamp coronas; a movable corona light of its own, in the player's BSP leaf and out of it | `DXCORONA:` | |
 | `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` | |
 | `ParticleConsole` | both | particles on the pier: smoke rising, growing and fading, and puffs thrown up under gravity; the scene alone, then six marked shots | `DXPART:` | |
+| `FaceConsole` | both | a character's mesh close up at Liberty Island's start: the mesh, skins and first animation frame of `MeshOf` (a class, `DeusEx.UNATCOTroop` by default) on an actor with no AI, unlit, `Ahead` units ahead; the view `Distance` units in front of its eyes, the HUD hidden; two marked shots | `DXFACE:` | |
 | `MeshConsole` | both | meshes lit on the pier; with `LODBias` set, at less detail; with `NoDetail`, the detail textures off | `DXMESH:` | |
 | `LightConsole` | both | a light of one effect (`Effect`, the spotlight by default) on `TargetMap`, among those whose axis meets the world, by name (`LightName`) or place in name order (`Pick`): the view `View` units off the spot it lights, facing it, the HUD hidden, conversations stopped, the lights reaching the spot logged, four marked shots, with `ShotAt` at that moment of the level's time, its clock slowed; `Pick=-1` lists the map's lights with an effect | `DXLIGHT:` | |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` | |

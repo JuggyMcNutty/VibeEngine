@@ -304,7 +304,12 @@ the original's 8.5. Differs, read from the code (`VisibleFrame::Draw`,
   original's lists run in the order its BSP walk met them.
 - **A mesh's translucent faces** are drawn after all its opaque ones. The
   original draws them in face order among them, so one drawn before an
-  opaque face behind it is lost where that face writes over it.
+  opaque face behind it is lost where that face writes over it. Of the 61
+  meshes with translucent faces on 13 maps counted, only `GM_Jumpsuit`,
+  `GM_Suit`, `GFM_TShirtPants` (and their carcasses') and `ComputerPublic`
+  have opaque faces after them; `FaceConsole`'s close-ups of a UNATCO troop,
+  an MIB and Anna Navarre, face on, come out the same in either order, the
+  MIB's lenses within 0.5% of `D3DDrv`'s.
 - **Movers** are drawn as their brushes, through their own matrix, with no
   depth bias: their opaque polygons with the solid actors, their
   translucent ones among the surfaces. The original files their polygons
