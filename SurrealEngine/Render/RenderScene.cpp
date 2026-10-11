@@ -121,14 +121,21 @@ void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 		}
 	}
 
-	// Seen: the eye reaches the light past the world, movers, pawns and
-	// other actors, but the viewer's own pawn
+	// Seen, as the original's CoronaTest: the eye reaches the light past
+	// the level and the movers -- every surface, an invisible one too,
+	// which a sight test passes: a glass mover's collision hull round its
+	// pane -- then past pawns and other actors, but the viewer's own pawn
 	auto blocksSight = [&](UActor* actor) { return actor != viewerPawn; };
+	auto clear = [&](UActor* light)
+	{
+		return !engine->Level->Collision.TraceAnyHit(eye, light->Location(), nullptr, false, true, false) &&
+			!engine->Level->Collision.SightBlocked(eye, light->Location(), blocksSight);
+	};
 	auto seenNow = [&](UActor* light)
 	{
 		for (UActor* candidate : candidates)
 			if (candidate == light)
-				return !engine->Level->Collision.SightBlocked(eye, light->Location(), blocksSight);
+				return clear(light);
 		return false;
 	};
 
@@ -166,8 +173,7 @@ void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 				break;
 			}
 		}
-		if (!known && CoronaStates.size() < 32 &&
-			!engine->Level->Collision.SightBlocked(eye, light->Location(), blocksSight))
+		if (!known && CoronaStates.size() < 32 && clear(light))
 		{
 			CoronaState state;
 			state.Light = light;

@@ -184,7 +184,11 @@ Matches the original ([coronas](https://github.com/JuggyMcNutty/dx-reverse-info/
 and no dynamic light does, the original's pass reading the leaf's dynamic
 lights only after its occlusion pass has emptied them. `CoronaConsole`'s
 own movable lamp shows none in either engine, in the player's leaf or out
-of it, and logs the same BSP leaves in both.
+of it, and logs the same BSP leaves in both. A light behind a glass mover
+shows none in either: the line to it is checked against the level and the
+movers with every surface, the invisible collision hull round the glass's
+pane among them, which a sight test passes (`GlassConsole` at
+03_NYC_Airfield's `BreakableGlass2`, `Light56` beyond it).
 
 ### What a pawn holds
 
