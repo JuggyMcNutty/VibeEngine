@@ -66,6 +66,11 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 			TraceRayModel tracemodel;
 			CollisionHitList worldHits = tracemodel.Trace(GetLevel()->Model, origin, tmin, direction, tmax, visibilityOnly);
 			hits.push_back(worldHits);
+
+			// Deus Ex's line meets the movers where the BSP filed them too,
+			// the hits the level's (CollisionSystem, filed movers)
+			if (deusEx)
+				GetLevel()->Collision.TraceFiledMovers(origin, direction, tmax, visibilityOnly, hits);
 		}
 		else
 		{
@@ -83,14 +88,16 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 	// box -- a tenth of a unit for a trace under one long --, and a box's hit
 	// found past the end but within that is a hit, one beyond it none; a hit
 	// on an actor's cylinder is given a thousandth of the trace short. The
-	// hits are ordered as given.
+	// hits are ordered as given; a mover's filed polygons, the level's, after
+	// the mover's own hit there, as the original's actors' hits come a
+	// thousandth of the line nearer than the level's.
 	if (deusEx)
 	{
 		double brushBackoff = (radius == 0.0f && height == 0.0f) ? 0.5 / tmax : std::max(0.1, 0.1 / tmax);
 		CollisionHitList given;
 		for (CollisionHit hit : hits)
 		{
-			double fraction = hit.Fraction / tmax - (hit.Node ? brushBackoff : 0.001);
+			double fraction = hit.Fraction / tmax - ((hit.Node || hit.Filed) ? brushBackoff : 0.001) + (hit.Filed ? 0.01 / tmax : 0.0);
 			if (fraction >= 1.0)
 				continue;
 			hit.Fraction = (float)std::max(fraction, 0.0);
@@ -210,24 +217,33 @@ bool TraceTester::TraceAnyHit(vec3 from, vec3 to, UActor* tracingActor, bool tra
 
 	// Deus Ex's asks along the line itself, as the original's FastLineCheck
 	// does; other games' look a unit past its end.
-	float margin = engine->LaunchInfo.IsDeusEx() ? 0.0f : 1.0f;
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
+	float margin = deusEx ? 0.0f : 1.0f;
 	tmax += margin;
 
-	CollisionHitList hits;
-	bool actorHit = VisitActorsOnRay(from, to, [&](UActor* actor) {
-		if (actor != tracingActor && actor->bBlockActors())
-		{
-			TraceActor(actor, origin, tmin, direction, tmax, 0.0, 0.0, traceActors, traceWorld, visibilityOnly, hits);
-			if (!hits.empty())
-				return true;
-		}
-		return false;
-	});
-	if (actorHit)
-		return true;
+	// Deus Ex's movers block where the level's BSP filed them, whatever they
+	// collide with (below), not where they are; the other actors only when
+	// asked for
+	if (!deusEx || traceActors)
+	{
+		CollisionHitList hits;
+		bool actorHit = VisitActorsOnRay(from, to, [&](UActor* actor) {
+			if (actor != tracingActor && actor->bBlockActors() && !(deusEx && UObject::TryCast<UMover>(actor)))
+			{
+				TraceActor(actor, origin, tmin, direction, tmax, 0.0, 0.0, traceActors, traceWorld, visibilityOnly, hits);
+				if (!hits.empty())
+					return true;
+			}
+			return false;
+		});
+		if (actorHit)
+			return true;
+	}
 
 	if (traceWorld)
 	{
+		if (deusEx && GetLevel()->Collision.FiledMoversBlock(from, to, visibilityOnly))
+			return true;
 		TraceRayModel tracemodel;
 		return tracemodel.TraceAnyHit(GetLevel()->Model, origin, tmin, direction, tmax, visibilityOnly);
 	}
@@ -262,6 +278,9 @@ bool TraceTester::SightBlocked(const vec3& from, const vec3& to, const std::func
 	if (actorBlocks)
 		return true;
 
+	// Deus Ex's BSP holds the movers where it filed them
+	if (engine->LaunchInfo.IsDeusEx() && GetLevel()->Collision.FiledMoversBlock(from, to, true))
+		return true;
 	TraceRayModel tracemodel;
 	return tracemodel.TraceAnyHit(GetLevel()->Model, origin, tmin, direction, tmax, true);
 }

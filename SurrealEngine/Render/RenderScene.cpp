@@ -46,6 +46,10 @@ void RenderSubsystem::DrawScene()
 			}
 		}
 	}
+	// And Deus Ex's movers where the level's BSP files them, as the
+	// original's SetupDynamics does each frame drawn
+	if (engine->LaunchInfo.IsDeusEx())
+		engine->Level->Collision.RefileMovers();
 
 	mat4 worldToView = Coords::ViewToRenderDev().ToMatrix() * Coords::Rotation(engine->CameraRotation).Inverse().ToMatrix() * Coords::Location(engine->CameraLocation).ToMatrix();
 	SceneFrameStart = FrameCounter;

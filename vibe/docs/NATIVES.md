@@ -487,8 +487,10 @@ ones on the walls are not drawn
 
 Matches `Galaxy.dll` ([`galaxy-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md)):
 Deus Ex's sounds are mixed as its mixer mixes them (pan, volumes,
-resampling and reverb, at `OutputRate`) into one OpenAL source. Who hears a
-sound an actor plays is the original's too
+resampling and reverb, at `OutputRate`) into one OpenAL source, one behind
+the level's BSP muffled -- a closed door's too, the movers in it where it
+filed them ([the movers in a line's way](#implemented-not-as-the-original)).
+Who hears a sound an actor plays is the original's too
 ([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds)):
 the player within the radius ÷ √1.3, and with the level's BSP between, at
 0.35 of the volume within 0.77 of that, but for the actor's instigator.
@@ -524,64 +526,94 @@ root's own volume unheard in both. Differs:
 Every other native the scripted runs compare matches the original
 ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives),
 [`Engine.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md)):
-the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
-frob target, through decorations), `RadiusActors`, which reaches each
-actor's own collision radius further (`VisibleConsole` on Liberty Island
-and DXMP_Silo), sight (`SightConsole`), the reach tests
-(`ReachConsole`), the look up and down stairs (`StairConsole`: every answer
-of `Pawn.FindStairRotation` alike on Liberty Island's pier and
-`SlideConsole`'s slope,
-[small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)),
-falls, a whole frame at once in the original's steps,
-each by its mean velocity (a pawn's air control, a bounce left to the
-script, a wall slid along, a landing ending the frame's move), coming to
-rest where the original's do at 60 frames a second and at 20, and their
-landing on a ledge -- a crate nudged off it, a pawn fitted clear of it and
-pushed on at random (`RestConsole`,
-[moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving))
---, a pawn landing on another or on a decoration that cannot be its base,
-which the scripts' `SupportActor` bounces off 50 up and 25 to 50 sideways at
-random, again until it slips off, and the one under it stomped but for a
-human NPC not hostile to the player (`StompConsole`: the player and Paul
-Denton on each other, crates), falls in water (`FloatConsole`: a buoyant
-crate rises and bobs at the surface at the original's speeds), swimming
-(`SwimConsole`: the player and a troop falling or thrown into water are put
-back at the water line and swim on, the player stopped as its head goes
-under and held to 0.3 of `WaterSpeed`, as it walks whenever it swims; up out
-of the water it hops and falls back in, bobbing), walking, a whole frame at
-once in the original's steps, a slope slid down where the zone's ground
-friction is low, and its ledges: a pawn that cannot jump stopped there, its
-move given up, any other given `Falling` (`WadeConsole`: a troop walking
-off the pier given the jump `ScriptedPawn`'s `FallingState` aims at its
-destination, `EAdjustJump`, into the water or across it, with `bCanSwim`
-off, and stopped at the edge with `bCanJump` off; one walking down
-14_OceanLab_Lab's steps into the sea, the stock maps' one shore), the
-speed a pawn walks and swims at (`calcVelocity`, once a frame; one that
-stops brakes to a standstill), ladders (`LadderConsole`: a player at a
-ladder's foot hangs there, climbs as it pushes into it, goes down looking
-down and steps off onto the top) and the same check's slide of a walking
-player on a texture with a `Friction` under 1 (`SlideConsole`: on a slope
-at a `Friction` of 0.5 and 0, the glide to a stop and the slide down a
-slope in a zone of ground friction 0.2, at 60 and 20 frames a second; the
-game's one such texture, `Slippery_Metal`, covers two slopes in
-14_Oceanlab_Silo), flying, by which a player climbs (`FlightConsole`: a
-gull flying into the pier's wall, level and rising, toward the player,
-taking off as it walks off the pier, and its `LongFall` 2.5 s into a drop
-into the water; the stock gull's own flight plausible), the pawns' turning
-(the pitch at half a turn a second toward level when walking or falling,
-held within `RotationRate`'s),
-`SetLocation`, the rotators' conversions (`RotatorConsole`,
-702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
-`MidConsole`'s ten probes of both, `Object.DynamicLoadObject` with a
-group in the name, its own, another or none, and a class that is not the
-object's own (`DynLoadConsole`), and `Object.GetPropertyText` and
-`SetPropertyText`, through which the server's query answerer reads what a
-remote asks for: a public property's text as `GET` writes it, a const one
-never set, a private one or a name the class has not read empty and set
-nothing (`GetConsole`). `LevelInfo`'s clock is the original's
-([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
+
+- **The traces** (`TraceConsole`, `VisibleConsole`; `TraceActors`, the
+  player's frob target, through decorations), and `RadiusActors`, which
+  reaches each actor's own collision radius further (`VisibleConsole` on
+  Liberty Island and DXMP_Silo).
+- **The movers in a line's way**: a line meets each mover where the level's
+  BSP last filed it
+  ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)),
+  whatever it collides with, hidden or not. A map's load and a save file
+  every mover where it is; each frame drawn files again where it is every
+  mover not hidden that has moved or turned since; a destroyed one stays
+  filed until the next load or save. `FastTrace` and the checks on its line
+  (`LineOfSightTo`, hearing, the reach tests and path searches, the
+  visible-actor iterators, network relevance, mesh lights' shadows, the
+  AI's sight and the mixer's walls, [sound](#sound)) meet the filed
+  polygons, a line's `Trace` and the multi-hit check meet them as the
+  level's, after the mover's own hit where it still is, and a box meets
+  none (`MoverConsole` on Liberty Island and DXMP_Silo: a door made not to
+  collide, then hidden and moved, then saved; a window broken, at once and
+  a frame on; `VisibleConsole` there). Not carried: the refiling of the
+  movers filed under one filed again, which the original files again
+  wherever they are; and the polygons are filed whole, where the original's
+  tree drops what lands in solid, which no line in the open meets. A
+  dedicated server, drawing no frame, never files a mover again: unproven.
+- **Sight** (`SightConsole`), **the reach tests** (`ReachConsole`), and
+  **the look up and down stairs** (`StairConsole`: every answer of
+  `Pawn.FindStairRotation` alike on Liberty Island's pier and
+  `SlideConsole`'s slope,
+  [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
+- **Falls**, a whole frame at once in the original's steps, each by its
+  mean velocity (a pawn's air control, a bounce left to the script, a wall
+  slid along, a landing ending the frame's move), coming to rest where the
+  original's do at 60 frames a second and at 20, and their landing on a
+  ledge -- a crate nudged off it, a pawn fitted clear of it and pushed on at
+  random (`RestConsole`,
+  [moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)).
+- **A pawn landing on another** or on a decoration that cannot be its base,
+  which the scripts' `SupportActor` bounces off 50 up and 25 to 50 sideways
+  at random, again until it slips off, and the one under it stomped but for
+  a human NPC not hostile to the player (`StompConsole`: the player and Paul
+  Denton on each other, crates).
+- **Water**: falls in it (`FloatConsole`: a buoyant crate rises and bobs at
+  the surface at the original's speeds) and swimming (`SwimConsole`: the
+  player and a troop falling or thrown into water are put back at the water
+  line and swim on, the player stopped as its head goes under and held to
+  0.3 of `WaterSpeed`, as it walks whenever it swims; up out of the water it
+  hops and falls back in, bobbing).
+- **Walking**, a whole frame at once in the original's steps, a slope slid
+  down where the zone's ground friction is low, and its ledges: a pawn that
+  cannot jump stopped there, its move given up, any other given `Falling`
+  (`WadeConsole`: a troop walking off the pier given the jump
+  `ScriptedPawn`'s `FallingState` aims at its destination, `EAdjustJump`,
+  into the water or across it, with `bCanSwim` off, and stopped at the edge
+  with `bCanJump` off; one walking down 14_OceanLab_Lab's steps into the
+  sea, the stock maps' one shore). The speed a pawn walks and swims at
+  (`calcVelocity`, once a frame; one that stops brakes to a standstill);
+  ladders (`LadderConsole`: a player at a ladder's foot hangs there, climbs
+  as it pushes into it, goes down looking down and steps off onto the top);
+  and the same check's slide of a walking player on a texture with a
+  `Friction` under 1 (`SlideConsole`: on a slope at a `Friction` of 0.5 and
+  0, the glide to a stop and the slide down a slope in a zone of ground
+  friction 0.2, at 60 and 20 frames a second; the game's one such texture,
+  `Slippery_Metal`, covers two slopes in 14_Oceanlab_Silo).
+- **Flying**, by which a player climbs (`FlightConsole`: a gull flying into
+  the pier's wall, level and rising, toward the player, taking off as it
+  walks off the pier, and its `LongFall` 2.5 s into a drop into the water;
+  the stock gull's own flight plausible), and the pawns' turning (the pitch
+  at half a turn a second toward level when walking or falling, held within
+  `RotationRate`'s).
+- **Small ones**: `SetLocation`; the rotators' conversions
+  (`RotatorConsole`, 702 of them); `Object.Mid` 127 at its edges, its end's
+  clamp known from `MidConsole`'s ten probes of both;
+  `Object.DynamicLoadObject` with a group in the name, its own, another or
+  none, and a class that is not the object's own (`DynLoadConsole`); and
+  `Object.GetPropertyText` and `SetPropertyText`, through which the server's
+  query answerer reads what a remote asks for: a public property's text as
+  `GET` writes it, a const one never set, a private one or a name the class
+  has not read empty and set nothing (`GetConsole`). `LevelInfo`'s clock is
+  the original's
+  ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
+
 Differs:
 
+- **A line wholly inside the level's solid** meets nothing: the fork's line
+  test is of the surfaces a line crosses, where the original's BSP stops it
+  at once (`MoverConsole`: a line through the wall over a door).
+  `VisibleConsole`'s lines across DXMP_Silo's `DeusExMover19` and `25` meet
+  the level in the original and the mover in the fork; why is unread.
 - **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so a player can tell
   which engine they run ([the version](ENGINE.md#running-on-our-devices)). The original's is
   "Mon Mar 19 12:06:14 2001 v1.112fm".

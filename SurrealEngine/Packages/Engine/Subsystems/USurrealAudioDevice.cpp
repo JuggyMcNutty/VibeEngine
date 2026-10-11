@@ -497,8 +497,10 @@ void USurrealAudioDevice::UpdateObstruction(PlayingSound& Playing, float timeSte
 
 	// The line runs from the player's own eyes -- the player's place and
 	// EyeHeight, even when viewing through another actor -- to the sound's
-	// actor, and only the level's BSP blocks it: movers and actors do not,
-	// as the original's UModel::FastLineCheck has it.
+	// actor, and only the level's BSP blocks it, as the original's
+	// UModel::FastLineCheck has it: no actor does, but the movers where the
+	// BSP filed them, so a closed door muffles (CollisionSystem, filed
+	// movers).
 	UActor* player = m_Viewport->Actor();
 	vec3 eyes = player->Location();
 	if (UPawn* pawn = UObject::TryCast<UPawn>(player))
@@ -511,7 +513,8 @@ void USurrealAudioDevice::UpdateObstruction(PlayingSound& Playing, float timeSte
 	if (tmax > 0.01)
 	{
 		TraceRayModel trace;
-		blocked = trace.TraceAnyHit(player->XLevel()->Model, origin, 0.01, direction * (1.0 / tmax), tmax, true);
+		blocked = trace.TraceAnyHit(player->XLevel()->Model, origin, 0.01, direction * (1.0 / tmax), tmax, true) ||
+			player->XLevel()->Collision.FiledMoversBlock(eyes, Playing.Location, true);
 	}
 
 	if (blocked)

@@ -71,7 +71,7 @@ are gone.
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
 | `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`) |
 | `DXCAP_USERINI=<file>` | a run's `User.ini` made from that file, in place of the game's (`IniConsole`'s keys given twice) |
-| `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s, `EndgameConsole`'s, `VisibleConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
+| `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s, `EndgameConsole`'s, `VisibleConsole`'s, `MoverConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
 | `DXCAP_NOVSYNC=1` | Mesa's GL draws either engine without waiting for the display (`vblank_mode=0`): the original's `OpenGLDrv` asks for no swap interval and gets the driver's vsync |
 | `DXCAP_FPS=<n>` | either engine held to n frames a second: MangoHud's limiter, its display off (`mangohud`, and `lib32-mangohud` for the original's 32-bit process) |
@@ -115,6 +115,7 @@ the run. *Either*: one engine on each side of a pair.
 | `FlightConsole` | both | at the pier's edge, every tick for 5 s: a gull flying into the pier's wall level and rising, toward the player, walking off the pier, dropped into the water; a stock gull's own flight, 15 s | `DXFLIGHT:` | `track.py` |
 | `SlideConsole` | both | every tick for 4 to 7 s: the player on a slope whose texture's `Friction` is 0.5, then 0; gliding to a stop in a zone of ground friction 0.2; on a slope in such a zone | `DXSLIDE:` | `track.py`, at `DXCAP_FPS=60` and `20` |
 | `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators and `RadiusActors`, on `TargetMap` (Liberty Island by default) | `DXVIS:` | |
+| `MoverConsole` | both | where a line meets a mover: a door and a window on `TargetMap` (Liberty Island by default), `FastTrace`, `LineOfSightTo` and `Trace` across each, as the map has them; the door made not to collide, hidden and moved, saved; the window broken, at once, a frame on and after a save | `DXMOVER:` | the two logs diffed |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
 | `StandConsole` | both | where a walking player rests over the floor, and how near a wall it walks into it stops | `DXSTAND:` | |
 | `StairConsole` | both | `Pawn.FindStairRotation` asked straight: the player stood along the pier to its edge and across `SlideConsole`'s slope, facing both ways, from three pitches and three frames | `DXSTAIR:` | the two logs' answers diffed |

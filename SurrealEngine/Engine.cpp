@@ -1183,6 +1183,11 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 
 	LinkActorsToLevel();
 
+	// Deus Ex's movers filed into the level's BSP, as the original's LoadMap
+	// makes its brush tracker for every map but Entry
+	if (LaunchInfo.IsDeusEx() && !StrTools::equals_ignore_case(LevelPackage->GetPackageName().ToString(), packages->GetIniValue("System", "URL", "EntryMap", "Entry")))
+		Level->Collision.FileMovers();
+
 	if (asClient)
 	{
 		// A client keeps the map's static and no-delete actors, their roles
@@ -1412,6 +1417,8 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 	GetLevelObject();
 
 	LinkActorsToLevel();
+	if (LaunchInfo.IsDeusEx())
+		Level->Collision.FileMovers();
 
 	// engine->GameInfo is otherwise only assigned in LoadMap, so without this it keeps
 	// pointing at the previous, now-unloaded level's GameInfo. LevelInfo->Game() is a normal
@@ -1795,6 +1802,10 @@ void Engine::SaveCurrentLevel(int32_t slot) const
 	Level->CleanupDestroyed(true);
 	SetLevelURLForSave();
 	LevelPackage->Save(Level, (folder / levelName).string());
+	// And makes its brush tracker again, as the original's SaveGame does:
+	// the movers filed where they are, a destroyed one's polygons gone
+	if (LaunchInfo.IsDeusEx())
+		Level->Collision.FileMovers();
 }
 
 // The level's own URL as the original's is when saved: the one it was

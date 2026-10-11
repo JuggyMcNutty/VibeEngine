@@ -4,7 +4,8 @@
 // opened from wherever the run starts, the player left where the map starts
 // it; 2 s into the level's time, for each mover a line
 // across its box's thinnest side through the middle, 32 units past it each
-// way: FastTrace's answer and the actor a Trace meets; then each actor that
+// way: FastTrace's answer and the actor a Trace meets, with the mover's
+// collision flags; then each actor that
 // VisibleCollidingActors lists within 1000 units of the player, with and
 // without bIgnoreHidden, and that VisibleActors and RadiusActors list within
 // 1000, one line each; then an exit.
@@ -69,7 +70,8 @@ function Movers(PlayerPawn P)
 		S = C - A;
 		T = C + A;
 		Hit = P.Trace(HitLoc, HitNorm, T, S, true);
-		Log("DXVIS: mover " $ M.Name $ " fast " $ P.FastTrace(T, S) $ " trace " $ Hit);
+		Log("DXVIS: mover " $ M.Name $ " fast " $ P.FastTrace(T, S) $ " trace " $ Hit $ " (" $ M.Class.Name $ ", collides " $ M.bCollideActors
+			$ ", blocks " $ M.bBlockActors $ " and players " $ M.bBlockPlayers $ ", a projectiles' target " $ M.bProjTarget $ ")");
 	}
 }
 

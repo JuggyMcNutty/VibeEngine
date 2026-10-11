@@ -16,6 +16,10 @@ public:
 	UActor* Actor = nullptr;
 	BspNode* Node = nullptr;
 	BspNode* NodeHead = nullptr;
+
+	// Deus Ex: a mover where the level's BSP filed it, the level's hit
+	// (CollisionSystem, filed movers)
+	bool Filed = false;
 };
 
 class CollisionHitList

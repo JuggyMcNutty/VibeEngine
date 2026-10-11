@@ -348,12 +348,14 @@ first and never ticked, an actor waiting for its owner's tick (`ULevel::SortActo
 The actor iterators find a class's actors from an index, not a scan of the level (0013).
 Collision, for every game: a ray trace hands each BSP child only its part of the segment (0025)
 and tests a polygon's plane before its vertex count and surface (0030); sight lines test the
-actors of only the cells they cross (0026); each cell's actors sit in an open-addressed table,
-found by `CollisionSystem::FindCell`, where upstream keeps a `std::unordered_map` of
-`std::list`s (0031); moves and traces go without casts and heap allocations (0032); another
-game's walking pawn steps to the ground with its dry run's trace (0027). Deus Ex's traces, moves
-and physics are `Engine.dll`'s (its backoffs, `FindSpot` and encroachment, moves held off what
-they meet as `ULevel::MoveActor` holds them, landing as `processLanded`; walking, falling,
+actors of only the cells they cross (0026); each cell's actors sit in an open-addressed table
+(`CellTable`), where upstream keeps a `std::unordered_map` of `std::list`s (0031); moves and
+traces go without casts and heap allocations (0032); another game's walking pawn steps to the
+ground with its dry run's trace (0027). Deus Ex's traces, moves and physics are `Engine.dll`'s
+(its backoffs; the movers a line meets where the level's BSP last filed them, filed by
+`CollisionSystem::FileMovers` at a map's load and a save and `RefileMovers` each frame drawn,
+in a `CellTable` of their own; `FindSpot` and encroachment, moves held off what they meet as
+`ULevel::MoveActor` holds them, landing as `processLanded`; walking, falling,
 swimming, flying, a player's ladders, the speed pawns move at and how they turn, as
 `physWalking`, `physFalling`, `physSwimming`, `physFlying`, `calcVelocity` and
 `physicsRotation`, a fall ending its frame where it lands; [implemented, not as the

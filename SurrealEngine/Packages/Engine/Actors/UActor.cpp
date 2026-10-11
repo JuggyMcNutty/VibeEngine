@@ -176,6 +176,9 @@ bool UActor::Destroy()
 
 	RemoveFromBspNode();
 	level->Collision.RemoveFromCollision(this);
+	// A Deus Ex mover stays filed in the BSP (CollisionSystem, filed movers)
+	if (engine->LaunchInfo.IsDeusEx() && Brush())
+		level->Collision.MoverDestroyed(this);
 
 	CallEvent(this, EventName::Destroyed);
 
