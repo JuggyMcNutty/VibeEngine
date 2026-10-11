@@ -47,7 +47,9 @@
 # run's server find packages in <dir> too, each named in its ServerPackages,
 # so that a client, whose paths lack <dir>, downloads them.
 # DXCAP_USERINI=<file> gives a run that User.ini in place of the game's
-# (IniConsole's keys given twice).
+# (IniConsole's keys given twice). DXCAP_CONFIG="<key>=<value> ..." gives
+# the run's console class those keys in its section of the ini, as
+# DXCAP_MISSION_MAP gives TargetMap (LightConsole's Effect, Pick, Aim).
 # DXCAP_MISSION_MAP=<map> names, through the run's ini, the map a run's
 # console travels to, its TargetMap (MissionConsole's, StaticConsole's,
 # WadeConsole's, ScreenConsole's, PerfConsole's): an original run starts at
@@ -313,6 +315,20 @@ open(out, 'w', encoding='latin1', newline='').write(s)
 EOF
 }
 
+# console_keys <console>: the run's keys for its console class's section,
+# [DXCapture.<console>]: DXCAP_MISSION_MAP's TargetMap and DXCAP_CONFIG's
+# "<key>=<value> ...".
+console_keys() {
+    local kv
+    [ -n "${DXCAP_MISSION_MAP:-}${DXCAP_CONFIG:-}" ] || return 0
+    printf '[DXCapture.%s]\n' "$1"
+    [ -z "${DXCAP_MISSION_MAP:-}" ] || printf 'TargetMap=%s\n' "$DXCAP_MISSION_MAP"
+    for kv in ${DXCAP_CONFIG:-}; do
+        [[ "$kv" == ?*=* ]] || die "DXCAP_CONFIG is \"<key>=<value> ...\", not $kv"
+        printf '%s\n' "$kv"
+    done
+}
+
 # user_ini <out>: the game's User.ini, or DXCAP_USERINI's file in its place,
 # with DXCAP_STATS's world stats password for the player.
 user_ini() {
@@ -442,9 +458,7 @@ cmd_original() {
     user_ini "$userini"
     # A console that travels to a named map (the sweep's MissionConsole):
     # the game starts at the menu map, so the map comes through the ini.
-    if [ -n "${DXCAP_MISSION_MAP:-}" ]; then
-        printf '[DXCapture.%s]\nTargetMap=%s\n' "$console" "$DXCAP_MISSION_MAP" >> "$ini"
-    fi
+    console_keys "$console" >> "$ini"
     make_view
     mkdir -p "$dir"
 
@@ -591,9 +605,7 @@ cmd_fork() {
     local dir="$CAP/runs/fork-$name-$(date +%H%M%S)"
     make_ini fork "$console" "$ini"
     user_ini "$userini"
-    if [ -n "${DXCAP_MISSION_MAP:-}" ] && [ -n "$console" ]; then
-        printf '[DXCapture.%s]\nTargetMap=%s\n' "$console" "$DXCAP_MISSION_MAP" >> "$ini"
-    fi
+    [ -z "$console" ] || console_keys "$console" >> "$ini"
     local args=()
     if [ -n "${DXCAP_TIMELINE:-}" ]; then
         mkdir -p "$dir"

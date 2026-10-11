@@ -69,6 +69,7 @@ are gone.
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
+| `DXCAP_CONFIG="<key>=<value> ..."` | those keys in the run's console class's section of the ini, as `DXCAP_MISSION_MAP` gives `TargetMap` (`LightConsole`'s `Effect`, `Pick`, `LightName`, `View`, `Aim`) |
 | `DXCAP_USERINI=<file>` | a run's `User.ini` made from that file, in place of the game's (`IniConsole`'s keys given twice) |
 | `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
@@ -97,6 +98,7 @@ the run. *Either*: one engine on each side of a pair.
 | `CoronaConsole` | both | Liberty Island's lamp coronas; a movable corona light of its own, in the player's BSP leaf and out of it | `DXCORONA:` | |
 | `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` | |
 | `MeshConsole` | both | meshes lit on the pier | `DXMESH:` | |
+| `LightConsole` | both | a light of one effect (`Effect`, the spotlight by default) on `TargetMap`, among those whose axis meets the world, by name (`LightName`) or place in name order (`Pick`): the view `View` units off the spot it lights, facing it, the HUD hidden, four marked shots; `Pick=-1` lists the map's lights with an effect | `DXLIGHT:` | |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` | |
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` | |
 | `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` | |

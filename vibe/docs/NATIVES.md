@@ -198,7 +198,11 @@ budget takes the wider angle ([the view's width](#the-views-width)).
 
 Matches the original's light maps, mesh lighting and the faces a mesh draws ([lighting](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#lighting)):
 `ViewConsole`, `LaserConsole`, `MeshConsole` and `CoronaConsole` come out
-within a level or two of 256 of `D3DDrv`'s frames. Still the fork's own:
+within a level or two of 256 of `D3DDrv`'s frames. A spotlight's cone is the
+original's, its cosine `1 − LightCone ÷ 256`, its value rounded down
+(`LightConsole` on 03_NYC_Airfield's `Spotlight7`: along the cone 0.5 to 7%
+under `D3DDrv`'s, as the rest of that frame is, [brightness](#brightness)).
+Still the fork's own:
 
 - **Light maps**
   - floats, converted on the CPU for the Smart Pro's GPU (engine patches
@@ -214,7 +218,9 @@ within a level or two of 256 of `D3DDrv`'s frames. Still the fork's own:
     lowest bit of its turn count and its strobe turns over each frame, both
     at the frame rate;
   - a flicker drawn at most 25 times a second;
-  - the sample points of a map's texels;
+  - the sample points of a map's texels: a spotlight's pool on a wall sits
+    some half a texel off the original's across it, one side up to 24% over
+    `D3DDrv`'s toward its edge and the other up to 30% under (`LightConsole`);
   - the shapes of the effects whose original is unread (the waves' and the
     rest), on the plain falloff, as the original's spotlight is;
   - `LE_CloudCast`, the plain shape, built once, where the original re-runs

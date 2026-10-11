@@ -384,7 +384,9 @@ void LightEffect::SpotlightEffect(LightEffectArgs* args)
 	vec3 tmp0, tmp1, tmp2;
 	Coords::Rotation(args->light->Rotation()).GetAxes(tmp0, tmp1, tmp2);
 	vec3 spotDir = -tmp0;
-	float lightCosOuterAngle = 1.0f - args->light->LightCone() * (1.0f / 255.0f);
+	// Deus Ex's cone is Render.dll's, its cosine 1 - LightCone / 256
+	// (dx-reverse-info/render-dll.md, light maps); upstream's divides by 255
+	float lightCosOuterAngle = 1.0f - args->light->LightCone() * (args->smoothFalloff ? 1.0f / 256.0f : 1.0f / 255.0f);
 	float lightCosInnerAngle = 1.0f;
 	if (lightCosOuterAngle < 1.0f)
 	{
@@ -407,6 +409,10 @@ void LightEffect::SpotlightEffect(LightEffectArgs* args)
 				float spotAttenuation = 1.0f - std::min((1.0f - cosDir) / (1.0f - lightCosOuterAngle), 1.0f);
 				spotAttenuation = spotAttenuation * spotAttenuation;
 				result[i] = shadowmap[i] * distanceAttenuation * angleAttenuation * spotAttenuation;
+				// Deus Ex's is rounded down (SpatialSpotlight 0x10b04f80), the
+				// plain shape's rounded as its merge rounds
+				if (args->smoothFalloff)
+					result[i] = std::floor(result[i]);
 			}
 			else
 			{
