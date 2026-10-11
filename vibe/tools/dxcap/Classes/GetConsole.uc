@@ -7,8 +7,11 @@
 // value, a value with spaces and a value the player has too, each read
 // back; then the audio device's EffectsChannels, as the Sound menu reads
 // and writes it, set within its range, above it and below it, each read
-// back, and put back; then the main menu opened and shot 2 s later, its
-// pointer drawn, and an exit.
+// back, and put back; then GetPropertyText of a public property, a public
+// array, a private property, a missing one and a const one, and
+// SetPropertyText of a const, a missing and a public property, each read
+// back; then the main menu opened and shot 2 s later, its pointer drawn,
+// and an exit.
 //=============================================================================
 class GetConsole extends Console;
 
@@ -68,6 +71,18 @@ event Tick(float Delta)
 	P.ConsoleCommand("set ini:Engine.Engine.AudioDevice EffectsChannels -5");
 	LogGet(P, "ini:Engine.Engine.AudioDevice EffectsChannels");
 	P.ConsoleCommand("set ini:Engine.Engine.AudioDevice EffectsChannels 16");
+	Log("DXGET: GetPropertyText MouseSensitivity '" $ P.GetPropertyText("MouseSensitivity") $ "'");
+	Log("DXGET: GetPropertyText WeaponPriority '" $ P.GetPropertyText("WeaponPriority") $ "'");
+	if (DeusExPlayer(P) != None && DeusExPlayer(P).rootWindow != None)
+		Log("DXGET: GetPropertyText the root's private hMultiplier '" $ DeusExPlayer(P).rootWindow.GetPropertyText("hMultiplier") $ "'");
+	Log("DXGET: GetPropertyText NoSuchProperty '" $ P.GetPropertyText("NoSuchProperty") $ "'");
+	Log("DXGET: GetPropertyText the const Level '" $ P.GetPropertyText("Level") $ "'");
+	P.SetPropertyText("Level", "None");
+	Log("DXGET: SetPropertyText the const Level None, Level " $ P.Level);
+	P.SetPropertyText("NoSuchProperty", "1");
+	Log("DXGET: SetPropertyText NoSuchProperty 1, still running");
+	P.SetPropertyText("MouseSensitivity", "4.25");
+	Log("DXGET: SetPropertyText MouseSensitivity 4.25, MouseSensitivity " $ P.MouseSensitivity);
 	if (DeusExPlayer(P) != None)
 		DeusExPlayer(P).ShowMainMenu();
 	ShotTime = MenuTime + 2.0;

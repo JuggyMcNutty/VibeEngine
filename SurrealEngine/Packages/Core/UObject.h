@@ -286,6 +286,10 @@ public:
 	const void* GetProperty(UProperty* prop) const;
 	PropertyDataOffset GetPropertyDataOffset(const NameString& name) const;
 	UProperty* GetMemberProperty(const NameString& name) const;
+	// The property's first element as the original's ExportText writes it,
+	// as GET and GetPropertyText give it: a string bare, an object its class
+	// and path name (Texture'Engine.S_Actor') or None.
+	std::string ExportPropertyText(UProperty* prop);
 
 	// The original's path name: its outers' names and its own, dot-joined,
 	// from its package.

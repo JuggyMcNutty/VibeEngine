@@ -915,18 +915,24 @@ void NObject::GetParentClass_U227(UObject* SelfClass, std::optional<UObject*> Ob
 	ReturnValue = clsStruct->BaseStruct;
 }
 
+// Deus Ex's are the original's (Core.dll 0x1013e0b0, 0x1013e320): only a
+// public property is read, as ExportText writes its first element, and only
+// one that is not const is set; a private one, or a name the class has not,
+// reads empty and sets nothing.
 void NObject::GetPropertyText(UObject* Self, const std::string& PropName, std::string& ReturnValue)
 {
+	ReturnValue = "";
 	for (UProperty* prop : Self->PropertyData.Class->Properties)
 	{
 		if (prop->Name == PropName)
 		{
-			void* data = Self->PropertyData.Ptr(prop);
-			ReturnValue = prop->PrintValue(data);
+			if (!engine->packages->IsDeusEx())
+				ReturnValue = prop->PrintValue(Self->PropertyData.Ptr(prop));
+			else if (AllFlags(prop->Flags, ObjectFlags::Public))
+				ReturnValue = Self->ExportPropertyText(prop);
 			return;
 		}
 	}
-	ReturnValue = "";
 }
 
 void NObject::GetStateName(UObject* Self, NameString& ReturnValue)
@@ -1512,7 +1518,20 @@ void NObject::SaveConfig_U227k(UObject* Self, std::optional<bool> bNoWriteINI)
 
 void NObject::SetPropertyText(UObject* Self, const std::string& PropName, const std::string& PropValue)
 {
-	Self->SetPropertyFromString(PropName, PropValue);
+	if (!engine->packages->IsDeusEx())
+	{
+		Self->SetPropertyFromString(PropName, PropValue);
+		return;
+	}
+	for (UProperty* prop : Self->PropertyData.Class->Properties)
+	{
+		if (prop->Name == PropName)
+		{
+			if (AllFlags(prop->Flags, ObjectFlags::Public) && !AnyFlags(prop->PropFlags, PropertyFlags::Const))
+				prop->SetValueFromString(Self->PropertyData.Ptr(prop), PropValue);
+			return;
+		}
+	}
 }
 
 void NObject::Sin(float A, float& ReturnValue)

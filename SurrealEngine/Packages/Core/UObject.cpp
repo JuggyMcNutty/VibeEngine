@@ -4,6 +4,9 @@
 #include "UClass.h"
 #include "Properties/UProperty.h"
 #include "Properties/UBoolProperty.h"
+#include "Properties/UObjectProperty.h"
+#include "Properties/UStringProperty.h"
+#include "Properties/UStrProperty.h"
 #include "Package/Package.h"
 #include "Package/PackageManager.h"
 #include "VM/ScriptCall.h"
@@ -263,6 +266,19 @@ std::string UObject::GetPropertyAsString(const NameString& propName) const
 {
 	UProperty* prop = GetMemberProperty(propName);
 	return prop->PrintValue(PropertyData.Ptr(prop));
+}
+
+std::string UObject::ExportPropertyText(UProperty* prop)
+{
+	void* data = PropertyData.Ptr(prop);
+	if (UObject::TryCast<UStrProperty>(prop) || UObject::TryCast<UStringProperty>(prop))
+		return *static_cast<std::string*>(data);
+	if (UObject::TryCast<UObjectProperty>(prop))
+	{
+		UObject* value = *static_cast<UObject**>(data);
+		return value ? value->Class->Name.ToString() + "'" + value->GetPathName() + "'" : "None";
+	}
+	return prop->PrintValue(data);
 }
 
 void UObject::SetPropertyFromString(const NameString& name, const std::string& value)

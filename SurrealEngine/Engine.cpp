@@ -893,16 +893,7 @@ void Engine::UpdateAudio()
 // victory condition is "Frags", not "\"Frags\"".
 static std::string ExportForGet(UObject* defaults, const NameString& propertyName)
 {
-	UProperty* prop = defaults->GetMemberProperty(propertyName);
-	void* data = defaults->PropertyData.Ptr(prop);
-	if (UObject::TryCast<UStrProperty>(prop) || UObject::TryCast<UStringProperty>(prop))
-		return *static_cast<std::string*>(data);
-	if (UObject::TryCast<UObjectProperty>(prop))
-	{
-		UObject* value = *static_cast<UObject**>(data);
-		return value ? value->Class->Name.ToString() + "'" + value->GetPathName() + "'" : "None";
-	}
-	return prop->PrintValue(data);
+	return defaults->ExportPropertyText(defaults->GetMemberProperty(propertyName));
 }
 
 // The command line past its first `skip` words, less the spaces before it.

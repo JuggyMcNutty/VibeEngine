@@ -541,9 +541,13 @@ into the water; the stock gull's own flight plausible), the pawns' turning
 held within `RotationRate`'s),
 `SetLocation`, the rotators' conversions (`RotatorConsole`,
 702 of them), `Object.Mid` 127 at its edges, its end's clamp known from
-`MidConsole`'s ten probes of both, and `Object.DynamicLoadObject` with a
+`MidConsole`'s ten probes of both, `Object.DynamicLoadObject` with a
 group in the name, its own, another or none, and a class that is not the
-object's own (`DynLoadConsole`). `LevelInfo`'s clock is the original's
+object's own (`DynLoadConsole`), and `Object.GetPropertyText` and
+`SetPropertyText`, through which the server's query answerer reads what a
+remote asks for: a public property's text as `GET` writes it, a const one
+never set, a private one or a name the class has not read empty and set
+nothing (`GetConsole`). `LevelInfo`'s clock is the original's
 ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
 Differs:
 
