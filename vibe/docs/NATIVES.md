@@ -188,10 +188,12 @@ Matches the original ([a pawn's attachments](https://github.com/JuggyMcNutty/dx-
 
 ### Mesh detail
 
-Matches the original's vertex budget ([mesh detail](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-detail)),
-but for the morph: the fork slides linearly over the `LODMorph` zone, and
-the original's exact curve is unread; and on a screen wider than 4:3 the
-budget takes the wider angle ([the view's width](#the-views-width)).
+Matches the original's vertex budget and its morph ([mesh detail](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-detail)):
+`MeshConsole` with `LODBias` 0.004 and 0.0015, Paul Denton cut down to a
+few vertices, has his shape at a correlation of 0.93 and 0.95 to
+`D3DDrv`'s, where the fork's former morph had 0.44 and 0.35. On a screen
+wider than 4:3 the budget takes the wider angle
+([the view's width](#the-views-width)).
 
 ### Lighting
 

@@ -4,10 +4,14 @@
 // way, the HUD hidden: Paul Denton, who stands still, moved 220 units ahead,
 // and a large crate, a barrel and a large box placed around him on the pier;
 // each one's place and look logged, then two shots 2 s apart once they have
-// settled; then exit.
+// settled; then exit. LODBias ([DXCapture.MeshConsole], 0 by default: as the
+// map has it) is given to all four, a mesh's detail falling with it as with
+// distance (dx-reverse-info render-dll.md, mesh detail).
 // Each line is logged with "DXMESH:" in front.
 //=============================================================================
 class MeshConsole extends Console;
+
+var config float LODBias;
 
 var float MapTime;
 var float StepTime;
@@ -23,7 +27,7 @@ function LogLook(string Label, Actor A)
 {
 	Log("DXMESH: " $ Label $ " " $ A.Name $ " at " $ A.Location $ " rotation " $ A.Rotation $ " mesh " $ A.Mesh
 		$ " style " $ int(A.Style) $ " unlit " $ A.bUnlit $ " glow " $ A.ScaleGlow $ " ambient " $ A.AmbientGlow
-		$ " zone " $ A.Region.Zone.Name $ " zone ambient " $ A.Region.Zone.AmbientBrightness);
+		$ " zone " $ A.Region.Zone.Name $ " zone ambient " $ A.Region.Zone.AmbientBrightness $ " LOD bias " $ A.LODBias);
 }
 
 function Actor Place(PlayerPawn P, class<Actor> C, vector Where)
@@ -126,6 +130,10 @@ event Tick(float Delta)
 			Placed[1] = Place(P, class'CrateUnbreakableLarge', P.Location + X * 200 + Y * 130);
 			Placed[2] = Place(P, class'Barrel1', P.Location + X * 170 - Y * 110);
 			Placed[3] = Place(P, class'BoxLarge', P.Location + X * 300 - Y * 40);
+			if (LODBias > 0)
+				for (i = 0; i < 4; i++)
+					if (Placed[i] != None)
+						Placed[i].LODBias = LODBias;
 			// The original's HUD draws over the grabber's mark.
 			if (DeusExRootWindow(DXP.rootWindow) != None)
 				DeusExRootWindow(DXP.rootWindow).ShowHud(False);

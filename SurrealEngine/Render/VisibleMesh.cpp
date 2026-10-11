@@ -981,15 +981,17 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 	// The original's vertex budget, worked out each draw
 	// (dx-reverse-info/render-dll.md, mesh detail): it falls as one over the
 	// actor's depth in the view, sooner for a complex mesh and a wide
-	// view. Faces whose FaceLevel is past the clamped budget go; each kept
-	// corner walks its collapse list until its vertex is within it; and
-	// the top LODMorph fraction of the raw budget slides toward what it
-	// collapses to, texture coordinates with it, so detail fades rather
-	// than pops, beginning before the first vertex goes. A mesh with
-	// LODStrength 0 or without the tables is drawn whole.
+	// view. Faces whose FaceLevel is past the budget go; each kept corner
+	// walks its collapse list until its vertex is within it; and the
+	// vertices past the whole number under (1 - LODMorph) of the unclamped
+	// budget slide toward the vertex they collapse to, texture coordinates
+	// with them, so detail fades rather than pops, beginning before the
+	// first vertex goes -- but for one that collapses to the first vertex.
+	// A mesh with LODStrength 0 or without the tables is drawn whole.
 	bool lodActive = false;
+	bool lodMorph = false;
 	uint32_t lodBudget = 0;
-	float lodMorphStart = 0.0f;
+	int lodMorphStart = 0;
 	float lodMorphScale = 0.0f;
 	if (&faces == &mesh->Faces && mesh->LODStrength > 0.0f && mesh->ModelVerts > 0 &&
 		mesh->FaceLevel.size() >= mesh->Faces.size() &&
@@ -1002,10 +1004,11 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 		float shapeLOD = 0.25f;
 		float factor = 430.0f * resolutionTerm * actor->DrawScale() * actor->LODBias() * mesh->MeshScaleMax /
 			(mesh->LODStrength * shapeLOD * std::tan(radians(frame->Frame.FovAngle) * 0.5f) * depth * complexityTerm);
-		float rawBudget = (float)mesh->ModelVerts * factor;
-		lodBudget = (uint32_t)clamp(rawBudget, (float)std::min((uint32_t)mesh->LODMinVerts, mesh->ModelVerts), (float)mesh->ModelVerts);
-		lodMorphStart = rawBudget * (1.0f - mesh->LODMorph);
-		lodMorphScale = rawBudget > lodMorphStart ? 1.0f / (rawBudget - lodMorphStart) : 0.0f;
+		float budget = std::max((float)mesh->LODMinVerts, (float)mesh->ModelVerts * factor);
+		lodBudget = std::min((uint32_t)budget, mesh->ModelVerts);
+		lodMorphStart = (int)((1.0f - mesh->LODMorph) * budget);
+		lodMorph = mesh->LODMorph > 0.0f && lodMorphStart < (int)lodBudget;
+		lodMorphScale = lodMorph ? 1.0f / (budget * mesh->LODMorph) : 0.0f;
 		lodActive = true;
 	}
 
@@ -1121,19 +1124,25 @@ bool VisibleMesh::DrawLodMeshFaceDX(VisibleFrame* frame, UActor* actor, UActor* 
 			}
 			vertices[i].UV = { wedge.U * uscale, wedge.V * vscale };
 
-			// The top of the budget slides toward what it collapses to
-			float morphT = lodActive ? ((float)wedge.Vertex - lodMorphStart) * lodMorphScale : 0.0f;
-			if (morphT > 0.0f)
+			// The top of the budget slides toward what it collapses to; the
+			// texture coordinates as bytes, rounded down
+			uint16_t morphTarget = lodMorph && (int)wedge.Vertex > lodMorphStart ? mesh->CollapsePointThus[wedge.Vertex] : 0;
+			if (morphTarget != 0)
 			{
-				morphT = std::min(morphT, 1.0f);
-				size_t tbase = (size_t)mesh->CollapsePointThus[wedge.Vertex] + baseVertexOffset;
+				float morphT = std::min((float)((int)wedge.Vertex - lodMorphStart) * lodMorphScale, 1.0f);
+				size_t tbase = (size_t)morphTarget + baseVertexOffset;
 				size_t tindex = mesh->ReMapAnimVerts.empty() ? tbase : (tbase < mesh->ReMapAnimVerts.size() ? mesh->ReMapAnimVerts[tbase] : tbase);
 				vec3 targetPoint, targetNormal;
 				if (animateVertex(tindex, targetPoint, targetNormal))
 					vertices[i].Point = mix(vertices[i].Point, targetPoint, morphT);
-				const MeshWedge& targetWedge = mesh->Wedges[mesh->CollapseWedgeThus[wedgeIndex]];
-				vertices[i].UV.x = mix(wedge.U * uscale, targetWedge.U * uscale, morphT);
-				vertices[i].UV.y = mix(wedge.V * vscale, targetWedge.V * vscale, morphT);
+				uint16_t targetWedgeIndex = mesh->CollapseWedgeThus[wedgeIndex];
+				const MeshWedge& targetWedge = mesh->Wedges[targetWedgeIndex];
+				if (targetWedgeIndex != wedgeIndex && (targetWedge.U != wedge.U || targetWedge.V != wedge.V))
+				{
+					uint8_t u = (uint8_t)(int)(((double)targetWedge.U - (double)wedge.U) * morphT + (double)wedge.U);
+					uint8_t v = (uint8_t)(int)(((double)targetWedge.V - (double)wedge.V) * morphT + (double)wedge.V);
+					vertices[i].UV = { u * uscale, v * vscale };
+				}
 			}
 		}
 
