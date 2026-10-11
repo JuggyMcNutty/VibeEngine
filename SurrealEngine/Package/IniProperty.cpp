@@ -19,9 +19,9 @@ std::string IniPropertyConverter<int>::ToString(const int& value)
 }
 
 template<>
-int IniPropertyConverter<int>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const int& default_value, const int index)
+int IniPropertyConverter<int>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const int& default_value)
 {
-	return Convert::to_int32(iniFile.GetValue(section, keyName, ToString(default_value), index));
+	return Convert::to_int32(iniFile.GetValue(section, keyName, ToString(default_value)));
 }
 
 //====================================================================
@@ -39,9 +39,9 @@ std::string IniPropertyConverter<float>::ToString(const float& value)
 }
 
 template<>
-float IniPropertyConverter<float>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const float& default_value, const int index)
+float IniPropertyConverter<float>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const float& default_value)
 {
-	return Convert::to_float(iniFile.GetValue(section, keyName, ToString(default_value), index));
+	return Convert::to_float(iniFile.GetValue(section, keyName, ToString(default_value)));
 }
 
 //====================================================================
@@ -59,9 +59,9 @@ std::string IniPropertyConverter<uint8_t>::ToString(const uint8_t& value)
 }
 
 template<>
-uint8_t IniPropertyConverter<uint8_t>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const uint8_t& default_value, const int index)
+uint8_t IniPropertyConverter<uint8_t>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const uint8_t& default_value)
 {
-	return Convert::to_uint8(iniFile.GetValue(section, keyName, ToString(default_value), index));
+	return Convert::to_uint8(iniFile.GetValue(section, keyName, ToString(default_value)));
 }
 
 //====================================================================
@@ -85,9 +85,9 @@ std::string IniPropertyConverter<bool>::ToString(const bool& value)
 }
 
 template<>
-bool IniPropertyConverter<bool>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const bool& default_value, const int index)
+bool IniPropertyConverter<bool>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const bool& default_value)
 {
-	return FromString(iniFile.GetValue(section, keyName, ToString(default_value), index));
+	return FromString(iniFile.GetValue(section, keyName, ToString(default_value)));
 }
 
 //====================================================================
@@ -105,9 +105,9 @@ std::string IniPropertyConverter<std::string>::ToString(const std::string& value
 }
 
 template<>
-std::string IniPropertyConverter<std::string>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const std::string& default_value, const int index)
+std::string IniPropertyConverter<std::string>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const std::string& default_value)
 {
-	return iniFile.GetValue(section, keyName, default_value, index);
+	return iniFile.GetValue(section, keyName, default_value);
 }
 
 //====================================================================
@@ -130,9 +130,9 @@ std::string IniPropertyConverter<AudioFrequency>::ToString(const AudioFrequency&
 }
 
 template<>
-AudioFrequency IniPropertyConverter<AudioFrequency>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const AudioFrequency& default_value, const int index)
+AudioFrequency IniPropertyConverter<AudioFrequency>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const AudioFrequency& default_value)
 {
-	return FromString(iniFile.GetValue(section, keyName, ToString(default_value), index));
+	return FromString(iniFile.GetValue(section, keyName, ToString(default_value)));
 }
 
 //====================================================================
@@ -193,7 +193,7 @@ std::string IniPropertyConverter<Color>::ToString(const Color& value)
 }
 
 template<>
-Color IniPropertyConverter<Color>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const Color& default_value, const int index)
+Color IniPropertyConverter<Color>::FromIniFile(const IniFile& iniFile, const NameString& section, const NameString& keyName, const Color& default_value)
 {
-	return FromString(iniFile.GetValue(section, keyName, ToString(default_value), index));
+	return FromString(iniFile.GetValue(section, keyName, ToString(default_value)));
 }

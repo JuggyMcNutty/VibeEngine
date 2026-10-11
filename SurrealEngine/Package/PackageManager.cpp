@@ -998,9 +998,9 @@ Array<NameString> PackageManager::GetIniKeysFromSection(NameString iniName, cons
 	return LoadIniFile(iniName)->GetKeys(sectionName);
 }
 
-std::string PackageManager::GetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, std::string default_value, const int index)
+std::string PackageManager::GetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, std::string default_value)
 {
-	return LoadIniFile(iniName)->GetValue(sectionName, keyName, default_value, index);
+	return LoadIniFile(iniName)->GetValue(sectionName, keyName, default_value);
 }
 
 bool PackageManager::FindIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, std::string& value)
@@ -1013,9 +1013,9 @@ Array<std::string> PackageManager::GetIniValues(NameString iniName, const NameSt
 	return LoadIniFile(iniName)->GetValues(sectionName, keyName, default_values);
 }
 
-std::string PackageManager::GetDefaultIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value, const int index)
+std::string PackageManager::GetDefaultIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value)
 {
-	return defaultIniFile->GetValue(sectionName, keyName, default_value, index);
+	return defaultIniFile->GetValue(sectionName, keyName, default_value);
 }
 
 Array<std::string> PackageManager::GetDefaultIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values)
@@ -1023,12 +1023,12 @@ Array<std::string> PackageManager::GetDefaultIniValues(const NameString& section
 	return defaultIniFile->GetValues(sectionName, keyName, default_values);
 }
 
-std::string PackageManager::GetDefUserIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value, const int index)
+std::string PackageManager::GetDefUserIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value)
 {
 	if (IsKlingonHonorGuard() || launchInfo.ue1Version <= 219)
-		return defaultIniFile->GetValue(sectionName, keyName, default_value, index);
+		return defaultIniFile->GetValue(sectionName, keyName, default_value);
 
-	return defaultUserFile->GetValue(sectionName, keyName, default_value, index);
+	return defaultUserFile->GetValue(sectionName, keyName, default_value);
 }
 
 Array<std::string> PackageManager::GetDefUserIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values)
@@ -1039,9 +1039,9 @@ Array<std::string> PackageManager::GetDefUserIniValues(const NameString& section
 	return defaultUserFile->GetValues(sectionName, keyName, default_values);
 }
 
-void PackageManager::SetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, const std::string& newValue, const int index)
+void PackageManager::SetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, const std::string& newValue)
 {
-	LoadIniFile(iniName)->SetValue(sectionName, keyName, newValue, index);
+	LoadIniFile(iniName)->SetValue(sectionName, keyName, newValue);
 }
 
 void PackageManager::SetIniValues(NameString iniName, const NameString& sectionName, const NameString& keyName, const Array<std::string>& newValues)
@@ -1209,7 +1209,7 @@ Array<IntObject>& PackageManager::GetIntObjects(const NameString& metaclass)
 		return IntObjects[NameString(metaclass.ToString().substr(pos + 1))];
 }
 
-std::string PackageManager::Localize(NameString packageName, const NameString& sectionName, const NameString& keyName, const int index)
+std::string PackageManager::Localize(NameString packageName, const NameString& sectionName, const NameString& keyName)
 {
 	if (packageName == "Engine" && keyName == "ClassCaption")
 	{
@@ -1232,7 +1232,7 @@ std::string PackageManager::Localize(NameString packageName, const NameString& s
 		}
 	}
 
-	std::string value = intFile->GetValue(sectionName, keyName, {}, index);
+	std::string value = intFile->GetValue(sectionName, keyName, {});
 	if (!value.empty() && value.front() == '"' && value.back() == '"')
 	{
 		value.erase(value.begin());

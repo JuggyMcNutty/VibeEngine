@@ -46,6 +46,8 @@
 # checksum (the server logs the login's URL). DXCAP_SERVERPKGS=<dir> has a
 # run's server find packages in <dir> too, each named in its ServerPackages,
 # so that a client, whose paths lack <dir>, downloads them.
+# DXCAP_USERINI=<file> gives a run that User.ini in place of the game's
+# (IniConsole's keys given twice).
 # DXCAP_MISSION_MAP=<map> names, through the run's ini, the map a run's
 # console travels to, its TargetMap (MissionConsole's, StaticConsole's,
 # WadeConsole's, ScreenConsole's, PerfConsole's): an original run starts at
@@ -311,10 +313,12 @@ open(out, 'w', encoding='latin1', newline='').write(s)
 EOF
 }
 
-# user_ini <out>: the game's User.ini, with DXCAP_STATS's world stats
-# password for the player.
+# user_ini <out>: the game's User.ini, or DXCAP_USERINI's file in its place,
+# with DXCAP_STATS's world stats password for the player.
 user_ini() {
-    cp "$GAME/System/User.ini" "$1"
+    local src="${DXCAP_USERINI:-$GAME/System/User.ini}"
+    [ -f "$src" ] || die "no user ini $src"
+    cp "$src" "$1"
     [ -n "${DXCAP_STATS:-}" ] || return 0
     python3 - "$1" "$DXCAP_STATS" <<'EOF'
 import re, sys

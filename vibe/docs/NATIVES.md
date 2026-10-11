@@ -715,9 +715,13 @@ A mod gets the original's loader:
   DXMTL's classes read a `DXMTL.ini` no player without the mod has. A key
   with an empty value is a value, what the original's `ImportText` makes of
   no text: a string empty; a name, object or class None; a float 0; an int,
-  byte or bool its default. Of a key given twice in a section the last
-  counts, but for the player's own settings, which the fork reads again by
-  hand as it spawns a player: there the first.
+  byte or bool its default. Of a key given twice in a section the last is
+  read and the last written, wherever the engine reads the ini: a class's
+  config, the default URL, the settings it reads again by hand -- the
+  player's as it spawns one, the client's, the audio and render devices'
+  (`IniConsole`). Those read by hand, though, take an empty value for none:
+  a float or a string keeps the fork's default where the original's is 0 or
+  empty.
 
 ## Multiplayer
 

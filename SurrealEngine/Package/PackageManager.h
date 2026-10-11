@@ -121,20 +121,20 @@ public:
 	std::unique_ptr<IniFile> GetUserIniFile();
 	std::unique_ptr<IniFile> GetSystemIniFile();
 	Array<NameString> GetIniKeysFromSection(NameString iniName, const NameString& sectionName);
-	std::string GetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, std::string default_value = "", const int index = 0);
+	std::string GetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, std::string default_value = "");
 	bool FindIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, std::string& value);
 	Array<std::string> GetIniValues(NameString iniName, const NameString& sectionName, const NameString& keyName, Array<std::string> default_values = {});
-	std::string GetDefaultIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value = "", const int index = 0);
+	std::string GetDefaultIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value = "");
 	Array<std::string> GetDefaultIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values = {});
-	std::string GetDefUserIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value = "", const int index = 0);
+	std::string GetDefUserIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value = "");
 	Array<std::string> GetDefUserIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values = {});
-	void SetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, const std::string& newValue, const int index = 0);
+	void SetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, const std::string& newValue);
 	void SetIniValues(NameString iniName, const NameString& sectionName, const NameString& keyName, const Array<std::string>& newValues);
 	void SaveAllIniFiles();
 
 	std::string GetVideoFilename(const std::string& name);
 
-	std::string Localize(NameString packageName, const NameString& sectionName, const NameString& keyName, const int index = 0);
+	std::string Localize(NameString packageName, const NameString& sectionName, const NameString& keyName);
 
 	Array<IntObject>& GetIntObjects(const NameString& metaclass);
 	const Array<std::string>& GetMaps() const { return maps; }

@@ -126,13 +126,12 @@ Array<NameString> IniFile::GetKeys(const NameString& sectionName) const
 	return result;
 }
 
-std::string IniFile::GetValue(const NameString& sectionName, const NameString& keyName, const std::string& defaultValue, const int index) const
+std::string IniFile::GetValue(const NameString& sectionName, const NameString& keyName, const std::string& defaultValue) const
 {
-	const IniSection* section = FindSection(sectionName.ToString());
-	if (section == nullptr)
+	std::string value;
+	if (!FindValue(sectionName, keyName, value) || value.empty())
 		return defaultValue;
-
-	return section->GetValue(keyName, defaultValue, index);
+	return value;
 }
 
 bool IniFile::FindValue(const NameString& sectionName, const NameString& keyName, std::string& value) const
@@ -150,10 +149,11 @@ Array<std::string> IniFile::GetValues(const NameString& sectionName, const NameS
 	return section->GetValues(keyName, defaultValues);
 }
 
-void IniFile::SetValue(const NameString& sectionName, const NameString& keyName, const std::string& newValue, const int index)
+void IniFile::SetValue(const NameString& sectionName, const NameString& keyName, const std::string& newValue)
 {
 	IniSection& section = AddUniqueSection(sectionName.ToString());
-	if (section.SetValue(keyName, newValue, index))
+	int last = std::max((int)section.GetValues(keyName).size() - 1, 0);
+	if (section.SetValue(keyName, newValue, last))
 	{
 		isModified = true;
 		hasNewKeys = hasNewKeys || section.HasNewKey();

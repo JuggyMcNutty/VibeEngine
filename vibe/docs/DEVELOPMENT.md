@@ -69,6 +69,7 @@ are gone.
 | `DXCAP_RENDERER=D3D` | the original through `D3DDrv`, the game's own renderer, not `OpenGLDrv` |
 | `DXCAP_PREFIX=<dir>` | another Wine prefix than `build/dxcap/prefix` |
 | `DXCAP_PROTON=<name>` | another Proton build in `~/.local/share/Steam/compatibilitytools.d` than `Proton-CachyOS Latest` |
+| `DXCAP_USERINI=<file>` | a run's `User.ini` made from that file, in place of the game's (`IniConsole`'s keys given twice) |
 | `DXCAP_MISSION_MAP=<map>` | the map a run's console travels to, its `TargetMap` (`MissionConsole`'s, `StaticConsole`'s, `WadeConsole`'s, `ScreenConsole`'s, `PerfConsole`'s): an original run starts at its menu map, a fork run at the map it is given |
 | `DXCAP_SETTINGS=<file>` | a fork run's `Settings.json`, in place of `~/.config/SurrealEngine`'s (through a `HOME` of the run's own; the caches stay the usual ones) |
 | `DXCAP_NOVSYNC=1` | Mesa's GL draws either engine without waiting for the display (`vblank_mode=0`): the original's `OpenGLDrv` asks for no swap interval and gets the driver's vsync |
@@ -120,6 +121,7 @@ the run. *Either*: one engine on each side of a pair.
 | `PortalConsole` | both | a map opened at a portal (`open <map>#<portal>`): the level's URL, where the player lands | `DXPORTAL:` | |
 | `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
 | `GetConsole` | both | the console's `GET` and `SET`, the audio device's `EffectsChannels` among them; the main menu | `DXGET:` | |
+| `IniConsole` | both | with `DXCAP_USERINI`'s `User.ini` giving keys twice: `GetDefaultURL`'s `Name`, `Class` and `Team`, the player's and the class's `MouseSensitivity`, the player's name, the level's URL; `Team` written with `UpdateURL` and read back | `DXINI:` | |
 | `MenuConsole` | both | every menu screen from the menu map, as the player opens it: each window's tree (`WindowDump`: place, size, text, focus, a list's rows, a choice's value and setting) and a shot; message boxes answered No | `DXMENU:` | |
 | `SettingsConsole` | both | every setting of the Controls, Game Options, Display, Sound, Colors and Player Setup screens stepped on through its menu, saved with OK and read back, then stepped back: each choice's value and its setting's `GET` | `DXSET:` | |
 | `DecalConsole` | both | the Display menu's Decals: a bullet hole on the nearest wall, Decals set off, a second one, Decals on again; whether each is drawn (its `LastRenderedTime`) | `DXDECAL:` | |

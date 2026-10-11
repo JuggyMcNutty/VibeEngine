@@ -40,7 +40,10 @@ public:
 	const std::string& GetName() const;
 	const Array<IniKey>& GetKeys() const;
 
-	std::string GetValue(const NameString& keyName, const std::string& defaultValue, const int index = 0) const;
+	// The value on the key's line `index` -- 0 its first, 1 its second, for
+	// a key given more than once (UpdateFile's) -- an empty one, or none,
+	// giving defaultValue.
+	std::string GetValue(const NameString& keyName, const std::string& defaultValue, const int index) const;
 	Array<std::string> GetValues(const NameString& keyName, const Array<std::string>& defaultValues = {}) const;
 	// Whether the key is there, its value in `value` -- an empty one too;
 	// of a key given twice or more, the last value.
@@ -71,15 +74,19 @@ public:
 	void SetPath(const std::string& filename) { ini_file_path = filename; }
 
 	Array<NameString> GetKeys(const NameString& sectionName) const;
-	std::string GetValue(const NameString& sectionName, const NameString& keyName, const std::string& defaultValue = "", const int index = 0) const;
+	// The key's value, of a key given twice or more the last, as the
+	// original's config cache reads it; an empty one, or none, gives
+	// defaultValue.
+	std::string GetValue(const NameString& sectionName, const NameString& keyName, const std::string& defaultValue = "") const;
 	Array<std::string> GetValues(const NameString& sectionName, const NameString& keyName, const Array<std::string>& defaultValues = {}) const;
 	// Whether the key is there, its value in `value`, as the original's
 	// config cache finds it: an empty value is one (GetValue takes it for
-	// missing), and of a key given twice or more the last one counts
-	// (GetValue takes the first).
+	// missing), and of a key given twice or more the last one counts.
 	bool FindValue(const NameString& sectionName, const NameString& keyName, std::string& value) const;
 
-	void SetValue(const NameString& sectionName, const NameString& keyName, const std::string& newValue, const int index = 0);
+	// Sets the value GetValue reads -- of a key given twice or more the last,
+	// as the original's config cache sets it -- or adds the key.
+	void SetValue(const NameString& sectionName, const NameString& keyName, const std::string& newValue);
 	void SetValues(const NameString& sectionName, const NameString& keyName, const Array<std::string>& newValues);
 
 	// Saves values to the ini file the said values are loaded from
