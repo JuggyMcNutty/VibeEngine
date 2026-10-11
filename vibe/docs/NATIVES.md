@@ -169,8 +169,7 @@ Matches the original ([render iterators](https://github.com/JuggyMcNutty/dx-reve
 `LaserConsole` has the beams' red over the floor within 0.5% of `D3DDrv`'s,
 and `ParticleConsole`'s particles rise, fall, grow and fade as the
 original's: its smoke's light row by row 6 to 17% over `D3DDrv`'s, its puffs
-under gravity in the same rows, where the fork's former curves had the
-smoke's foot at a third of it and the puffs falling to the floor. Differs:
+under gravity in the same rows. Differs:
 
 - **Occlusion.** The original occludes each item's sprite through its span
   buffer; the fork clips items to the view (and a portal's spans) before its
@@ -197,8 +196,7 @@ Matches the original ([a pawn's attachments](https://github.com/JuggyMcNutty/dx-
 Matches the original's vertex budget and its morph ([mesh detail](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-detail)):
 `MeshConsole` with `LODBias` 0.004 and 0.0015, Paul Denton cut down to a
 few vertices, has his shape at a correlation of 0.93 and 0.95 to
-`D3DDrv`'s, where the fork's former morph had 0.44 and 0.35. On a screen
-wider than 4:3 the budget takes the wider angle
+`D3DDrv`'s. On a screen wider than 4:3 the budget takes the wider angle
 ([the view's width](#the-views-width)).
 
 ### Lighting
@@ -212,13 +210,12 @@ under `D3DDrv`'s, as the rest of that frame is, [brightness](#brightness)).
 The other effects' shapes are Render.dll's own, on the level's time.
 `LightConsole`, shooting both engines at one moment of it (`ShotAt`), has
 06_HongKong_WanChai_Canal's disco `Light343` at 1.00 of `D3DDrv`'s frame,
-where the fork's former shape had 0.74, 02_NYC_BatteryPark's cylinder
-`Light81` at a correlation of 0.98 to the former's 0.90, and
-09_NYC_ShipBelow's slow wave `Light16` at 1.01 of its brightness to the
-former's 0.97. The rest are the reading's alone: the stock views of the
-searchlight, non-incidence and the rotor come out alike with the former
-shapes and these, and no stock light shows a fast wave (99_Endgame2's one is
-dark), shock, shell or interference. Still the fork's own:
+02_NYC_BatteryPark's cylinder `Light81` at a correlation of 0.98 to it, and
+09_NYC_ShipBelow's slow wave `Light16` at 1.01 of its brightness. The rest
+are the reading's alone: the stock views of the searchlight, non-incidence
+and the rotor come out the same under other shapes too, and no stock light
+shows a fast wave (99_Endgame2's one is dark), shock, shell or interference.
+Still the fork's own:
 
 - **Light maps**
   - floats, converted on the CPU for the Smart Pro's GPU (engine patches
@@ -268,8 +265,8 @@ fork shot meets the original's frames:
   `LaserConsole`'s corridor within 0.9%.
 - 06_HongKong_WanChai_Underworld's floor under its two disco lights
   (`LightConsole` on `Light2` and `Light21`) is 0.35 to 0.57 of `D3DDrv`'s
-  frames, the lights reaching it all steady, the fork's former light shapes
-  alike; why is unread.
+  frames, the lights reaching it all steady, and the same under other light
+  shapes; why is unread.
 
 ### The screen flash
 
@@ -403,9 +400,9 @@ but for what is listed below. The same, read from the original's code:
 - **The scale** is the original's, its root's one multiplier: the largest
   whole multiple of 640x480 the screen holds, at least 1
   ([the root window](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#the-root-window)).
-  `SizeConsole` at 1600x900 and 1276x960 (1, where the screen's height over
-  600 gave 2), `MenuConsole` and `ScreenConsole` at 1600x900: the windows'
-  places and sizes alike.
+  `SizeConsole` at 1600x900 and 1276x960 (a scale of 1 at both),
+  `MenuConsole` and `ScreenConsole` at 1600x900: the windows' places and
+  sizes alike.
 - **The frob highlight's box** (`ConvertVectorToCoordinates`) is projected by
   the main scene's view into the root window's coordinates: `FrobConsole`'s
   boxes round two decorations, the crosshair on their middle and turned 5
