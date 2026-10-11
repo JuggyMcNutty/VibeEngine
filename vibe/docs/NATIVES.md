@@ -208,9 +208,13 @@ few vertices, has his shape at a correlation of 0.93 and 0.95 to
 Matches the original's light maps, mesh lighting and the faces a mesh draws ([lighting](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#lighting)):
 `ViewConsole`, `LaserConsole`, `MeshConsole` and `CoronaConsole` come out
 within a level or two of 256 of `D3DDrv`'s frames. A spotlight's cone is the
-original's, its cosine `1 − LightCone ÷ 256`, its value rounded down
-(`LightConsole` on 03_NYC_Airfield's `Spotlight7`: along the cone 0.5 to 7%
-under `D3DDrv`'s, as the rest of that frame is, [brightness](#brightness)).
+original's, its cosine `1 − LightCone ÷ 256`, its value rounded down, and a
+light or fog map lights texel i at its centre, `Pan.X + i × UScale` along
+U, where both engines draw it
+([a texel's place](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps)):
+`LightConsole` has 03_NYC_Airfield's `Spotlight7` and Liberty Island's
+`Spotlight0` within 0.90 to 1.05 of `D3DDrv`'s frames across their pools,
+in blocks of 16 pixels ([brightness](#brightness)).
 The other effects' shapes are Render.dll's own, on the level's time.
 `LightConsole`, shooting both engines at one moment of it (`ShotAt`), has
 06_HongKong_WanChai_Canal's disco `Light343` at 1.00 of `D3DDrv`'s frame,
@@ -235,14 +239,6 @@ Still the fork's own:
     lowest bit of its turn count and its strobe turns over each frame, both
     at the frame rate;
   - a flicker drawn at most 25 times a second;
-  - the sample points of a map's texels: the builders
-    (`LightmapBuilder::CalcRowLines`, and the fog maps' in `FogmapBuilder`)
-    light texel i at `Pan.X + (i − ½) × UScale` along U. The original lights
-    it at `Pan.X + i × UScale`, where both engines draw its centre
-    ([a texel's place](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps));
-    along V they agree. So a spotlight's pool on a wall sits half a texel
-    off the original's across it, one side up to 24% over `D3DDrv`'s toward
-    its edge and the other up to 30% under (`LightConsole`);
   - `LE_CloudCast`, the plain shape, built once, where the original re-runs
     it every frame (its table counts the shape as changing): the same light.
 - **Meshes**

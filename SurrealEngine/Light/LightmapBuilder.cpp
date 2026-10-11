@@ -528,10 +528,16 @@ void LightmapBuilder::CalcRowLines(Coords MapCoords, const LightMapIndex& lminde
 	float rightDY = uv[2].y - uv[1].y;
 	float rightStep = rightDX / rightDY;
 
+	// Deus Ex lights texel i at its centre, Pan.X + i * UScale along U, as
+	// its Render.dll does and where the devices draw it (TexelLocation takes
+	// i + 0.5 in the row's texel coordinate); other games keep upstream's,
+	// half a texel short of it. Along V both take the row's centre.
+	float uShift = engine->LaunchInfo.IsDeusEx() ? 0.0f : 0.5f;
+
 	for (int y = 0; y < height; y++)
 	{
-		float x0 = uv[0].x + leftStep * (y + 0.5f - uv[0].y) + 0.5f;
-		float x1 = uv[1].x + rightStep * (y + 0.5f - uv[1].y) + 0.5f;
+		float x0 = uv[0].x + leftStep * (y + 0.5f - uv[0].y) + uShift;
+		float x1 = uv[1].x + rightStep * (y + 0.5f - uv[1].y) + uShift;
 		float t0 = (y + 0.5f - uv[0].y) / leftDY;
 		float t1 = (y + 0.5f - uv[1].y) / rightDY;
 		vec3 p0 = mix(p[0], p[2], t0);
