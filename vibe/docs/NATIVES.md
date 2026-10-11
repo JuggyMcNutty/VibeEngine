@@ -39,7 +39,11 @@ level returned to keeps its game (`ReturnConsole`). A level's start
 ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick))
 runs each pass over its actors as the list grows, so a map's carcass holds
 its items hidden in `Idle2` and its search hands them over whole
-(`CarcassConsole`); every level loaded, a save's or one returned to, then
+(`CarcassConsole`), and after `BeginPlay` finds every actor's zone where it
+is, whatever region the map saved: DXMP_Silo's items, crates and robots
+start in their zones, where the map's regions put them in none and their
+first fall took them out of the world (`VisibleConsole` there); every level
+loaded, a save's or one returned to, then
 calls `PostPostBeginPlay` (`LoadConsole`, `ReturnConsole`). A save's load
 logs the saved player in as the original's does, with `?loadgame`: the
 game's `Login` keeps it as saved, and its `TravelPostAccept` spawns the

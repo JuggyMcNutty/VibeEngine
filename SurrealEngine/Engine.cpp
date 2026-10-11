@@ -1292,6 +1292,15 @@ void Engine::BeginPlay(const UnrealURL& url)
 		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PreBeginPlay); }
 		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::BeginPlay); }
 
+		// Then each actor's zone where it is, unannounced, as the original's
+		// level start finds it, whatever the map saved: DXMP_Silo's saved
+		// regions put its items, crates and robots in none, which their first
+		// fall took for leaving the world
+		if (LaunchInfo.IsDeusEx())
+		{
+			for (size_t i = 0; i < Level->Actors.size(); i++) { UActor* actor = Level->Actors[i]; if (actor && !actor->bDeleteMe()) actor->Region() = actor->FindRegion(); }
+		}
+
 		// The original's level start has every actor 10 s undrawn, whatever
 		// the map file kept, before PostBeginPlay: a ScriptedPawn out of
 		// sight starts from its StartUp state's code, not its Tick -- one

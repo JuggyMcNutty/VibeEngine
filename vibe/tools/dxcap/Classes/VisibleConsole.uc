@@ -1,7 +1,8 @@
 //=============================================================================
 // VisibleConsole: what FastTrace and the visible-actor iterators give --
-// Liberty Island opened from wherever the run starts, the player left where
-// the map starts it; 2 s into the level's time, for each mover a line
+// TargetMap ([DXCapture.VisibleConsole], 01_NYC_UNATCOIsland by default)
+// opened from wherever the run starts, the player left where the map starts
+// it; 2 s into the level's time, for each mover a line
 // across its box's thinnest side through the middle, 32 units past it each
 // way: FastTrace's answer and the actor a Trace meets; then each actor that
 // VisibleCollidingActors lists within 1000 units of the player, with and
@@ -10,9 +11,18 @@
 //=============================================================================
 class VisibleConsole extends Console;
 
+var config string TargetMap;
+
 var float MapTime;
 var int Step;
 var string CurrentMap;
+
+function string Target()
+{
+	if (TargetMap == "")
+		return "01_NYC_UNATCOIsland";
+	return TargetMap;
+}
 
 function string MapOf(PlayerPawn P)
 {
@@ -91,17 +101,17 @@ event Tick(float Delta)
 	MapTime += Delta;
 	P.ReducedDamageType = 'All';
 
-	if (Step == 0 && !(CurrentMap ~= "01_NYC_UNATCOIsland"))
+	if (Step == 0 && !(CurrentMap ~= Target()))
 	{
 		if (MapTime > 3.0)
 		{
-			Log("DXVIS: opening 01_NYC_UNATCOIsland");
-			P.ConsoleCommand("open 01_NYC_UNATCOIsland");
+			Log("DXVIS: opening " $ Target());
+			P.ConsoleCommand("open " $ Target());
 			Step = -1;
 		}
 		return;
 	}
-	if (Step == -1 && (CurrentMap ~= "01_NYC_UNATCOIsland"))
+	if (Step == -1 && (CurrentMap ~= Target()))
 		Step = 0;
 
 	if (Step == 0 && P.Level.TimeSeconds > 2.0)
