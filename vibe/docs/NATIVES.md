@@ -525,7 +525,9 @@ Every other native the scripted runs compare matches the original
 ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives),
 [`Engine.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md)):
 the traces (`TraceConsole`, `VisibleConsole`; `TraceActors`, the player's
-frob target, through decorations), sight (`SightConsole`), the reach tests
+frob target, through decorations), `RadiusActors`, which reaches each
+actor's own collision radius further (`VisibleConsole` on Liberty Island
+and DXMP_Silo), sight (`SightConsole`), the reach tests
 (`ReachConsole`), the look up and down stairs (`StairConsole`: every answer
 of `Pawn.FindStairRotation` alike on Liberty Island's pier and
 `SlideConsole`'s slope,

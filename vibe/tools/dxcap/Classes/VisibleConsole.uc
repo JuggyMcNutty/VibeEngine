@@ -6,8 +6,8 @@
 // across its box's thinnest side through the middle, 32 units past it each
 // way: FastTrace's answer and the actor a Trace meets; then each actor that
 // VisibleCollidingActors lists within 1000 units of the player, with and
-// without bIgnoreHidden, and that VisibleActors lists within 1000, one line
-// each; then an exit.
+// without bIgnoreHidden, and that VisibleActors and RadiusActors list within
+// 1000, one line each; then an exit.
 //=============================================================================
 class VisibleConsole extends Console;
 
@@ -83,6 +83,8 @@ function Iterators(PlayerPawn P)
 		Log("DXVIS: colliding unhidden " $ A.Name);
 	foreach P.VisibleActors(class'Actor', A, 1000, P.Location)
 		Log("DXVIS: visible " $ A.Name);
+	foreach P.RadiusActors(class'Actor', A, 1000, P.Location)
+		Log("DXVIS: radius " $ A.Name);
 }
 
 event Tick(float Delta)

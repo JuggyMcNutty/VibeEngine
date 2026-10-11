@@ -114,7 +114,7 @@ the run. *Either*: one engine on each side of a pair.
 | `WadeConsole` | both | at the ledge over water nearest the player's start, its blockers made not to collide, every tick for 6 s: a troop walking off it -- into the water, with `bCanSwim` off, with `bCanJump` off, across the water; with `TargetMap`, a troop walking down a shore into water, of the stock maps 14_OceanLab_Lab's alone | `DXWADE:` | `track.py <original run> <fork run>` |
 | `FlightConsole` | both | at the pier's edge, every tick for 5 s: a gull flying into the pier's wall level and rising, toward the player, walking off the pier, dropped into the water; a stock gull's own flight, 15 s | `DXFLIGHT:` | `track.py` |
 | `SlideConsole` | both | every tick for 4 to 7 s: the player on a slope whose texture's `Friction` is 0.5, then 0; gliding to a stop in a zone of ground friction 0.2; on a slope in such a zone | `DXSLIDE:` | `track.py`, at `DXCAP_FPS=60` and `20` |
-| `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators, on `TargetMap` (Liberty Island by default) | `DXVIS:` | |
+| `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators and `RadiusActors`, on `TargetMap` (Liberty Island by default) | `DXVIS:` | |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
 | `StandConsole` | both | where a walking player rests over the floor, and how near a wall it walks into it stops | `DXSTAND:` | |
 | `StairConsole` | both | `Pawn.FindStairRotation` asked straight: the player stood along the pier to its edge and across `SlideConsole`'s slope, facing both ways, from three pitches and three frames | `DXSTAIR:` | the two logs' answers diffed |

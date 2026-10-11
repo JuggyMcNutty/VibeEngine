@@ -332,11 +332,17 @@ bool IntDescIterator::Next()
 
 RadiusActorsIterator::RadiusActorsIterator(UActor* Caller, UObject* BaseClass, UObject** Actor, float Radius, vec3 Location) : BaseClass(BaseClass), Actor(Actor), Radius(Radius), Location(Location)
 {
+	// Deus Ex's reaches each actor's own collision radius further, as the
+	// original's does (Engine.dll 0x103e4fa0, dx-reverse-info engine-dll.md,
+	// traces): its location strictly within Radius + CollisionRadius
+	bool deusEx = engine->LaunchInfo.IsDeusEx();
 	const Array<UActor*>& actors = engine->Level->Actors;
 	for (int slot : ActorSlotsByName(engine->Level, BaseClass->Name))
 	{
 		UActor* levelActor = actors[slot];
-		if (length(levelActor->Location() - Location) <= Radius)
+		vec3 d = levelActor->Location() - Location;
+		bool within = deusEx ? dot(d, d) < (Radius + levelActor->CollisionRadius()) * (Radius + levelActor->CollisionRadius()) : length(d) <= Radius;
+		if (within)
 			RadiusActors.push_back(levelActor);
 	}
 
