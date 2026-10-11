@@ -18,35 +18,41 @@ void UParticleIterator::UpdateParticles(float deltaTime)
 		if (!p.bActive)
 			continue;
 
-		// Ages, and one whose life has run out is deleted
-		p.LifeSpan -= deltaTime;
-		if (p.LifeSpan <= 0.0f)
+		// Ages while its life is above 0 -- one whose life is 0 lives on --
+		// and one whose life runs out is deleted
+		if (p.LifeSpan > 0.0f)
+		{
+			p.LifeSpan -= deltaTime;
+			if (p.LifeSpan <= 0.0f)
+				p.LifeSpan = -1.0f;
+		}
+		if (p.LifeSpan < 0.0f)
 		{
 			DeleteParticle(i);
 			continue;
 		}
 		anyAlive = true;
+		float age = fullLife - p.LifeSpan;
 
 		// Drifts: the initial horizontal velocity plus a new random offset
-		// each frame, from -3 to +2
+		// each update, from -3 to +2
 		p.Velocity.x = p.InitVel.x + FRandRange(-3.0f, 2.0f);
 		p.Velocity.y = p.InitVel.y + FRandRange(-3.0f, 2.0f);
 
-		// Rises or falls: under zone gravity when the generator asks for
-		// it, else faster with age at the generator's rise rate
+		// Rises or falls: with the generator's gravity a fifth of the
+		// zone's; else the initial Z velocity plus the age at the rise rate,
+		// give or take a tenth
 		if (bOwnerUsesGravity())
-			p.Velocity.z += OwnerZoneGravity() * deltaTime;
+			p.Velocity.z += deltaTime * OwnerZoneGravity() * 0.2f;
 		else
-			p.Velocity.z += OwnerRiseRate() * deltaTime;
+			p.Velocity.z = p.InitVel.z + FRandRange(0.9f, 1.1f) * (age * OwnerRiseRate());
 
-		float lived = fullLife > 0.0f ? clamp(1.0f - p.LifeSpan / fullLife, 0.0f, 1.0f) : 1.0f;
-
-		// Grows with age, from 0.01 to 3 times the draw scale, when asked
-		if (bOwnerScales())
-			p.DrawScale = OwnerDrawScale() * (0.01f + (3.0f - 0.01f) * lived);
+		// Grows with age, (age + 1) times the generator's draw scale held to
+		// 0.01 to 3, when asked
+		p.DrawScale = bOwnerScales() ? clamp((age + 1.0f) * OwnerDrawScale(), 0.01f, 3.0f) : OwnerDrawScale();
 
 		// Fades with its remaining life, when asked
-		p.ScaleGlow = bOwnerFades() ? 1.0f - lived : 1.0f;
+		p.ScaleGlow = bOwnerFades() && fullLife != 0.0f ? p.LifeSpan / fullLife : 1.0f;
 
 		// Moves by its velocity
 		p.Location += p.Velocity * deltaTime;

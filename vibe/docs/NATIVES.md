@@ -160,18 +160,17 @@ distance.
 
 Matches the original ([render iterators](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-iterators),
 [particles and lasers](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#particles-and-lasers)):
-`LaserConsole` has the beams' red over the floor within 0.5% of `D3DDrv`'s.
-Differs:
+`LaserConsole` has the beams' red over the floor within 0.5% of `D3DDrv`'s,
+and `ParticleConsole`'s particles rise, fall, grow and fade as the
+original's: its smoke's light row by row 6 to 17% over `D3DDrv`'s, its puffs
+under gravity in the same rows, where the fork's former curves had the
+smoke's foot at a third of it and the puffs falling to the floor. Differs:
 
 - **Occlusion.** The original occludes each item's sprite through its span
   buffer; the fork clips items to the view (and a portal's spans) before its
   BSP walk and leaves the rest to the depth buffer. The look is the same; a
   hidden item's cost is paid. Whether the proxy counts as drawn is the
   original's.
-- **The particle curves** keep the documented shapes: a drift of −3 to +2 a
-  frame, growth from 0.01 to 3 times the draw scale over the life, the fade
-  with the remaining life, the rise as acceleration at the rise rate. The
-  original's exact curves are unread.
 
 ### Coronas
 

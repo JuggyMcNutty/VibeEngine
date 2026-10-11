@@ -97,6 +97,7 @@ the run. *Either*: one engine on each side of a pair.
 | `ViewConsole` | both | the player's weapon in view; the level's light | `DXVIEW:` | |
 | `CoronaConsole` | both | Liberty Island's lamp coronas; a movable corona light of its own, in the player's BSP leaf and out of it | `DXCORONA:` | |
 | `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` | |
+| `ParticleConsole` | both | particles on the pier: smoke rising, growing and fading, and puffs thrown up under gravity; the scene alone, then six marked shots | `DXPART:` | |
 | `MeshConsole` | both | meshes lit on the pier | `DXMESH:` | |
 | `LightConsole` | both | a light of one effect (`Effect`, the spotlight by default) on `TargetMap`, among those whose axis meets the world, by name (`LightName`) or place in name order (`Pick`): the view `View` units off the spot it lights, facing it, the HUD hidden, conversations stopped, the lights reaching the spot logged, four marked shots, with `ShotAt` at that moment of the level's time, its clock slowed; `Pick=-1` lists the map's lights with an effect | `DXLIGHT:` | |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` | |
