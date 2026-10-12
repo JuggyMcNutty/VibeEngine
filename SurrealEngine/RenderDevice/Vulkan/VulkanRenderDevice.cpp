@@ -408,8 +408,10 @@ void VulkanRenderDevice::DrawComplexSurface(SceneNode* Frame, SurfaceInfo& Surfa
 	float MacroVPan = macrotex ? VDot + Surface.MacroTexture->Pan.y : 0.0f;
 	float MacroUMult = macrotex ? GetUMult(*Surface.MacroTexture) : 0.0f;
 	float MacroVMult = macrotex ? GetVMult(*Surface.MacroTexture) : 0.0f;
-	float DetailUPan = UPan;
-	float DetailVPan = VPan;
+	// The detail texture by its own pan, as the GL device's: Deus Ex's is
+	// not panned with the surface (VisibleNode)
+	float DetailUPan = detailtex ? UDot + Surface.DetailTexture->Pan.x : 0.0f;
+	float DetailVPan = detailtex ? VDot + Surface.DetailTexture->Pan.y : 0.0f;
 	float DetailUMult = detailtex ? GetUMult(*Surface.DetailTexture) : 0.0f;
 	float DetailVMult = detailtex ? GetVMult(*Surface.DetailTexture) : 0.0f;
 

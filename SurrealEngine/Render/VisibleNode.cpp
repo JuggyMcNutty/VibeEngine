@@ -43,20 +43,24 @@ void VisibleNode::Draw(VisibleFrame* frame)
 	engine->render->UpdateTexture(tex);
 	engine->render->UpdateTextureInfo(texture, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
 
-	// Drawn only while the render device's DetailTextures is on, as the
-	// original's (d3ddrv-dll.md, detail textures).
+	// Deus Ex's detail and macro textures lie as the original's lock leaves
+	// them, at their own scale and not panned with the surface
+	// (dx-reverse-info render-dll.md, a frame); other games' pan with it.
+	// The detail texture is drawn only while the render device's
+	// DetailTextures is on, as the original's (d3ddrv-dll.md, detail
+	// textures).
 	TextureInfo detailtex;
 	bool detail = engine->renderdev->DetailTextures && surface.Material && surface.Material->DetailTexture();
 	if (detail)
 	{
 		tex = surface.Material->DetailTexture()->GetAnimTexture();
 		engine->render->UpdateTexture(tex);
-		engine->render->UpdateTextureInfo(detailtex, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
+		if (engine->LaunchInfo.IsDeusEx())
+			engine->render->UpdateTextureInfo(detailtex, tex);
+		else
+			engine->render->UpdateTextureInfo(detailtex, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
 	}
 
-	// Deus Ex's macro texture lies as the original's lock leaves it, at its
-	// own scale and not panned with the surface (dx-reverse-info
-	// render-dll.md, a frame); other games' pans with it.
 	TextureInfo macrotex;
 	if (surface.Material && surface.Material->MacroTexture())
 	{

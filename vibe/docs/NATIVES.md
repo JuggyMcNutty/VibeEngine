@@ -542,10 +542,12 @@ and the ones on the walls are not drawn
   its size; full screen, the screen's size alone, the fork's full screen
   being a borderless window that size.
 - **Detail Textures** draws or leaves the world's detail textures in one
-  pass in the shaders, not `D3DDrv`'s three; the original's draws none
-  either way, run here under Wine, `D3DDrv` and `OpenGLDrv` alike: its
-  frames are the same with the setting on and off, though each condition
-  read holds but one, the client it reads through a static pointer
+  pass in the shaders, not `D3DDrv`'s three, each placed by its own pan, not
+  panned with its surface, as the original's reads: no frame shows it. The
+  original draws none here either way, `D3DDrv` and `OpenGLDrv` alike:
+  `D3DDrv` turns them off when Direct3D does not offer `BLENDDIFFUSEALPHA`,
+  which Wine's Direct3D 7 does not, and set on in the running game, its
+  pass changes nothing
   ([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures);
   `MeshConsole` with `NoDetail`); what that does to the pier's picture is
   under [brightness](#brightness).
