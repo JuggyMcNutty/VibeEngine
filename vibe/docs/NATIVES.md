@@ -119,15 +119,15 @@ Matches the original
 [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)):
 `MoveConsole` (`move.py`) has all 52 of Liberty Island's pawns move within
 15% (or 200 units) of the original's distance. Each that walks to a spot and
-stops there ends where the original's does, within a unit, though 25 to 110
-units short of its distance: the console counts from its first line, 2 s in
-by its own clock, which in the original's run takes in the island's first
-frame, the load's, some 1.5 s of which the actors get 0.4 s
-([a long frame](#small)). By then the fork's pawns are further along their
-first walk. `ReachConsole`'s 144 answers, twelve pawns each asked from its
-home spot, are the original's to the unit. A dead robot frozen in `Dying`
-for good is the original's own behaviour, and the rest of a death is alike
-too (`DeathConsole`).
+stops there ends where the original's does, within a unit and a half, though
+25 to 110 units short of its distance: the console counts from its first
+line, 2 s in by its own clock, which takes in the island's first frame, the
+load's -- some 1.5 s in the original's run, of which the actors get 0.4 s,
+and less in the fork's, whose load is shorter ([a long frame](#small)). By
+then the fork's pawns are further along their first walk. `ReachConsole`'s
+144 answers, twelve pawns each asked from its home spot, are the original's
+to the unit. A dead robot frozen in `Dying` for good is the original's own
+behaviour, and the rest of a death is alike too (`DeathConsole`).
 
 ## Out of sight
 
@@ -814,18 +814,16 @@ engine's own objects are not deleted (the log says so).
 
 ## Small
 
-- **A long frame**: the actors' step is at most 0.4 s, as the original's
-  ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)).
-  The frame's time on the level's clock is held to 1 s; the original's first
-  frame on a level it travels to takes in the whole load, some 1.5 s on
-  Liberty Island, of which its actors get 0.4 (`AIConsole`), where the
-  fork's is a frame of its own, a tenth of a second or so. So the player's
-  fall at the island's start lands elsewhere: the original's first step, 0.1
-  s, a move of 4.75 units down, meets the floor too near to go anywhere
-  ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)),
-  where the fork's shorter step lands it lower, and the walk lifts it twice,
-  not once: the fork's player stands 4.80 over the floor to the original's
-  4.75 (`StandConsole`; a line straight down meets the floor half a unit
+- **A long frame** is the original's
+  ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)):
+  the level's clock takes all of it, the actors and the player's input at
+  most 0.4 s, so a load or a hitch moves nothing further in one step
+  (`FrameConsole`: a frame held 2 s, the level's time 2 s on and an actor's
+  next tick 0.4 s in both). The first frame on a level travelled to takes in
+  its load: some 1.5 s on Liberty Island in the original's runs, of which
+  its actors get 0.4 (`AIConsole`), and less in the fork's, whose load is
+  shorter. The player then stands where the original's does, 4.75 over the
+  floor (`StandConsole`; a line straight down meets the floor half a unit
   higher). Not carried: the original's floor of 5 ms, the step of every tick
   past 200 frames a second, which would run the game fast there. The level's
   `TimeDilation` is held to 0.0025 to 25, where the original's is not held

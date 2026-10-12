@@ -314,8 +314,11 @@ void Engine::Run()
 		LevelInfo->Second() = timedesc->tm_sec;
 		LevelInfo->Millisecond() = milliseconds;
 
+		// The player's input takes at most 0.4 s of a long frame, as the
+		// original's level tick holds it (dx-reverse-info engine-dll.md, a
+		// level's tick).
 		if (!dedicated)
-			UpdateInput(realTimeElapsed);
+			UpdateInput(LaunchInfo.IsDeusEx() ? std::min(realTimeElapsed, 0.4f) : realTimeElapsed);
 
 		SetPause(!LevelInfo->Pauser().empty());
 
@@ -2339,7 +2342,14 @@ float Engine::CalcTimeElapsed()
 
 	uint64_t deltaTime = currentTime - lastTime;
 	lastTime = currentTime;
-	return clamp(deltaTime / 1'000'000.0f, 0.0f, 1.0f);
+
+	// Deus Ex's frame is its whole time, a map's load included, as the
+	// original's main loop hands it on (DeusEx.exe MainLoop 0x10914630): the
+	// level's clock takes all of it, the actors and the player's input at
+	// most 0.4 s of it (ULevel::Tick, Engine::UpdateInput). Other games' is
+	// held to 1 s.
+	float seconds = deltaTime / 1'000'000.0f;
+	return LaunchInfo.IsDeusEx() ? seconds : clamp(seconds, 0.0f, 1.0f);
 }
 
 std::string Engine::ParseClassName(std::string className)

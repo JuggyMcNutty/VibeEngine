@@ -150,6 +150,7 @@ side where no script reads the run. *Either*: one engine on each side of a pair.
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` |  |
 | `RotatorConsole` | both | the rotator and vector conversions | `DXROT:` |  |
 | `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` |  |
+| `FrameConsole` | both | a frame held 2 s: the level's time over it, an actor's next tick | `DXFRAME:` | the two logs diffed |
 | `ModConsole` | both | the natives only a mod calls: the timing natives, a flag from a string, `ExtString`'s parts, `ResetConfig` | `DXMOD:` | the two logs diffed |
 | `DynLoadConsole` | both | `Object.DynamicLoadObject` by each form of name | `DXDYNLOAD:` |  |
 | `GarbageConsole` | both | 128 actors destroyed, one a tick | `DXGARBAGE:` |  |
@@ -172,6 +173,10 @@ side where no script reads the run. *Either*: one engine on each side of a pair.
   the quick save there the original never finishes its run.
 - In `VisibleConsole`'s logs the original numbers the player and its shadow one higher: its menu
   map made the first.
+- **A fork run started on its map has no load frame there.** The original's always travels from
+  its menu map, its first frame on the map taking in the load
+  ([a long frame](NATIVES.md#small)): a fork run compared over a map's first seconds starts at
+  `DX.dx` and travels as the original's does (`StandConsole`, `MoveConsole`).
 - A sweep runs `MissionConsole` over every mission map; no driver for it is committed.
 
 ### Timelines
