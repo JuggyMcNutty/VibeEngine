@@ -15,66 +15,58 @@ void UDXExtString::Load(ObjectStream* stream)
 }
 
 
+// The natives are the original's (Extension.dll; extension-dll.md, small):
+// the text in parts of 239 characters, GetFirstTextPart giving the first and
+// GetNextTextPart each next one, and GetTextPart at most 240 from a place.
+
 void UDXExtString::AppendText(const std::string& newText)
 {
-	LogMessage("Usage check: ExtString.AppendText");
 	Text() += newText;
 }
 
 int UDXExtString::GetFirstTextPart(std::string& outText)
 {
-	if (!Text().empty())
-	{
-		size_t len = Text().size();
-		size_t N = std::min(len - 1, (size_t)239);
-		outText = Text().substr(0, N);
-	}
-	else
-	{
-		outText = {};
-	}
-	SpeechPage() = 0; // seems it does that
-	return 0;
+	int count = std::min((int)Text().size(), 239);
+	outText = Text().substr(0, count);
+	SpeechPage() = 0;
+	return count;
 }
 
+// The next part, or 0 once none is left, the argument left as it was.
 int UDXExtString::GetNextTextPart(std::string& outText)
 {
-	/*
-	speechPage() += 1;
-	int len = Text().size();
-	int pages = (len + 238) / 239;
-	if (SpeechPage() > pages)
-		return 1;
-
-	int start = speechPage() * 239;
-	outText = Text().substr(start, 239);
-	*/
-	LogUnimplemented("ExtString.GetNextTextPart");
-	outText = "";
-	return 0;
+	int page = ++SpeechPage();
+	int len = (int)Text().size();
+	if (page > len / 239)
+		return 0;
+	int count = std::min(len - 239 * page, 239);
+	outText = Text().substr(239 * page, count);
+	return count;
 }
 
 std::string& UDXExtString::GetText()
 {
-	LogMessage("Usage check: ExtString.GetText");
 	return Text();
 }
 
 int UDXExtString::GetTextLength()
 {
-	LogMessage("Usage check: ExtString.GetTextLength");
 	return (int)Text().length();
 }
 
+// At most 240 characters from startPos, none from a negative one.
 int UDXExtString::GetTextPart(int startPos, int count, std::string& outText)
 {
-	LogMessage("Usage check: ExtString.GetTextPart");
-	outText = Text().substr(startPos, count);
-	return (int)outText.length();
+	int len = (int)Text().size();
+	if (startPos < 0)
+		count = 0;
+	count = std::min(count, len - startPos);
+	count = std::clamp(count, 0, 240);
+	outText = count > 0 ? Text().substr(startPos, count) : std::string();
+	return count;
 }
 
 void UDXExtString::SetText(const std::string& newText)
 {
-	LogMessage("Usage check: ExtString.SetText");
 	Text() = newText;
 }

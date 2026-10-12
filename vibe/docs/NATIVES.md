@@ -885,7 +885,7 @@ What the fork does with each:
 
 ## Mods
 
-A mod gets the original's loader:
+A mod gets the original's loader and natives:
 
 - **Its folders.** Its packages and maps are found by the `Paths` of its own
   ini (`--ini`), relative to `System` and written with backslashes as the
@@ -909,6 +909,20 @@ A mod gets the original's loader:
   (`IniConsole`). Those read by hand, though, take an empty value for none:
   a float or a string keeps the fork's default where the original's is 0 or
   empty.
+- **The natives no stock script calls** (`ModConsole`): `ResetConfig`, a
+  System or User class's section copied from `Default.ini` or `DefUser.ini`
+  and its config read again into the class, its subclasses and their
+  objects
+  ([configuration](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)),
+  which the original then tells of it (`PostEditChange`) and the fork does
+  not; `DeusExPlayer.SetBoolFlagFromString`
+  ([the player](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-player));
+  `ExtString`'s text in parts
+  ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small));
+  and `clock`, `unclock` and `CyclesToSeconds`
+  ([the timing natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#clock-unclock-and-cyclestoseconds)),
+  which count the steady clock's nanoseconds where the original's count the
+  CPU's cycles.
 
 Differs in the macro textures, which no stock texture has: the fork
 multiplies a surface by its macro texture once, at the one-pass light map's
@@ -993,23 +1007,14 @@ Stubs a single-player game does without; the audit lists each:
   save's.
 - `DebugInfo` (compiled out in the original too:
   [`DebugInfo`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#debuginfo)),
-  `SaveTimeDemo`, `Commandlet.Main`, and `Object`'s `clock`, `unclock` and
-  `CyclesToSeconds`
-  ([the timing natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#clock-unclock-and-cyclestoseconds)).
+  `SaveTimeDemo` and `Commandlet.Main`.
 - `StatLog`'s and `StatLogFile`'s natives, which do nothing, so a fork
   server logging world stats writes no log of them.
 - `ComputerWindow`'s 22, which no script calls: the InfoLink's text window,
   its only user, calls only implemented ones.
 - `GC`'s `PushGC`, `PopGC`, `CopyGC` and `Intersect`, and 3 more of the
   windows' stubs, which no script calls.
-- Five more that no script of the game calls, so only a mod reaches them:
-  `Object.ResetConfig`, which in the original copies the class's section
-  back from `Default.ini` or `DefUser.ini` and reads it again
-  ([configuration](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)),
-  `DeusExPlayer.SetBoolFlagFromString` 3001
-  ([the player](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-player)),
-  `ExtString.GetNextTextPart` 1146
-  ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)),
+- Two more that no script of the game calls, so only a mod reaches them:
   `Canvas.DrawPortal` 480, which draws nothing, and `Pawn.FindRandomDest`
   525, upstream's own pick of a random navigation point the pawn can reach;
   the original's two are unread.

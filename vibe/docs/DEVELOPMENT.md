@@ -15,9 +15,9 @@ on its path in the maps that reached one, a side-by-side
 [scripted run](#scripted-runs-of-both-engines) against the original proves it, and
 [`NATIVES.md`](NATIVES.md) says what still differs. The audit reads a native "partial" when
 another game's branch on its call chain logs `Unimplemented`: `ParabolicTrace`, `actorReachable`,
-`FindPathToward` and `ReachablePathnodes` read so, though their Deus Ex path is the original's.
-It reads `AICanSmell` "empty": the original's answer is always 0 too. The runs say whether a stub
-fired.
+`FindPathToward`, `ReachablePathnodes` and `ResetConfig` read so, though their Deus Ex path is the
+original's. It reads `AICanSmell` "empty": the original's answer is always 0 too. The runs say
+whether a stub fired.
 
 ## Temporary debug hooks
 
@@ -150,6 +150,7 @@ side where no script reads the run. *Either*: one engine on each side of a pair.
 | `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` |  |
 | `RotatorConsole` | both | the rotator and vector conversions | `DXROT:` |  |
 | `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` |  |
+| `ModConsole` | both | the natives only a mod calls: the timing natives, a flag from a string, `ExtString`'s parts, `ResetConfig` | `DXMOD:` | the two logs diffed |
 | `DynLoadConsole` | both | `Object.DynamicLoadObject` by each form of name | `DXDYNLOAD:` |  |
 | `GarbageConsole` | both | 128 actors destroyed, one a tick | `DXGARBAGE:` |  |
 | `ChurnConsole` | fork | 20 actors spawned and 20 destroyed every tick for 120 s (with `DXCAP_MEMLOG=1`) | `DXCHURN:` |  |

@@ -24,6 +24,7 @@
 #include "Packages/Core/UPackage.h"
 #include "Packages/Core/UEnum.h"
 #include <cmath>
+#include <chrono>
 
 #ifdef _MSC_VER
 #pragma warning(disable: 4244) // warning C4244: '/=': conversion from 'float' to 'int', possible loss of data
@@ -291,6 +292,9 @@ void NObject::RegisterFunctions()
 		RegisterVMNativeFunc_2("Object", "AllObjects", &NObject::AllObjects_DeusEx, 1001);
 		RegisterVMNativeFunc_1("Object", "CriticalDelete", &NObject::CriticalDelete, 751);
 		RegisterVMNativeFunc_3("Object", "GetConfig", &NObject::GetConfig, 0);
+		RegisterVMNativeFunc_1("Object", "clock", &NObject::Clock, 1005);
+		RegisterVMNativeFunc_1("Object", "unclock", &NObject::Unclock, 1006);
+		RegisterVMNativeFunc_2("Object", "CyclesToSeconds", &NObject::CyclesToSeconds, 1007);
 	}
 
 	// Package 61 stuff
@@ -610,6 +614,31 @@ void NObject::CriticalDelete(UObject* Self, UObject* myObject)
 	if (UActor* actor = UObject::TryCast<UActor>(myObject))
 		actor->Destroy();
 	myObject->Flags |= ObjectFlags::EliminateObject;
+}
+
+// Deus Ex's timing natives (core-dll.md, clock, unclock and CyclesToSeconds)
+// count the steady clock's nanoseconds, where the original's count the CPU's
+// cycles: clock takes the count's low 32 bits from its argument, unclock
+// adds them back, and CyclesToSeconds turns a count into seconds. The
+// original's unclock also takes off 34 cycles, its own cost.
+static uint32_t TimingCount()
+{
+	return (uint32_t)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+void NObject::Clock(int& cycles)
+{
+	cycles = (int)((uint32_t)cycles - TimingCount());
+}
+
+void NObject::Unclock(int& cycles)
+{
+	cycles = (int)((uint32_t)cycles + TimingCount());
+}
+
+void NObject::CyclesToSeconds(int cycles, float& ReturnValue)
+{
+	ReturnValue = (float)(cycles * 1e-9);
 }
 
 void NObject::Divide_U227(std::string& Src, std::string& Divider, std::string& LeftPart, std::string& RightPart, BitfieldBool& ReturnValue)
@@ -1481,9 +1510,69 @@ void NObject::ReplaceStr_U227(std::string& text, std::string& findStr, std::stri
 	ReturnValue = StrTools::replace(text, findStr, replaceWith, ignoreCase);
 }
 
-void NObject::ResetConfig()
+// The config read again into a class's defaults or an object, its base
+// classes' sections first, as the original's LoadConfig propagates it.
+static void LoadConfigPropagated(UClass* cls, PropertyDataBlock* block)
 {
-	LogUnimplemented("Object.ResetConfig");
+	if (!(cls->ClsFlags & ClassFlags::Config))
+		return;
+	if (UClass* base = UObject::TryCast<UClass>(cls->BaseStruct))
+		LoadConfigPropagated(base, block);
+	cls->LoadProperties(block);
+}
+
+static bool IsClassOrSubclass(UStruct* cls, UClass* of)
+{
+	for (UStruct* s = cls; s; s = s->BaseStruct)
+	{
+		if (s == of)
+			return true;
+	}
+	return false;
+}
+
+// As the original's (Core.dll 0x10151ac0; core-dll.md, configuration), of
+// the object's class -- a static call's context is the class itself: for a
+// class of System or User config, its section is copied key by key into the
+// live ini from Default.ini or DefUser.ini, the keys the default file lacks
+// keeping their values, and the config read again into the class's
+// defaults and every subclass's and into every object of them. A class of
+// any other config is left alone. The original then tells each object
+// (PostEditChange); the fork tells none.
+void NObject::ResetConfig(UObject* Self)
+{
+	if (!engine->packages->IsDeusEx())
+	{
+		LogUnimplemented("Object.ResetConfig");
+		return;
+	}
+
+	UClass* cls = UObject::TryCast<UClass>(Self);
+	if (!cls)
+		cls = Self->Class;
+	NameString configName = cls->ClassConfigName;
+	if (configName.IsNone())
+		configName = "system";
+	if (configName != "system" && configName != "user")
+		return;
+
+	engine->packages->ResetIniSection(configName, cls->package->GetPackageName().ToString() + "." + cls->Name.ToString());
+
+	for (GCObject* gcObj : GC::GetObjects())
+	{
+		UObject* obj = dynamic_cast<UObject*>(gcObj);
+		if (!obj || AnyFlags(obj->Flags, ObjectFlags::EliminateObject))
+			continue;
+		if (UClass* objClass = UObject::TryCast<UClass>(obj))
+		{
+			if (IsClassOrSubclass(objClass, cls))
+				LoadConfigPropagated(objClass, &objClass->PropertyData);
+		}
+		else if (IsClassOrSubclass(obj->Class, cls))
+		{
+			LoadConfigPropagated(obj->Class, &obj->PropertyData);
+		}
+	}
 }
 
 void NObject::Right(const std::string& S, int i, std::string& ReturnValue)

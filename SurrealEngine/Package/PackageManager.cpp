@@ -1039,6 +1039,25 @@ Array<std::string> PackageManager::GetDefUserIniValues(const NameString& section
 	return defaultUserFile->GetValues(sectionName, keyName, default_values);
 }
 
+void PackageManager::ResetIniSection(NameString iniName, const NameString& sectionName)
+{
+	IniFile* defaults = nullptr;
+	if (iniName == "system")
+		defaults = defaultIniFile.get();
+	else if (iniName == "user")
+		defaults = (IsKlingonHonorGuard() || launchInfo.ue1Version <= 219) ? defaultIniFile.get() : defaultUserFile.get();
+	if (!defaults)
+		return;
+
+	auto& ini = LoadIniFile(iniName);
+	for (const NameString& key : defaults->GetKeys(sectionName))
+	{
+		std::string value;
+		if (defaults->FindValue(sectionName, key, value))
+			ini->SetValue(sectionName, key, value);
+	}
+}
+
 void PackageManager::SetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, const std::string& newValue)
 {
 	LoadIniFile(iniName)->SetValue(sectionName, keyName, newValue);

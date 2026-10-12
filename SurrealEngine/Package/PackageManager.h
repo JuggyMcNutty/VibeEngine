@@ -128,6 +128,10 @@ public:
 	Array<std::string> GetDefaultIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values = {});
 	std::string GetDefUserIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value = "");
 	Array<std::string> GetDefUserIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values = {});
+	// The section copied key by key into the live system or user ini from
+	// Default.ini or DefUser.ini, as the original's ResetConfig copies a
+	// class's; keys the default file lacks keep their values.
+	void ResetIniSection(NameString iniName, const NameString& sectionName);
 	void SetIniValue(NameString iniName, const NameString& sectionName, const NameString& keyName, const std::string& newValue);
 	void SetIniValues(NameString iniName, const NameString& sectionName, const NameString& keyName, const Array<std::string>& newValues);
 	void SaveAllIniFiles();

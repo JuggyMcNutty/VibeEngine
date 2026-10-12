@@ -5,6 +5,7 @@
 #include "Package/PackageManager.h"
 #include "Packages/DeusEx/UGameDirectory.h"
 #include "Packages/ConSys/History/UConHistory.h"
+#include "Packages/Extension/Flags/UFlagBase.h"
 #include "Utils/Logger.h"
 #include "vibe_version.h"
 
@@ -70,11 +71,15 @@ void UDeusExPlayer::SaveGame(int saveIndex, std::optional<std::string> saveDesc)
 	engine->TakeSaveSnapshot();
 }
 
+// The string made a name, which is set as a bool flag in the player's flag
+// base -- added, its expiration the flag base's default (-1) -- and returned
+// (DeusEx.dll 0x100144e0; deusex-dll.md, the player).
 NameString UDeusExPlayer::SetBoolFlagFromString(const std::string& flagNameString, bool bValue)
 {
-	// Not called directly from script
-	LogUnimplemented("DeusExPlayer.SetBoolFlagFromString");
-	return {};
+	NameString flagName = flagNameString;
+	if (UFlagBase* flags = FlagBase())
+		flags->SetBool(flagName, bValue, true, -1);
+	return flagName;
 }
 
 void UDeusExPlayer::UnloadTexture(UObject* Texture)
