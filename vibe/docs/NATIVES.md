@@ -143,7 +143,7 @@ drawn on its own (`GC.DrawActor`, `Canvas.DrawActor`) counts as drawn
 whenever its rectangle is on the frame, whatever is in front of it: an NPC
 the vision augmentation draws through a wall stays drawn while it is in view
 (`AugVisionConsole`). Beside it the fork keeps Distant AI's own
-`LastVisibleFrame` ([its patches](ENGINE.md#settings-the-launcher-exposes)).
+`LastVisibleFrame` ([the setting](ENGINE.md#settings-the-launcher-exposes)).
 Differs:
 
 - **The pixels.** The fork's grid takes a pixel whose centre a polygon
