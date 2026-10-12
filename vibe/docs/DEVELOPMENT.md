@@ -98,11 +98,11 @@ side where no script reads the run. *Either*: one engine on each side of a pair.
 | `CoronaConsole` | both | lamp coronas; a movable corona light of its own | `DXCORONA:` |  |
 | `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` |  |
 | `ParticleConsole` | both | smoke and puffs on the pier, in marked shots | `DXPART:` |  |
-| `FaceConsole` | both | a character's mesh close up (`MeshOf`, `Ahead`, `Distance`) | `DXFACE:` |  |
-| `MeshConsole` | both | meshes lit on the pier (`LODBias`, `NoDetail`) | `DXMESH:` |  |
-| `LightConsole` | both | a light of one effect on `TargetMap` (`Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`) | `DXLIGHT:` |  |
+| `FaceConsole` | both | a character's mesh close up (`MeshOf`, `Ahead`, `Distance`) | `DXFACE:` | `shots.py <original run> <fork run>` |
+| `MeshConsole` | both | meshes lit on the pier (`LODBias`, `NoDetail`) | `DXMESH:` | `shots.py` |
+| `LightConsole` | both | a light of one effect on `TargetMap` (`Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`) | `DXLIGHT:` | `shots.py` |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` |  |
-| `GlassConsole` | both | a glass mover on `TargetMap`, and what is behind it (`Pick`, `GlassName`, `View`, `Behind`) | `DXGLASS:` |  |
+| `GlassConsole` | both | a glass mover on `TargetMap`, and what is behind it (`Pick`, `GlassName`, `View`, `Behind`) | `DXGLASS:` | `shots.py` |
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` |  |
 | `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` |  |
 | `AIConsole` | both | every NPC's state, orders, enemy and render time; the camera | `DXAI:`, `DXAISTATE:` |  |
@@ -250,8 +250,10 @@ stock game's, serve the original here as for the [net tests](#net-tests)
 - **Gamma.** The original's frames carry its gamma ramp, 1.5 at the runs' Brightness of 0.6, the
   same through `D3DDrv` (`DXCAP_RENDERER=D3D`). The fork's `shot` reads the frame before the
   present pass applies gamma (`GammaCorrectScreenshots` off), so a fork shot takes that gamma
-  before its brightness is compared: `magick <shot> -gamma 1.5 <out>`
-  ([brightness](NATIVES.md#brightness)).
+  before its brightness is compared ([brightness](NATIVES.md#brightness)):
+  `vibe/tools/dxcap/shots.py <original run> <fork run>` puts it through the gamma and gives,
+  for each pair of shots, the fork's brightness over the original's, block of 16 pixels by
+  block (`--blocks` prints the grid) and over the frame or a region (`--region x,y,w,h`).
 - **The presented frame.** A fork shot is the scene before the present pass, so the
   render-scale upscale and the gamma do not show in it. `grab.py` reads the fork's window too,
   by its name, `Deus Ex (v1112fm) - Surreal Engine`; at a render scale under 1 the mark's blocks

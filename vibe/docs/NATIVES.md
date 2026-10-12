@@ -229,7 +229,13 @@ where both engines draw it
 ([a texel's place](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps)):
 `LightConsole` has 03_NYC_Airfield's `Spotlight7` and Liberty Island's
 `Spotlight0` within 0.90 to 1.05 of `D3DDrv`'s frames across their pools, in
-blocks of 16 pixels ([brightness](#brightness)). The other effects' shapes
+blocks of 16 pixels ([brightness](#brightness)). A surface's light map
+holds the ambient of the zone it is seen from, and pans at that zone's
+speeds, as the original's draw list has it: 06_HongKong_WanChai_Underworld's
+floor under its disco lights `Light2` and `Light21`, lit by its zone's
+ambient and one steady light, comes out at 0.97 of `D3DDrv`'s frames, the
+detail texture the rest ([the menus' settings](#the-menus-settings)). The
+other effects' shapes
 are Render.dll's own, on the level's time. `LightConsole`, shooting both
 engines at one moment of it (`ShotAt`), has 06_HongKong_WanChai_Canal's
 disco `Light343` at 1.00 of `D3DDrv`'s frame, 02_NYC_BatteryPark's cylinder
@@ -284,14 +290,9 @@ shot meets the original's frames:
   the original none ([the menus' settings](#the-menus-settings)). Its crate,
   box and barrel are within 0.8%, Paul Denton a level over, and
   `LaserConsole`'s corridor within 0.9%.
-- 06_HongKong_WanChai_Underworld's floor under its two disco lights
-  (`LightConsole` on `Light2` and `Light21`) is 0.35 to 0.57 of `D3DDrv`'s
-  frames, and the same under other light shapes. The disco lights do not
-  light it: they are `bSpecialLit`, and its surfaces (BSP surface 1251
-  under `Light2`, 1230 under `Light21`; `CoreTexStone.Stone.ShnyBlacMarbl_A`
-  with the detail texture `DStone_A`) are not `PF_SpecialLit`. Their light
-  maps hold `ZoneInfo1`'s ambient (brightness 20, saturation 50) and, on
-  1251, the steady `Light63`; why the fork's floor is darker is unread.
+- 02_NYC_Underground under `Light33` (`LightConsole`) is at 1.02 of
+  `D3DDrv`'s frame across the pool, and the frame's lowest rows, dark in
+  `D3DDrv`'s, are twice as bright in the fork's; why is unread.
 
 ### The screen flash
 

@@ -21,7 +21,13 @@ void VisibleNode::Draw(VisibleFrame* frame)
 
 	engine->render->UpdateTexture(surface.Material);
 
-	auto zoneActor = engine->GetZoneActor(Front ? Node->Zone1 : Node->Zone0);
+	// The zone the surface is seen from, whose ambient lights its light map
+	// and whose pan speeds pan it, as the original's draw list has it
+	// (dx-reverse-info render-dll.md, light maps); upstream took the far
+	// side's, zone 0 (the LevelInfo) behind a wall, which lit every surface
+	// of a zoned level with the LevelInfo's ambient (LightConsole on
+	// 06_HongKong_WanChai_Underworld's floor).
+	auto zoneActor = engine->GetZoneActor(ViewerBehind ? Node->Zone0 : Node->Zone1);
 
 	// If no ZoneInfo is found, use the values from LevelInfo instead.
 	float ZoneUPanSpeed = zoneActor->TexUPanSpeed();

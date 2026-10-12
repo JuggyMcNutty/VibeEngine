@@ -9,6 +9,6 @@ public:
 	void Draw(VisibleFrame* frame);
 
 	BspNode* Node = nullptr;
-	bool Front = false;
+	bool ViewerBehind = false; // the viewer on the plane's back side
 	uint32_t PolyFlags = 0;
 };
