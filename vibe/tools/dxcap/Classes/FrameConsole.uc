@@ -2,8 +2,9 @@
 // FrameConsole: a long frame, logged with "DXFRAME:" from the menu map -- 2 s
 // in, one frame held 2 s more by the console's own line traces, timed by
 // clock and unclock in short spans (which the original's 32-bit cycle count
-// allows) and under its 10,000,000 jumps a loop; then the level's time over
-// that frame and the longest of an actor's next three ticks, and an exit.
+// allows) and under the 10,000,000 jumps a tick that stop either engine;
+// then the level's time over that frame and the longest of an actor's next
+// three ticks, and an exit.
 // The level's clock takes the whole frame, the actors at most 0.4 s of it
 // (vibe/docs/NATIVES.md, small).
 //=============================================================================

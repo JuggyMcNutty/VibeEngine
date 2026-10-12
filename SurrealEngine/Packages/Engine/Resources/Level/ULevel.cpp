@@ -10,6 +10,7 @@
 #include "Packages/Engine/UEventManager.h"
 #include "Packages/Engine/UViewport.h"
 #include "Engine.h"
+#include "VM/Frame.h"
 #include "VM/ScriptCall.h"
 
 ULevel::ULevel(NameString name, UClass* base, ObjectFlags flags) : ULevelBase(name, base, flags)
@@ -111,6 +112,9 @@ void ULevel::TickActor(float elapsed, UActor* actor)
 void ULevel::Tick(float elapsed, bool gamePaused)
 {
 	bool deusEx = engine->LaunchInfo.IsDeusEx();
+
+	// The tick counts its own jumps, as the original's (ULevel::Tick)
+	Frame::InitRunaway();
 
 	// Each tick marks what it ticks with a fresh value, so the first tick of
 	// a level ticks every actor loaded with it (their bTicked false) --

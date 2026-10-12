@@ -29,6 +29,13 @@ native, a failed save -- exits the engine with 1, and the launcher shows its
 crash banner. No map or action is known to reach one; the audit lists the
 natives whose call would.
 
+A runaway loop stops both engines alike
+([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-code-and-its-tokens)):
+more than 10,000,000 jumps run, taken or not, in one level tick or one
+map's load, with "Runaway loop detected (over 10000000 iterations)", which
+no native's call catches (`LoopConsole`). Differs: the original's
+`-norunaway`, which lets the loop run on, is not carried.
+
 ## Saving, loading and travel
 
 Matches the original

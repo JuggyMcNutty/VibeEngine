@@ -10,6 +10,14 @@ class UFunction;
 class Expression;
 struct ExpressionEvalResult;
 
+// A script error that stops the game wherever it is met, as the original's
+// critical errors do: no native's call catches it (Frame::CallNative)
+class ScriptCriticalError : public std::runtime_error
+{
+public:
+	using std::runtime_error::runtime_error;
+};
+
 enum class FrameRunState
 {
 	Running,
@@ -161,6 +169,16 @@ public:
 
 	static std::unique_ptr<Iterator> CreatedIterator;
 
+	// Deus Ex's runaway loop, the original's (Core.dll execJump and
+	// execJumpIfNot; dx-reverse-info core-dll.md, the script interpreter):
+	// every jump run, taken or not, counted from the start of the level's
+	// tick or of a map's load (InitRunaway), and the game stopped past
+	// 10,000,000. Other games keep upstream's warning, logged for each
+	// statement past 500,000 in one function's run.
+	static bool CountJumps;
+	static int Jumps;
+	static void InitRunaway() { Jumps = 0; }
+
 	Frame(UObject* instance, UStruct* func);
 
 	// A native function's place on the call stack. Natives take their
@@ -191,6 +209,12 @@ public:
 private:
 	ExpressionEvalResult Run();
 	void ProcessSwitch(const ExpressionValue& condition);
+	static void CountJump()
+	{
+		if (CountJumps && ++Jumps > 10'000'000)
+			RunawayLoop();
+	}
+	[[noreturn]] static void RunawayLoop();
 	static void ClassifyStatement(Expression* statement, const Bytecode& code);
 
 	static ExpressionValue CallNative(UFunction* func, UObject* instance, CallArguments& args);

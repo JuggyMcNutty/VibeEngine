@@ -109,6 +109,8 @@ Engine::Engine(GameLaunchInfo launchinfo) : LaunchInfo(launchinfo)
 
 	floatprop = GC::Alloc<UFloatProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
 
+	Frame::CountJumps = LaunchInfo.IsDeusEx();
+
 	if (LaunchInfo.IsDeusEx())
 	{
 		auto extpkg = packages->GetPackage("Extension");
@@ -1113,6 +1115,9 @@ void Engine::UnloadMap()
 void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo, bool asClient)
 {
 	ClientTravelInfo.URL.Clear();
+
+	// A map's load counts its own jumps, as the original's (UGameEngine::LoadMap)
+	Frame::InitRunaway();
 
 	if (url.HasOption("entry") || url.HasOption("failed"))
 	{

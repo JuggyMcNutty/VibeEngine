@@ -32,6 +32,8 @@ Frame* Frame::StepFrame = nullptr;
 Expression* Frame::StepExpression = nullptr;
 std::string Frame::ExceptionText;
 std::unique_ptr<Iterator> Frame::CreatedIterator;
+bool Frame::CountJumps = false;
+int Frame::Jumps = 0;
 
 Frame::Frame(UObject* instance, UStruct* func)
 {
@@ -139,6 +141,13 @@ void Frame::Break()
 			Exception::Throw(message);
 		}
 	}
+}
+
+// The original logs it as a critical error: the game stops with the message
+void Frame::RunawayLoop()
+{
+	Jumps = 0;
+	throw ScriptCriticalError("Script execution error:\r\n\r\nRunaway loop detected (over 10000000 iterations)\r\n\r\nCall stack:\r\n\r\n" + GetCallstack());
 }
 
 void Frame::Resume()
@@ -368,6 +377,10 @@ ExpressionValue Frame::CallNative(UFunction* func, UObject* instance, CallArgume
 			{
 				callback(instance, args.data());
 			}
+			catch (const ScriptCriticalError&)
+			{
+				throw;
+			}
 			catch (const std::exception& e)
 			{
 				LogMessage(std::string("Script error: ") + e.what());
@@ -394,6 +407,10 @@ ExpressionValue Frame::CallNative(UFunction* func, UObject* instance, CallArgume
 			try
 			{
 				callback(instance, args.data());
+			}
+			catch (const ScriptCriticalError&)
+			{
+				throw;
 			}
 			catch (const std::exception& e)
 			{
@@ -524,7 +541,7 @@ ExpressionEvalResult Frame::Run()
 
 		StepExpression = Func->Code->Statements[curStatementIndex];
 
-		if (instructionsRetired >= maxInstructions)
+		if (instructionsRetired >= maxInstructions && !CountJumps)
 		{
 			LogMessage("Too many VM instructions executed in a single tick");
 			Break();
@@ -557,10 +574,12 @@ ExpressionEvalResult Frame::Run()
 			default:
 				break;
 			case Expression::StatementKind::Jump:
+				CountJump();
 				StatementIndex = static_cast<JumpExpression*>(statement)->Target;
 				break;
 			case Expression::StatementKind::JumpIfNot:
 				{
+					CountJump();
 					auto jump = static_cast<JumpIfNotExpression*>(statement);
 					UStruct* func = Func;
 					bool taken = !ExpressionEvaluator::Condition(jump, Object, Variables.Data);
@@ -611,6 +630,8 @@ ExpressionEvalResult Frame::Run()
 			continue;
 		}
 
+		if (statement->Statement == Expression::StatementKind::Jump || statement->Statement == Expression::StatementKind::JumpIfNot)
+			CountJump();
 		ExpressionEvalResult result = ExpressionEvaluator::Eval(statement, Object, Object, Variables.Data);
 		if (!Func)
 			return result;
