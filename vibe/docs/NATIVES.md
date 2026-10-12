@@ -762,14 +762,15 @@ it. `GarbageConsole` and `DeleteConsole` run both engines. Differs:
 - **Code is never freed**, where the original's frees a script class nothing
   uses and loads it again when asked for.
 
-Measured on linux-x86_64 under software GL (llvmpipe), and on the Smart Pro:
+Measured on linux-x86_64, under software GL (llvmpipe) unless the row says
+the GPU, and on the Smart Pro:
 
 | Run | At engine | Result |
 |---|---|---|
-| Liberty Island and Battery Park loaded in turn (`reload-fresh.txt`), twenty loads | `2bdaa7d` | 522 MB resident at the end, 528 MB at most; each island load's collection leaves the same 43,054 objects and frees some 130 textures and 20 sounds |
+| Liberty Island and Battery Park loaded in turn (`reload-fresh.txt`), twenty loads | `d491a5c`, the GPU | 379 MB resident at the end, 393 MB at most; each island load's collection leaves the same 43,054 objects and frees some 130 textures and 20 sounds |
 | Liberty Island and UNATCO HQ through `Current` (`reload-current.txt`) | `2bdaa7d` | 522 MB at most throughout |
-| A collection | `2bdaa7d`; the Smart Pro's `33cf17c` | 28 to 66 ms on linux-x86_64; 200 to 265 ms on the Smart Pro, without the name walk |
-| `ChurnConsole`, 2,200 actors a second for two minutes | `4638626` | 358 MB resident throughout; the name walk adds 5 to 8 ms to a collection on linux-x86_64 |
+| A collection | `d491a5c`, the GPU; the Smart Pro's `33cf17c` | on linux-x86_64 a map load's 14 to 24 ms, the destroyed actors' backlog's 7 to 8 ms mid-game, the console's `obj garbage` 6 ms; 200 to 265 ms on the Smart Pro, with an earlier collector |
+| `ChurnConsole`, 2,200 actors a second for two minutes | `d491a5c`, the GPU | 360 MB resident throughout; a collection 7 to 8 ms |
 
 **Names**
 ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
