@@ -109,7 +109,7 @@ side where no script reads the run. *Either*: one engine on each side of a pair.
 | `StaticConsole` | both | `TargetMap`'s static actors at 5 s and 15 s | `DXSTATIC:` |  |
 | `MoveConsole` | both | every pawn's moves, every 2 s for 120 s | `DXMOVE:` | `move.py <original run> <fork run>` |
 | `ReachConsole` | both | the reach tests, each pawn asked from its home spot | `DXREACH:` |  |
-| `TraceConsole` | both | `TraceTexture`, `TraceActors`, `Trace` and `FastTrace` | `DXTRACE:` |  |
+| `TraceConsole` | both | `TraceTexture`, `TraceActors`, `Trace` and `FastTrace`; boxes started inside cylinders | `DXTRACE:` |  |
 | `FloatConsole` | both | the crates in the water by the pier | `DXFLOAT:` |  |
 | `SwimConsole` | both | falls into water, diving, swimming up; a troop thrown in | `DXSWIM:` |  |
 | `LadderConsole` | both | Liberty Island's first ladder, every tick | `DXLADDER:` |  |

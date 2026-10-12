@@ -8,7 +8,11 @@
 // 3000 units and on past it as far again, from and to whole units the same
 // in both engines: TraceActors' hits of Actor and of ScriptedPawn (each
 // hit's actor, distance and normal, in the order given), TraceTexture's,
-// Trace's first hit of the level and FastTrace's answer. Then an exit.
+// Trace's first hit of the level and FastTrace's answer; and a box (8 units
+// each way) started inside the decoration's cylinder, grown by the box,
+// across it from half its radius out: near its top and at its middle,
+// heading in toward the axis, and near its top heading out -- Trace's first
+// hit, its distance and normal. Then an exit.
 //=============================================================================
 class TraceConsole extends Console;
 
@@ -85,6 +89,36 @@ function string Single(PlayerPawn P, vector Start, vector End)
 	return " [" $ Hit $ " at " $ int(VSize(HitLoc - Start)) $ " z " $ int(HitLoc.Z) $ "] fast " $ P.FastTrace(End, Start);
 }
 
+// Hundredths, rounded: the original's normal is a float's, 0.99999994
+// where the fork's is 1.
+function int Hundredths(float F)
+{
+	return int(F * 100 + 1000.5) - 1000;
+}
+
+// A box's first hit as Trace gives it, actors included.
+function string BoxHit(PlayerPawn P, vector Start, vector End)
+{
+	local Actor Hit;
+	local vector HitLoc, HitNorm;
+
+	Hit = P.Trace(HitLoc, HitNorm, End, Start, true, vect(8,8,8));
+	if (Hit == None)
+		return " [None]";
+	return " [" $ Hit.Name $ " at " $ int(VSize(HitLoc - Start)) $ " n " $ Hundredths(HitNorm.X) $ "," $ Hundredths(HitNorm.Y) $ "," $ Hundredths(HitNorm.Z) $ "]";
+}
+
+function BoxStarts(PlayerPawn P, DeusExDecoration D)
+{
+	local vector Top, Middle;
+
+	Top = D.Location + vect(1,0,0) * (D.CollisionRadius * 0.5) + vect(0,0,1) * ((D.CollisionHeight + 8) * 0.8);
+	Middle = D.Location + vect(0,1,0) * (D.CollisionRadius * 0.5);
+	Log("DXTRACE: " $ D.Name $ " box top in" $ BoxHit(P, Top, Top - vect(60,0,0))
+		$ " middle in" $ BoxHit(P, Middle, Middle - vect(0,60,0))
+		$ " top out" $ BoxHit(P, Top, Top + vect(60,0,0)));
+}
+
 function Traces(PlayerPawn P)
 {
 	local ScriptedPawn S;
@@ -120,6 +154,8 @@ function Traces(PlayerPawn P)
 		Log("DXTRACE: " $ D.Name $ " pawns" $ ActorHits(P, class'ScriptedPawn', Start, End, 8));
 		Log("DXTRACE: " $ D.Name $ " at " $ D.Location $ " surfaces" $ Hits(P, Start, End, 8));
 		Log("DXTRACE: " $ D.Name $ " single" $ Single(P, Start, End));
+		if (D.bCollideActors)
+			BoxStarts(P, D);
 	}
 }
 

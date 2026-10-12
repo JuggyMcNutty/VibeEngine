@@ -607,7 +607,11 @@ Every other native the scripted runs compare matches the original
 - **The traces** (`TraceConsole`, `VisibleConsole`; `TraceActors`, the
   player's frob target, through decorations), and `RadiusActors`, which
   reaches each actor's own collision radius further (`VisibleConsole` on
-  Liberty Island and DXMP_Silo).
+  Liberty Island and DXMP_Silo). A line or a box started inside an actor's
+  cylinder, heading in, stops at its start, its normal level, out from the
+  axis
+  ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces);
+  `TraceConsole`'s boxes started near a decoration's top and at its middle).
 - **A line** meets the level as the original's walk down its BSP does
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)):
   where it enters solid space, a start in solid stopping it there, at time
@@ -728,9 +732,6 @@ Differs:
   At 20 frames a second `FlightConsole`'s gull, flown level into the pier's
   wall, turns and slides some 18 units along it in the original, where the
   fork's stays put.
-- **A box started inside a cylinder** keeps the least penetration's normal;
-  the original's is level, out from the axis, as a line's is in both
-  ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)).
 
 ## Housekeeping, not seen directly
 
