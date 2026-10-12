@@ -415,10 +415,6 @@ collect() {
     done
 }
 
-# The original's own SHOT reads back nothing under Proton, so its window
-# is grabbed instead and the frames the console class marks kept
-# (vibe/tools/dxcap/grab.py).
-
 # The original runs in a view of the game, build/dxcap/game, made afresh for
 # each run: the game's folders linked, and its System folder's files, but for
 # what the game writes there -- its log, Running.ini, shots -- and any file

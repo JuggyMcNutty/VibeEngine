@@ -1,10 +1,9 @@
-# Differences from the original
+# Deus Ex against the original
 
-Where the engine fork still differs from the original Deus Ex, feature by
-feature. Each section opens with its status -- whether the fork matches the
-original, the original's write-up, the console that compares the two --
-then lists what still differs. What each engine patch changes is
-[what the fork changes](ENGINE.md#what-the-fork-changes).
+What the fork does for Deus Ex, feature by feature, each against the
+original: its write-up in dx-reverse-info, the console that compares the two
+engines, what matches, and what still differs. What the fork changes for
+every game: [what the fork changes](ENGINE.md#what-the-fork-changes).
 
 ## How it is known
 
@@ -32,7 +31,8 @@ natives whose call would.
 
 ## Saving, loading and travel
 
-Matches the original ([travel and saving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-game-engine-travel-and-saving),
+Matches the original
+([travel and saving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-game-engine-travel-and-saving),
 [the save directory](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-save-directory)):
 each engine loads the other's saves (`SaveConsole`, `LoadConsole`), and a
 level returned to keeps its game (`ReturnConsole`). A level's start
@@ -41,26 +41,26 @@ runs each pass over its actors as the list grows, so a map's carcass holds
 its items hidden in `Idle2` and its search hands them over whole
 (`CarcassConsole`), and after `BeginPlay` finds every actor's zone where it
 is, whatever region the map saved: DXMP_Silo's items, crates and robots
-start in their zones, where the map's regions put them in none and their
-first fall took them out of the world (`VisibleConsole` there); every level
-loaded, a save's or one returned to, then
-calls `PostPostBeginPlay` (`LoadConsole`, `ReturnConsole`). A save's load
-logs the saved player in as the original's does, with `?loadgame`: the
-game's `Login` keeps it as saved, and its `TravelPostAccept` spawns the
-level's mission script, which no save holds -- an object of a transient
-class is not written (`LoadConsole` over either engine's saves and the
-original's hub save, `ReturnConsole`). Before a level is saved into
-`Current`, what travels with the player goes from it, a decoration in its
-hands too (`PruneTravelActors`; `ReturnConsole`). A map opened at a portal
-(`open <map>#<portal>`) starts the player at the teleporter of that tag
-(`PortalConsole`). Differs: a level returned to from `Current` keeps the
-map's name in its URL, where the original's names the saved file
-(`..\Save\Current\<map>.dxs`), as `Level.GetLocalURL` shows
+start in their zones, where the map's regions put them in none and a first
+fall would take them out of the world (`VisibleConsole` there); every level
+loaded, a save's or one returned to, then calls `PostPostBeginPlay`
+(`LoadConsole`, `ReturnConsole`). A save's load logs the saved player in as
+the original's does, with `?loadgame`: the game's `Login` keeps it as saved,
+and its `TravelPostAccept` spawns the level's mission script, which no save
+holds -- an object of a transient class is not written (`LoadConsole` over
+either engine's saves and the original's hub save, `ReturnConsole`). Before
+a level is saved into `Current`, what travels with the player goes from it,
+a decoration in its hands too (`PruneTravelActors`; `ReturnConsole`). A map
+opened at a portal (`open <map>#<portal>`) starts the player at the
+teleporter of that tag (`PortalConsole`). Differs: a level returned to from
+`Current` keeps the map's name in its URL, where the original's names the
+saved file (`..\Save\Current\<map>.dxs`), as `Level.GetLocalURL` shows
 (`ReturnConsole`).
 
 ## Flags
 
-Matches the original ([flags](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#flags)):
+Matches the original
+([flags](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#flags)):
 each engine finds the other's saved flags. Mission scripts come up as the
 original's: `MissionConsole` over all 83 maps finds every mission map's
 script running. `DX`, `DXOnly` and `Entry` are not mission maps, and
@@ -69,15 +69,17 @@ script running. `DX`, `DXOnly` and `Entry` are not mission maps, and
 
 ## Conversations
 
-Matches the original ([`ConSys.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/consys-dll.md)):
+Matches the original
+([`ConSys.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/consys-dll.md)):
 `SkipConsole` compares a skipped line's speech, `CaptureConsole` a jump to a
-comment's label, `EndgameConsole` an ending skipped to its credits: 99_Endgame2's
-conversation stopped, its Played flag, the mission script's timer and quote,
-and the credits up at the level's fifteenth second, alike.
+comment's label, `EndgameConsole` an ending skipped to its credits:
+99_Endgame2's conversation stopped, its Played flag, the mission script's
+timer and quote, and the credits up at the level's fifteenth second, alike.
 
 ## What the player reads
 
-Matches the original's parser ([`DeusExText.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusextext-dll.md)),
+Matches the original's parser
+([`DeusExText.dll`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusextext-dll.md)),
 but for one quirk left out on purpose: at a comment (`NOTE`, `GOAL`,
 `COMMENT`) with no end tag the original reads on past the text's end, so
 `09_EmailMenu_ShipOps`'s listing depends on the memory after it. The fork
@@ -85,27 +87,34 @@ stops at the end, hiding the rest.
 
 ## Every NPC
 
+What `DeusEx.dll` and `Engine.dll` do for every NPC, piece by piece.
+
 ### The native tick: `AScriptedPawn::Tick`
 
-Matches the original ([the native tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-native-tick)),
+Matches the original
+([the native tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#the-native-tick)),
 run before the actor tick, in the original's order.
 
 ### Starting up
 
-Matches the original ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)):
+Matches the original
+([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)):
 every actor starts a level 10 s undrawn and every dynamic one ticks in its
 first tick, so a pawn out of sight starts from its state code (`AIConsole`).
 
 ### Hearing: the AI event system
 
-Matches the original ([the AI event system](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-ai-event-system)),
-saved in its layout ([saved](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#saved)):
+Matches the original
+([the AI event system](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-ai-event-system)),
+saved in its layout
+([saved](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#saved)):
 each engine loads the other's saves with every listener. The fork also reads
 the manager as its own older saves lay it out.
 
 ### Moving: wandering and tactical movement
 
-Matches the original ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving),
+Matches the original
+([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving),
 [reaching](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#reaching),
 [the search](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-search)):
 `MoveConsole` (`move.py`) has all 52 of Liberty Island's pawns move within
@@ -122,19 +131,20 @@ too (`DeathConsole`).
 
 ## Out of sight
 
-Matches the original ([render time](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-time),
+Matches the original
+([render time](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-time),
 [which actors are drawn](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#which-actors-are-drawn),
 [stasis and render time](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#stasis-and-render-time)):
 whether an actor counts as drawn is tested piece by piece in the BSP walk,
 and the proxies' rectangles are the original's: at Liberty Island's start
 the same three NPCs count as drawn in both engines, every other one hidden
-from the camera by the level, as the traces have it (`AIConsole`). An actor drawn
-on its own (`GC.DrawActor`, `Canvas.DrawActor`) counts as drawn whenever its
-rectangle is on the frame, whatever is in front of it: an NPC the vision
-augmentation draws through a wall stays drawn while it is in view
+from the camera by the level, as the traces have it (`AIConsole`). An actor
+drawn on its own (`GC.DrawActor`, `Canvas.DrawActor`) counts as drawn
+whenever its rectangle is on the frame, whatever is in front of it: an NPC
+the vision augmentation draws through a wall stays drawn while it is in view
 (`AugVisionConsole`). Beside it the fork keeps Distant AI's own
-`LastVisibleFrame`
-([its patches](ENGINE.md#settings-the-launcher-exposes)). Differs:
+`LastVisibleFrame` ([its patches](ENGINE.md#settings-the-launcher-exposes)).
+Differs:
 
 - **The pixels.** The fork's grid takes a pixel whose centre a polygon
   covers; the original's span buffer, one whose lower right corner it covers
@@ -148,6 +158,8 @@ augmentation draws through a wall stays drawn while it is in view
   only whether an actor counts as drawn is the original's.
 
 ## On screen
+
+What is drawn and how it looks, against `Render.dll` and `D3DDrv.dll`.
 
 ### The view's width
 
@@ -164,70 +176,73 @@ distance.
 
 ### Particles and lasers: render iterators
 
-Matches the original ([render iterators](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-iterators),
+Matches the original
+([render iterators](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#render-iterators),
 [particles and lasers](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/deusex-dll.md#particles-and-lasers)):
 `LaserConsole` has the beams' red over the floor within 0.5% of `D3DDrv`'s,
 and `ParticleConsole`'s particles rise, fall, grow and fade as the
 original's: its smoke's light row by row 6 to 17% over `D3DDrv`'s, its puffs
-under gravity in the same rows. Differs:
-
-- **Occlusion.** The original occludes each item's sprite through its span
-  buffer; the fork clips items to the view (and a portal's spans) before its
-  BSP walk and leaves the rest to the depth buffer. The look is the same; a
-  hidden item's cost is paid. Whether the proxy counts as drawn is the
-  original's.
+under gravity in the same rows. Differs in the occlusion: the original
+occludes each item's sprite through its span buffer; the fork clips items to
+the view (and a portal's spans) before its BSP walk and leaves the rest to
+the depth buffer. The look is the same; a hidden item's cost is paid.
+Whether the proxy counts as drawn is the original's.
 
 ### Coronas
 
-Matches the original ([coronas](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#coronas);
+Matches the original
+([coronas](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#coronas);
 `CoronaConsole`): the static lights reaching the player's leaf get coronas,
 and no dynamic light does, the original's pass reading the leaf's dynamic
-lights only after its occlusion pass has emptied them. `CoronaConsole`'s
-own movable lamp shows none in either engine, in the player's leaf or out
-of it, and logs the same BSP leaves in both. A light behind a glass mover
-shows none in either: the line to it is checked against the level and the
-movers with every surface, the invisible collision hull round the glass's
-pane among them, which a sight test passes (`GlassConsole` at
-03_NYC_Airfield's `BreakableGlass2`, `Light56` beyond it).
+lights only after its occlusion pass has emptied them. `CoronaConsole`'s own
+movable lamp shows none in either engine, in the player's leaf or out of it,
+and logs the same BSP leaves in both. A light behind a glass mover shows
+none in either: the line to it is checked against the level and the movers
+with every surface, the invisible collision hull round the glass's pane
+among them, which a sight test passes (`GlassConsole` at 03_NYC_Airfield's
+`BreakableGlass2`, `Light56` beyond it).
 
 ### What a pawn holds
 
-Matches the original ([a pawn's attachments](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-pawns-attachments));
+Matches the original
+([a pawn's attachments](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-pawns-attachments));
 `HeldConsole`.
 
 ### Mesh detail
 
-Matches the original's vertex budget and its morph ([mesh detail](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-detail)):
-`MeshConsole` with `LODBias` 0.004 and 0.0015, Paul Denton cut down to a
-few vertices, has his shape at a correlation of 0.93 and 0.95 to
-`D3DDrv`'s. On a screen wider than 4:3 the budget takes the wider angle
+Matches the original's vertex budget and its morph
+([mesh detail](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-detail)):
+`MeshConsole` with `LODBias` 0.004 and 0.0015, Paul Denton cut down to a few
+vertices, has his shape at a correlation of 0.93 and 0.95 to `D3DDrv`'s. On
+a screen wider than 4:3 the budget takes the wider angle
 ([the view's width](#the-views-width)).
 
 ### Lighting
 
-Matches the original's light maps, mesh lighting and the faces a mesh draws ([lighting](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#lighting)):
+Matches the original's light maps, mesh lighting and the faces a mesh draws
+([lighting](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#lighting)):
 `ViewConsole`, `LaserConsole`, `MeshConsole` and `CoronaConsole` come out
 within a level or two of 256 of `D3DDrv`'s frames. A spotlight's cone is the
 original's, its cosine `1 − LightCone ÷ 256`, its value rounded down, and a
-light or fog map lights texel i at its centre, `Pan.X + i × UScale` along
-U, where both engines draw it
+light or fog map lights texel i at its centre, `Pan.X + i × UScale` along U,
+where both engines draw it
 ([a texel's place](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps)):
 `LightConsole` has 03_NYC_Airfield's `Spotlight7` and Liberty Island's
-`Spotlight0` within 0.90 to 1.05 of `D3DDrv`'s frames across their pools,
-in blocks of 16 pixels ([brightness](#brightness)).
-The other effects' shapes are Render.dll's own, on the level's time.
-`LightConsole`, shooting both engines at one moment of it (`ShotAt`), has
-06_HongKong_WanChai_Canal's disco `Light343` at 1.00 of `D3DDrv`'s frame,
-02_NYC_BatteryPark's cylinder `Light81` at a correlation of 0.98 to it, and
-09_NYC_ShipBelow's slow wave `Light16` at 1.01 of its brightness. The rest
-are the reading's alone: the stock views of the searchlight, non-incidence
-and the rotor come out the same under other shapes too, and no stock light
-shows a fast wave (99_Endgame2's one is dark), shock, shell or interference.
-Still the fork's own:
+`Spotlight0` within 0.90 to 1.05 of `D3DDrv`'s frames across their pools, in
+blocks of 16 pixels ([brightness](#brightness)). The other effects' shapes
+are Render.dll's own, on the level's time. `LightConsole`, shooting both
+engines at one moment of it (`ShotAt`), has 06_HongKong_WanChai_Canal's
+disco `Light343` at 1.00 of `D3DDrv`'s frame, 02_NYC_BatteryPark's cylinder
+`Light81` at a correlation of 0.98 to it, and 09_NYC_ShipBelow's slow wave
+`Light16` at 1.01 of its brightness. The rest are the reading's alone: the
+stock views of the searchlight, non-incidence and the rotor come out the
+same under other shapes too, and no stock light shows a fast wave
+(99_Endgame2's one is dark), shock, shell or interference. Still the fork's
+own:
 
 - **Light maps**
-  - floats, converted on the CPU for the Smart Pro's GPU (engine patches
-    0002 and 0024);
+  - floats, converted on the CPU for the Smart Pro's GPU
+    ([rendering](ENGINE.md#rendering));
   - a map whose animating or moving lights changed built, converted and sent
     to the GPU again only where they reach now or reached at its last build,
     where the original builds and uploads it whole every frame;
@@ -249,7 +264,8 @@ Still the fork's own:
 
 ### Brightness
 
-Matches the original's picture ([gamma](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#gamma),
+Matches the original's picture
+([gamma](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#gamma),
 [the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness),
 [textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#textures)):
 the Brightness slider raises the picture to 1 / (2.5 × Brightness), as
@@ -258,8 +274,8 @@ curve) takes the same product. Deus Ex's shaders take nothing off a
 texture's colours (`NO_DARKCLAMP`), as `D3DDrv` draws 32-bit textures on any
 display of 24 bits or more, on every device: `MeshConsole`'s shots under
 Vulkan, with descriptor indexing and without (the Smart Pro's), are within
-0.2% of the GL device's. Other games keep upstream's `darkClamp`. How a
-fork shot meets the original's frames:
+0.2% of the GL device's. Other games keep upstream's `darkClamp`. How a fork
+shot meets the original's frames:
 [scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines). Differs:
 
 - `MeshConsole`'s Liberty Island pier, where nothing is in hand, is 1.6%
@@ -279,7 +295,8 @@ fork shot meets the original's frames:
 
 ### The screen flash
 
-Matches the original ([the rest of a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-rest-of-a-frame));
+Matches the original
+([the rest of a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-rest-of-a-frame));
 `FlashConsole`.
 
 ### Draw order and movers
@@ -292,12 +309,12 @@ translucent (a mesh's translucent faces, a sprite of another style), the
 translucent and modulated surfaces with their decals, the movers' among
 them, and the actors drawn translucent (`STY_Translucent`), a render
 iterator's items by its proxy's style. So glass blends over a mesh or a
-sprite behind it in both engines. `GlassConsole`'s glass movers come out
-as the original's frames: the room seen through 05_NYC_UNATCOMJ12lab's
+sprite behind it in both engines. `GlassConsole`'s glass movers come out as
+the original's frames: the room seen through 05_NYC_UNATCOMJ12lab's
 `BreakableGlass16` and 03_NYC_Airfield's `BreakableGlass2` within 2%, and
 behind the first an unlit crate within 0.3% and an unlit sprite drawn
-`STY_Normal` within 0.5%, the glass adding 7.8 of 255 over the sprite to
-the original's 8.5. Differs (`VisibleFrame::Draw`, `VisibleMesh`,
+`STY_Normal` within 0.5%, the glass adding 7.8 of 255 over the sprite to the
+original's 8.5. Differs (`VisibleFrame::Draw`, `VisibleMesh`,
 `VisibleBrush`):
 
 - **Back to front** by the distance of one point of each, where the
@@ -313,35 +330,42 @@ the original's 8.5. Differs (`VisibleFrame::Draw`, `VisibleMesh`,
 - **Movers** are drawn as their brushes, through their own matrix, with no
   depth bias of their own (the Vulkan device's on every translucent draw
   aside: [rendering](ENGINE.md#rendering)): their opaque polygons with the
-  solid actors, their translucent ones among the surfaces. The original files their polygons
-  into the level's BSP and drops what lands in solid. A mover hidden after
-  it is filed stays drawn there in the original, where the fork stops
-  drawing it (`GlassConsole`); no stock script hides a mover.
+  solid actors, their translucent ones among the surfaces. The original
+  files their polygons into the level's BSP and drops what lands in solid. A
+  mover hidden after it is filed stays drawn there in the original, where
+  the fork stops drawing it (`GlassConsole`); no stock script hides a mover.
+  A mover flush with a wall can fight it in the depth buffer; no run shows
+  it.
 
 ### Fire, water and ice textures
 
-Matches `Fire.dll` step for step ([`fire-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md)),
+Matches `Fire.dll` step for step
+([`fire-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md)),
 checked against its own routines run in an emulator. How a mesh shows its
 textures is the original's too
 ([mesh textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-textures)).
 Differs:
 
-- **The pace** ([stepping](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md#stepping)):
+- **The pace**
+  ([stepping](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md#stepping)):
   a texture with no `MaxFrameRate`, as most of Deus Ex's have, steps every
   frame in the original, faster at a higher frame rate; the fork steps it at
   most 60 times a second, the original's pace at 60 frames.
-- **The wave lighting table** can be one step off at a single entry, in 3 of 200 settings: the
-  fork takes the C library's cosine, the original the x87's, and they differ in the last bit.
+- **The wave lighting table** can be one step off at a single entry, in 3 of
+  200 settings: the fork takes the C library's cosine, the original the
+  x87's, and they differ in the last bit.
 - The original's fire repeats itself from run to run; the fork's varies
   (`LaserConsole`).
 
 ### Head turns and lip sync: blend animations
 
-Matches the original ([blend animations](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#blend-animations)).
+Matches the original
+([blend animations](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#blend-animations)).
 
 ### Lists
 
-Matches the original ([lists](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#lists)):
+Matches the original
+([lists](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#lists)):
 the rows, fields, sort order and selections that `MenuConsole` and
 `ScreenConsole` log are alike in both engines. A list shown with rows
 selects and focuses its first, so the Images screen opens on its first
@@ -351,24 +375,25 @@ fills it, and scrolls a row at a time (`ScrollConsole`).
 
 ### The UI
 
-Matches the original ([the UI in front of the game](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#the-ui-in-front-of-the-game),
+Matches the original
+([the UI in front of the game](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#the-ui-in-front-of-the-game),
 [layout](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#layout),
 [text](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#text),
 [buttons](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#buttons),
 [scales and scrolling](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#scales-and-scrolling),
 [tiles and tab groups](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#tiles-and-tab-groups),
 [drawing](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#drawing),
-[small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)):
-`GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`,
-`ChoiceConsole` for a conversation's choices, `SizeConsole` for a new
-window's size, `ScrollConsole` for a scroll area and a slider,
-`ClickConsole` for a button, a choice and a checkbox clicked, a menu
-dragged by its title bar and Alt with a letter, `EditConsole` for a
-script's text in an edit field, a text window and a button, and
-`MenuConsole` and `ScreenConsole`, which log every menu and game screen's
-windows: their places, sizes, text, focus, a slider's value text, a scroll
-area's bars, a tile's children and a list's rows read alike in both engines
-but for what is listed below. The same, read from the original's code:
+[small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/extension-dll.md#small)).
+The consoles: `GetConsole`, `BeltConsole`, `BorderConsole`, `ColorsConsole`;
+`ChoiceConsole` for a conversation's choices; `SizeConsole` for a new
+window's size; `ScrollConsole` for a scroll area and a slider;
+`ClickConsole` for a button, a choice and a checkbox clicked, a menu dragged
+by its title bar and Alt with a letter; `EditConsole` for a script's text in
+an edit field, a text window and a button. `MenuConsole` and `ScreenConsole`
+log every menu and game screen's windows (their places, sizes, text, focus,
+a slider's value text, a scroll area's bars, a tile's children and a list's
+rows), alike in both engines but for what is listed below. The same, read
+from the original's code:
 
 - **A new window** starts hidden, 10 by 10; its parent and ancestors hear of
   it before its `InitWindow`, and it is shown after, so `VisibilityChanged`
@@ -448,11 +473,11 @@ but for what is listed below. The same, read from the original's code:
   `SizeConsole` at 1600x900 and 1276x960 (a scale of 1 at both),
   `MenuConsole` and `ScreenConsole` at 1600x900: the windows' places and
   sizes alike.
-- **The frob highlight's box** (`ConvertVectorToCoordinates`) is projected by
-  the main scene's view into the root window's coordinates: `FrobConsole`'s
-  boxes round two decorations, the crosshair on their middle and turned 5
-  degrees four ways, lie within 7 pixels of the original's at 1280x720 with
-  the original's [view width](#the-views-width).
+- **The frob highlight's box** (`ConvertVectorToCoordinates`) is projected
+  by the main scene's view into the root window's coordinates:
+  `FrobConsole`'s boxes round two decorations, the crosshair on their middle
+  and turned 5 degrees four ways, lie within 7 pixels of the original's at
+  1280x720 with the original's [view width](#the-views-width).
 
 Differs:
 
@@ -464,11 +489,11 @@ Differs:
   press, not from the characters the platform sends, and it forgets the
   keys held as its window loses the keyboard.
 - **Keyboard focus**: the fork places windows in its layout pass, after the
-  level's tick, and seeds the first focus there; the original places them
-  as they are made and seeds it at its windows' next tick, so a
-  conversation's first choice has the focus a frame sooner (`ChoiceConsole`).
-  Read from both codes, the tables pass no window over as clipped away, the
-  fork keeping no clip rectangles.
+  level's tick, and seeds the first focus there; the original places them as
+  they are made and seeds it at its windows' next tick, so a conversation's
+  first choice has the focus a frame sooner (`ChoiceConsole`). Read from
+  both codes, the tables pass no window over as clipped away, the fork
+  keeping no clip rectangles.
 - **Layout** (`MenuConsole`, `ScreenConsole`, `SizeConsole`): the fork lays
   windows out once a frame, the original as each asks, so a window made this
   frame is 10 by 10 until the next; a window that shows sits at the margins
@@ -497,8 +522,8 @@ value and its setting's `GET` -- and steps back (`SettingsConsole`). A
 volume slider moved but not yet saved plays its new level while `GET` still
 reads the saved one, as the original's subsystem and class default differ.
 With Decals off no new decal attaches
-([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)) and the
-ones on the walls are not drawn
+([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small))
+and the ones on the walls are not drawn
 ([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame);
 `DecalConsole`). Differs:
 
@@ -513,8 +538,8 @@ ones on the walls are not drawn
   frames are the same with the setting on and off, though each condition
   read holds but one, the client it reads through a static pointer
   ([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures);
-  `MeshConsole` with `NoDetail`). The fork's darken Liberty Island's pier
-  2.3% ([brightness](#brightness)).
+  `MeshConsole` with `NoDetail`); what that does to the pier's picture is
+  under [brightness](#brightness).
 - **World and Object Texture Detail** are kept and read back, but every
   texture draws at full detail; **Low Sound Quality** is kept, but every
   sound plays at its own; 16-bit **Texture Color Depth** is kept, the fork
@@ -526,20 +551,21 @@ ones on the walls are not drawn
   ([`RELAUNCH`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#relaunch)):
   the recreated launcher's renderer page, or a dedicated server. The fork
   passes the line to the launcher on its line
-  ([running it](ENGINE.md#running-it)), which starts again once the game
-  has ended, where the original's new process starts while the old one is
-  still ending. With no launcher on the line -- the ports' launcher, or the
-  engine started by hand -- the dedicated server's starts the engine again
-  itself, as that server, and Rendering Device does nothing.
+  ([running it](ENGINE.md#running-it)), which starts again once the game has
+  ended, where the original's new process starts while the old one is still
+  ending. With no launcher on the line -- the ports' launcher, or the engine
+  started by hand -- the dedicated server's starts the engine again itself,
+  as that server, and Rendering Device does nothing.
 
 ## Sound
 
-Matches `Galaxy.dll` ([`galaxy-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md)):
-Deus Ex's sounds are mixed as its mixer mixes them (pan, volumes,
-resampling and reverb, at `OutputRate`) into one OpenAL source, one behind
-the level's BSP muffled -- a closed door's too, the movers in it where it
-filed them ([the movers in a line's way](#implemented-not-as-the-original)).
-Who hears a sound an actor plays is the original's too
+Matches `Galaxy.dll`
+([`galaxy-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md)):
+Deus Ex's sounds are mixed as its mixer mixes them (pan, volumes, resampling
+and reverb, at `OutputRate`) into one OpenAL source, one behind the level's
+BSP muffled -- a closed door's too, the movers in it where it filed them
+([the movers in a line's way](#implemented-not-as-the-original)). Who hears
+a sound an actor plays is the original's too
 ([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds)):
 the player within the radius ÷ √1.3, and with the level's BSP between, at
 0.35 of the volume within 0.77 of that, but for the actor's instigator.
@@ -556,11 +582,12 @@ root's own volume unheard in both. Differs:
 - Not carried: Galaxy's quirk with the Sound and Speech sliders equal, both
   kinds of sound scaled by the slider once more.
 - Not carried: the original's 1/256 volume floor, an integer artifact.
-- A change to `EffectsChannels` (the Sound menu's Effects Channels) applies at
-  once, held to 0-32, as the original's. The sounds on channels past a lowered
-  count stop, where the original's play on out of its reach, and a raised
-  count's channels are voices of their own, where the original's are its
-  music's ([settings](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#settings)).
+- A change to `EffectsChannels` (the Sound menu's Effects Channels) applies
+  at once, held to 0-32, as the original's. The sounds on channels past a
+  lowered count stop, where the original's play on out of its reach, and a
+  raised count's channels are voices of their own, where the original's are
+  its music's
+  ([settings](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#settings)).
 - Not carried: the holds a `SET` puts on `DopplerSpeed` and `AmbientFactor`,
   which no menu sets.
 - An ambient sound on a light follows its blink and strobe on the fork's
@@ -588,25 +615,25 @@ Every other native the scripted runs compare matches the original
   mover not hidden that has moved or turned since; a destroyed one stays
   filed until the next load or save. `FastTrace` and the checks on its line
   (`LineOfSightTo`, hearing, the reach tests and path searches, the
-  visible-actor iterators, network relevance, mesh lights' shadows, the
-  AI's sight and the mixer's walls, [sound](#sound)) meet the filed
-  polygons, a line's `Trace` and the multi-hit check meet them as the
-  level's, after the mover's own hit where it still is, and a box meets
-  none (`MoverConsole` on Liberty Island and DXMP_Silo: a door made not to
-  collide, then hidden and moved, then saved; a window broken, at once and
-  a frame on; `VisibleConsole` there). Not carried: the refiling of the
-  movers filed under one filed again, which the original files again
-  wherever they are; and the polygons are filed whole, where the original's
-  tree drops what lands in solid, which no line in the open meets. A
-  dedicated server, drawing no frame, never files a mover again: unproven.
+  visible-actor iterators, network relevance, mesh lights' shadows, the AI's
+  sight and the mixer's walls, [sound](#sound)) meet the filed polygons, a
+  line's `Trace` and the multi-hit check meet them as the level's, after the
+  mover's own hit where it still is, and a box meets none (`MoverConsole` on
+  Liberty Island and DXMP_Silo: a door made not to collide, then hidden and
+  moved, then saved; a window broken, at once and a frame on;
+  `VisibleConsole` there). Not carried: the refiling of the movers filed
+  under one filed again, which the original files again wherever they are;
+  and the polygons are filed whole, where the original's tree drops what
+  lands in solid, which no line in the open meets. A dedicated server,
+  drawing no frame, never files a mover again: unproven.
 - **Sight** (`SightConsole`), **the reach tests** (`ReachConsole`), and
   **the look up and down stairs** (`StairConsole`: every answer of
   `Pawn.FindStairRotation` alike on Liberty Island's pier and
   `SlideConsole`'s slope,
   [small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
-- **Falls**, a whole frame at once in the original's steps, each by its
-  mean velocity (a pawn's air control, a bounce left to the script, a wall
-  slid along, a landing ending the frame's move), coming to rest where the
+- **Falls**, a whole frame at once in the original's steps, each by its mean
+  velocity (a pawn's air control, a bounce left to the script, a wall slid
+  along, a landing ending the frame's move), coming to rest where the
   original's do at 60 frames a second and at 20, and their landing on a
   ledge -- a crate nudged off it, a pawn fitted clear of it and pushed on at
   random (`RestConsole`,
@@ -623,8 +650,8 @@ Every other native the scripted runs compare matches the original
   0.3 of `WaterSpeed`, as it walks whenever it swims; up out of the water it
   hops and falls back in, bobbing).
 - **Walking**, a whole frame at once in the original's steps, a slope slid
-  down where the zone's ground friction is low, and its ledges: a pawn that
-  cannot jump stopped there, its move given up, any other given `Falling`
+  down where the zone's ground friction is low. Its ledges: a pawn that
+  cannot jump stops there, its move given up; any other is given `Falling`
   (`WadeConsole`: a troop walking off the pier given the jump
   `ScriptedPawn`'s `FallingState` aims at its destination, `EAdjustJump`,
   into the water or across it, with `bCanSwim` off, and stopped at the edge
@@ -663,11 +690,12 @@ Differs:
   at once (`MoverConsole`: a line through the wall over a door).
   `VisibleConsole`'s lines across DXMP_Silo's `DeusExMover19` and `25` meet
   the level in the original and the mover in the fork; why is unread.
-- **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so a player can tell
-  which engine they run ([the version](ENGINE.md#running-on-our-devices)). The original's is
-  "Mon Mar 19 12:06:14 2001 v1.112fm".
-- **The engine's own rotations** (the view, movement) take exact angles;
-  the scripts' conversions take the original's sine table
+- **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so
+  a player can tell which engine they run
+  ([the version](ENGINE.md#running-on-our-devices)). The original's is "Mon
+  Mar 19 12:06:14 2001 v1.112fm".
+- **The engine's own rotations** (the view, movement) take exact angles; the
+  scripts' conversions take the original's sine table
   ([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)).
   At 20 frames a second `FlightConsole`'s gull, flown level into the pier's
   wall, turns and slides some 18 units along it in the original, where the
@@ -684,16 +712,16 @@ at every load the actor list is put in the original's order, static actors
 first, and every pass of the tick starts after them, so a static actor never
 ticks -- on Liberty Island 1,833 of some 2,600, none of which animates or
 keeps a timer (`StaticConsole`). Each dynamic actor's distance to the player
-comes first, in single player; an actor whose owner has not ticked that frame
-waits for it; one spawned during the pass is ticked in it; a class whose
-defaults are static or not to be deleted is not spawned; and stasis is for
-single player only.
+comes first, in single player; an actor whose owner has not ticked that
+frame waits for it; one spawned during the pass is ticked in it; a class
+whose defaults are static or not to be deleted is not spawned; and stasis is
+for single player only.
 
 **Garbage** is collected as the original's map load collects it
 ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-map-loads-collection);
 the fork's: [objects and memory](ENGINE.md#objects-and-memory)), the new
-level's actors that are not in its `Actors` (an editor brush, a camera)
-with it. `GarbageConsole` and `DeleteConsole` run both engines. Differs:
+level's actors that are not in its `Actors` (an editor brush, a camera) with
+it. `GarbageConsole` and `DeleteConsole` run both engines. Differs:
 
 - **When**: at the end of the frame of the load, once the new level has
   begun and the player is in, where the original's runs before the new
@@ -706,39 +734,38 @@ with it. `GarbageConsole` and `DeleteConsole` run both engines. Differs:
 - **Code is never freed**, where the original's frees a script class nothing
   uses and loads it again when asked for.
 
-On linux-x86_64 under software GL (llvmpipe), Liberty Island and Battery Park
-loaded in turn (`reload-fresh.txt`), twenty loads: 522 MB at the end, 528 MB at most;
-each island load's collection leaves the same 43,054 objects and frees some
-130 textures and 20 sounds. Liberty Island and UNATCO HQ through `Current`
-(`reload-current.txt`): 522 MB at most throughout. A collection takes 28 to
-66 ms there; on the Smart Pro 200 to 265 ms without the name walk.
+Measured on linux-x86_64 under software GL (llvmpipe), and on the Smart Pro:
 
-**Names** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
+| Run | At engine | Result |
+|---|---|---|
+| Liberty Island and Battery Park loaded in turn (`reload-fresh.txt`), twenty loads | `2bdaa7d` | 522 MB resident at the end, 528 MB at most; each island load's collection leaves the same 43,054 objects and frees some 130 textures and 20 sounds |
+| Liberty Island and UNATCO HQ through `Current` (`reload-current.txt`) | `2bdaa7d` | 522 MB at most throughout |
+| A collection | `2bdaa7d`; the Smart Pro's `33cf17c` | 28 to 66 ms on linux-x86_64; 200 to 265 ms on the Smart Pro, without the name walk |
+| `ChurnConsole`, 2,200 actors a second for two minutes | `4638626` | 358 MB resident throughout; the name walk adds 5 to 8 ms to a collection on linux-x86_64 |
+
+**Names**
+([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
 a spawned actor, an AI event's object, an object a script makes with `new`
 and a new window are named as the original names them
 (`MakeUniqueObjectName`: the class's name without trailing digits and the
 class's count, past any number an object of its package already has), and
 the collection deletes such a name once nothing holds it (an object's own
-name, its properties', a class's defaults, a state frame's locals), its
-slot taken by the next name made. Differs: every other name -- from a
-package, an ini, the script or C++, or a spawned actor's looked up by its
-spelling -- is kept for the session, where the original's deletes any name
-nothing reaches but the hard-coded ones. `ChurnConsole` (2,200 actors a
-second for two minutes) stays at 358 MB resident, where keeping every name
-grew it by 77 MB; the name walk adds 5 to 8 ms to a collection on
-linux-x86_64.
+name, its properties', a class's defaults, a state frame's locals), its slot
+taken by the next name made. Differs: every other name -- from a package, an
+ini, the script or C++, or a spawned actor's looked up by its spelling -- is
+kept for the session, where the original's deletes any name nothing reaches
+but the hard-coded ones (`ChurnConsole`'s memory: the table above).
 
 **Destroyed actors** are the original's
 ([destroyed actors](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#destroyed-actors)):
 each joins the level's chain (`FirstDeleted`, through `Deleted`), and at the
 end of a level's tick, once 128 wait, or before a save, every live actor's
-references to them are made None and the event manager is told. The
-original then deletes them; the fork frees them at the next collection,
-which makes every other reference to them None (a window's, a
-conversation's), where the original's delete leaves those pointing at
-freed memory, and the fork lets them gather between collections
-([when](ENGINE.md#objects-and-memory)): a collection is a hitch on the
-Smart Pro (above). A map load does not clean
+references to them are made None and the event manager is told. The original
+then deletes them; the fork frees them at the next collection, which makes
+every other reference to them None (a window's, a conversation's), where the
+original's delete leaves those pointing at freed memory, and the fork lets
+them gather between collections ([when](ENGINE.md#objects-and-memory)): a
+collection is a hitch on the Smart Pro (above). A map load does not clean
 the chain of the level it leaves, as the original's does only for `?push`:
 that level is freed whole. A decal attached again after its `Destroyed`
 (which detaches it) stays on its surfaces until that cleanup, as the
@@ -760,12 +787,12 @@ engine's own objects are not deleted (the log says so).
 
 - **A long frame**: the actors' step is at most 0.4 s, as the original's
   ([a level's tick](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#a-levels-tick)).
-  The frame's time on the level's clock is held to 1 s; the original's
-  first frame on a level it travels to takes in the whole load, some 1.5 s
-  on Liberty Island, of which its actors get 0.4 (`AIConsole`), where the
+  The frame's time on the level's clock is held to 1 s; the original's first
+  frame on a level it travels to takes in the whole load, some 1.5 s on
+  Liberty Island, of which its actors get 0.4 (`AIConsole`), where the
   fork's is a frame of its own, a tenth of a second or so. So the player's
-  fall at the island's start lands elsewhere: the original's first step,
-  0.1 s, a move of 4.75 units down, meets the floor too near to go anywhere
+  fall at the island's start lands elsewhere: the original's first step, 0.1
+  s, a move of 4.75 units down, meets the floor too near to go anywhere
   ([moving](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#moving)),
   where the fork's shorter step lands it lower, and the walk lifts it twice,
   not once: the fork's player stands 4.80 over the floor to the original's
@@ -777,41 +804,44 @@ engine's own objects are not deleted (the log says so).
 - **Input axes**: an axis a console command sets is used as it is; the
   original's input scales it (the harness's `StandConsole` and `JoinConsole`
   allow for it).
-- **The field of view** is the original's setting: the player's
-  `DefaultFOV` is Deus Ex's own config, 75 (`[Engine.PlayerPawn]` in
-  `User.ini`), the angle across a 4:3 view ([the view's width](#the-views-width)). Upstream's own key,
-  `MainFOV`, which the game's ini lacks (it would make the view 90), is
-  neither read nor written for Deus Ex.
+- **The field of view** is the original's setting: the player's `DefaultFOV`
+  is Deus Ex's own config, 75 (`[Engine.PlayerPawn]` in `User.ini`), the
+  angle across a 4:3 view ([the view's width](#the-views-width)). Upstream's
+  own key, `MainFOV`, which the game's ini lacks (it would make the view
+  90), is neither read nor written for Deus Ex.
 
 ## The command line
 
 The original's command line reaches the fork as one string, `--cmdline=`,
 which the recreated launcher's `run-game.sh` passes on as given
 ([running it](ENGINE.md#running-it)) but for its quotes, which that launcher
-drops ([its known defects](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#known-defects)).
+drops
+([its known defects](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#known-defects)).
 Its flags are found as the original finds them
 ([cli-flags.md](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md)),
 with one exception, by choice: a flag's name (`-X` or `/X`) must end at a
 space, a `?` (a URL's next option, where the Host screen's
 [`RELAUNCH`](#the-menus-settings) puts `-server`) or the line's end, where
-the original's `ParseParam` checks nothing after it. Both take `/` as a switch, and a Linux path is full of them: the
-original's would find `-server` in `INI=/srv/server/x.ini`. The recreated
-launcher parses alike
+the original's `ParseParam` checks nothing after it. Both take `/` as a
+switch, and a Linux path is full of them: the original's would find
+`-server` in `INI=/srv/server/x.ini`. The recreated launcher parses alike
 ([where it differs](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#where-it-differs-from-the-original)).
 What the fork does with each:
 
 - **The start URL**: with `-hax0r` or `-server`, the first word (the second
   after `SERVER`) unless it starts with `-`; else the game's own start,
-  `DX.dx` ([starting the game engine](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#starting-the-game-engine)).
+  `DX.dx`
+  ([starting the game engine](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#starting-the-game-engine)).
 - **`-server`**: a dedicated server, as `--server`.
 - **`INI=` and `USERINI=`**: the inis read and written back, as `--ini` and
   `--userini`.
 - **`EXEC=<file>`**: `exec <file>` on the player once the first map is in;
   `exec` runs a file's lines as commands, as the original's does.
-- **Safe mode's flags** ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md#flags-the-launcher-emits-safe-mode)):
+- **Safe mode's flags**
+  ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/cli-flags.md#flags-the-launcher-emits-safe-mode)):
   - `-nosound`: no sound and no music. The original makes no audio
     subsystem; the fork keeps its device, on OpenAL Soft's null driver.
-  - `-defaultres`: the window and fullscreen sizes 640×480 for the run, not
+  - `-defaultres`: the window and fullscreen sizes 640x480 for the run, not
     saved.
   - `-nohard -noddraw` ("Run the game in a window"): a window. The original
     gets there through its software renderer, which has no fullscreen mode
@@ -836,8 +866,7 @@ A mod gets the original's loader:
   server or editor) is never made, and a reference to it is None, as the
   original's linker has it: the live servers' anti-cheat packages (ANNA,
   DXNMS) point their classes' `ScriptText` at such exports. A save's exports
-  are all made whatever their flags, for the fork's older saves wrote
-  spawned actors without them.
+  are all made whatever their flags: the fork's own saves may lack them.
 - **Config files.** A class's config file that is not there is empty, its
   properties keeping their defaults, until the class writes it
   ([configuration](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#configuration)):
@@ -852,17 +881,16 @@ A mod gets the original's loader:
   a float or a string keeps the fork's default where the original's is 0 or
   empty.
 
-Differs:
-
-- **Macro textures**, which no stock texture has: the fork multiplies a
-  surface by its macro texture once, at the one-pass light map's scale.
-  `D3DDrv` draws it in the modulated blend, twice its colour, and the light
-  map in a second pass, twice as bright
-  ([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)).
+Differs in the macro textures, which no stock texture has: the fork
+multiplies a surface by its macro texture once, at the one-pass light map's
+scale. `D3DDrv` draws it in the modulated blend, twice its colour, and the
+light map in a second pass, twice as bright
+([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)).
 
 ## Multiplayer
 
-Matches the original's client and server ([the network](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md)):
+Matches the original's client and server
+([the network](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md)):
 joining and playing, listen and dedicated servers, replication with the
 original's native lists, the server's calls, downloads both ways, server
 travel, the Entry level for a lost server, the login, merged bunches, the
@@ -870,16 +898,15 @@ uplink and query answerer, the scripts' sockets
 ([the script's links](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-scripts-links)),
 the addresses they ask for, a player's and the server's own, and a server's
 URL with the address it bound (`ServeConsole`'s `serving` line;
-[the scripts' addresses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#addresses)),
-and the sounds the server plays, which a remote player's client plays
+[the scripts' addresses](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/network.md#addresses)).
+The sounds the server plays reach a remote player's client, which plays them
 through `Pawn.ClientHearSound`
 ([sounds](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#sounds);
-`ServeConsole`'s beeps, the client recorded).
-Each runs against the original as client and as server: `ServeConsole`,
-`JoinConsole`, `RejoinConsole`, `TravelServeConsole`, `TravelJoinConsole`,
-`NetConsole`. The fork joins live public servers, the mods they run included
-(MTL, ANNA, CDX, DXAG, SG), and stays in. Until its pawn arrives, a joining
-fork draws no world. The
+`ServeConsole`'s beeps, the client recorded). Each runs against the original
+as client and as server: `ServeConsole`, `JoinConsole`, `RejoinConsole`,
+`TravelServeConsole`, `TravelJoinConsole`, `NetConsole`. The fork joins live
+public servers, the mods they run included (MTL, ANNA, CDX, DXAG, SG), and
+stays in. Until its pawn arrives, a joining fork draws no world. The
 server-only stubs are under
 [not needed for single player](#not-needed-for-single-player). Differs:
 
@@ -891,7 +918,8 @@ server-only stubs are under
   names `.uxx`). A package a join loaded from the cache is let go by name at
   the next map load that does not use it, and that load's collection frees
   what nothing uses of it but its code, which stays loaded, where the
-  original's collects it all ([housekeeping](#housekeeping-not-seen-directly)).
+  original's collects it all
+  ([housekeeping](#housekeeping-not-seen-directly)).
 - **A listen server runs at most 144 frames a second**, where the original's
   runs as fast as it draws: a remote client's queue drains its rate over a
   tick, so the faster the ticks, the less room an unreliable call finds
@@ -907,21 +935,22 @@ server-only stubs are under
   simulated functions, so its player's floor is never its base, and the
   walk, as the original's, lifts a pawn only over its base: landed, it rests
   2.4 lower than the server's. At a wall 0.02 units; standing, none.
-- **The player's name in a net game**: a name the player never chose -- none,
-  or the game's stock `Player` -- logs in as `VibePlayer`, a client's to its
-  server and a listen server's host's, by choice, so the fork's players show
-  as such (`Engine::SetMultiplayerName`). A name the player chose is kept;
-  single player, the menus and the inis keep the game's.
+- **The player's name in a net game**: a name the player never chose --
+  none, or the game's stock `Player` -- logs in as `VibePlayer`, a client's
+  to its server and a listen server's host's, by choice, so the fork's
+  players show as such (`Engine::SetMultiplayerName`). A name the player
+  chose is kept; single player, the menus and the inis keep the game's.
 
 As in the original:
 
 - For a player's first seconds in, until the server's augmentation manager
-  reaches its client, the client walks at 100 where the server runs it at 230
-  (`GetCurrentGroundSpeed` gives 0 without one), and the server corrects a
-  walk by up to 36 units.
+  reaches its client, the client walks at 100 where the server runs it at
+  230 (`GetCurrentGroundSpeed` gives 0 without one), and the server corrects
+  a walk by up to 36 units.
 - A game hosted from the menus is never listed on a master server: an uplink
   announces a server only with its `DoUplink` set, which the game's
-  `DeusEx.ini` does not set ([the master server](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-master-server)).
+  `DeusEx.ini` does not set
+  ([the master server](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/ipdrv-dll.md#the-master-server)).
 - The Join Internet screen lists servers only once `MasterServerAddress`
   (`[DeusEx.MenuScreenJoinGame]` in `DeusEx.ini`) names a live master; the
   game's names GameSpy's, which is closed.
@@ -936,7 +965,8 @@ Stubs a single-player game does without; the audit lists each:
 - `DebugInfo` (compiled out in the original too:
   [`DebugInfo`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#debuginfo)),
   `SaveTimeDemo`, `Commandlet.Main`, and `Object`'s `clock`, `unclock` and
-  `CyclesToSeconds` ([the timing natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#clock-unclock-and-cyclestoseconds)).
+  `CyclesToSeconds`
+  ([the timing natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#clock-unclock-and-cyclestoseconds)).
 - `StatLog`'s and `StatLogFile`'s natives, which do nothing, so a fork
   server logging world stats writes no log of them.
 - `ComputerWindow`'s 22, which no script calls: the InfoLink's text window,

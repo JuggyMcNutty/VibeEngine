@@ -6,8 +6,8 @@ Engine 1 reimplementation, for Deus Ex on the platforms of
 Deus Ex. Its branch is `deusex`. You need your own copy of Deus Ex (version 1112fm); none of the
 game's files are included.
 
-- **Targets**: Linux x86_64 (the base) and the TrimUI Smart Pro; planned: aarch64 Linux,
-  Android, Xbox 360 ([where each stands](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/AGENTS.md#status)).
+- **Targets**: Port Ex Machina's ports, Linux x86_64 (the base) and the TrimUI Smart Pro first
+  ([the ports](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#ports)).
 - **Deus Ex as the original plays it**: where Surreal Engine lacks something the game needs, the
   original's behaviour is read from the game's DLLs
   ([dx-reverse-info](https://github.com/JuggyMcNutty/dx-reverse-info)) and reimplemented. The
@@ -17,9 +17,9 @@ game's files are included.
 
 Upstream's work does not come in: the two differ at the core
 ([how it is kept](vibe/docs/ENGINE.md#how-it-is-kept)). The source keeps upstream's names (the
-`SurrealEngine` executable and its folders), and [`Docs/`](Docs/) is upstream's documentation,
-about Surreal Engine rather than this fork. The fork's own docs and tools are in
-[`vibe/`](vibe/).
+`SurrealEngine` executable and its folders), and [`Docs/`](Docs/) (`Building.md`,
+`PackageFormat.md`) is upstream's documentation, about Surreal Engine rather than this fork. The
+fork's own docs and tools are in [`vibe/`](vibe/).
 
 - [`vibe/docs/ENGINE.md`](vibe/docs/ENGINE.md): how the fork is kept, run and profiled, and
   [what it changes](vibe/docs/ENGINE.md#what-the-fork-changes).
@@ -37,4 +37,5 @@ CMake as [`Docs/Building.md`](Docs/Building.md) says. Only Linux builds are made
 ## License
 
 Surreal Engine's licences are in [`LICENSE.md`](LICENSE.md); the fork's own changes are
-zlib-licensed, as Surreal Engine's own code is. Deus Ex belongs to its owners; this project is not affiliated with or endorsed by them.
+zlib-licensed, as Surreal Engine's own code is. Deus Ex belongs to its owners; this project is not
+affiliated with or endorsed by them.

@@ -29,8 +29,8 @@ a run of 60 s or more that looks at what was drawn, not only at the log:
 
 ## Scripted runs of both engines
 
-`vibe/tools/dxcap.sh` runs the original game (under Proton's `wine`, in the development container) and
-the fork alike, each driven by a console class of the DXCapture package: UnrealScript in
+`vibe/tools/dxcap.sh` runs the original game (under Proton's `wine`, in the development container)
+and the fork alike, each driven by a console class of the DXCapture package: UnrealScript in
 `vibe/tools/dxcap/Classes`, compiled by the SDK's `UCC.exe` (`reference/ReleaseSDK1112f`) into
 `build/dxcap`.
 
@@ -86,83 +86,83 @@ are gone.
 
 ### The console classes
 
-Each class's header comment in `vibe/tools/dxcap/Classes` says what it does; the scripts are in
-`vibe/tools/dxcap/`. *Both*: run in each engine and compare, side by side where no script reads
-the run. *Either*: one engine on each side of a pair.
+What each console does is its class's header comment in `vibe/tools/dxcap/Classes`; the table
+names it. The scripts are in `vibe/tools/dxcap/`. *Both*: run in each engine and compare, side by
+side where no script reads the run. *Either*: one engine on each side of a pair.
 
 | Console | Engines | Drives and logs | Prefix | Read with |
 |---|---|---|---|---|
 | `ProveConsole` | fork | the URL's map: two shots, an exit | `DXPROVE:` | `prove` |
-| `CaptureConsole` | both | tripwires, coronas, comment-jump conversations | `DXCAP:` | |
-| `ViewConsole` | both | the player's weapon in view; the level's light | `DXVIEW:` | |
-| `CoronaConsole` | both | Liberty Island's lamp coronas; a movable corona light of its own, in the player's BSP leaf and out of it | `DXCORONA:` | |
-| `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` | |
-| `ParticleConsole` | both | particles on the pier: smoke rising, growing and fading, and puffs thrown up under gravity; the scene alone, then six marked shots | `DXPART:` | |
-| `FaceConsole` | both | a character's mesh close up at Liberty Island's start: the mesh, skins and first animation frame of `MeshOf` (a class, `DeusEx.UNATCOTroop` by default) on an actor with no AI, unlit, `Ahead` units ahead; the view `Distance` units in front of its eyes, the HUD hidden; two marked shots | `DXFACE:` | |
-| `MeshConsole` | both | meshes lit on the pier; with `LODBias` set, at less detail; with `NoDetail`, the detail textures off | `DXMESH:` | |
-| `LightConsole` | both | a light of one effect (`Effect`, the spotlight by default) on `TargetMap`, among those whose axis meets the world, by name (`LightName`) or place in name order (`Pick`): the view `View` units off the spot it lights, facing it, the HUD hidden, conversations stopped, the lights reaching the spot logged, four marked shots, with `ShotAt` at that moment of the level's time, its clock slowed; `Pick=-1` lists the map's lights with an effect | `DXLIGHT:` | |
-| `FlashConsole` | both | the screen flash | `DXFLASH:` | |
-| `GlassConsole` | both | a glass mover (a `DeusExMover` whose `FragmentClass` is `GlassFragment`) on `TargetMap`, by name (`GlassName`) or place in name order (`Pick`): the view `View` units off it, the HUD hidden, the player unseen by the NPCs; two marked shots of the glass, two with an unlit crate and an unlit sprite drawn `STY_Normal` `Behind` units beyond it, two with the glass hidden, two with it broken; `Pick=-1` lists the map's glass movers | `DXGLASS:` | |
-| `HeldConsole` | both | what a pawn holds | `DXHELD:` | |
-| `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` | |
-| `AIConsole` | both | every NPC's state, orders, enemy, time since drawn, and whether the level lets the camera see it; the camera | `DXAI:`, `DXAISTATE:` | |
-| `StaticConsole` | both | the map's (`TargetMap`) static actors that animate or keep a timer, a life span, physics or a state, at 5 s and at 15 s, and a count by class: an engine that ticks them shows them moving on | `DXSTATIC:` | |
+| `CaptureConsole` | both | tripwires, coronas, comment-jump conversations | `DXCAP:` |  |
+| `ViewConsole` | both | the weapon in view; the level's light | `DXVIEW:` |  |
+| `CoronaConsole` | both | lamp coronas; a movable corona light of its own | `DXCORONA:` |  |
+| `LaserConsole` | both | a laser tripwire's beam and its actors | `DXLASER:` |  |
+| `ParticleConsole` | both | smoke and puffs on the pier, in marked shots | `DXPART:` |  |
+| `FaceConsole` | both | a character's mesh close up (`MeshOf`, `Ahead`, `Distance`) | `DXFACE:` |  |
+| `MeshConsole` | both | meshes lit on the pier (`LODBias`, `NoDetail`) | `DXMESH:` |  |
+| `LightConsole` | both | a light of one effect on `TargetMap` (`Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`) | `DXLIGHT:` |  |
+| `FlashConsole` | both | the screen flash | `DXFLASH:` |  |
+| `GlassConsole` | both | a glass mover on `TargetMap`, and what is behind it (`Pick`, `GlassName`, `View`, `Behind`) | `DXGLASS:` |  |
+| `HeldConsole` | both | what a pawn holds | `DXHELD:` |  |
+| `DeathConsole` | both | an NPC's death and its carcass | `DXDEATH:` |  |
+| `AIConsole` | both | every NPC's state, orders, enemy and render time; the camera | `DXAI:`, `DXAISTATE:` |  |
+| `StaticConsole` | both | `TargetMap`'s static actors at 5 s and 15 s | `DXSTATIC:` |  |
 | `MoveConsole` | both | every pawn's moves, every 2 s for 120 s | `DXMOVE:` | `move.py <original run> <fork run>` |
-| `ReachConsole` | both | `AIDirectionReachable`, `PointReachable`, `ActorReachable`, each pawn asked from its home spot | `DXREACH:` | |
-| `TraceConsole` | both | `TraceTexture`'s hits; toward decorations, `TraceActors`, `TraceTexture`, `Trace` and `FastTrace` | `DXTRACE:` | |
-| `FloatConsole` | both | the crates in the water by the pier, every quarter second | `DXFLOAT:` | |
-| `SwimConsole` | both | at the pier's edge, every tick for 4 s: the player falling into the water from three heights, diving, swimming up; a troop dropped and thrown in | `DXSWIM:` | |
-| `LadderConsole` | both | Liberty Island's first ladder found from the navigation points, every tick: the player at its foot, climbing 1 s, hanging, going down looking down, hanging, climbing onto the top | `DXLADDER:` | |
-| `WadeConsole` | both | at the ledge over water nearest the player's start, its blockers made not to collide, every tick for 6 s: a troop walking off it -- into the water, with `bCanSwim` off, with `bCanJump` off, across the water; with `TargetMap`, a troop walking down a shore into water, of the stock maps 14_OceanLab_Lab's alone | `DXWADE:` | `track.py <original run> <fork run>` |
-| `FlightConsole` | both | at the pier's edge, every tick for 5 s: a gull flying into the pier's wall level and rising, toward the player, walking off the pier, dropped into the water; a stock gull's own flight, 15 s | `DXFLIGHT:` | `track.py` |
-| `SlideConsole` | both | every tick for 4 to 7 s: the player on a slope whose texture's `Friction` is 0.5, then 0; gliding to a stop in a zone of ground friction 0.2; on a slope in such a zone | `DXSLIDE:` | `track.py`, at `DXCAP_FPS=60` and `20` |
-| `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators and `RadiusActors`, on `TargetMap` (Liberty Island by default) | `DXVIS:` | |
-| `MoverConsole` | both | where a line meets a mover: a door and a window on `TargetMap` (Liberty Island by default), `FastTrace`, `LineOfSightTo` and `Trace` across each, as the map has them; the door made not to collide, hidden and moved, saved; the window broken, at once, a frame on and after a save | `DXMOVER:` | the two logs diffed |
-| `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` | |
-| `StandConsole` | both | where a walking player rests over the floor, and how near a wall it walks into it stops | `DXSTAND:` | |
-| `StairConsole` | both | `Pawn.FindStairRotation` asked straight: the player stood along the pier to its edge and across `SlideConsole`'s slope, facing both ways, from three pitches and three frames | `DXSTAIR:` | the two logs' answers diffed |
-| `StompConsole` | both | a pawn landing on another, and on crates: the player onto Paul's head, Paul onto the player's, the player onto a crate that cannot be a base and onto a breakable one | `DXSTOMP:` | |
-| `RestConsole` | both | where a falling decoration rests; a crate and the player dropped over the pier's edge | `DXREST:` | |
-| `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` | |
-| `EndgameConsole` | both | an ending's way to the credits (`TargetMap`, 99_Endgame2 by default): its conversation stopped as it starts, then each second the Played flag, the mission script's timer and quote, and whether the credits are up | `DXEND:` | |
-| `AugVisionConsole` | both | an NPC behind a wall that the vision augmentation draws: its time since drawn, the augmentation off, on, on and turned about, off | `DXAUGVIS:` | |
-| `PortalConsole` | both | a map opened at a portal (`open <map>#<portal>`): the level's URL, where the player lands | `DXPORTAL:` | |
-| `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: the game, its base mutator, the player's augmentations, skills and keys; a `LoadMarker`'s `PostPostBeginPlay` calls; a basketball carried off the island, the player's hands and every basketball in each map | `DXRETURN:` | |
-| `GetConsole` | both | the console's `GET` and `SET`, the audio device's `EffectsChannels` among them; `GetPropertyText` and `SetPropertyText` of a public, a private, a const and a missing property; the main menu | `DXGET:` | |
-| `IniConsole` | both | with `DXCAP_USERINI`'s `User.ini` giving keys twice: `GetDefaultURL`'s `Name`, `Class` and `Team`, the player's and the class's `MouseSensitivity`, the player's name, the level's URL; `Team` written with `UpdateURL` and read back | `DXINI:` | |
-| `MenuConsole` | both | every menu screen from the menu map, as the player opens it: each window's tree (`WindowDump`: place, size, text, focus, a list's rows, a choice's value and setting) and a shot; message boxes answered No | `DXMENU:` | |
-| `SettingsConsole` | both | every setting of the Controls, Game Options, Display, Sound, Colors and Player Setup screens stepped on through its menu, saved with OK and read back, then stepped back: each choice's value and its setting's `GET` | `DXSET:` | |
-| `DecalConsole` | both | the Display menu's Decals: a bullet hole on the nearest wall, Decals set off, a second one, Decals on again; whether each is drawn (its `LastRenderedTime`) | `DXDECAL:` | |
-| `ScreenConsole` | both | the screens of a game (`TargetMap`, Liberty Island by default): the data vault's, the in-game menu's Save Game, the map's computers and ATM logged in to, a medical bot and a repair bot, each window tree as `MenuConsole` logs it | `DXSCREEN:` | |
-| `ScrollConsole` | both | the Keys screen's scroll area and the Sound screen's first slider: the UI cursor put on each part as a timeline's mouse clicks, holds, drags and turns the wheel there; the scale's tick, span and count, the clip window's position and sizes, the arrows' sensitivity, the list's focus row moved; the slider's value and text | `DXSCROLL:` | with `vibe/tools/dxcap/timelines/scroll.txt` on the fork |
-| `ClickConsole` | both | the main menu's Settings button, a Game Options choice and a LAN join screen checkbox, the UI cursor put on each as a timeline's mouse clicks there (a right click on the choice): the window opened, the value, the toggle; the Settings menu dragged by its title bar, its place; Alt+B and Alt+C on the Display screen, the window on top | `DXCLICK:` | with `vibe/tools/dxcap/timelines/clicks.txt` on the fork |
-| `EditConsole` | both | a script's text calls on an edit field -- set, set in capitals, inserted, a selection deleted, appended, emptied -- with its text, insertion point, selection, changed flag and every `TextChanged` it announces; a text window given a text in capitals; a button's and a large text window's accelerator as their text changes | `DXEDIT:` | |
-| `SizeConsole` | both | the viewport, the root window's size and the UI's scale, the main menu's place; the size a new window takes: a plain window, an empty text window, an empty label, a text window emptied, as made, on the next frames and asked for its preferred size | `DXSIZE:` | |
-| `PerfConsole` | both | what a frame costs: the map (`TargetMap`, Liberty Island by default) from its start, the player idle, the view held; from 15 s in, sixty one-second windows on the wall clock; the original's own cycle counters | `DXPERF:` | `vibe/tools/perf/frame-report.py`, with `DXCAP_PERF=1` ([measuring both engines](#measuring-both-engines)) |
-| `PerfTurnConsole` | both | `PerfConsole` with the view turning 45 degrees a second | `DXPERF:` | the same |
-| `BeltConsole` | both | the object belt | `DXBELT:` | |
-| `FrobConsole` | both | the frob highlight round two decorations, the view turned about them | `DXFROB:` | |
-| `LootConsole` | both | two carcasses searched, the inventory grid against its items | `DXLOOT:` | with `vibe/tools/dxcap/timelines/loot-drags.txt` on the fork |
-| `CarcassConsole` | both | what the map's carcasses and a killed NPC's hold, their search, the looted weapon in hand and away | `DXCARC:` | |
-| `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` | |
-| `KeypadConsole` | both | the root's focus with no modal up and round the keypad; the player walking; the keys a modal of the package's own is handed | `DXKEYPAD:` | with `vibe/tools/dxcap/timelines/stray-release.txt` on the fork |
-| `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` | |
-| `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` | |
-| `RotatorConsole` | both | `rotator(v)`, a rotator's string, `vector(r)`, `GetAxes`, `GetUnAxes` | `DXROT:` | |
-| `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` | |
-| `DynLoadConsole` | both | `Object.DynamicLoadObject` with a group in the name, its own, another or none; as a class not the object's own; a name not there | `DXDYNLOAD:` | |
-| `GarbageConsole` | both | 128 actors destroyed, one a tick, and when a live actor's references to them go None | `DXGARBAGE:` | |
-| `ChurnConsole` | fork | 20 actors spawned and 20 destroyed every tick for 120 s (with `DXCAP_MEMLOG=1`) | `DXCHURN:` | |
-| `DeleteConsole` | both | `CriticalDelete` as the game uses it: nano keys, the log, the history, a game directory; what `AllObjects` still finds | `DXDELETE:` | |
-| `SoundConsole` | both | a sound behind a wall; who hears the wall's source, in the open and behind the wall; a reverb zone; beeps from three sides; the root window's beeps from the screen's edges and centre | `DXCAP:` | `sound.py <run>`, with `DXCAP_RECORD=1` |
+| `ReachConsole` | both | the reach tests, each pawn asked from its home spot | `DXREACH:` |  |
+| `TraceConsole` | both | `TraceTexture`, `TraceActors`, `Trace` and `FastTrace` | `DXTRACE:` |  |
+| `FloatConsole` | both | the crates in the water by the pier | `DXFLOAT:` |  |
+| `SwimConsole` | both | falls into water, diving, swimming up; a troop thrown in | `DXSWIM:` |  |
+| `LadderConsole` | both | Liberty Island's first ladder, every tick | `DXLADDER:` |  |
+| `WadeConsole` | both | a troop walking off a ledge into water; `TargetMap`'s shore | `DXWADE:` | `track.py <original run> <fork run>` |
+| `FlightConsole` | both | a gull's flights at the pier; a stock gull's own | `DXFLIGHT:` | `track.py` |
+| `SlideConsole` | both | the player on low-friction slopes and in a low-friction zone | `DXSLIDE:` | `track.py`, at `DXCAP_FPS=60` and `20` |
+| `VisibleConsole` | both | `FastTrace`, `Trace`, the visible-actor iterators and `RadiusActors` on `TargetMap` | `DXVIS:` |  |
+| `MoverConsole` | both | lines across a door and a window on `TargetMap`, moved, hidden, broken, saved | `DXMOVER:` | the two logs diffed |
+| `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` |  |
+| `StandConsole` | both | where a walking player rests, and stops at a wall | `DXSTAND:` |  |
+| `StairConsole` | both | `Pawn.FindStairRotation` on the pier and a slope | `DXSTAIR:` | the two logs' answers diffed |
+| `StompConsole` | both | a pawn landing on another, and on crates | `DXSTOMP:` |  |
+| `RestConsole` | both | where a falling crate and the player come to rest | `DXREST:` |  |
+| `MissionConsole` | both | whether a mission map's script comes up | `DXMISSION:` |  |
+| `EndgameConsole` | both | an ending's way to the credits (`TargetMap`) | `DXEND:` |  |
+| `AugVisionConsole` | both | an NPC behind a wall under the vision augmentation | `DXAUGVIS:` |  |
+| `PortalConsole` | both | a map opened at a portal | `DXPORTAL:` |  |
+| `ReturnConsole` | both | Liberty Island, UNATCO HQ and back: what travels and what stays | `DXRETURN:` |  |
+| `GetConsole` | both | `GET`, `SET`, `GetPropertyText`, `SetPropertyText`; the main menu | `DXGET:` |  |
+| `IniConsole` | both | a `User.ini` with keys given twice (`DXCAP_USERINI`) | `DXINI:` |  |
+| `MenuConsole` | both | every menu screen's window tree (`WindowDump`) and a shot | `DXMENU:` |  |
+| `SettingsConsole` | both | every menu setting stepped, saved and read back | `DXSET:` |  |
+| `DecalConsole` | both | the Display menu's Decals | `DXDECAL:` |  |
+| `ScreenConsole` | both | the game's screens on `TargetMap`, each window tree | `DXSCREEN:` |  |
+| `ScrollConsole` | both | a scroll area and a slider under the mouse | `DXSCROLL:` | with `vibe/tools/dxcap/timelines/scroll.txt` on the fork |
+| `ClickConsole` | both | a button, a choice and a checkbox clicked; a menu dragged; Alt accelerators | `DXCLICK:` | with `vibe/tools/dxcap/timelines/clicks.txt` on the fork |
+| `EditConsole` | both | a script's text calls on an edit field, a text window and a button | `DXEDIT:` |  |
+| `SizeConsole` | both | the root's size and scale; the size a new window takes | `DXSIZE:` |  |
+| `PerfConsole` | both | what a frame costs on `TargetMap`: sixty one-second windows | `DXPERF:` | `vibe/tools/perf/frame-report.py`, with `DXCAP_PERF=1` ([measuring both engines](#measuring-both-engines)) |
+| `PerfTurnConsole` | both | `PerfConsole` with the view turning | `DXPERF:` | the same |
+| `BeltConsole` | both | the object belt | `DXBELT:` |  |
+| `FrobConsole` | both | the frob highlight round two decorations | `DXFROB:` |  |
+| `LootConsole` | both | two carcasses searched; the inventory grid | `DXLOOT:` | with `vibe/tools/dxcap/timelines/loot-drags.txt` on the fork |
+| `CarcassConsole` | both | what carcasses hold, their search, the looted weapon | `DXCARC:` |  |
+| `ChoiceConsole` | both | a conversation's choices and their focus | `DXCHOICE:` |  |
+| `KeypadConsole` | both | the root's focus round the keypad; a stray key release | `DXKEYPAD:` | with `vibe/tools/dxcap/timelines/stray-release.txt` on the fork |
+| `BorderConsole` | both | `GC.DrawBorders` on the inventory screen | `DXBORDER:` |  |
+| `ColorsConsole` | both | `DrawBorders` on the Colors screen | `DXCOLORS:` |  |
+| `RotatorConsole` | both | the rotator and vector conversions | `DXROT:` |  |
+| `MidConsole` | both | `Object.Mid` at its edges | `DXMID:` |  |
+| `DynLoadConsole` | both | `Object.DynamicLoadObject` by each form of name | `DXDYNLOAD:` |  |
+| `GarbageConsole` | both | 128 actors destroyed, one a tick | `DXGARBAGE:` |  |
+| `ChurnConsole` | fork | 20 actors spawned and 20 destroyed every tick for 120 s (with `DXCAP_MEMLOG=1`) | `DXCHURN:` |  |
+| `DeleteConsole` | both | `CriticalDelete` as the game uses it | `DXDELETE:` |  |
+| `SoundConsole` | both | sounds behind a wall, a reverb zone, beeps from three sides and the root window | `DXCAP:` | `sound.py <run>`, with `DXCAP_RECORD=1` |
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
-| `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load; the mission script, a `LoadMarker`'s `PostPostBeginPlay` calls | `DXSAVE:` | |
-| `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` | |
-| `ServeConsole` | either | a listen server: its own URL and address as it starts; every 2 s each player's place and address, its own number and the frames it drew; 8 beeps 1 s apart, 12 s after the other player is in; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py`, `netrelay.py` |
+| `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load | `DXSAVE:` |  |
+| `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` |  |
+| `ServeConsole` | either | a listen server, its players and beeps; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py`, `netrelay.py` |
 | `JoinConsole` | either | a client of `127.0.0.1:7790` | `DXNET:` | `sound.py --onsets <run>`, the client alone with `DXCAP_RECORD=1`: the server's beeps |
-| `RejoinConsole` | either | a client that joins twice | `DXREJOIN:` | |
-| `TravelServeConsole` | either | a server that travels; it exits after 150 s | `DXCAP:` | |
-| `TravelJoinConsole` | either | a client that follows it | `DXNET:` | |
+| `RejoinConsole` | either | a client that joins twice | `DXREJOIN:` |  |
+| `TravelServeConsole` | either | a server that travels; it exits after 150 s | `DXCAP:` |  |
+| `TravelJoinConsole` | either | a client that follows it | `DXNET:` |  |
 
 - `SaveConsole` and `LoadConsole` use the game's own `Save\Save0009` and `Save\Current`: delete
   them after. The original's own saves are in `reference/original-saves/`: Liberty Island's start
@@ -188,10 +188,8 @@ left, both from Liberty Island, ten loads of each map 25 s apart, then an exit:
 | `reload-fresh.txt` | the island and Battery Park | crosses a mission: `Current` emptied, the map from `Maps` |
 | `reload-current.txt` | the island and UNATCO HQ | stays in mission 1: the map left saved into `Current`, the next one from there |
 
-and four more: `loot-drags.txt`, `LootConsole`'s drags in the inventory screen;
-`stray-release.txt`, `KeypadConsole`'s release of a key no press came before; and `scroll.txt`
-and `clicks.txt`, `ScrollConsole`'s mouse and `ClickConsole`'s mouse and keys, on their
-schedules.
+and four more, each one console's input: `loot-drags.txt` (`LootConsole`), `stray-release.txt`
+(`KeypadConsole`), `scroll.txt` (`ScrollConsole`) and `clicks.txt` (`ClickConsole`).
 
 ```sh
 DXCAP_MEMLOG=1 DXCAP_TIMELINE=vibe/tools/dxcap/timelines/reload-fresh.txt \
@@ -227,13 +225,13 @@ the net game); the action `press <key>` or `release <key>` as the key in the win
 button pressed where the pointer is, a press of `MouseWheelUp` or `MouseWheelDown` a notch of the
 wheel), `pointer <x> <y>` the pointer moved there in the root window's coordinates, or a console
 command (`shot`, `exit`, ...). The timeline is `DXCAP_TIMELINE`'s file, or `JoinConsole`'s walk:
-stand 5 s, walk forward 5 s (`W`), stand, shots at the stops, out at 25 s. Each second of the
-game the player's place and every other pawn's are logged (`DXLIVE:`), and each correction the
-server sends the player (`ClientAdjustPosition`), how far it moved it; a run dropped to the menu
-exits. A join downloads what the fork lacks into the game's `Cache`. Which servers are up, and
-how full: `https://master.333networks.com/json/deusex`. Pick an empty server. Most run a mod
-(MTL, ANNA and others) whose player class replaces the stock moves and corrections, its names
-hidden: for the stock game's, serve the original here as for the [net tests](#net-tests)
+stand 5 s, walk forward 5 s (`W`), stand, shots at the stops, out at 25 s. Each second of the game
+the player's place and every other pawn's are logged (`DXLIVE:`), and each correction the server
+sends the player (`ClientAdjustPosition`), how far it moved it; a run dropped to the menu exits. A
+join downloads what the fork lacks into the game's `Cache`. Which servers are up, and how full:
+`https://master.333networks.com/json/deusex`. Pick an empty server. Most run a mod (MTL, ANNA and
+others) whose player class replaces the stock moves and corrections, its names hidden: for the
+stock game's, serve the original here as for the [net tests](#net-tests)
 (`original ServeConsole 300`, its port bound) and run `live 127.0.0.1:7790`.
 
 ### Shots
@@ -273,14 +271,14 @@ hidden: for the stock game's, serve the original here as for the [net tests](#ne
   32-bit libraries
   ([dependencies](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#dependencies)),
   under the Proton build's own `wine`, in a Wine prefix of its own (`build/dxcap/prefix`). A
-  prefix's Wine desktop is on the display of whatever started its wineserver: a prefix shared
-  with a Windows program started from the desktop, as
+  prefix's Wine desktop is on the display of whatever started its wineserver: a prefix shared with
+  a Windows program started from the desktop, as
   [`tools/ida/idalib-mcp.sh`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/tools/ida/idalib-mcp.sh)
   starts IDA, puts the game's first window there, where it fails with `BadWindow`.
 - **It runs in a view of the game**, `build/dxcap/game`, made afresh for each run: the game's
   folders linked, and its `System` folder's files except what the game writes there (its log,
-  `Running.ini`, shots), the IDA databases (`*.i64`) and any file with no extension. The
-  original takes a package's bare name in its working directory before any of its paths
+  `Running.ini`, shots), the IDA databases (`*.i64`) and any file with no extension. The original
+  takes a package's bare name in its working directory before any of its paths
   ([a package's file](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#packages-and-linkers)),
   so the recreated launcher's `DeusEx`, installed beside `DeusEx.exe`, cannot stand in for the
   `DeusEx` package there. The run's log, `Running.ini` (a stale one opens the recovery wizard,
@@ -300,11 +298,11 @@ hidden: for the stock game's, serve the original here as for the [net tests](#ne
 ### The display
 
 Both engines draw on the desktop's X display, Xwayland (`$DISPLAY`; `DXCAP_DISPLAY` names
-another), each in a 1280x720 window (`DXCAP_WINDOW` another size): the original through Wine's
-X11 driver, the fork through its window's X11 backend (`SURREALWIDGETS_DISPLAY_BACKEND=X11`,
-`WAYLAND_DISPLAY` unset, `SDL_VIDEODRIVER=x11`). One X server and the GPU serve both, so their runs compare; no run uses a
-hidden display, as runs on different displays do not compare. The development machine is given
-over to it: windows come and go on its desktop.
+another), each in a 1280x720 window (`DXCAP_WINDOW` another size): the original through Wine's X11
+driver, the fork through its window's X11 backend (`SURREALWIDGETS_DISPLAY_BACKEND=X11`,
+`WAYLAND_DISPLAY` unset, `SDL_VIDEODRIVER=x11`). One X server and the GPU serve both, so their
+runs compare; no run uses a hidden display, as runs on different displays do not compare. The
+development machine is given over to it: windows come and go on its desktop.
 
 ### Measuring both engines
 

@@ -19,7 +19,6 @@ decode is counted apart. It exits after --secs (300), or on Ctrl-C.
 import argparse
 import select
 import socket
-import sys
 import time
 
 MAX_PACKET = 512
