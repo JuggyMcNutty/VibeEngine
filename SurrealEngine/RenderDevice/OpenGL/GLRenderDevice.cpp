@@ -395,6 +395,8 @@ void GLRenderDevice::CreateScenePass()
 	std::vector<std::string> sceneDefines;
 	if (!DarkClamp)
 		sceneDefines.push_back("NO_DARKCLAMP");
+	if (MacroTwoPass)
+		sceneDefines.push_back("MACRO_TWO_PASS");
 	std::vector<std::string> alphaTestDefines = sceneDefines;
 	alphaTestDefines.push_back("ALPHATEST");
 	ScenePass.FragmentShader = CreateFragmentShader("ScenePass.PixelShader", "shaders/Scene.frag", sceneDefines);
@@ -1428,6 +1430,12 @@ void GLRenderDevice::DrawComplexSurface(SceneNode* Frame, SurfaceInfo& Surface, 
 	info.fogmap = (Surface.FogMap && Surface.FogMap->NumMips > 0 && !Surface.FogMap->Mips[0].Data.empty()) ?
 		Textures->GetTexture(Surface.FogMap, false) : nulltex;
 	info.editorcolor = nullptr;
+	auto panMult = [](const TextureInfo* t)
+	{
+		return t ? vec4(t->Pan.x, t->Pan.y, 1.0f / (t->UScale * t->USize), 1.0f / (t->VScale * t->VSize)) : vec4(0.0f);
+	};
+	info.texPanMult = panMult(Surface.Texture);
+	info.macroPanMult = panMult(Surface.MacroTexture);
 
 	if (Surface.DetailTexture && Surface.FogMap) info.detailtex = nulltex;
 
@@ -1459,21 +1467,21 @@ void GLRenderDevice::DrawComplexSurfaceFaces(const ComplexSurfaceInfo& info)
 	float UDot = dot(xaxis, info.facet->MapCoords.Origin);
 	float VDot = dot(yaxis, info.facet->MapCoords.Origin);
 
-	float UPan = UDot + info.tex->PanX;
-	float VPan = VDot + info.tex->PanY;
+	float UPan = UDot + info.texPanMult.x;
+	float VPan = VDot + info.texPanMult.y;
 	float LMUPan = UDot + info.lightmap->PanX - 0.5f * info.lightmap->UScale;
 	float LMVPan = VDot + info.lightmap->PanY - 0.5f * info.lightmap->VScale;
-	float MacroUPan = UDot + info.macrotex->PanX;
-	float MacroVPan = VDot + info.macrotex->PanY;
+	float MacroUPan = UDot + info.macroPanMult.x;
+	float MacroVPan = VDot + info.macroPanMult.y;
 	float DetailUPan = UDot + (info.fogmap == nulltex ? info.detailtex->PanX : info.fogmap->PanX - 0.5f * info.fogmap->UScale);
 	float DetailVPan = VDot + (info.fogmap == nulltex ? info.detailtex->PanY : info.fogmap->PanY - 0.5f * info.fogmap->VScale);
 
-	float UMult = info.tex->UMult;
-	float VMult = info.tex->VMult;
+	float UMult = info.texPanMult.z;
+	float VMult = info.texPanMult.w;
 	float LMUMult = info.lightmap->UMult;
 	float LMVMult = info.lightmap->VMult;
-	float MacroUMult = info.macrotex->UMult;
-	float MacroVMult = info.macrotex->VMult;
+	float MacroUMult = info.macroPanMult.z;
+	float MacroVMult = info.macroPanMult.w;
 	float DetailUMult = info.fogmap == nulltex ? info.detailtex->UMult : info.fogmap->UMult;
 	float DetailVMult = info.fogmap == nulltex ? info.detailtex->VMult : info.fogmap->VMult;
 

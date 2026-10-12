@@ -923,11 +923,15 @@ A mod gets the original's loader and natives:
   which count the steady clock's nanoseconds where the original's count the
   CPU's cycles.
 
-Differs in the macro textures, which no stock texture has: the fork
-multiplies a surface by its macro texture once, at the one-pass light map's
-scale. `D3DDrv` draws it in the modulated blend, twice its colour, and the
-light map in a second pass, twice as bright
-([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)).
+A macro texture, which no stock texture has, is drawn as `D3DDrv` draws it
+([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)):
+modulated at twice its colour, the light map after it twice as bright as on
+one pass, and not panned with the surface, at its own scale
+([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)).
+`LightConsole` with `Macro`, Liberty Island's `Spotlight0` on a world map
+given itself as its macro texture, has the GL and Vulkan devices' frames
+within 0.85 to 1.14 of `D3DDrv`'s in blocks of 16 pixels, as within 0.91 to
+1.07 without it. The D3D11 device, which no port builds, keeps upstream's.
 
 ## Multiplayer
 

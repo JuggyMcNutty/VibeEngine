@@ -88,11 +88,16 @@ bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly&
 			surfaceinfo.DetailTexture = &detailtex;
 		}
 
+		// Deus Ex's macro texture not panned with the polygon, as
+		// VisibleNode's
 		if (polyTex->MacroTexture())
 		{
 			UTexture* tex = poly.Texture->MacroTexture()->GetAnimTexture();
 			engine->render->UpdateTexture(tex);
-			engine->render->UpdateTextureInfo(macrotex, poly, tex, ZoneUPanSpeed, ZoneVPanSpeed);
+			if (engine->LaunchInfo.IsDeusEx())
+				engine->render->UpdateTextureInfo(macrotex, tex);
+			else
+				engine->render->UpdateTextureInfo(macrotex, poly, tex, ZoneUPanSpeed, ZoneVPanSpeed);
 			surfaceinfo.MacroTexture = &macrotex;
 		}
 	}

@@ -93,14 +93,22 @@ std::string GLFileResource::readAllText(const std::string& filename)
 				outColor = darkClamp(textureTex(texCoord)) * color;
 				outColor.rgb *= actorXBlending;
 
+				float lightmapScale = oneXBlending;
 				if ((flags & 2u) != 0u) // Macro texture
 				{
+					#if defined(MACRO_TWO_PASS)
+					// D3DDrv's passes: the macro modulated, twice its colour,
+					// into the 8-bit frame; the light map after, doubled
+					outColor.rgb = min(outColor.rgb * darkClamp(textureMacro(texCoord3)).rgb * 2.0, 1.0);
+					lightmapScale *= 2.0;
+					#else
 					outColor *= darkClamp(textureMacro(texCoord3));
+					#endif
 				}
 
 				if ((flags & 1u) != 0u) // Lightmap
 				{
-					outColor.rgb *= clamp(textureLightmap(texCoord2).rgb, 0.0, 1.0) * oneXBlending;
+					outColor.rgb *= clamp(textureLightmap(texCoord2).rgb, 0.0, 1.0) * lightmapScale;
 				}
 
 				if ((flags & 4u) != 0u) // Detail texture

@@ -281,6 +281,12 @@ private:
 		GLCachedTexture* detailtex;
 		GLCachedTexture* fogmap;
 		vec4* editorcolor;
+		// The base's and the macro texture's pan and scale (pan U, pan V,
+		// UMult, VMult) from the surface's own texture infos, as the Vulkan
+		// device takes them: one texture can be both, panned apart, where its
+		// cache entry keeps the last asked for.
+		vec4 texPanMult;
+		vec4 macroPanMult;
 	};
 	void DrawComplexSurfaceFaces(const ComplexSurfaceInfo& info);
 

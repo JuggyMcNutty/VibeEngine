@@ -16,6 +16,8 @@ ShaderManager::ShaderManager(VulkanRenderDevice* renderer) : renderer(renderer)
 		std::string();
 	if (!RenderDevice::DarkClamp)
 		sceneDefines += "#define NO_DARKCLAMP\r\n";
+	if (RenderDevice::MacroTwoPass)
+		sceneDefines += "#define MACRO_TWO_PASS\r\n";
 
 	Scene.VertexShader = GLSLCompiler()
 		.Type(ShaderType::Vertex)

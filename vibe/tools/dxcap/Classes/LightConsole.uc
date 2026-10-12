@@ -19,7 +19,9 @@
 // timed by the wall clock (the level's Hour to Millisecond), which the
 // slowed clock does not stretch. Every light reaching the spot is logged
 // too. Pick -1 is a census of the map instead: every light with an effect,
-// its effect and whether its axis meets the world, then an exit.
+// its effect and whether its axis meets the world, then an exit. With Macro
+// set, four shots more follow, the spot's texture given itself as its macro
+// texture, which no stock texture has (vibe/docs/NATIVES.md, mods).
 //=============================================================================
 class LightConsole extends Console;
 
@@ -30,6 +32,8 @@ var config int Aim;
 var config string LightName;
 var config float View;
 var config float ShotAt;
+var config bool Macro;
+var bool bMacroOn;
 
 var string CurrentMap;
 var float MapTime;
@@ -173,6 +177,45 @@ event PostRender(canvas C)
 		C.SetPos(12 + 12 * i, 0);
 		C.DrawRect(Texture'Solid', 12, 12);
 	}
+}
+
+// Four shots, or with Macro four more after it.
+function int ShotCount()
+{
+	if (Macro)
+		return 8;
+	return 4;
+}
+
+// The spot's texture made its own macro texture.
+function MacroOnItself(PlayerPawn P)
+{
+	local Actor A;
+	local name TexName, TexGroup;
+	local int Flags;
+	local vector HitLoc, HitNorm;
+	local Object Obj;
+	local class<Object> TextureClass;
+	local Texture T;
+
+	foreach P.TraceTexture(class'Actor', A, TexName, TexGroup, Flags, HitLoc, HitNorm, Spot - SpotNormal * 8, Spot + SpotNormal * 8)
+		break;
+	TextureClass = class'Texture';
+	foreach AllObjects(TextureClass, Obj)
+	{
+		if (Obj.Name == TexName)
+		{
+			T = Texture(Obj);
+			break;
+		}
+	}
+	if (T == None)
+	{
+		Log("DXLIGHT: no texture " $ TexName $ " at the spot");
+		return;
+	}
+	T.MacroTexture = T;
+	Log("DXLIGHT: macro texture " $ T $ " on itself");
 }
 
 // The candidates in name order; the Pick-th made the one shot.
@@ -345,7 +388,13 @@ event Tick(float Delta)
 		}
 		// Settled after 3 s; a shot every 2 s from then, the mark shown for
 		// the 0.6 s before each.
-		if (StepTime > 3.0 && ShotsTaken < 4)
+		if (Macro && !bMacroOn && ShotsTaken == 4 && StepTime > 2.0)
+		{
+			MacroOnItself(P);
+			bMacroOn = true;
+			StepTime = 0;
+		}
+		else if (StepTime > 3.0 && ShotsTaken < ShotCount())
 		{
 			if (!bMarking)
 			{
@@ -363,7 +412,7 @@ event Tick(float Delta)
 				StepTime = 1.0;
 			}
 		}
-		else if (ShotsTaken >= 4 && StepTime > 2.0)
+		else if (ShotsTaken >= ShotCount() && StepTime > 2.0)
 		{
 			Log("DXLIGHT: done, exiting");
 			P.ConsoleCommand("exit");

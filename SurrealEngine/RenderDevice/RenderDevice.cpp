@@ -28,6 +28,7 @@ RenderDevice::RenderDevice()
 }
 
 bool RenderDevice::DarkClamp = true;
+bool RenderDevice::MacroTwoPass = false;
 
 std::unique_ptr<RenderDevice> RenderDevice::Create(Widget* viewport, RenderAPI renderAPI)
 {

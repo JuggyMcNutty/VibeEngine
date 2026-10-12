@@ -176,6 +176,12 @@ public:
 	// (dx-reverse-info/d3ddrv-dll.md, textures). Set before a device is made,
 	// as its shaders are compiled with it.
 	static bool DarkClamp;
+	// A surface with a macro texture drawn as Deus Ex's D3DDrv draws it, in
+	// its two passes: the macro in the modulated blend, twice its colour,
+	// then the light map, twice as bright as on one pass
+	// (dx-reverse-info/d3ddrv-dll.md, the light maps' brightness). Set
+	// before a device is made, as DarkClamp.
+	static bool MacroTwoPass;
 
 	// 2D rendering
 	bool IsOrtho = false;

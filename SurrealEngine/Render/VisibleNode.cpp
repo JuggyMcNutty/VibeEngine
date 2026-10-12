@@ -54,12 +54,18 @@ void VisibleNode::Draw(VisibleFrame* frame)
 		engine->render->UpdateTextureInfo(detailtex, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
 	}
 
+	// Deus Ex's macro texture lies as the original's lock leaves it, at its
+	// own scale and not panned with the surface (dx-reverse-info
+	// render-dll.md, a frame); other games' pans with it.
 	TextureInfo macrotex;
 	if (surface.Material && surface.Material->MacroTexture())
 	{
 		tex = surface.Material->MacroTexture()->GetAnimTexture();
 		engine->render->UpdateTexture(tex);
-		engine->render->UpdateTextureInfo(macrotex, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
+		if (engine->LaunchInfo.IsDeusEx())
+			engine->render->UpdateTextureInfo(macrotex, tex);
+		else
+			engine->render->UpdateTextureInfo(macrotex, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
 	}
 
 	int numverts = Node->NumVertices;
