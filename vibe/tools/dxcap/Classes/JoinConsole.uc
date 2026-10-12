@@ -6,18 +6,23 @@
 // it as set -- StandConsole), and stands
 // again; its place, and every other player's as this side has it -- with
 // the other's animation: sequence, frame, rate --, is logged each second,
-// and shot at the stops. Exits 25 s into the game -- or back in
-// the menu, dropped or never in after 40 s.
+// and shot at the stops, with its base. A move of its own that its velocity
+// does not account for by more than a unit -- a server's correction -- is
+// logged as a jump, the time and how far. Exits 25 s into the game -- or back
+// in the menu, dropped or never in after 40 s.
 //=============================================================================
 class JoinConsole extends Console;
 
 var float MenuTime, GameTime, LogTime;
 var int Step;
+var vector LastLocation, LastVelocity;
+var bool bTracking;
 
 event Tick(float Delta)
 {
 	local PlayerPawn P;
 	local Pawn Other;
+	local vector Moved, Expected;
 
 	Super.Tick(Delta);
 	if (Viewport == None || Viewport.Actor == None)
@@ -50,10 +55,20 @@ event Tick(float Delta)
 	}
 
 	GameTime += Delta;
+	if (bTracking)
+	{
+		Moved = P.Location - LastLocation;
+		Expected = (LastVelocity + P.Velocity) * 0.5 * Delta;
+		if (VSize(Moved - Expected) > 1.0)
+			Log("DXNET: t=" $ GameTime $ " jump " $ VSize(Moved - Expected) $ " moved " $ Moved $ " expected " $ Expected $ " physics " $ P.Physics $ " base " $ P.Base);
+	}
+	LastLocation = P.Location;
+	LastVelocity = P.Velocity;
+	bTracking = true;
 	if (GameTime - LogTime >= 1.0)
 	{
 		LogTime = GameTime;
-		Log("DXNET: t=" $ int(GameTime) $ " at " $ P.Location $ " state " $ P.GetStateName() $ " physics " $ P.Physics);
+		Log("DXNET: t=" $ int(GameTime) $ " at " $ P.Location $ " state " $ P.GetStateName() $ " physics " $ P.Physics $ " base " $ P.Base);
 		foreach P.AllActors(class'Pawn', Other)
 			if (Other != P)
 				Log("DXNET: t=" $ int(GameTime) $ " other " $ Other.Name $ " at " $ Other.Location $ " velocity " $ Other.Velocity $ " anim " $ Other.AnimSequence $ " frame " $ Other.AnimFrame $ " rate " $ Other.AnimRate);

@@ -975,13 +975,13 @@ server-only stubs are under
   144 frames a second, 4 at 200 and none at some 1,300 (uncapped on the
   desktop with no vsync), as the original server's reach the fork's, 6 to 8:
   the first goes as the host stops, its last step's packet just sent.
-- **A server's corrections** (`ClientAdjustPosition`; the fork a client of
-  the original's server, a stock game): one as the player starts walking,
-  some 5 units, its first moves' latency; one at its spawn, 2.4 units up. A
-  client runs no level's `SupportActor`, a simulated proxy running only
-  simulated functions, so its player's floor is never its base, and the
-  walk, as the original's, lifts a pawn only over its base: landed, it rests
-  2.4 lower than the server's. At a wall 0.02 units; standing, none.
+- **A server's first correction** (`ClientAdjustPosition`, an unreliable
+  call, dropped while the connection has no room, which the join's first
+  replication fills at 2,600 bytes a second): it reaches the fork's client
+  1.7 s after it spawns on the original's server, and 4.2 s after on the
+  fork's, where the original's client takes it 0.15 s after it spawns on the
+  fork's server (`JoinConsole`'s jumps); why the fork's waits longer is
+  unread. At a wall 0.02 units; standing, none.
 - **The player's name in a net game**: a name the player never chose --
   none, or the game's stock `Player` -- logs in as `VibePlayer`, a client's
   to its server and a listen server's host's, by choice, so the fork's
@@ -990,6 +990,12 @@ server-only stubs are under
 
 As in the original:
 
+- Until a server's first correction gives it its base, a client's player
+  rests 2.46 units below the server's, which the correction lifts it by: a
+  client runs no level's `SupportActor`, a simulated proxy running only
+  simulated functions, so its floor is never its base, and the walk lifts a
+  pawn only over its base -- the fork's client on the original's server as
+  the original's on the fork's (`JoinConsole`).
 - For a player's first seconds in, until the server's augmentation manager
   reaches its client, the client walks at 100 where the server runs it at
   230 (`GetCurrentGroundSpeed` gives 0 without one), and the server corrects
