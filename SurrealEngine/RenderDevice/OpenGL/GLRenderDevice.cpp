@@ -181,6 +181,19 @@ void GLRenderDevice::Exit()
 
 void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 {
+	// The samples the driver takes for every attachment of the scene's
+	// framebuffer -- colour, the integer hit buffer and depth -- halved
+	// until they fit: an ES 3.1 driver may take one integer sample only.
+	if (multisample > 1)
+	{
+		GLint maxColor = 0, maxDepth = 0, maxInteger = 0;
+		glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &maxColor);
+		glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &maxDepth);
+		glGetIntegerv(GL_MAX_INTEGER_SAMPLES, &maxInteger);
+		int maxSamples = std::min({ maxColor, maxDepth, maxInteger });
+		while (multisample > 1 && multisample > maxSamples)
+			multisample /= 2;
+	}
 	multisample = std::max(multisample, 1);
 
 	if (SceneBuffers.Width == width && SceneBuffers.Height == height && multisample == SceneBuffers.Multisample && SceneBuffers.ColorBuffer && SceneBuffers.HitBuffer && SceneBuffers.PPHitBuffer && SceneBuffers.StagingHitBuffer && SceneBuffers.DepthBuffer && SceneBuffers.PPImage[0] && SceneBuffers.PPImage[1])
@@ -220,12 +233,22 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 	GLenum colorFormat = GL_RGBA;
 	GLenum colorType = ActiveHdr ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
+	// ES has no glTexImage2DMultisample: its glTexStorage2DMultisample (ES
+	// 3.1) makes the same buffer, immutable, which a resize makes anew.
+	auto multisampleImage = [&](GLenum internalFormat)
+	{
+		if (IsGLES)
+			glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.Multisample, internalFormat, SceneBuffers.Width, SceneBuffers.Height, GL_FALSE);
+		else
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.Multisample, internalFormat, SceneBuffers.Width, SceneBuffers.Height, GL_FALSE);
+	};
+
 	SceneBuffers.ColorBuffer = std::make_shared<GLTexture2D>();
 	if (SceneBuffers.Multisample > 1)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.ColorBuffer->Handle);
 		SetDebugName(SceneBuffers.ColorBuffer, "SceneBuffers.ColorBuffer");
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.Multisample, colorInternal, SceneBuffers.Width, SceneBuffers.Height, GL_FALSE);
+		multisampleImage(colorInternal);
 		glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexStorage2DMultisample(SceneBuffers.ColorBuffer) failed");
 	}
@@ -243,7 +266,7 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.HitBuffer->Handle);
 		SetDebugName(SceneBuffers.HitBuffer, "SceneBuffers.HitBuffer");
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.Multisample, GL_R32UI, SceneBuffers.Width, SceneBuffers.Height, GL_FALSE);
+		multisampleImage(GL_R32UI);
 		glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexStorage2DMultisample(SceneBuffers.HitBuffer) failed");
 	}
@@ -276,7 +299,7 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.DepthBuffer->Handle);
 		SetDebugName(SceneBuffers.DepthBuffer, "SceneBuffers.DepthBuffer");
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, SceneBuffers.Multisample, GL_DEPTH_COMPONENT32F, SceneBuffers.Width, SceneBuffers.Height, GL_FALSE);
+		multisampleImage(GL_DEPTH_COMPONENT32F);
 		glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, 0);
 		ThrowIfGLError("glTexStorage2DMultisample(SceneBuffers.DepthBuffer) failed");
 	}

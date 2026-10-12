@@ -311,9 +311,11 @@ wherever else that state is set.
   3.2 core, and the shaders bind their samplers with `layout(binding)`, which GLSL ES 3.00
   lacks. `gl_FragCoord.w` is 1/w on ES as on desktop, so the detail-texture distance fade is
   unchanged.
-- **Antialiasing on ES is untried**: the multisampled scene buffers are made with
-  `glTexImage2DMultisample`, which ES lacks (ES 3.1 has `glTexStorage2DMultisample`). The Smart
-  Pro's launcher keeps antialiasing off.
+- **Antialiasing on ES**: the multisampled scene buffers are made with ES 3.1's
+  `glTexStorage2DMultisample`, as ES lacks desktop GL's `glTexImage2DMultisample`; on either,
+  the samples are halved until every attachment takes them (an ES driver may take one sample of
+  the integer hit buffer). Tried on the desktop's ES 3.2 context; the Smart Pro's launcher keeps
+  antialiasing off.
 - **The desktop context**: every Linux window backend asks for a desktop 4.2 core context, as
   the shaders are GLSL 4.20 (`CompileGlsl` prepends `#version 420`): a driver without 4.2 fails
   at the context, with an error that says so, not at a shader.
