@@ -266,6 +266,9 @@ stock game's, serve the original here as for the [net tests](#net-tests)
   are scaled with the frame, and the shot numbers it reads from them are wrong.
 - A renderer that fails to start falls back to `SoftDrv` without a word, its frames passing for
   the renderer's: the script then fails, naming the log's `Bound to SoftDrv`.
+- **The same view.** Two runs' shots compare only from one view: one window size (`DXCAP_WINDOW`)
+  and, for `LightConsole`, one `View`, whose distance its `chosen` line logs; a fork run against
+  an original run of another `View` is off by however much the frame differs.
 
 ### Running the original
 
