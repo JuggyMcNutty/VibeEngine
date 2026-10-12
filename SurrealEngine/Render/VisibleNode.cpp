@@ -92,7 +92,16 @@ void VisibleNode::Draw(VisibleFrame* frame)
 	if ((PolyFlags & PF_Unlit) == 0)
 	{
 		lightmap = engine->Level->Light.GetLevelLightmap(surface, zoneActor, model);
-		fogmap = engine->Level->Light.GetLevelFogmap(surface, engine->CameraActor->Region().Zone, model);
+		// Deus Ex's fog map, as the original's renderer makes it
+		// (dx-reverse-info render-dll.md, light maps): only with the render
+		// device's VolumetricLighting on and the viewport's actor in a fog
+		// zone, for a surface not translucent, from the zone it is seen
+		// from, which a fog zone too; upstream took the camera's zone for
+		// every surface, fogging one seen from a zone without fog.
+		if (!engine->LaunchInfo.IsDeusEx())
+			fogmap = engine->Level->Light.GetLevelFogmap(surface, engine->CameraActor->Region().Zone, model);
+		else if (frame->VolumetricFog && (PolyFlags & PF_Translucent) == 0)
+			fogmap = engine->Level->Light.GetLevelFogmap(surface, zoneActor, model);
 	}
 
 	SurfaceInfo surfaceinfo;

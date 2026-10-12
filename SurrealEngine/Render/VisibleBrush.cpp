@@ -117,7 +117,9 @@ bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly&
 	if ((PolyFlags & PF_Unlit) == 0)
 	{
 		lightmap = engine->Level->Light.GetMoverLightmap(mover, poly, zoneActor, model);
-		fogmap = engine->Level->Light.GetMoverFogmap(mover, poly, zoneActor, model);
+		// Deus Ex's only as VisibleNode's makes one
+		if (!engine->LaunchInfo.IsDeusEx() || (frame->VolumetricFog && (PolyFlags & PF_Translucent) == 0))
+			fogmap = engine->Level->Light.GetMoverFogmap(mover, poly, zoneActor, model);
 	}
 
 	surfaceinfo.PolyFlags = PolyFlags;

@@ -12,6 +12,7 @@
 #include "Packages/Engine/Actors/Info/UWarpZoneInfo.h"
 #include "Packages/Engine/Actors/Info/USkyZoneInfo.h"
 #include "Packages/Engine/Actors/Info/ULevelInfo.h"
+#include "Packages/Engine/Subsystems/USurrealRenderDevice.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Packages/Extension/Windows/TabGroup/URootWindow.h"
 
@@ -24,6 +25,9 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	MirrorFlag = mirrorFlag;
 	PortalDepth = portalDepth;
 	DeusExOrder = engine->LaunchInfo.IsDeusEx();
+	UActor* viewActor = engine->viewport->Actor();
+	UZoneInfo* viewActorZone = viewActor ? viewActor->Region().Zone : nullptr;
+	VolumetricFog = engine->renderdev->VolumetricLighting && viewActorZone && viewActorZone->bFogZone();
 
 	SetupSceneFrame(worldToView);
 

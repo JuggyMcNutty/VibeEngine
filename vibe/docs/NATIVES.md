@@ -229,22 +229,26 @@ where both engines draw it
 ([a texel's place](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#light-maps)):
 `LightConsole` has 03_NYC_Airfield's `Spotlight7` and Liberty Island's
 `Spotlight0` within 0.90 to 1.05 of `D3DDrv`'s frames across their pools, in
-blocks of 16 pixels ([brightness](#brightness)). A surface's light map
-holds the ambient of the zone it is seen from, and pans at that zone's
-speeds, as the original's draw list has it: 06_HongKong_WanChai_Underworld's
-floor under its disco lights `Light2` and `Light21`, lit by its zone's
-ambient and one steady light, comes out at 0.97 of `D3DDrv`'s frames, the
-detail texture the rest ([the menus' settings](#the-menus-settings)). The
-other effects' shapes
-are Render.dll's own, on the level's time. `LightConsole`, shooting both
-engines at one moment of it (`ShotAt`), has 06_HongKong_WanChai_Canal's
-disco `Light343` at 1.00 of `D3DDrv`'s frame, 02_NYC_BatteryPark's cylinder
-`Light81` at a correlation of 0.98 to it, and 09_NYC_ShipBelow's slow wave
-`Light16` at 1.01 of its brightness. The rest are the reading's alone: the
-stock views of the searchlight, non-incidence and the rotor come out the
-same under other shapes too, and no stock light shows a fast wave
-(99_Endgame2's one is dark), shock, shell or interference. Still the fork's
-own:
+blocks of 16 pixels ([brightness](#brightness)). A surface's light map holds
+the ambient of the zone it is seen from, and pans at that zone's speeds, as
+the original's draw list has it: 06_HongKong_WanChai_Underworld's floor
+under its disco lights `Light2` and `Light21`, lit by its zone's ambient and
+one steady light, comes out at 0.97 of `D3DDrv`'s frames, the detail texture
+the rest ([the menus' settings](#the-menus-settings)). Its fog map is drawn
+only with the render device's `VolumetricLighting` on and the viewport's
+actor in a fog zone, for a surface not translucent whose zone is a fog zone
+too, as the original's renderer has it: 02_NYC_Underground's floor under the
+water below `Light33`'s grating, seen from the fog zone above, is unfogged
+in both, the frame within 1.01 of `D3DDrv`'s (`LightConsole`). The other
+effects' shapes are Render.dll's own, on the level's time. `LightConsole`,
+shooting both engines at one moment of it (`ShotAt`), has
+06_HongKong_WanChai_Canal's disco `Light343` at 1.00 of `D3DDrv`'s frame,
+02_NYC_BatteryPark's cylinder `Light81` at a correlation of 0.98 to it, and
+09_NYC_ShipBelow's slow wave `Light16` at 1.01 of its brightness. The rest
+are the reading's alone: the stock views of the searchlight, non-incidence
+and the rotor come out the same under other shapes too, and no stock light
+shows a fast wave (99_Endgame2's one is dark), shock, shell or interference.
+Still the fork's own:
 
 - **Light maps**
   - floats, converted on the CPU for the Smart Pro's GPU
@@ -290,9 +294,6 @@ shot meets the original's frames:
   the original none ([the menus' settings](#the-menus-settings)). Its crate,
   box and barrel are within 0.8%, Paul Denton a level over, and
   `LaserConsole`'s corridor within 0.9%.
-- 02_NYC_Underground under `Light33` (`LightConsole`) is at 1.02 of
-  `D3DDrv`'s frame across the pool, and the frame's lowest rows, dark in
-  `D3DDrv`'s, are twice as bright in the fork's; why is unread.
 
 ### The screen flash
 

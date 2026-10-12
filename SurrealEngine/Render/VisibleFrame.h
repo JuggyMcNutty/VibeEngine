@@ -27,6 +27,11 @@ public:
 	int FrameCounter = 0;
 	bool MirrorFlag = false;
 	int PortalDepth = 0;
+	// Deus Ex's fog maps drawn this frame: the render device's
+	// VolumetricLighting on and the viewport's actor in a fog zone, as the
+	// original's OccludeBsp gathers volumetric lights only then
+	// (dx-reverse-info render-dll.md, light maps).
+	bool VolumetricFog = false;
 
 	Array<VisibleNode> OpaqueNodes;
 	Array<VisibleActor> Actors;
