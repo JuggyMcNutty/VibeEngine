@@ -169,14 +169,20 @@ public:
 
 	static std::unique_ptr<Iterator> CreatedIterator;
 
-	// Deus Ex's runaway loop, the original's (Core.dll execJump and
-	// execJumpIfNot; dx-reverse-info core-dll.md, the script interpreter):
-	// every jump run, taken or not, counted from the start of the level's
-	// tick or of a map's load (InitRunaway), and the game stopped past
-	// 10,000,000. Other games keep upstream's warning, logged for each
-	// statement past 500,000 in one function's run.
-	static bool CountJumps;
+	// Deus Ex's guards on script, the original's (Core.dll execJump,
+	// execJumpIfNot and ProcessInternal; dx-reverse-info core-dll.md, the
+	// script interpreter), on while Guards is:
+	// - a runaway loop: every jump run, taken or not, counted from the start
+	//   of the level's tick or of a map's load (InitRunaway), the game
+	//   stopped past 10,000,000;
+	// - a singular function held off while any singular function of its
+	//   object runs (CallScript);
+	// - the game stopped at the 251st nested script function (CallScript).
+	// Other games keep upstream's warning, logged for each statement past
+	// 500,000 in one function's run, and neither of the others.
+	static bool Guards;
 	static int Jumps;
+	static int ScriptDepth;
 	static void InitRunaway() { Jumps = 0; }
 
 	Frame(UObject* instance, UStruct* func);
@@ -211,10 +217,22 @@ private:
 	void ProcessSwitch(const ExpressionValue& condition);
 	static void CountJump()
 	{
-		if (CountJumps && ++Jumps > 10'000'000)
+		if (Guards && ++Jumps > 10'000'000)
 			RunawayLoop();
 	}
 	[[noreturn]] static void RunawayLoop();
+	[[noreturn]] static void InfiniteRecursion();
+
+	// A script function's run under Deus Ex's guards: its object's singular
+	// mark and the nesting count, both undone however the run ends
+	struct GuardedRun
+	{
+		GuardedRun(UFunction* func, UObject* instance);
+		~GuardedRun();
+		bool HeldOff = false;
+		bool Counted = false;
+		UObject* Singular = nullptr;
+	};
 	static void ClassifyStatement(Expression* statement, const Bytecode& code);
 
 	static ExpressionValue CallNative(UFunction* func, UObject* instance, CallArguments& args);

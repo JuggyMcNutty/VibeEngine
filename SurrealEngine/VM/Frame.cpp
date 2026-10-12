@@ -32,8 +32,9 @@ Frame* Frame::StepFrame = nullptr;
 Expression* Frame::StepExpression = nullptr;
 std::string Frame::ExceptionText;
 std::unique_ptr<Iterator> Frame::CreatedIterator;
-bool Frame::CountJumps = false;
+bool Frame::Guards = false;
 int Frame::Jumps = 0;
+int Frame::ScriptDepth = 0;
 
 Frame::Frame(UObject* instance, UStruct* func)
 {
@@ -143,11 +144,45 @@ void Frame::Break()
 	}
 }
 
-// The original logs it as a critical error: the game stops with the message
+// The original logs these as critical errors: the game stops with the message
 void Frame::RunawayLoop()
 {
 	Jumps = 0;
 	throw ScriptCriticalError("Script execution error:\r\n\r\nRunaway loop detected (over 10000000 iterations)\r\n\r\nCall stack:\r\n\r\n" + GetCallstack());
+}
+
+void Frame::InfiniteRecursion()
+{
+	throw ScriptCriticalError("Script execution error:\r\n\r\nInfinite script recursion (250 calls) detected\r\n\r\nCall stack:\r\n\r\n" + GetCallstack());
+}
+
+// A singular function's mark is its object's flag of the function flag's own
+// bit, as the original's: SourceModified, which no package's object carries
+// (the SDK's InSingularFunc goes unused)
+Frame::GuardedRun::GuardedRun(UFunction* func, UObject* instance)
+{
+	if (!Guards)
+		return;
+	if (AllFlags(func->FuncFlags, FunctionFlags::Singular))
+	{
+		if (AllFlags(instance->Flags, ObjectFlags::SourceModified))
+		{
+			HeldOff = true;
+			return;
+		}
+		instance->Flags |= ObjectFlags::SourceModified;
+		Singular = instance;
+	}
+	ScriptDepth++;
+	Counted = true;
+}
+
+Frame::GuardedRun::~GuardedRun()
+{
+	if (Singular)
+		Singular->Flags = Singular->Flags & (ObjectFlags)~(uint32_t)ObjectFlags::SourceModified;
+	if (Counted)
+		ScriptDepth--;
 }
 
 void Frame::Resume()
@@ -321,6 +356,14 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
 
 ExpressionValue Frame::CallScript(UFunction* func, UObject* instance, CallArguments& args)
 {
+	// Deus Ex: a singular function held off gives its type's zero, where the
+	// original's leaves a variable assigned from it as it was
+	GuardedRun guarded(func, instance);
+	if (guarded.HeldOff)
+		return func->ReturnParm ? ExpressionValue::DefaultValue(func->ReturnParm) : ExpressionValue::NothingValue();
+	if (ScriptDepth > 250)
+		InfiniteRecursion();
+
 	Frame frame(instance, func);
 	const Array<UProperty*>& parms = func->CallParms;
 
@@ -541,7 +584,7 @@ ExpressionEvalResult Frame::Run()
 
 		StepExpression = Func->Code->Statements[curStatementIndex];
 
-		if (instructionsRetired >= maxInstructions && !CountJumps)
+		if (instructionsRetired >= maxInstructions && !Guards)
 		{
 			LogMessage("Too many VM instructions executed in a single tick");
 			Break();

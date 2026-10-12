@@ -109,7 +109,7 @@ Engine::Engine(GameLaunchInfo launchinfo) : LaunchInfo(launchinfo)
 
 	floatprop = GC::Alloc<UFloatProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
 
-	Frame::CountJumps = LaunchInfo.IsDeusEx();
+	Frame::Guards = LaunchInfo.IsDeusEx();
 
 	if (LaunchInfo.IsDeusEx())
 	{

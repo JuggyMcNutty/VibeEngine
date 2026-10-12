@@ -29,11 +29,13 @@ native, a failed save -- exits the engine with 1, and the launcher shows its
 crash banner. No map or action is known to reach one; the audit lists the
 natives whose call would.
 
-A runaway loop stops both engines alike
-([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-code-and-its-tokens)):
-more than 10,000,000 jumps run, taken or not, in one level tick or one
-map's load, with "Runaway loop detected (over 10000000 iterations)", which
-no native's call catches (`LoopConsole`). Differs: the original's
+A runaway script stops both engines alike, with an error no native's call
+catches
+([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-script-interpreter)):
+a loop past 10,000,000 jumps run, taken or not, in one level tick or one
+map's load, "Runaway loop detected (over 10000000 iterations)"
+(`LoopConsole`); a 251st nested script call, "Infinite script recursion
+(250 calls) detected" (`CallConsole`). Differs: the original's
 `-norunaway`, which lets the loop run on, is not carried.
 
 ## Saving, loading and travel
@@ -847,6 +849,16 @@ engine's own objects are not deleted (the log says so).
   angle across a 4:3 view ([the view's width](#the-views-width)). Upstream's
   own key, `MainFOV`, which the game's ini lacks (it would make the view
   90), is neither read nor written for Deus Ex.
+- **A singular function** does not run while any singular function of its
+  object does, as the original's
+  ([variables and calls](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#variables-and-calls)):
+  the game has 32, a trigger's `Touch`, a pawn's or a decoration's
+  `BaseChange` and `SupportActor` among them (`CallConsole`: one calling
+  itself, its object's others directly and through a function that is not
+  singular, and its object touched while it runs, all held off; another
+  object's run). Differs: a call held off gives its type's zero, where the
+  original's leaves a variable assigned from it as it was; none of the
+  game's returns a value.
 
 ## The command line
 
