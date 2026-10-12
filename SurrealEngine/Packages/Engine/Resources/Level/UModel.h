@@ -18,7 +18,11 @@ enum EBspNodeFlags
 {
 	NF_NotCsg = 1,
 	NF_ShootThrough = 2,
-	NF_NotVisBlocking = 4
+	NF_NotVisBlocking = 4,
+	// The original's mark on a node its mover tracker takes out of the BSP,
+	// which its line walk then passes over; a filing clears it (Deus Ex's
+	// traces: TraceRayModel::PointInSolid)
+	NF_IsNew = 32
 };
 
 struct LevelDecal

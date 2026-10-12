@@ -5,7 +5,9 @@
 // it; 2 s into the level's time, for each mover a line
 // across its box's thinnest side through the middle, 32 units past it each
 // way: FastTrace's answer and the actor a Trace meets, with the mover's
-// collision flags; then each actor that
+// collision flags, where and with what normal; each hit TraceTexture lists
+// along it and each TraceActors does, with its location; and the same line
+// the other way; then each actor that
 // VisibleCollidingActors lists within 1000 units of the player, with and
 // without bIgnoreHidden, and that VisibleActors and RadiusActors list within
 // 1000, one line each; then an exit.
@@ -49,8 +51,10 @@ function string MapOf(PlayerPawn P)
 function Movers(PlayerPawn P)
 {
 	local Mover M;
-	local Actor Hit;
+	local Actor Hit, Other;
 	local vector Min, Max, C, E, A, S, T, HitLoc, HitNorm;
+	local name TexName, TexGroup;
+	local int Flags;
 
 	foreach P.AllActors(class'Mover', M)
 	{
@@ -72,6 +76,13 @@ function Movers(PlayerPawn P)
 		Hit = P.Trace(HitLoc, HitNorm, T, S, true);
 		Log("DXVIS: mover " $ M.Name $ " fast " $ P.FastTrace(T, S) $ " trace " $ Hit $ " (" $ M.Class.Name $ ", collides " $ M.bCollideActors
 			$ ", blocks " $ M.bBlockActors $ " and players " $ M.bBlockPlayers $ ", a projectiles' target " $ M.bProjTarget $ ")");
+		Log("DXVIS: mover " $ M.Name $ " from " $ S $ " to " $ T $ " hit at " $ HitLoc $ " normal " $ HitNorm);
+		foreach P.TraceTexture(class'Actor', Other, TexName, TexGroup, Flags, HitLoc, HitNorm, T, S)
+			Log("DXVIS: mover " $ M.Name $ " texture " $ Other $ " " $ TexName $ " " $ TexGroup $ " flags " $ Flags $ " at " $ HitLoc);
+		foreach P.TraceActors(class'Actor', Other, HitLoc, HitNorm, T, S)
+			Log("DXVIS: mover " $ M.Name $ " actors " $ Other $ " at " $ HitLoc $ " normal " $ HitNorm);
+		Hit = P.Trace(HitLoc, HitNorm, S, T, true);
+		Log("DXVIS: mover " $ M.Name $ " back fast " $ P.FastTrace(S, T) $ " trace " $ Hit $ " at " $ HitLoc $ " normal " $ HitNorm);
 	}
 }
 

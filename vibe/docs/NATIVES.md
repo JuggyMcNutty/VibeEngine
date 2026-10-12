@@ -607,6 +607,23 @@ Every other native the scripted runs compare matches the original
   player's frob target, through decorations), and `RadiusActors`, which
   reaches each actor's own collision radius further (`VisibleConsole` on
   Liberty Island and DXMP_Silo).
+- **A line** meets the level as the original's walk down its BSP does
+  ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)):
+  where it enters solid space, a start in solid stopping it there, at time
+  0, and a polygon with empty space on both sides stopping nothing; the
+  hit's normal is the plane of the node the walk crossed, turned to face the
+  start, and its surface that node's. `FastTrace` is blocked by any solid
+  leaf its line touches, its start's included. A mover's brush is walked the
+  same way, its hit's normal the node's plane as the mover's rotation turns
+  it, by the original's sine table, not turned to face the line. The hits
+  come out as the original's multi-hit check hands them on: the level's one,
+  nearest first, the actors along the line cut to 5 units past it; with the
+  level met within a hundredth of the line and 30 units, every actor's hit
+  but a mover's dropped; a mover's hit with the level hit's normal to the
+  bit, within 2 units of it, set 2 units before the level's, so a door flush
+  with its wall is met before the wall (`VisibleConsole` on DXMP_Silo: 55
+  movers' lines each way, their hits, normals, `TraceTexture`'s and
+  `TraceActors`' alike; `TraceConsole`, `MoverConsole`).
 - **The movers in a line's way**: a line meets each mover where the level's
   BSP last filed it
   ([traces](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#traces)),
@@ -617,8 +634,10 @@ Every other native the scripted runs compare matches the original
   (`LineOfSightTo`, hearing, the reach tests and path searches, the
   visible-actor iterators, network relevance, mesh lights' shadows, the AI's
   sight and the mixer's walls, [sound](#sound)) meet the filed polygons, a
-  line's `Trace` and the multi-hit check meet them as the level's, after the
-  mover's own hit where it still is, and a box meets none (`MoverConsole` on
+  line's `Trace` and the multi-hit check meet them as the level's -- a
+  polygon in the plane of a node of the level's own as that node, the
+  texture and flags given those of the first polygon filed in the plane --
+  and a box meets none (`MoverConsole` on
   Liberty Island and DXMP_Silo: a door made not to collide, then hidden and
   moved, then saved; a window broken, at once and a frame on;
   `VisibleConsole` there). Not carried: the refiling of the movers filed
@@ -685,11 +704,19 @@ Every other native the scripted runs compare matches the original
 
 Differs:
 
-- **A line wholly inside the level's solid** meets nothing: the fork's line
-  test is of the surfaces a line crosses, where the original's BSP stops it
-  at once (`MoverConsole`: a line through the wall over a door).
-  `VisibleConsole`'s lines across DXMP_Silo's `DeusExMover19` and `25` meet
-  the level in the original and the mover in the fork; why is unread.
+- **A tie between a mover's own hit and the level's** at one plane falls to
+  the mover, the actors first in the fork's order, where the original's two
+  times, rounded apart by a half thousandth of a unit, fall either way: of
+  `VisibleConsole`'s 110 lines on DXMP_Silo, `DeusExMover19`'s and `25`'s
+  are the level in the original (a door turned a quarter turn in the plane
+  of the wall round its doorway, its normal a bit off the wall's through the
+  sine table, so not set before it) and `DeusExMover8`'s reversed line the
+  level too; the fork answers the mover for all three.
+- **The filed polygons** are an overlay on the level's BSP, not nodes in
+  it: a start inside a filed mover's own solid is not in solid to the fork,
+  and `TraceTexture` on `DeusExMover26`'s line gives the flags of the
+  polygon the fork crossed, `PF_Invisible | PF_Semisolid`, where the
+  original's filed node has 0.
 - **`DeusExPlayer.GetDeusExVersion`**: the fork's own string, by choice, so
   a player can tell which engine they run
   ([the version](ENGINE.md#running-on-our-devices)). The original's is "Mon

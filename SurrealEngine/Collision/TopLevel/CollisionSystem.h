@@ -111,12 +111,21 @@ private:
 // engine-dll.md, traces: the movers in the BSP): its brush's polygons in the
 // world as they were then. A line test meets them there, whatever the mover
 // collides with, hidden or not, and on after the mover is destroyed.
+class UTexture;
+
 struct FiledMoverPoly
 {
 	Array<vec3> Vertices;
 	vec3 Normal;
 	float PlaneW; // dot(Normal, a vertex)
+	// The polygon's normal turned as the original's tracker turns it, by its
+	// sine table: the normal of the node it files, which a hit reports
+	// (TraceTester: a mover's hit against the level's)
+	vec3 NormalOriginal;
 	uint32_t PolyFlags;
+	// The polygon's texture, which with its PolyFlags a TraceTexture hit on
+	// it gives, as the original's filed node has them for its surface
+	UTexture* Texture = nullptr;
 };
 
 struct FiledMover

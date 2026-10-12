@@ -395,6 +395,7 @@ bool TouchingActorsIterator::Next()
 /////////////////////////////////////////////////////////////////////////////
 
 static CollisionHitList DeusExMultiLineCheck(const vec3& start, const vec3& end, const vec3& extent, bool visibilityOnly);
+static vec3 HitLocationOf(const vec3& start, const vec3& end, float fraction);
 
 // As the Deus Ex trace iterators: the original's MultiLineCheck from Start
 // to End, every hit nearest first, the level's included as the LevelInfo,
@@ -402,7 +403,7 @@ static CollisionHitList DeusExMultiLineCheck(const vec3& start, const vec3& end,
 TraceActorsIterator::TraceActorsIterator(UActor* SelfActor, UObject* BaseClass, UObject** Actor, vec3* HitLoc, vec3* HitNorm, const vec3& End, const vec3& Start, const vec3& Extent) : SelfActor(SelfActor), BaseClass(BaseClass), Actor(Actor), HitLoc(HitLoc), HitNorm(HitNorm), End(End), Start(Start), Extent(Extent)
 {
 	for (const CollisionHit& hit : DeusExMultiLineCheck(Start, End, Extent, false))
-		tracedActors.push_back({ hit.Actor, mix(Start, End, hit.Fraction), hit.Normal });
+		tracedActors.push_back({ hit.Actor, HitLocationOf(Start, End, hit.Fraction), hit.Normal });
 
 	iterator = tracedActors.begin();
 }
@@ -530,53 +531,34 @@ bool ZoneActorsIterator::Next()
 
 /////////////////////////////////////////////////////////////////////////////
 
-// The original's MultiLineCheck under the two Deus Ex trace iterators:
-// the level's BSP first -- its hit's actor the LevelInfo -- with the line
-// cut to 5 units past the wall; then the actors along what is left, movers
-// among them, each given short by a thousandth of the cut line (TraceConsole);
-// up to 64 hits in all, nearest first. Nothing beyond the first wall.
+// The original's MultiLineCheck under the two Deus Ex trace iterators: the
+// hits as Deus Ex's trace orders them (TraceTester::Trace: the level's one
+// hit, the line cut to 5 units past it, the actors along what is left,
+// nearest first), the level's with the LevelInfo for its actor; up to 64 in
+// all. Nothing beyond the first wall.
 static CollisionHitList DeusExMultiLineCheck(const vec3& start, const vec3& end, const vec3& extent, bool visibilityOnly)
 {
 	float radius = length(extent.xy());
 	float height = std::abs(extent.z);
 
 	CollisionHitList result;
-	float limit = 1.0f;
-	for (const CollisionHit& hit : engine->Level->Collision.Trace(start, end, height, radius, false, true, visibilityOnly))
-	{
-		if (hit.Node && !hit.Actor)
-		{
-			CollisionHit levelHit = hit;
-			levelHit.Actor = engine->LevelInfo;
-			result.push_back(levelHit);
-			float lineLength = length(end - start);
-			limit = lineLength > 0.0f ? std::min(1.0f, hit.Fraction + 5.0f / lineLength) : hit.Fraction;
-			break;
-		}
-	}
-
-	vec3 cutEnd = mix(start, end, limit);
-	if (cutEnd != start)
-	{
-		for (CollisionHit hit : engine->Level->Collision.Trace(start, cutEnd, height, radius, true, true, visibilityOnly))
-		{
-			if (hit.Node && !hit.Actor)
-				continue;
-			hit.Fraction *= limit;
-			result.push_back(hit);
-		}
-	}
-	result.SortByFraction();
-
-	CollisionHitList capped;
 	int count = 0;
-	for (const CollisionHit& hit : result)
+	for (CollisionHit hit : engine->Level->Collision.Trace(start, end, height, radius, true, true, visibilityOnly))
 	{
 		if (count++ >= 64)
 			break;
-		capped.push_back(hit);
+		if (!hit.Actor)
+			hit.Actor = engine->LevelInfo;
+		result.push_back(hit);
 	}
-	return capped;
+	return result;
+}
+
+// Where a hit lies: the start along the line, as the original's hit location
+// (Start + Direction * Time), which keeps a coordinate the line does not change
+static vec3 HitLocationOf(const vec3& start, const vec3& end, float fraction)
+{
+	return start + (end - start) * fraction;
 }
 
 TraceTextureIterator::TraceTextureIterator(UObject* BaseClass, UObject** OutActor, NameString* TexName, NameString* TexGroup, int* Flags, vec3* HitLoc, vec3* HitNorm, const vec3& End, const vec3& Start, const vec3& Extent)
@@ -598,28 +580,36 @@ bool TraceTextureIterator::Next()
 
 	// Every hit, in turn. A hit on the level gives the texture of the
 	// surface hit, its group (the texture's outer) and the surface's
-	// PolyFlags; an actor, no texture and flags 0.
+	// PolyFlags -- a filed mover's polygon's, where the hit is one
+	// (CollisionSystem, filed movers) --; an actor, no texture and flags 0.
 	*OutActor = hit.Actor;
-	*HitLoc = mix(Start, End, hit.Fraction);
+	*HitLoc = HitLocationOf(Start, End, hit.Fraction);
 	*HitNorm = hit.Normal;
-	if (hit.Node)
+	UTexture* texture = nullptr;
+	*flags = 0;
+	if (hit.Actor == engine->LevelInfo && hit.Node)
 	{
 		// The node the line meets the level at, as the original's BSP check
 		// gives it -- the head of the plane's coplanar nodes -- not the
 		// polygon of them it crossed.
 		const BspNode* node = hit.NodeHead ? hit.NodeHead : hit.Node;
 		const BspSurface& surface = engine->Level->Model->Surfaces[node->Surf];
-		UTexture* texture = surface.Material;
-		*TexName = texture ? texture->Name : NameString();
-		*TexGroup = texture && texture->Outer() ? texture->Outer()->Name : NameString();
+		texture = surface.Material;
 		*flags = surface.PolyFlags;
 	}
-	else
+	else if (hit.Actor == engine->LevelInfo && hit.FiledPoly)
 	{
-		*TexName = NameString();
-		*TexGroup = NameString();
-		*flags = 0;
+		// The filed polygon's surface, as the node the original files has it
+		texture = hit.FiledPoly->Texture;
+		*flags = hit.FiledPoly->PolyFlags;
 	}
+	*TexName = texture ? texture->Name : NameString();
+	if (texture && texture->Outer())
+		*TexGroup = texture->Outer()->Name;
+	else if (texture && texture->package)
+		*TexGroup = texture->package->GetPackageName(); // a texture with no group: its package, the outer the original names
+	else
+		*TexGroup = NameString();
 	return true;
 }
 

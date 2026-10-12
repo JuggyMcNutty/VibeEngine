@@ -1,5 +1,6 @@
 
 #include "Precomp.h"
+#include "Collision/BottomLevel/TraceRayModel.h"
 #include "CollisionSystem.h"
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Actors/Brush/UMover.h"
@@ -252,6 +253,7 @@ void CollisionSystem::File(UMover* mover, FiledMover& filed)
 	filed.Polys.clear();
 
 	mat4 objectToWorld = mat4::translate(mover->Location()) * Coords::Rotation(mover->Rotation()).ToMatrix() * mat4::scale(mover->MainScale().Scale) * mat4::translate(-mover->PrePivot());
+	mat4 tableRotation = Coords::TableRotation(mover->Rotation()).ToMatrix();
 	vec3 boundsMin(1e30f), boundsMax(-1e30f);
 	UModel* brush = mover->Brush();
 	if (brush && brush->Polys)
@@ -288,7 +290,9 @@ void CollisionSystem::File(UMover* mover, FiledMover& filed)
 				n = -n;
 			filedPoly.Normal = n;
 			filedPoly.PlaneW = dot(n, w[0]);
+			filedPoly.NormalOriginal = (tableRotation * vec4(poly.Normal, 0.0f)).xyz();
 			filedPoly.PolyFlags = poly.PolyFlags;
+			filedPoly.Texture = poly.Texture;
 			filed.Polys.push_back(std::move(filedPoly));
 		}
 	}
@@ -422,21 +426,54 @@ void CollisionSystem::TraceFiledMovers(const dvec3& origin, const dvec3& dirNorm
 	vec3 from = vec3(origin);
 	vec3 to = vec3(origin + delta);
 	VisitFiledOnRay(from, to, [&](FiledMover* filed) {
+		// The nearest polygon crossed; of two in one plane, the one filed
+		// first, which the original's tracker files as the node the walk
+		// crosses, a later coplanar one as a node beyond it
 		double best = 2.0;
-		vec3 normal(0.0f);
+		const FiledMoverPoly* bestPoly = nullptr;
 		for (const FiledMoverPoly& poly : filed->Polys)
 		{
 			double t;
-			if (!FiledPolyPasses(poly, visibilityOnly) && FiledPolyHit(poly, origin, delta, t) && t < best)
+			if (!FiledPolyPasses(poly, visibilityOnly) && FiledPolyHit(poly, origin, delta, t) && (best - t) * tmax > 0.001)
 			{
 				best = t;
-				normal = dot(to_dvec3(poly.Normal), dirNormalized) > 0.0 ? -poly.Normal : poly.Normal;
+				bestPoly = &poly;
 			}
 		}
 		if (best <= 1.0)
 		{
+			// The surface is the first polygon filed in that plane, whose node
+			// the original's walk crosses whatever the polygon's own extent
+			for (const FiledMoverPoly& poly : filed->Polys)
+			{
+				if (&poly == bestPoly)
+					break;
+				if (dot(poly.Normal, bestPoly->Normal) > 0.9999f && std::abs(poly.PlaneW - bestPoly->PlaneW) < 0.001f && !FiledPolyPasses(poly, visibilityOnly))
+				{
+					bestPoly = &poly;
+					break;
+				}
+			}
+			// The node's plane, turned to face the line's origin as the
+			// original gives the level's hits
+			vec3 normal = dot(to_dvec3(bestPoly->NormalOriginal), dirNormalized) > 0.0 ? -bestPoly->NormalOriginal : bestPoly->NormalOriginal;
 			CollisionHit hit((float)(best * tmax), normal, nullptr, nullptr, nullptr);
 			hit.Filed = true;
+			hit.FiledPoly = bestPoly;
+			// A polygon filed in the plane of a node of the level's own that
+			// the line crosses there is met as that node: the original's walk
+			// crosses the node's plane and finds the filed polygon's, within a
+			// thousandth, behind it, so the hit is the node's, its normal and
+			// surface (DXMP_Silo's DeusExMover19 and 25 against the wall round
+			// their doorways: VisibleConsole)
+			if (BspNode* node = TraceRayModel::CoplanarNode(Level->Model, origin + delta * best, origin, origin + delta))
+			{
+				hit.Node = hit.NodeHead = node;
+				hit.FiledPoly = nullptr;
+				hit.Normal = vec3(node->PlaneX, node->PlaneY, node->PlaneZ);
+				if (dot(to_dvec3(hit.Normal), dirNormalized) > 0.0)
+					hit.Normal = -hit.Normal;
+			}
 			hits.push_back(hit);
 		}
 		return false;

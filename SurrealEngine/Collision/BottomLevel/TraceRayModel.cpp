@@ -24,6 +24,152 @@ bool TraceRayModel::TraceAnyHit(UModel* model, const dvec3& origin, double tmin,
 	return TraceAnyHit(origin, tmin, dirNormalized, tmax, visibilityOnly, &Model->Nodes.front(), 0.0, tmax);
 }
 
+// A node is a solid boundary (the original's FBspNode::IsCsg) when it has a
+// polygon and none of the flags asked: NF_NotCsg, NF_IsNew and what the caller
+// passes but for the bits the walk keeps for itself (NF_NotCsg, NF_IsNew and
+// 0x10). Down the tree the front of a boundary is empty space and its back
+// solid, a node that is no boundary leaving the space as it was
+// (ChildOutside). A segment with both ends within a thousandth of a unit of a
+// plane counts as in front of it, as one with both ends past it.
+namespace
+{
+	struct SolidWalk
+	{
+		UModel* Model;
+		uint8_t Extra;
+		bool WasOutside = false;
+		double Fraction = 0.0;
+		int Node = 0;
+
+		bool Csg(const BspNode& node) const
+		{
+			return node.NumVertices > 0 && (node.NodeFlags & (NF_NotCsg | NF_IsNew | (Extra & 0xCE))) == 0;
+		}
+
+		// False once the line stops
+		bool Walk(int iParent, int iNode, dvec3 start, dvec3 end, double t0, double t1, bool outside)
+		{
+			while (true)
+			{
+				if (iNode < 0)
+				{
+					if (outside)
+					{
+						WasOutside = true;
+						return true;
+					}
+					if (WasOutside || (Extra & 0x10) == 0)
+					{
+						Fraction = t0;
+						Node = iParent;
+						return false;
+					}
+					return true;
+				}
+				const BspNode& node = Model->Nodes[iNode];
+				dvec4 plane = { node.PlaneX, node.PlaneY, node.PlaneZ, -node.PlaneW };
+				double d0 = dot(dvec4(start, 1.0), plane);
+				double d1 = dot(dvec4(end, 1.0), plane);
+				if (d0 > -0.001 && d1 > -0.001)
+				{
+					outside = outside || Csg(node);
+					iNode = node.Front;
+					continue;
+				}
+				if (d0 < 0.001 && d1 < 0.001)
+				{
+					outside = outside && !Csg(node);
+					iNode = node.Back;
+					continue;
+				}
+				double f = d0 / (d0 - d1);
+				dvec3 mid = start + (end - start) * f;
+				double tm = t0 + (t1 - t0) * f;
+				bool nearFront = d0 > 0.0;
+				bool csg = Csg(node);
+				if (!Walk(iParent, nearFront ? node.Front : node.Back, start, mid, t0, tm, nearFront ? (outside || csg) : (outside && !csg)))
+					return false;
+				outside = nearFront ? (outside && !csg) : (outside || csg);
+				iParent = iNode;
+				iNode = nearFront ? node.Back : node.Front;
+				start = mid;
+				t0 = tm;
+			}
+		}
+	};
+
+	bool FastWalkNode(UModel* model, int iNode, dvec3 start, dvec3 end, bool outside)
+	{
+		while (iNode >= 0)
+		{
+			const BspNode& node = model->Nodes[iNode];
+			dvec4 plane = { node.PlaneX, node.PlaneY, node.PlaneZ, -node.PlaneW };
+			double d0 = dot(dvec4(start, 1.0), plane);
+			double d1 = dot(dvec4(end, 1.0), plane);
+			bool notCsg = (node.NodeFlags & NF_NotCsg) != 0;
+			bool g0 = !std::signbit(d0);
+			bool g1 = !std::signbit(d1);
+			if (g0 != g1)
+			{
+				dvec3 mid = start + (end - start) * (d0 / (d0 - d1));
+				if (!FastWalkNode(model, g1 ? node.Front : node.Back, mid, end, notCsg ? outside : g1))
+					return false;
+				end = mid;
+			}
+			outside = notCsg ? outside : g0;
+			iNode = g0 ? node.Front : node.Back;
+		}
+		return outside;
+	}
+}
+
+bool TraceRayModel::WalkSolid(UModel* model, const dvec3& start, const dvec3& end, uint8_t extraNodeFlags, double& fraction, BspNode*& crossed)
+{
+	// A model with no BSP answers every check with no hit, as the original's
+	if (!model || model->Nodes.empty())
+		return false;
+	SolidWalk walk{ model, extraNodeFlags };
+	if (walk.Walk(0, 0, start, end, 0.0, 1.0, model->RootOutside != 0))
+		return false;
+	fraction = walk.Fraction;
+	crossed = &model->Nodes[walk.Node];
+	return true;
+}
+
+bool TraceRayModel::FastWalk(UModel* model, const dvec3& start, const dvec3& end)
+{
+	if (!model || model->Nodes.empty())
+		return true;
+	return FastWalkNode(model, 0, start, end, model->RootOutside != 0);
+}
+
+BspNode* TraceRayModel::CoplanarNode(UModel* model, const dvec3& point, const dvec3& start, const dvec3& end)
+{
+	if (!model || model->Nodes.empty())
+		return nullptr;
+	int iNode = 0;
+	while (iNode >= 0)
+	{
+		BspNode& node = model->Nodes[iNode];
+		dvec4 plane = { node.PlaneX, node.PlaneY, node.PlaneZ, -node.PlaneW };
+		double d = dot(dvec4(point, 1.0), plane);
+		double dEnd = dot(dvec4(end, 1.0), plane);
+		bool onPlane = d > -0.001 && d < 0.001;
+		if (onPlane)
+		{
+			double dStart = dot(dvec4(start, 1.0), plane);
+			bool csg = node.NumVertices > 0 && (node.NodeFlags & (NF_NotCsg | NF_IsNew)) == 0;
+			if (csg && ((dStart >= 0.001 && dEnd <= -0.001) || (dStart <= -0.001 && dEnd >= 0.001)))
+				return &node;
+		}
+		// The side the walk takes for a segment starting here: in front when
+		// both ends are, else behind
+		bool front = onPlane ? dEnd > -0.001 : d > 0.0;
+		iNode = front ? node.Front : node.Back;
+	}
+	return nullptr;
+}
+
 // The traversal handed both children of a plane the whole segment whenever it
 // touched their side, and a long sight line then touched both sides of
 // plane after plane further down. A child now gets only the part of the
