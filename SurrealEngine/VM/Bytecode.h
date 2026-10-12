@@ -51,7 +51,17 @@ public:
 	// constants), as read: what the collector keeps for the code.
 	Array<UObject*> ReferencedObjects;
 
+	// Those of ReferencedObjects that are not code kept for good
+	// (GCAllocation::permanent): the object constants, a texture or a sound.
+	// The only entries the collector is handed. Built during a collection,
+	// when every loaded field is already permanent; again if
+	// ReferencedObjects grew.
+	const Array<UObject*>& CollectableReferencedObjects();
+
 private:
+	Array<UObject*> CollectableReferencedObjectList;
+	size_t CollectableReferencedObjectsBuiltFrom = (size_t)-1;
+
 	Expression* ReadToken(BytecodeStream* stream, int depth);
 
 	template<typename T>

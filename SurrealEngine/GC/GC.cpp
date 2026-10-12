@@ -1,11 +1,23 @@
 
 #include "Precomp.h"
 #include "GC.h"
+#include "Package/NameString.h"
 
 static GCRootNode* roots;
 static GCAllocation* allocations;
+static GCAllocation* permanents;
 static GCStats stats;
 bool GC::collecting = false;
+size_t GC::bornDuringCollection = 0;
+bool GC::codeChanged = true;
+// What the code other than classes keeps: each collectable object it
+// reached at the last walk of all of it, with its holder, and each
+// collectable name (GC::Collect)
+static std::vector<std::pair<const GCObject*, GCObject*>> codeKeeps;
+static std::vector<std::pair<int, int>> codeKeepsNames;
+// The permanent objects walked every collection (IsGCMutableCode), so the
+// others are not touched between walks of all of them
+static std::vector<GCAllocation*> mutablePermanents;
 
 GCRootNode::GCRootNode()
 {
@@ -38,6 +50,11 @@ GCAllocation* GC::GetAllocations()
 	return allocations;
 }
 
+GCAllocation* GC::GetPermanents()
+{
+	return permanents;
+}
+
 GCAllocation* GC::AllocMemory(size_t size)
 {
 	size_t memsize = sizeof(GCAllocation) + size;
@@ -46,8 +63,12 @@ GCAllocation* GC::AllocMemory(size_t size)
 		throw std::bad_alloc();
 	allocation->allocklistNext = allocations;
 	allocation->memsize = memsize;
+	allocation->permanent = 0;
+	allocation->scanned = 0;
 	// Made during a collection, it is not one of those the sweep may free.
 	allocation->unreferencedFlag = !collecting;
+	if (collecting)
+		bornDuringCollection++;
 	allocations = allocation;
 	stats.numObjects++;
 	stats.memoryUsage += memsize;
@@ -94,6 +115,8 @@ bool GCMarker::Visit(GCObject* obj, bool writable)
 		if (!writable)
 			Result->KeptEliminated[HolderKey()]++;
 	}
+	if (Recording && Recorded.insert(obj).second)
+		Recording->push_back({ Holder, obj });
 	if (allocation->unreferencedFlag)
 	{
 		allocation->unreferencedFlag = false;
@@ -128,6 +151,7 @@ void GCMarker::Drain()
 		FieldName = nullptr;
 		FieldObject = nullptr;
 		obj->Mark(*this);
+		obj->GCMarkNames();
 	}
 	Holder = nullptr;
 	FieldName = nullptr;
@@ -152,17 +176,123 @@ GCCollectResult GC::Collect(const std::function<void(GCMarker&)>& markRoots, con
 	// Every flag is set between collections: an object is unreferenced
 	// until the marker reaches it.
 	collecting = true;
+	bornDuringCollection = 0;
 	GCMarker marker(options, result, live.get());
 
 	marker.SetRoot("GCRoot");
 	for (GCRootNode* root = roots; root != nullptr; root = root->next)
 		marker.MarkConst(root->obj);
+	// Code found since the last collection joins the permanent list, where
+	// it is never visited as a target and never freed. Only the objects
+	// made since the last collection are looked at: the list is pushed at
+	// its head, so they end at the first one scanned before, and an
+	// object's package is set as it is made, so none turns into code later.
 	marker.SetRoot("code");
-	for (GCAllocation* allocation = allocations; allocation != nullptr; allocation = allocation->allocklistNext)
 	{
-		if (allocation->object()->IsGCRoot())
-			marker.MarkConst(allocation->object());
+		GCAllocation* prev = nullptr;
+		GCAllocation* cur = allocations;
+		while (cur && !cur->scanned)
+		{
+			GCAllocation* next = cur->allocklistNext;
+			cur->scanned = 1;
+			if (cur->object()->IsGCRoot())
+			{
+				if (prev)
+					prev->allocklistNext = next;
+				else
+					allocations = next;
+				cur->permanent = 1;
+				cur->unreferencedFlag = 0;
+				cur->allocklistNext = permanents;
+				permanents = cur;
+				if (cur->object()->IsGCMutableCode())
+					mutablePermanents.push_back(cur);
+				codeChanged = true;
+			}
+			else
+			{
+				prev = cur;
+			}
+			cur = next;
+		}
 	}
+	// What the permanent list keeps. A class is walked every collection,
+	// as scripts write its defaults (IsGCMutableCode). The rest of the code
+	// -- functions, properties, structs, states, enums, constants -- refers
+	// to what it referred to when it was loaded, so it is walked when code
+	// was loaded or found since the last such walk (GC::CodeChanged), and
+	// the collectable objects and names it reached are kept from a list
+	// until then. SURREAL_GC_VERIFY walks it every collection and reports
+	// what the list would have missed (CodeKeptMissed).
+	marker.CodeHolder = true;
+	bool walkAll = codeChanged || options.Verify;
+	bool fromList = !codeChanged;
+	if (fromList)
+	{
+		for (auto& kept : codeKeeps)
+		{
+			marker.Holder = kept.first;
+			marker.FieldName = nullptr;
+			marker.FieldObject = nullptr;
+			marker.MarkConst(kept.second);
+		}
+		for (auto& name : codeKeepsNames)
+			NameString::MarkIndexes(name.first, name.second);
+	}
+	std::vector<std::pair<const GCObject*, GCObject*>> keeps;
+	std::vector<std::pair<int, int>> keepsNames;
+	auto walkCode = [&](GCObject* obj, bool record)
+	{
+		marker.Holder = obj;
+		marker.FieldName = nullptr;
+		marker.FieldObject = nullptr;
+		if (record)
+		{
+			marker.Recording = &keeps;
+			NameString::Recording = &keepsNames;
+		}
+		obj->Mark(marker);
+		obj->GCMarkNames();
+		marker.Recording = nullptr;
+		NameString::Recording = nullptr;
+	};
+	if (walkAll)
+	{
+		for (GCAllocation* allocation = permanents; allocation != nullptr; allocation = allocation->allocklistNext)
+			walkCode(allocation->object(), !allocation->object()->IsGCMutableCode());
+	}
+	else
+	{
+		for (GCAllocation* allocation : mutablePermanents)
+			walkCode(allocation->object(), false);
+	}
+	if (walkAll)
+	{
+		if (fromList)
+		{
+			std::unordered_set<const GCObject*> held;
+			for (auto& kept : codeKeeps)
+				held.insert(kept.second);
+			for (auto& kept : keeps)
+			{
+				if (!held.count(kept.second))
+					result.CodeKeptMissed[kept.first->GCDescribe()]++;
+			}
+			std::unordered_set<int64_t> heldNames;
+			for (auto& name : codeKeepsNames)
+				heldNames.insert(((int64_t)name.first << 32) | (uint32_t)name.second);
+			for (auto& name : keepsNames)
+			{
+				if (!heldNames.count(((int64_t)name.first << 32) | (uint32_t)name.second))
+					result.CodeKeptMissed["names"]++;
+			}
+		}
+		codeKeeps = std::move(keeps);
+		codeKeepsNames = std::move(keepsNames);
+		codeChanged = false;
+	}
+	marker.CodeHolder = false;
+	marker.Holder = nullptr;
 	marker.Drain();
 
 	marker.SetRoot(nullptr);
@@ -248,6 +378,8 @@ GCCollectResult GC::Collect(const std::function<void(GCMarker&)>& markRoots, con
 
 void GC::MarkNames()
 {
-	for (GCAllocation* alloc = GetAllocations(); alloc; alloc = alloc->allocklistNext)
+	for (GCAllocation* alloc = permanents; alloc; alloc = alloc->allocklistNext)
+		alloc->object()->GCMarkNames();
+	for (GCAllocation* alloc = allocations; alloc; alloc = alloc->allocklistNext)
 		alloc->object()->GCMarkNames();
 }

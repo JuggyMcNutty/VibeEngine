@@ -120,8 +120,8 @@ void UMapProperty::MarkNames(void* data)
 void UMapProperty::Mark(GCMarker& marker)
 {
 	UProperty::Mark(marker);
-	marker.MarkConst(Key);
-	marker.MarkConst(Value);
+	marker.MarkCode(Key);
+	marker.MarkCode(Value);
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -96,5 +96,5 @@ void UObjectProperty::MarkValue(GCMarker& marker, void* data)
 void UObjectProperty::Mark(GCMarker& marker)
 {
 	UProperty::Mark(marker);
-	marker.MarkConst(ObjectClass);
+	marker.MarkCode(ObjectClass);
 }

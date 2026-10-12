@@ -18,6 +18,21 @@ Bytecode::Bytecode(const Array<uint8_t>& bytecode, Package* package)
 	ReferencedObjects.erase(std::unique(ReferencedObjects.begin(), ReferencedObjects.end()), ReferencedObjects.end());
 }
 
+const Array<UObject*>& Bytecode::CollectableReferencedObjects()
+{
+	if (CollectableReferencedObjectsBuiltFrom != ReferencedObjects.size())
+	{
+		CollectableReferencedObjectList.clear();
+		for (UObject* obj : ReferencedObjects)
+		{
+			if (!GCMarker::IsPermanent(obj))
+				CollectableReferencedObjectList.push_back(obj);
+		}
+		CollectableReferencedObjectsBuiltFrom = ReferencedObjects.size();
+	}
+	return CollectableReferencedObjectList;
+}
+
 Expression* Bytecode::ReadToken(BytecodeStream* stream, int depth)
 {
 	if (depth == 64)

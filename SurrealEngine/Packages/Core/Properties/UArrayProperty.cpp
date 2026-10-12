@@ -155,5 +155,5 @@ void UArrayProperty::MarkNames(void* data)
 void UArrayProperty::Mark(GCMarker& marker)
 {
 	UProperty::Mark(marker);
-	marker.MarkConst(Inner);
+	marker.MarkCode(Inner);
 }

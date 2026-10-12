@@ -54,6 +54,17 @@ public:
 	// The properties whose values can hold a name, for the name collection.
 	const Array<UProperty*>& NameProps();
 
+	// The properties with something to destruct (UProperty::NeedsDestruct):
+	// what a dying object's values get destructed by.
+	const Array<UProperty*>& DestructProps();
+
+	// The properties that are not code kept for good (GCAllocation::permanent):
+	// a field made at run time in no package, Object's native ones. The only
+	// entries of Properties the collector is handed. Built during a
+	// collection, when every loaded field is already permanent; again if
+	// Properties grew.
+	const Array<UProperty*>& CollectableProps();
+
 	// Every reference in data, laid out as this struct, to an actor waiting
 	// to be freed made None, as the original's UStruct::CleanupDestroyed:
 	// each element of an object property and of a struct property, never a
@@ -71,6 +82,10 @@ private:
 	size_t RefPropsBuiltFrom = (size_t)-1;
 	Array<UProperty*> NamePropList;
 	size_t NamePropsBuiltFrom = (size_t)-1;
+	Array<UProperty*> DestructPropList;
+	size_t DestructPropsBuiltFrom = (size_t)-1;
+	Array<UProperty*> CollectablePropList;
+	size_t CollectablePropsBuiltFrom = (size_t)-1;
 
 	ExprToken ReadToken(ObjectStream* stream, int depth);
 	void PushBytes(const void* data, size_t size);

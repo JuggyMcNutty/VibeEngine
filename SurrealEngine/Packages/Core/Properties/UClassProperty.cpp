@@ -27,5 +27,5 @@ std::string UClassProperty::PrintValue(const void* data)
 void UClassProperty::Mark(GCMarker& marker)
 {
 	UObjectProperty::Mark(marker);
-	marker.MarkConst(MetaClass);
+	marker.MarkCode(MetaClass);
 }

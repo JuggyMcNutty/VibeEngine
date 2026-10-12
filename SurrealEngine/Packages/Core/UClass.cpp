@@ -509,8 +509,8 @@ void UClass::Mark(GCMarker& marker)
 	UState::Mark(marker);
 	marker.SetField("Dependencies");
 	for (ClassDependency& dep : Dependencies)
-		marker.MarkConst(dep.Class);
+		marker.MarkCode(dep.Class);
 	marker.SetField("States");
 	for (auto& it : States)
-		marker.MarkConst(it.second);
+		marker.MarkCode(it.second);
 }

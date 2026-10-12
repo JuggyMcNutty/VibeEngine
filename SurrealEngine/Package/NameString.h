@@ -51,6 +51,19 @@ public:
 			Marks[CompareIndex] |= MarkedFlag;
 		if (SpelledIndex < (int)Marks.size())
 			Marks[SpelledIndex] |= MarkedFlag;
+		if (Recording && CompareIndex < (int)Marks.size() && SpelledIndex < (int)Marks.size() && IsCollectable())
+			Recording->push_back({ CompareIndex, SpelledIndex });
+	}
+	// While set, Mark lists each collectable name it marks, as compare and
+	// spelled index, for MarkIndexes to mark again (GC::Collect's walk of
+	// the code, kept from a list until code is loaded again).
+	static std::vector<std::pair<int, int>>* Recording;
+	static void MarkIndexes(int compare, int spelled)
+	{
+		if (compare < (int)Marks.size())
+			Marks[compare] |= MarkedFlag;
+		if (spelled < (int)Marks.size())
+			Marks[spelled] |= MarkedFlag;
 	}
 	static std::vector<int> Sweep();
 	static size_t Count() { return Names.size() - Available.size(); }

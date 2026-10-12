@@ -29,10 +29,25 @@ void UState::Save(PackageStreamWriter* stream)
 	stream->WriteUInt32((uint32_t)StateFlags);
 }
 
+const Array<UFunction*>& UState::CollectableFunctions()
+{
+	if (CollectableFunctionsBuiltFrom != Functions.size())
+	{
+		CollectableFunctionList.clear();
+		for (auto& it : Functions)
+		{
+			if (!GCMarker::IsPermanent(it.second))
+				CollectableFunctionList.push_back(it.second);
+		}
+		CollectableFunctionsBuiltFrom = Functions.size();
+	}
+	return CollectableFunctionList;
+}
+
 void UState::Mark(GCMarker& marker)
 {
 	UStruct::Mark(marker);
 	marker.SetField("Functions");
-	for (auto& it : Functions)
-		marker.MarkConst(it.second);
+	for (UFunction* func : CollectableFunctions())
+		marker.MarkConst(func);
 }

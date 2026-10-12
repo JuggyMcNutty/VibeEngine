@@ -198,6 +198,36 @@ const Array<UProperty*>& UStruct::RefProps()
 	return RefPropList;
 }
 
+const Array<UProperty*>& UStruct::DestructProps()
+{
+	if (DestructPropsBuiltFrom != Properties.size())
+	{
+		DestructPropList.clear();
+		for (UProperty* prop : Properties)
+		{
+			if (prop->NeedsDestruct())
+				DestructPropList.push_back(prop);
+		}
+		DestructPropsBuiltFrom = Properties.size();
+	}
+	return DestructPropList;
+}
+
+const Array<UProperty*>& UStruct::CollectableProps()
+{
+	if (CollectablePropsBuiltFrom != Properties.size())
+	{
+		CollectablePropList.clear();
+		for (UProperty* prop : Properties)
+		{
+			if (!GCMarker::IsPermanent(prop))
+				CollectablePropList.push_back(prop);
+		}
+		CollectablePropsBuiltFrom = Properties.size();
+	}
+	return CollectablePropList;
+}
+
 const Array<UProperty*>& UStruct::NameProps()
 {
 	if (NamePropsBuiltFrom != Properties.size())
@@ -217,20 +247,20 @@ void UStruct::Mark(GCMarker& marker)
 {
 	UField::Mark(marker);
 	marker.SetField("BaseStruct");
-	marker.MarkConst(BaseStruct);
+	marker.MarkCode(BaseStruct);
 	marker.SetField("ScriptText");
 	marker.MarkConst(ScriptText);
 	marker.SetField("Children");
-	marker.MarkConst(Children);
+	marker.MarkCode(Children);
 	marker.SetField("StructParent");
-	marker.MarkConst(StructParent);
+	marker.MarkCode(StructParent);
 	marker.SetField("Properties");
-	for (UProperty* prop : Properties)
+	for (UProperty* prop : CollectableProps())
 		marker.MarkConst(prop);
 	if (Code)
 	{
 		marker.SetField("Code");
-		for (UObject* obj : Code->ReferencedObjects)
+		for (UObject* obj : Code->CollectableReferencedObjects())
 			marker.MarkConst(obj);
 	}
 }

@@ -38,5 +38,5 @@ void UFunction::Mark(GCMarker& marker)
 {
 	UStruct::Mark(marker);
 	marker.SetField("NativeStruct");
-	marker.MarkConst(NativeStruct);
+	marker.MarkCode(NativeStruct);
 }

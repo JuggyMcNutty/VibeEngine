@@ -8,6 +8,7 @@ std::unordered_map<std::string, std::pair<int, int>> NameString::SpellStringToIn
 std::vector<uint8_t> NameString::Marks;
 std::vector<int> NameString::Available;
 std::vector<std::pair<int, int>> NameString::CollectableSpellings;
+std::vector<std::pair<int, int>>* NameString::Recording = nullptr;
 
 NameString NameString::Collectable(const std::string& value)
 {

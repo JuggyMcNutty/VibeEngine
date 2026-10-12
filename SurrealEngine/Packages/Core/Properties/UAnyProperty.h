@@ -18,6 +18,7 @@ public:
 	void CopyConstructElement(void* data, const void* src) override {}
 	void CopyElement(void* data, const void* src) override {}
 	void DestructElement(void* data) override {}
+	bool NeedsDestruct() override { return false; }
 	bool CompareElement(const void* v1, const void* v2) override { return true; }
 	bool CompareLessElement(const void* v1, const void* v2) override { return false; }
 };

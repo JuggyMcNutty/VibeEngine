@@ -213,7 +213,7 @@ The environment:
 | `DXL_LAUNCHER_FD` | The recreated launcher's line ([running it](#running-it)). |
 | `SURREAL_GC_DRYRUN=1` | Each collection marks and frees nothing: the log has what would go, by where it lives and by class, and the first holder outside them of each object of a level left behind ([objects and memory](#objects-and-memory)). |
 | `SURREAL_GC_STRESS=<frames>` | A collection every that many frames, besides the map loads'. |
-| `SURREAL_GC_VERIFY=1` | Each collection checks that every pointer it is handed is a live object, and logs the holders of those that are not. |
+| `SURREAL_GC_VERIFY=1` | Each collection checks that every pointer it is handed is a live object, walks all of the code, and logs the holders of pointers that are not, of code's references to code that reach an object not permanent, and of what the list kept from the code's last walk would have missed ([objects and memory](#objects-and-memory)). |
 | `SURREAL_PERF_LOG=1`, `SURREAL_PERF_DETAIL=1`, `SURREAL_PERF_TURN=<aBaseX>`, `SURREAL_PERF_SAMPLE=<file>` | Only with [the profiling hooks](#the-profiling-hooks) on: where the frame goes, every 60 frames on stderr; tick by actor class and script functions by self time (which inflates what it measures); the player turning on the spot; the sampling profiler. |
 
 ## What the fork changes
@@ -388,22 +388,36 @@ or array argument does not copy it, where upstream crashes.
 
 ### Objects and memory
 
-`SurrealEngine/GC`: a mark and sweep from roots, as UE1's collector
-([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#garbage-collection)).
+`SurrealEngine/GC`: a mark and sweep from roots, as UE1's collector ([the
+original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#garbage-collection)).
 A collection runs at the end of the frame, with no script running (`Engine::CollectGarbage`, in
 `EngineGC.cpp`), when asked for: by every map load but Entry's, by the console's `obj garbage`,
-by 2048 destroyed actors let go since the last one
-([destroyed actors](NATIVES.md#housekeeping-not-seen-directly)), and every `SURREAL_GC_STRESS`
-frames. It logs the original's lines (`Collecting garbage`, `Purging garbage`,
-`Garbage: objects: ...; refs: ...`) with the milliseconds it took, the resident memory before
-and after, what it freed by kind and the references it made None by holder, and gives the freed
-memory back to the system (`malloc_trim`).
+by 2048 destroyed actors let go since the last one ([destroyed
+actors](NATIVES.md#housekeeping-not-seen-directly)), and every `SURREAL_GC_STRESS` frames. A map
+load's and the console's do everything; the backlog's and the stress runs' mark and sweep only,
+no level having departed since the last map load's. It logs the original's lines (`Collecting
+garbage`, `Purging garbage`, `Garbage: objects: ...; refs: ...`, the refs those followed, not
+the ones to code) with the milliseconds it took, the resident memory before and after, what it
+freed by kind and the references it made None by holder, and a map load's gives the freed memory
+back to the system (`malloc_trim`).
 
 - **Roots** (`Engine::MarkRoots`, in `EngineGC.cpp`): the engine's subsystems, levels and
   objects; the net drivers' players, channels and package maps; the natives; every export of a
-  save info. Loaded code (a `UField` in a package) is always kept; any other export of a package
-  stays only while something reaches it, and is loaded from its file again when next asked for.
-  A map's or a save's package is not a root: what its level reaches stays.
+  save info. Any export of a package but code stays only while something reaches it, and is
+  loaded from its file again when next asked for. A map's or a save's package is not a root:
+  what its level reaches stays.
+- **Code** (a `UField` in a package) is always kept. A collection looks over the objects made
+  since the last one and moves the code among them to a permanent list
+  (`GCAllocation::permanent`), which the marker never visits as a target. A reference code
+  holds to code -- its class, its chain of fields, the struct, class or enum a property names --
+  is not handed over from code at all (`GCMarker::MarkCode`), and a struct's properties, a
+  state's functions and a bytecode's constants hand over only the entries that are not
+  permanent (a field made at run time in no package, `Object`'s native properties). What code
+  refers to beyond itself is walked each collection for a class, whose defaults scripts write
+  (`IsGCMutableCode`); the rest of the code refers to what it referred to when it was loaded,
+  so it is walked only when code was loaded or found since the last such walk
+  (`GC::CodeChanged`, from `UField::Load`), and the collectable objects and names it reached
+  then are kept from a list until the next.
 - **What an object holds**: its class, package, delay load and state frame, and the references
   its properties hold (`UStruct::RefProps`); a native class marks its own members in its `Mark`.
   An object reached only through its package keeps the package's file and tables, not its other
@@ -428,15 +442,18 @@ memory back to the system (`malloc_trim`).
 - **The weak holders** let go of the dying before anything is freed (`GC::IsDying`): the camera
   actor, the coronas and iterator actors, the lights the light system lists, the audio device's
   sound numbers and reverb zone, the open package files.
-- **The sweep** tells each dying object first, all of them still allocated (`OnGCDestroy`): its
-  properties are destructed and its package's export slot emptied, so a later reference loads it
-  from its file again; a sound leaves the audio device, a decal its BSP nodes, a package closes
-  its file, a freed texture has the render device flushed (it caches textures by address) if
-  anything was drawn since its last flush. Then each is freed.
+- **The sweep** tells each dying object first, all of them still allocated (`OnGCDestroy`): the
+  properties with something to destruct are destructed (`UStruct::DestructProps`) and its
+  package's export slot emptied, so a later reference loads it from its file again; a sound
+  leaves the audio device, a decal its BSP nodes, a package closes its file, a freed texture has
+  the render device flushed (it caches textures by address) if anything was drawn since its last
+  flush. Then each is freed.
 - **The names** go after the objects: a name the engine makes for an object
   (`NameString::Collectable`, through `Package::MakeUniqueObjectName`) is deleted when no live
-  object holds it (`GCObject::GCMarkNames`: its own name, its properties', its state frame's
-  locals), its slot taken by the next name made; a name looked up by its spelling is kept from
+  object holds it, its slot taken by the next name made. Each object marks its names as the
+  collection reaches it (`GCObject::GCMarkNames`: its own name, its properties', its state
+  frame's locals), the code as it is walked (above); an object made while the collection ran
+  has them marked over every object after. A name looked up by its spelling is kept from
   then on, so no other holder can see its index taken. A cache keyed by name indexes keeps no
   collectable name (`FindScriptFunction`).
 

@@ -124,6 +124,11 @@ void UStructProperty::CopyElement(void* data, const void* src)
 	}
 }
 
+bool UStructProperty::NeedsDestruct()
+{
+	return !Struct || !Struct->DestructProps().empty();
+}
+
 void UStructProperty::DestructElement(void* data)
 {
 	if (Struct)
@@ -189,7 +194,7 @@ void UStructProperty::MarkValue(GCMarker& marker, void* data)
 void UStructProperty::Mark(GCMarker& marker)
 {
 	UProperty::Mark(marker);
-	marker.MarkConst(Struct);
+	marker.MarkCode(Struct);
 }
 
 void UStructProperty::GetExportText(std::string& buf, const std::string& whitespace, UObject* obj, UObject* defobj, int i)

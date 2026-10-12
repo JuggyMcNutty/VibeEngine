@@ -38,6 +38,8 @@ class UClass : public UState
 {
 public:
 	void Mark(GCMarker& marker) override;
+	// Scripts write its defaults: walked every collection (GC::Collect)
+	bool IsGCMutableCode() const override { return true; }
 
 	UClass(NameString name, UClass* base, ObjectFlags flags);
 

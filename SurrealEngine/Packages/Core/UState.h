@@ -33,4 +33,13 @@ public:
 
 	UFunction* GetFunction(const NameString& name) { auto it = Functions.find(name); if (it != Functions.end()) return it->second; else return nullptr; }
 	std::map<NameString, UFunction*> Functions;
+
+private:
+	// Those of Functions that are not code kept for good
+	// (GCAllocation::permanent): the only entries the collector is handed.
+	// Built during a collection, when every loaded field is already
+	// permanent; again if Functions grew.
+	const Array<UFunction*>& CollectableFunctions();
+	Array<UFunction*> CollectableFunctionList;
+	size_t CollectableFunctionsBuiltFrom = (size_t)-1;
 };

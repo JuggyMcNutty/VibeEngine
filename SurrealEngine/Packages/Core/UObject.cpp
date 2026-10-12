@@ -588,7 +588,7 @@ void UObject::GotoState(NameString stateName, const NameString& labelName)
 void UObject::Mark(GCMarker& marker)
 {
 	marker.SetField("Class");
-	marker.MarkConst(Class);
+	marker.MarkCode(Class);
 	// A package reached only through its objects is a shell: its file and
 	// tables, none of its other objects (Package::Mark).
 	marker.SetField("package");
@@ -596,7 +596,7 @@ void UObject::Mark(GCMarker& marker)
 	if (DelayLoad)
 	{
 		marker.SetField("DelayLoad");
-		marker.MarkConst(DelayLoad->Class);
+		marker.MarkCode(DelayLoad->Class);
 		marker.MarkConst(DelayLoad->package);
 		marker.Mark(DelayLoad->Outer);
 	}
@@ -655,7 +655,7 @@ void PropertyDataBlock::Reset()
 	// laid the values out is there to destruct them.
 	if (Data && Class)
 	{
-		for (UProperty* prop : Class->Properties)
+		for (UProperty* prop : Class->DestructProps())
 			prop->DestructArray(Ptr(prop));
 	}
 	AlignedFree(Data);

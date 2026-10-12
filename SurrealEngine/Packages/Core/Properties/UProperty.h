@@ -89,6 +89,10 @@ public:
 	void ConstructArray(void* data);
 	void CopyConstructArray(void* data, const void* src);
 	void DestructArray(void* data);
+
+	// Whether a value of this property has anything to destruct: a string,
+	// an array, a struct with one. A type that does not say is taken to.
+	virtual bool NeedsDestruct() { return true; }
 	void CopyArray(void* data, const void* src);
 	bool CompareArray(const void* v1, const void* v2);
 	bool CompareLessArray(const void* v1, const void* v2);
@@ -159,6 +163,7 @@ public:
 	void ConstructElement(void* data) override { new ((char*)data) T(); }
 	void CopyConstructElement(void* data, const void* src) override { new ((char*)data) T(*static_cast<const T*>(src)); }
 	void DestructElement(void* data) override { static_cast<T*>(data)->~T(); }
+	bool NeedsDestruct() override { return !std::is_trivially_destructible<T>::value; }
 
 	void CopyElement(void* data, const void* src) override { *static_cast<T*>(data) = *static_cast<const T*>(src); }
 

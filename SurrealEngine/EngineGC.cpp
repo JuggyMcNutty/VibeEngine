@@ -180,12 +180,20 @@ void Engine::CollectGarbage()
 	bool dryRun = EnvSet("SURREAL_GC_DRYRUN");
 	bool verify = EnvSet("SURREAL_GC_VERIFY");
 
-	// Only between frames: no script frame, no object half loaded.
+	// Only between frames: no script frame, no object half loaded. A map
+	// change's collection put off keeps its map change for the next.
 	if (!Frame::Callstack.empty() || packages->HasPendingLoads())
 	{
 		LogMessage("GC: not collecting with script running or objects waiting to load (" + reason + ")");
+		GarbageMapChange = mapChange;
 		return;
 	}
+
+	// A map change's collection, and the console's, do everything; the
+	// destroyed actors' backlog mid-game, and the stress runs, mark and sweep
+	// only: no level has departed since the last map change's, and the memory
+	// goes back to the system then.
+	bool full = mapChange || reason == "obj garbage";
 
 	LogMessage("Collecting garbage (" + reason + ")");
 	auto start = std::chrono::steady_clock::now();
@@ -224,7 +232,7 @@ void Engine::CollectGarbage()
 	// instead of keeping that level), and at a map change the new level's
 	// actors that are not in its Actors (the original's). Code is kept.
 	Array<UObject*> eliminated;
-	if (!dryRun)
+	if (!dryRun && full)
 	{
 		std::unordered_set<UActor*> listed;
 		if (mapChange && Level)
@@ -235,7 +243,7 @@ void Engine::CollectGarbage()
 					listed.insert(actor);
 			}
 		}
-		for (GCObject* gcobj : GC::GetObjects())
+		for (GCObject* gcobj : GC::GetObjects(false))
 		{
 			UObject* obj = dynamic_cast<UObject*>(gcobj);
 			if (!obj || !obj->package || AnyFlags(obj->Flags, ObjectFlags::EliminateObject) || dynamic_cast<UField*>(obj))
@@ -307,6 +315,11 @@ void Engine::CollectGarbage()
 
 	if (!dryRun)
 		LogMessage("Purging garbage");
+	// The names are marked with the objects, as the original's purge deletes
+	// every name nothing reaches once the objects are gone: here only the
+	// collectable ones (NameString::Collectable), which a live object's own
+	// name, its properties or its state frame's locals keep.
+	NameString::BeginMark();
 	GCCollectResult result = GC::Collect([this](GCMarker& marker) { MarkRoots(marker); }, purgeWeak, options);
 
 	// The device caches textures by address: one freed must not be found
@@ -317,21 +330,19 @@ void Engine::CollectGarbage()
 	if (!dryRun)
 		GarbageDestroyedBacklog = 0;
 
-	// The names, as the original's purge deletes every name nothing reaches
-	// once the objects are gone: here only the collectable ones
-	// (NameString::Collectable), which a live object's own name, its
-	// properties or its state frame's locals keep.
 	size_t namesBefore = NameString::Count();
 	size_t namesFreed = 0;
 	if (!dryRun)
 	{
-		NameString::BeginMark();
-		GC::MarkNames();
+		// An object made while the collection ran was marked at birth and
+		// never walked: its names are marked now, over every object
+		if (GC::BornDuringCollection() > 0)
+			GC::MarkNames();
 		namesFreed = NameString::Sweep().size();
 	}
 
 #if defined(__GLIBC__)
-	if (!dryRun)
+	if (!dryRun && full)
 		malloc_trim(0);
 #endif
 
@@ -370,6 +381,8 @@ void Engine::CollectGarbage()
 	}
 	LogTop("GC: eliminated objects kept through a reference that may not be written:", result.KeptEliminated, 30);
 	LogTop("GC verify: pointers to no live object, by holder:", result.Invalid, 30);
+	LogTop("GC verify: code's references to code that reached an object not permanent, by holder:", result.CodeToCollectable, 30);
+	LogTop("GC verify: what code keeps that the list kept from its last walk missed, by holder:", result.CodeKeptMissed, 30);
 	for (const std::string& error : errors)
 		LogMessage("GC error: " + error);
 }

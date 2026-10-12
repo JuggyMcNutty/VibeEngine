@@ -4,6 +4,7 @@
 
 void UField::Load(ObjectStream* stream)
 {
+	GC::CodeChanged();
 	UObject::Load(stream);
 	BaseField = stream->ReadObject<UField>();
 	Next = stream->ReadObject<UField>();
@@ -20,7 +21,7 @@ void UField::Mark(GCMarker& marker)
 {
 	UObject::Mark(marker);
 	marker.SetField("BaseField");
-	marker.MarkConst(BaseField);
+	marker.MarkCode(BaseField);
 	marker.SetField("Next");
-	marker.MarkConst(Next);
+	marker.MarkCode(Next);
 }
