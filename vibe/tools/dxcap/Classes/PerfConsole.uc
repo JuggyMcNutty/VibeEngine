@@ -13,7 +13,7 @@
 // those spans.
 // In the original also the engine's own cycle counters, the game's tick and
 // the client's frame (what its STAT GLOBAL shows), which the fork does not
-// keep: read only where they are not 0, as the fork has no CyclesToSeconds.
+// keep: read only where they are not 0.
 // Then a total line, the frame times' spread, and an exit.
 //=============================================================================
 class PerfConsole extends Console;

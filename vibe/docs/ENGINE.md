@@ -358,6 +358,13 @@ plain values, not through an `ExpressionValue`; conditions, jumps, plain assignm
 `ExpressionEvalResult` each (`Frame::ClassifyStatement`). A call leaving out an optional struct
 or array argument does not copy it, where upstream crashes.
 
+Deus Ex's script runs under the original's guards
+([stops the game](NATIVES.md#stops-the-game), [a singular function](NATIVES.md#small)), on
+while `Frame::Guards` is: the jumps counted by `Frame::CountJump` from each level tick and map
+load (`Frame::InitRunaway`), the nesting and each object's singular mark kept by
+`Frame::GuardedRun` in `Frame::CallScript`. Other games keep upstream's warning, logged for each
+statement past 500,000 in one function's run.
+
 ### Game tick
 
 - **Deus Ex's level tick is the original's**: the actor list in the original's order, static

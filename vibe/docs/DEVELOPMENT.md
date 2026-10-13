@@ -100,7 +100,7 @@ side where no script reads the run. *Either*: one engine on each side of a pair.
 | `ParticleConsole` | both | smoke and puffs on the pier, in marked shots | `DXPART:` |  |
 | `FaceConsole` | both | a character's mesh close up (`MeshOf`, `Ahead`, `Distance`) | `DXFACE:` | `shots.py <original run> <fork run>` |
 | `MeshConsole` | both | meshes lit on the pier (`LODBias`, `NoDetail`) | `DXMESH:` | `shots.py` |
-| `LightConsole` | both | a light of one effect on `TargetMap` (`Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`) | `DXLIGHT:` | `shots.py` |
+| `LightConsole` | both | a light of one effect on `TargetMap` (`Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`); the spot's texture as its own macro texture (`Macro`) | `DXLIGHT:` | `shots.py` |
 | `FlashConsole` | both | the screen flash | `DXFLASH:` |  |
 | `GlassConsole` | both | a glass mover on `TargetMap`, and what is behind it (`Pick`, `GlassName`, `View`, `Behind`) | `DXGLASS:` | `shots.py` |
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` |  |
@@ -334,8 +334,8 @@ vibe/tools/perf/frame-report.py <original run> <fork run>
   the day and the frames in it. The total line gives frames a second, the mean, p50, p99 and the
   worst frame. Started at `DX.dx`, the fork travels to the map as the original does.
 - **The original's own split**: its `Engine` object's `GameCycles` (the game's tick) and
-  `ClientCycles` (the frame drawn), read each frame where they are not 0 (the fork keeps neither
-  and has no `CyclesToSeconds`), are each line's `game` and `client`.
+  `ClientCycles` (the frame drawn), read each frame where they are not 0 (the fork keeps neither),
+  are each line's `game` and `client`.
 - **`frame-report.py`** keeps the samples inside the windows and gives the main thread's time a
   frame by area and by function, and its cycles and instructions a frame. The original's
   functions are each DLL's nearest export below the sample (its base from `maps.txt`):
