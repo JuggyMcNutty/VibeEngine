@@ -646,21 +646,24 @@ Every other native the scripted runs compare matches the original
   whatever it collides with, hidden or not. A map's load and a save file
   every mover where it is; each frame drawn files again where it is every
   mover not hidden that has moved or turned since; a destroyed one stays
-  filed until the next load or save. `FastTrace` and the checks on its line
-  (`LineOfSightTo`, hearing, the reach tests and path searches, the
+  filed until the next load or save. A dedicated server, which has no
+  client, files none, as the original's makes no tracker without one: its
+  lines pass its movers (`MoverServer` on DXMP_Silo, through
+  `dxcap.sh dedicated`: a closed door's line clear in both engines, and a
+  door moved off it clear at both its places). `FastTrace` and the checks on
+  its line (`LineOfSightTo`, hearing, the reach tests and path searches, the
   visible-actor iterators, network relevance, mesh lights' shadows, the AI's
   sight and the mixer's walls, [sound](#sound)) meet the filed polygons, a
   line's `Trace` and the multi-hit check meet them as the level's -- a
   polygon in the plane of a node of the level's own as that node, the
   texture and flags given those of the first polygon filed in the plane --
-  and a box meets none (`MoverConsole` on
-  Liberty Island and DXMP_Silo: a door made not to collide, then hidden and
-  moved, then saved; a window broken, at once and a frame on;
-  `VisibleConsole` there). Not carried: the refiling of the movers filed
-  under one filed again, which the original files again wherever they are;
-  and the polygons are filed whole, where the original's tree drops what
-  lands in solid, which no line in the open meets. A dedicated server,
-  drawing no frame, never files a mover again: unproven.
+  and a box meets none (`MoverConsole` on Liberty Island and DXMP_Silo: a
+  door made not to collide, then hidden and moved, then saved; a window
+  broken, at once and a frame on; `VisibleConsole` there). Not carried: the
+  refiling of the movers filed under one filed again, which the original
+  files again wherever they are; and the polygons are filed whole, where the
+  original's tree drops what lands in solid, which no line in the open
+  meets.
 - **Sight** (`SightConsole`), **the reach tests** (`ReachConsole`), and
   **the look up and down stairs** (`StairConsole`: every answer of
   `Pawn.FindStairRotation` alike on Liberty Island's pier and

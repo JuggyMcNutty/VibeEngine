@@ -181,9 +181,10 @@ public:
 	void AddToCollision(UActor* actor);
 	void RemoveFromCollision(UActor* actor);
 
-	// Deus Ex's movers in the BSP: filed afresh at a map's load and after a
-	// save (all, where they are), each drawn frame again where a shown one
-	// has moved or turned since; a destroyed one stays filed.
+	// Deus Ex's movers in the BSP: filed afresh at a map's load, but on a
+	// dedicated server, and after a save (all, where they are), each drawn
+	// frame again where a shown one has moved or turned since; a destroyed
+	// one stays filed.
 	void FileMovers();
 	void RefileMovers();
 	void MoverDestroyed(UActor* actor);

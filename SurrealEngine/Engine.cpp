@@ -1192,8 +1192,9 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	LinkActorsToLevel();
 
 	// Deus Ex's movers filed into the level's BSP, as the original's LoadMap
-	// makes its brush tracker for every map but Entry
-	if (LaunchInfo.IsDeusEx() && !StrTools::equals_ignore_case(LevelPackage->GetPackageName().ToString(), packages->GetIniValue("System", "URL", "EntryMap", "Entry")))
+	// makes its brush tracker for every map but Entry -- with a client only:
+	// a dedicated server files none, and its lines pass its movers
+	if (LaunchInfo.IsDeusEx() && !LaunchInfo.dedicatedServer && !StrTools::equals_ignore_case(LevelPackage->GetPackageName().ToString(), packages->GetIniValue("System", "URL", "EntryMap", "Entry")))
 		Level->Collision.FileMovers();
 
 	if (asClient)
@@ -1425,7 +1426,8 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 	GetLevelObject();
 
 	LinkActorsToLevel();
-	if (LaunchInfo.IsDeusEx())
+	// Filed as a map's load files them, with a client only
+	if (LaunchInfo.IsDeusEx() && !LaunchInfo.dedicatedServer)
 		Level->Collision.FileMovers();
 
 	// engine->GameInfo is otherwise only assigned in LoadMap, so without this it keeps
