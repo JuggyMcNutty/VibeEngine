@@ -350,8 +350,12 @@ original's 8.5. Differs (`VisibleFrame::Draw`, `VisibleMesh`,
 
 Matches `Fire.dll` step for step
 ([`fire-dll.md`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/fire-dll.md)),
-checked against its own routines run in an emulator. How a mesh shows its
-textures is the original's too
+checked against its own routines run in an emulator. Its random bytes come
+from the C library's `rand`, seeded from the clock at start as the
+original's
+([the platform's start](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-platforms-start)),
+so a fire differs from run to run in either engine (`LaserConsole`'s
+texture shots). How a mesh shows its textures is the original's too
 ([mesh textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#mesh-textures)).
 Differs:
 
@@ -363,8 +367,6 @@ Differs:
 - **The wave lighting table** can be one step off at a single entry, in 3 of
   200 settings: the fork takes the C library's cosine, the original the
   x87's, and they differ in the last bit.
-- The original's fire repeats itself from run to run; the fork's varies
-  (`LaserConsole`).
 
 ### Head turns and lip sync: blend animations
 
