@@ -432,7 +432,7 @@ void VulkanRenderDevice::DrawComplexSurface(SceneNode* Frame, SurfaceInfo& Surfa
 		DetailVMult = GetVMult(*Surface.FogMap);
 	}
 
-	SetPipeline(RenderPasses->GetPipeline(PolyFlags));
+	SetPipeline(RenderPasses->GetPipeline(PolyFlags, Surface.DepthBias));
 
 	ivec4 textureBinds = GetTextureIndexes(PolyFlags, tex, lightmap, macrotex, detailtex);
 	vec4 color(1.0f);

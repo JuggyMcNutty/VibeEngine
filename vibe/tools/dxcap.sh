@@ -54,13 +54,14 @@
 # the run's console class those keys in its section of the ini, as
 # DXCAP_MISSION_MAP gives TargetMap (LightConsole's Effect, Pick, LightName,
 # View, Aim and ShotAt; GlassConsole's Pick, GlassName, View and Behind;
-# FaceConsole's MeshOf, Ahead and Distance; MeshConsole's LODBias and
-# NoDetail).
+# FlushConsole's Pick, DoorName, View and Angle; FaceConsole's MeshOf, Ahead
+# and Distance; MeshConsole's LODBias and NoDetail).
 # DXCAP_MISSION_MAP=<map> names, through the run's ini, the map a run's
 # console travels to, its TargetMap (MissionConsole's, StaticConsole's,
 # WadeConsole's, ScreenConsole's, PerfConsole's, EndgameConsole's,
-# VisibleConsole's, MoverConsole's, LightConsole's, GlassConsole's): an
-# original run starts at its menu map, a fork run at the map it is given.
+# VisibleConsole's, MoverConsole's, LightConsole's, GlassConsole's,
+# FlushConsole's): an original run starts at its menu map, a fork run at the
+# map it is given.
 # DXCAP_ENGINE=<binary> runs another build of the fork than linux-x86_64's
 # (an ASan build). DXCAP_MEMLOG=1 logs a fork run's resident memory each
 # second into the run's memlog.txt: seconds since the start, then MB.

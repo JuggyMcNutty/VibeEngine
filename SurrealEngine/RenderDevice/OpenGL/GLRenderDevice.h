@@ -144,6 +144,7 @@ public:
 		std::shared_ptr<GLDepthStencilState> DepthStencilState;
 		float MinDepth = 0.1f;
 		float MaxDepth = 1.0f;
+		float DepthBias = 0.0f; // glPolygonOffset's factor and units; 0, none
 	};
 
 	struct
@@ -160,6 +161,8 @@ public:
 		std::shared_ptr<GLProgram> ShaderProgramAlphaTest;
 		std::shared_ptr<GLSampler> Samplers[16];
 		ScenePipelineState Pipelines[33];
+		// Pipelines' first 32 a step toward the viewer (SurfaceInfo::DepthBias)
+		ScenePipelineState BiasedPipelines[32];
 		ScenePipelineState LinePipeline[2];
 		ScenePipelineState PointPipeline[2];
 		float LODBias = 0.0f;
@@ -201,6 +204,7 @@ public:
 		GLBlendState* Blend = nullptr;
 		float BlendConstants[4] = {};
 		GLDepthStencilState* DepthStencil = nullptr;
+		float DepthBias = 0.0f;
 	} DrawState;
 	void ForgetDrawState() { DrawState.Valid = false; }
 	void ForgetBoundTexture() { DrawState.Textures[0] = ~0u; }
@@ -312,7 +316,7 @@ private:
 	void ComputeBlurSamples(int sampleCount, float blurAmount, float* sampleWeights);
 
 	void SetPipeline(ScenePipelineState* pipeline);
-	void SetPipeline(uint32_t polyflags);
+	void SetPipeline(uint32_t polyflags, bool depthBias = false);
 	void SetDescriptorSet(uint32_t polyflags, GLCachedTexture* tex = nullptr, bool clamp = false);
 	void SetDescriptorSet(uint32_t polyflags, const ComplexSurfaceInfo& info);
 
@@ -353,7 +357,7 @@ private:
 
 	int GetSettingsMultisample();
 
-	ScenePipelineState* GetPipeline(uint32_t PolyFlags);
+	ScenePipelineState* GetPipeline(uint32_t PolyFlags, bool depthBias = false);
 
 	std::shared_ptr<GLBlendState> CreateBlendState(const GLBlendDesc& desc);
 	std::shared_ptr<GLRasterizerState> CreateRasterizerState(const GLRasterizerDesc& desc);
@@ -431,9 +435,9 @@ inline void GLRenderDevice::SetPipeline(ScenePipelineState* pipeline)
 	}
 }
 
-inline void GLRenderDevice::SetPipeline(uint32_t PolyFlags)
+inline void GLRenderDevice::SetPipeline(uint32_t PolyFlags, bool depthBias)
 {
-	auto pipeline = GetPipeline(PolyFlags);
+	auto pipeline = GetPipeline(PolyFlags, depthBias);
 	if (pipeline != Batch.Pipeline)
 	{
 		AddDrawBatch();

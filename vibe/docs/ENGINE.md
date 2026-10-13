@@ -287,6 +287,9 @@ the lightmaps for upload in NEON on ARM. Its translucent, modulated and highligh
 upstream's depth bias toward the viewer, a step and a slope of 1; the GL device's take none, nor
 do `D3DDrv`'s but its detail pass
 ([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures)).
+A Deus Ex mover's surfaces take that step on both devices (`SurfaceInfo::DepthBias`; Vulkan's
+eight opaque pipelines again with it, GL's `glPolygonOffset`;
+[draw order and movers](NATIVES.md#draw-order-and-movers)).
 
 **The GL device** runs desktop GL 4.2+ and OpenGL ES 3.2 from one code path: `RenderAPI::GLES`
 and `RenderDeviceType::GLES`, an ES 3.2 context from every window backend (SDL2 and SDL3 through

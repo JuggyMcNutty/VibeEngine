@@ -47,7 +47,7 @@ void RenderPassManager::CreateBloomPipelineLayout()
 		.Create(renderer->Device.get());
 }
 
-PipelineState* RenderPassManager::GetPipeline(uint32_t PolyFlags)
+PipelineState* RenderPassManager::GetPipeline(uint32_t PolyFlags, bool depthBias)
 {
 	int index;
 	if (PolyFlags & PF_Translucent)
@@ -85,6 +85,8 @@ PipelineState* RenderPassManager::GetPipeline(uint32_t PolyFlags)
 		index = 32;
 	}
 
+	if (depthBias && index < 32 && (index & 3) == 3)
+		return &Scene.BiasedPipeline[index >> 2];
 	return &Scene.Pipeline[index];
 }
 
@@ -101,8 +103,11 @@ void RenderPassManager::CreatePipelines()
 	VulkanPipelineLayout* layout = Scene.PipelineLayout.get();
 	static const char* debugName = "ScenePipeline";
 
-	for (int i = 0; i < 33; i++)
+	// The 33 scene pipelines, then the opaque ones again with a depth bias
+	for (int n = 0; n < 33 + 8; n++)
 	{
+		bool biased = n >= 33;
+		int i = biased ? (3 | ((n - 33) << 2)) : n;
 		GraphicsPipelineBuilder builder;
 		builder.AddVertexShader(vertShader);
 		builder.Viewport(0.0f, 0.0f, (float)renderer->Textures->Scene->Width, (float)renderer->Textures->Scene->Height);
@@ -146,6 +151,8 @@ void RenderPassManager::CreatePipelines()
 				break;
 			case 3:
 				colorblend.BlendMode(VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO); // Hmm, is it faster to keep the blend mode enabled or to toggle it?
+				if (biased)
+					builder.DepthBias(true, -1.0f, 0.0f, -1.0f);
 				break;
 			}
 
@@ -183,7 +190,7 @@ void RenderPassManager::CreatePipelines()
 		builder.RasterizationSamples(renderer->Textures->Scene->SceneSamples);
 		builder.DebugName(debugName);
 
-		Scene.Pipeline[i].Pipeline = builder.Create(renderer->Device.get());
+		(biased ? Scene.BiasedPipeline[n - 33] : Scene.Pipeline[i]).Pipeline = builder.Create(renderer->Device.get());
 	}
 
 	// Line pipeline

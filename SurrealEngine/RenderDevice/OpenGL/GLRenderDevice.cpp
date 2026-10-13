@@ -493,6 +493,11 @@ void GLRenderDevice::CreateScenePass()
 
 		ScenePass.Pipelines[i].PrimitiveTopology = GL_TRIANGLES;
 	}
+	for (int i = 0; i < 32; i++)
+	{
+		ScenePass.BiasedPipelines[i] = ScenePass.Pipelines[i];
+		ScenePass.BiasedPipelines[i].DepthBias = -1.0f;
+	}
 
 	// Line pipeline
 	for (int i = 0; i < 2; i++)
@@ -659,6 +664,11 @@ void GLRenderDevice::ReleaseScenePass()
 		pipeline.BlendState.reset();
 		pipeline.DepthStencilState.reset();
 	}
+	for (auto& pipeline : ScenePass.BiasedPipelines)
+	{
+		pipeline.BlendState.reset();
+		pipeline.DepthStencilState.reset();
+	}
 	for (int i = 0; i < 2; i++)
 	{
 		ScenePass.LinePipeline[i].BlendState.reset();
@@ -718,7 +728,7 @@ void GLRenderDevice::ReleaseSceneBuffers()
 	}
 }
 
-GLRenderDevice::ScenePipelineState* GLRenderDevice::GetPipeline(uint32_t PolyFlags)
+GLRenderDevice::ScenePipelineState* GLRenderDevice::GetPipeline(uint32_t PolyFlags, bool depthBias)
 {
 	int index;
 	if (PolyFlags & PF_Translucent)
@@ -756,6 +766,8 @@ GLRenderDevice::ScenePipelineState* GLRenderDevice::GetPipeline(uint32_t PolyFla
 		index = 32;
 	}
 
+	if (depthBias && index < 32)
+		return &ScenePass.BiasedPipelines[index];
 	return &ScenePass.Pipelines[index];
 }
 
@@ -1442,7 +1454,7 @@ void GLRenderDevice::DrawComplexSurface(SceneNode* Frame, SurfaceInfo& Surface, 
 	if (info.fogmap != nulltex)
 		info.detailtex = info.fogmap;
 
-	SetPipeline(PolyFlags);
+	SetPipeline(PolyFlags, Surface.DepthBias);
 	SetDescriptorSet(PolyFlags, info);
 
 	DrawComplexSurfaceFaces(info);
@@ -2356,6 +2368,20 @@ void GLRenderDevice::DrawEntry(const DrawBatchEntry& entry)
 	{
 		SetDepthStencilState(depthStencil);
 		DrawState.DepthStencil = depthStencil;
+	}
+	float depthBias = entry.Pipeline->DepthBias;
+	if (all || DrawState.DepthBias != depthBias)
+	{
+		if (depthBias != 0.0f)
+		{
+			glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(depthBias, depthBias);
+		}
+		else
+		{
+			glDisable(GL_POLYGON_OFFSET_FILL);
+		}
+		DrawState.DepthBias = depthBias;
 	}
 	DrawState.Valid = true;
 

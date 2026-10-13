@@ -126,6 +126,7 @@ bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly&
 	}
 
 	surfaceinfo.PolyFlags = PolyFlags;
+	surfaceinfo.DepthBias = engine->LaunchInfo.IsDeusEx();
 	surfaceinfo.LightMap = lightmap.NumMips != 0 ? &lightmap : nullptr;
 	surfaceinfo.FogMap = fogmap.NumMips != 0 ? &fogmap : nullptr;
 

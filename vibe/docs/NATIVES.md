@@ -335,15 +335,20 @@ original's 8.5. Differs (`VisibleFrame::Draw`, `VisibleMesh`,
   have opaque faces after them; `FaceConsole`'s close-ups of a UNATCO troop,
   an MIB and Anna Navarre, face on, come out the same in either order, the
   MIB's lenses within 0.5% of `D3DDrv`'s.
-- **Movers** are drawn as their brushes, through their own matrix, with no
-  depth bias of their own (the Vulkan device's on every translucent draw
-  aside: [rendering](ENGINE.md#rendering)): their opaque polygons with the
-  solid actors, their translucent ones among the surfaces. The original
-  files their polygons into the level's BSP and drops what lands in solid. A
-  mover hidden after it is filed stays drawn there in the original, where
-  the fork stops drawing it (`GlassConsole`); no stock script hides a mover.
-  A mover flush with a wall can fight it in the depth buffer; no run shows
-  it.
+- **Movers** are drawn as their brushes, through their own matrix, a step
+  toward the viewer ([rendering](ENGINE.md#rendering)): their opaque
+  polygons with the solid actors, their translucent ones among the
+  surfaces. The original files their polygons into the level's BSP and
+  drops what lands in solid, a polygon in a wall's plane filed in front of
+  the wall's. So one flush with a wall shows over it in both, by the step
+  in the fork: `FlushConsole`'s pocket door (Liberty Island's
+  `DeusExMover12` slid half into the flat wall beside it) shows the door,
+  head on and from 1,200 units at 75 degrees. No device here fights there
+  without the step (GL and Vulkan on the desktop, Vulkan on the Smart Pro:
+  the shots within 15 pixels with it and without); the step keeps the
+  order whatever a GPU's rounding. A mover hidden after it is filed stays
+  drawn there in the original, where the fork stops drawing it
+  (`GlassConsole`); no stock script hides a mover.
 
 ### Fire, water and ice textures
 
