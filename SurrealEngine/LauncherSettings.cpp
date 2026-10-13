@@ -81,7 +81,6 @@ LauncherSettings::LauncherSettings()
 		if (!pad["Layout"].is_undefined()) Gamepad.Layout = pad["Layout"].to_string();
 
 		const JsonValue& perf = settings["Performance"];
-		if (!perf["AiLevelOfDetail"].is_undefined()) Performance.AiLevelOfDetail = perf["AiLevelOfDetail"].to_boolean();
 		if (!perf["RenderScale"].is_undefined()) Performance.RenderScale = (float)perf["RenderScale"].to_number();
 	}
 	catch (...)
@@ -148,7 +147,6 @@ void LauncherSettings::Save()
 	pad["Layout"] = JsonValue::string(Gamepad.Layout);
 
 	JsonValue perf = JsonValue::object();
-	perf["AiLevelOfDetail"] = JsonValue::boolean(Performance.AiLevelOfDetail);
 	perf["RenderScale"] = JsonValue::number(Performance.RenderScale);
 
 	JsonValue settings = JsonValue::object();

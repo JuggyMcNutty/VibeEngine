@@ -69,10 +69,9 @@ public:
 		std::string Layout = "modern";
 	} Gamepad;
 
-	// Speed for fidelity, for slow hardware (UActor::ThinkThisFrame).
+	// Speed for slow hardware.
 	struct
 	{
-		bool AiLevelOfDetail = false;
 		float RenderScale = 1.0f; // the scene's size as a fraction of the window's (RenderDevice::GetRenderScale)
 	} Performance;
 

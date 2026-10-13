@@ -17,8 +17,6 @@
 #include "Engine.h"
 #include "VM/ScriptCall.h"
 #include "VM/Frame.h"
-#include "Render/RenderSubsystem.h"
-#include "LauncherSettings.h"
 
 UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std::optional<NameString> SpawnTag, std::optional<vec3> SpawnLocation, std::optional<Rotator> SpawnRotation, bool noCollisionFail, bool remoteOwned)
 {
@@ -366,9 +364,6 @@ void UActor::Tick(float elapsed)
 	// nothing more: it moves by the client's moves (ServerMove).
 	bool clientsPawn = netGame && Role() == ROLE_Authority && RemoteRole() == ROLE_AutonomousProxy;
 
-	float thinkElapsed = elapsed;
-	bool think = ThinkThisFrame(elapsed, thinkElapsed);
-
 	// Deus Ex's local player reads its input and runs PlayerTick here, before
 	// its state code and physics, in place of Tick, as the original's actor
 	// tick has it: its physics take the move it makes the same tick, where
@@ -377,9 +372,9 @@ void UActor::Tick(float elapsed)
 	if (player && player->TickInput(elapsed))
 	{
 	}
-	else if (think && !clientsPawn && Role() >= ROLE_SimulatedProxy && IsEventEnabled(EventName::Tick))
+	else if (!clientsPawn && Role() >= ROLE_SimulatedProxy && IsEventEnabled(EventName::Tick))
 	{
-		CallEvent(this, EventName::Tick, { ExpressionValue::FloatValue(thinkElapsed) });
+		CallEvent(this, EventName::Tick, { ExpressionValue::FloatValue(elapsed) });
 	}
 
 	if (StateFrame)
@@ -396,7 +391,7 @@ void UActor::Tick(float elapsed)
 				StateFrame->LatentState = LatentRunState::Continue;
 		}
 
-		if (think && Role() >= ROLE_SimulatedProxy && StateFrame->LatentState == LatentRunState::Continue)
+		if (Role() >= ROLE_SimulatedProxy && StateFrame->LatentState == LatentRunState::Continue)
 		{
 			StateFrame->Tick();
 		}
@@ -416,40 +411,6 @@ void UActor::Tick(float elapsed)
 			CallEvent(this, EventName::Timer);
 		}
 	}
-}
-
-bool UActor::ThinkThisFrame(float elapsed, float& thinkElapsed)
-{
-	thinkElapsed = elapsed;
-	if (!LauncherSettings::Get().Performance.AiLevelOfDetail)
-		return true;
-
-	if (AiLodPawn < 0)
-	{
-		AiLodPawn = (UObject::TryCast<UPawn>(this) && !UObject::TryCast<UPlayerPawn>(this)) ? 1 : 0;
-		AiFramesSinceThought = Index % 3; // spread the pawns over the three frames
-	}
-	if (!AiLodPawn)
-		return true;
-
-	AiTimeSinceThought += elapsed;
-	AiFramesSinceThought++;
-
-	constexpr float nearDistance = 1500.0f; // ~28 m: close enough to fight
-	constexpr float farDistance = 4000.0f; // ~76 m: beyond this, every sixth frame
-	UActor* player = engine->viewport->Actor();
-	bool seen = LastVisibleFrame >= engine->render->SceneFrameStart;
-	float distance = player ? length(player->Location() - Location()) : 0.0f;
-	bool near = player && distance < nearDistance;
-	int interval = (player && distance > farDistance) ? 6 : 3;
-	if (seen || near || AiFramesSinceThought >= interval)
-	{
-		thinkElapsed = AiTimeSinceThought;
-		AiTimeSinceThought = 0.0f;
-		AiFramesSinceThought = 0;
-		return true;
-	}
-	return false;
 }
 
 bool UActor::Move(const vec3& delta)

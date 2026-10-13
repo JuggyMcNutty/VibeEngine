@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f4e2c56..217b7a7 100644
+index 49e6806..f4817bf 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -29,6 +29,11 @@ endif()
@@ -15,7 +15,7 @@ index f4e2c56..217b7a7 100644
  	SurrealEngine/Precomp.cpp
  	SurrealEngine/Precomp.h
 diff --git a/SurrealEngine/Engine.cpp b/SurrealEngine/Engine.cpp
-index 280c41b..1439d59 100644
+index 614c96f..d01477e 100644
 --- a/SurrealEngine/Engine.cpp
 +++ b/SurrealEngine/Engine.cpp
 @@ -2,6 +2,7 @@
@@ -26,24 +26,24 @@ index 280c41b..1439d59 100644
  #include "Utils/File.h"
  #include "Utils/StrTools.h"
  #include "Utils/SHA1Sum.h"
-@@ -278,8 +279,10 @@ void Engine::Run()
- 		// The windows tick before the engine, as the original's
- 		// (Extension.dll XGameEngineExt::Tick 0x100266a0): what the level
+@@ -285,8 +286,10 @@ void Engine::Run()
  		// makes this frame has been laid out by the time they next tick.
+ 		// They tick by real seconds since their last tick, not the level's
+ 		// time (XRootWindow::TickWindows 0x1003a4a0).
 +		{ PerfLog::Section perfWindows(PerfLog::Tick); // TEMPORARY DEBUG TOOL
  		if (dxRootWindow)
- 			dxRootWindow->Tick(levelElapsed); // Should this maybe be realTimeElapsed?
+ 			dxRootWindow->Tick(UWindow::GetWindowsTickOffset(true));
 +		} // TEMPORARY DEBUG TOOL
  
  		TotalTime += realTimeElapsed;
  
-@@ -310,10 +313,16 @@ void Engine::Run()
- 		LevelInfo->Millisecond() = milliseconds;
- 
+@@ -320,10 +323,16 @@ void Engine::Run()
+ 		// original's level tick holds it (dx-reverse-info engine-dll.md, a
+ 		// level's tick).
  		if (!dedicated)
 +		{
 +			{ PerfLog::Scope perf(PerfLog::Input); // TEMPORARY DEBUG TOOL
- 			UpdateInput(realTimeElapsed);
+ 			UpdateInput(LaunchInfo.IsDeusEx() ? std::min(realTimeElapsed, 0.4f) : realTimeElapsed);
 +			}
 +		}
  
@@ -54,7 +54,7 @@ index 280c41b..1439d59 100644
  		// Do NOT pause this Tick event otherwise some messages will stay on screen forever.
  		if (!dedicated)
  			CallEvent(console, EventName::Tick, { ExpressionValue::FloatValue(levelElapsed) });
-@@ -342,6 +351,10 @@ void Engine::Run()
+@@ -352,6 +361,10 @@ void Engine::Run()
  		if (LevelNetDriver)
  			LevelNetDriver->TickFlush();
  
@@ -65,7 +65,7 @@ index 280c41b..1439d59 100644
  		// To do: improve CallEvent so parameter passing isn't this painful
  		UFunction* funcPlayerCalcView = viewport->Actor() ? FindEventFunction(viewport->Actor(), "PlayerCalcView") : nullptr;
  		if (funcPlayerCalcView)
-@@ -360,12 +373,17 @@ void Engine::Run()
+@@ -370,12 +383,17 @@ void Engine::Run()
  		}
  
  		if (!dedicated)
@@ -84,7 +84,7 @@ index 280c41b..1439d59 100644
  
  		// Save the game if there is a request for it
  		if (SaveGameInfo.SaveGameSlot != DONT_SAVE_GAME)
-@@ -2827,6 +2845,9 @@ void Engine::UpdateInput(float timeElapsed)
+@@ -2958,6 +2976,9 @@ void Engine::UpdateInput(float timeElapsed)
  	if (!viewport->Actor())
  		return;
  
@@ -155,29 +155,8 @@ index 261c5bc..500836d 100644
  
  		UnrealMipmap& lmmip = lmtexture->Mip;
  		const vec3* pixels = Builder.Pixels();
-diff --git a/SurrealEngine/Packages/Engine/Actors/UActor.cpp b/SurrealEngine/Packages/Engine/Actors/UActor.cpp
-index fa32658..b641a17 100644
---- a/SurrealEngine/Packages/Engine/Actors/UActor.cpp
-+++ b/SurrealEngine/Packages/Engine/Actors/UActor.cpp
-@@ -19,6 +19,7 @@
- #include "VM/Frame.h"
- #include "Render/RenderSubsystem.h"
- #include "LauncherSettings.h"
-+#include "Utils/PerfLog.h" // TEMPORARY DEBUG TOOL
- 
- UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std::optional<NameString> SpawnTag, std::optional<vec3> SpawnLocation, std::optional<Rotator> SpawnRotation, bool noCollisionFail, bool remoteOwned)
- {
-@@ -439,6 +440,8 @@ bool UActor::ThinkThisFrame(float elapsed, float& thinkElapsed)
- 	float distance = player ? length(player->Location() - Location()) : 0.0f;
- 	bool near = player && distance < nearDistance;
- 	int interval = (player && distance > farDistance) ? 6 : 3;
-+	if (PerfLog::Enabled()) // TEMPORARY DEBUG TOOL: why pawns think
-+		PerfLog::Tally()[seen ? (near ? "ai-seen+near" : "ai-seen") : near ? "ai-near" : AiFramesSinceThought >= interval ? (interval == 6 ? "ai-far-turn" : "ai-turn") : (interval == 6 ? "ai-far-skip" : "ai-skip")]++;
- 	if (seen || near || AiFramesSinceThought >= interval)
- 	{
- 		thinkElapsed = AiTimeSinceThought;
 diff --git a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
-index 389baa3..d7aa595 100644
+index c014a58..d1511b5 100644
 --- a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 +++ b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 @@ -1,5 +1,7 @@
@@ -188,7 +167,7 @@ index 389baa3..d7aa595 100644
  #include "ULevel.h"
  #include "Packages/Core/UClass.h"
  #include "Packages/Engine/Actors/UDecal.h"
-@@ -94,7 +96,10 @@ void ULevel::TickActor(float elapsed, UActor* actor)
+@@ -95,7 +97,10 @@ void ULevel::TickActor(float elapsed, UActor* actor)
  	actor->bTicked() = ticked;
  
  	// Tick the actor for this turn
@@ -200,7 +179,7 @@ index 389baa3..d7aa595 100644
  	// Destroy the actor if its time
  	if (actor->Role() >= ROLE_SimulatedProxy && actor->LifeSpan() != 0.0f)
 diff --git a/SurrealEngine/Render/RenderScene.cpp b/SurrealEngine/Render/RenderScene.cpp
-index 5d85996..87075b3 100644
+index 82ebe4f..2eb4692 100644
 --- a/SurrealEngine/Render/RenderScene.cpp
 +++ b/SurrealEngine/Render/RenderScene.cpp
 @@ -1,5 +1,6 @@
@@ -218,14 +197,13 @@ index 5d85996..87075b3 100644
  	for (UActor* actor : engine->Level->Actors)
  	{
  		if (actor)
-@@ -46,13 +48,18 @@ void RenderSubsystem::DrawScene()
- 			}
- 		}
- 	}
+@@ -50,12 +52,17 @@ void RenderSubsystem::DrawScene()
+ 	// original's SetupDynamics does each frame drawn
+ 	if (engine->LaunchInfo.IsDeusEx())
+ 		engine->Level->Collision.RefileMovers();
 +	}
  
  	mat4 worldToView = Coords::ViewToRenderDev().ToMatrix() * Coords::Rotation(engine->CameraRotation).Inverse().ToMatrix() * Coords::Location(engine->CameraLocation).ToMatrix();
- 	SceneFrameStart = FrameCounter;
 +	{ PerfLog::Section perf(PerfLog::Visibility); // TEMPORARY DEBUG TOOL
  	MainFrame.Process(engine->CameraLocation, worldToView, Coords::Rotation(engine->CameraRotation));
 +	}
@@ -300,7 +278,7 @@ index c0995fa..3bf3745 100644
  	FrameDrawn = true;
  }
 diff --git a/SurrealEngine/Render/VisibleFrame.cpp b/SurrealEngine/Render/VisibleFrame.cpp
-index a2f9ec4..0d0758d 100644
+index 5420df2..274652f 100644
 --- a/SurrealEngine/Render/VisibleFrame.cpp
 +++ b/SurrealEngine/Render/VisibleFrame.cpp
 @@ -1,6 +1,7 @@
@@ -311,7 +289,7 @@ index a2f9ec4..0d0758d 100644
  #include "VisibleCorona.h"
  #include "RenderSubsystem.h"
  #include "RenderDevice/RenderDevice.h"
-@@ -487,7 +488,11 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
+@@ -493,7 +494,11 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
  
  	// Skip node if its AABB is not visible -- and what came down into its
  	// space with it, as the original drops it
@@ -324,7 +302,7 @@ index a2f9ec4..0d0758d 100644
  	{
  		return;
  	}
-@@ -500,6 +505,7 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
+@@ -506,6 +511,7 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
  			actor->LastDrawFrame = FrameCounter;
  
  			VisibleActor visactor;
@@ -332,7 +310,7 @@ index a2f9ec4..0d0758d 100644
  			visactor.Process(this, actor);
  		}
  	}
-@@ -622,7 +628,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -628,7 +634,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  			if (zoneInfo->SkyZone())
  			{
  				gatherPoints();
@@ -342,7 +320,7 @@ index a2f9ec4..0d0758d 100644
  				if (!spans.empty())
  				{
  					USkyZoneInfo* skyZone = zoneInfo->SkyZone();
-@@ -653,7 +661,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -659,7 +667,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  				if (warpZone)
  				{
  					gatherPoints();
@@ -352,7 +330,7 @@ index a2f9ec4..0d0758d 100644
  					if (!spans.empty())
  					{
  						for (auto& p : Portals)
-@@ -681,7 +691,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -687,7 +697,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  				return;
  
  			gatherPoints();
@@ -362,7 +340,7 @@ index a2f9ec4..0d0758d 100644
  			if (!spans.empty())
  			{
  				for (auto& p : Portals)
-@@ -718,7 +730,11 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -724,7 +736,11 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  	}
  
  	gatherPoints();
@@ -375,7 +353,7 @@ index a2f9ec4..0d0758d 100644
  		return;
  
  	// A visible portal surface means the zones it borders were seen: their
-@@ -785,6 +801,14 @@ int VisibleFrame::FindZoneAt(const vec4& location, BspNode* node, BspNode* nodes
+@@ -805,6 +821,14 @@ int VisibleFrame::FindZoneAt(const vec4& location, BspNode* node, BspNode* nodes
  
  void VisibleFrame::Draw()
  {
@@ -464,7 +442,7 @@ index 1a85d81..a6a96fe 100644
  			renderer->Uploads->UploadTextureRect(tex.get(), *info, info->UpdateX, info->UpdateY, info->UpdateWidth, info->UpdateHeight);
 diff --git a/SurrealEngine/Utils/PerfLog.h b/SurrealEngine/Utils/PerfLog.h
 new file mode 100644
-index 0000000..0561179
+index 0000000..6a4a776
 --- /dev/null
 +++ b/SurrealEngine/Utils/PerfLog.h
 @@ -0,0 +1,505 @@
@@ -780,7 +758,7 @@ index 0000000..0561179
 +		return c;
 +	}
 +
-+	// Anything else worth counting per frame (AI level of detail decisions).
++	// Anything else worth counting per frame.
 +	inline std::unordered_map<std::string, int>& Tally()
 +	{
 +		static std::unordered_map<std::string, int> t;
@@ -974,7 +952,7 @@ index 0000000..0561179
 +	}
 +}
 diff --git a/SurrealEngine/VM/Frame.cpp b/SurrealEngine/VM/Frame.cpp
-index 625f0e1..73d93d6 100644
+index d59953b..007f9d6 100644
 --- a/SurrealEngine/VM/Frame.cpp
 +++ b/SurrealEngine/VM/Frame.cpp
 @@ -1,6 +1,7 @@
@@ -985,7 +963,7 @@ index 625f0e1..73d93d6 100644
  #include "Bytecode.h"
  #include "Expression.h"
  #include "ExpressionEvaluator.h"
-@@ -300,14 +301,17 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
+@@ -344,14 +345,17 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
  	for (size_t i = args.size(); i < parms.size() && AllFlags(parms[i]->PropFlags, PropertyFlags::Parm | PropertyFlags::OptionalParm); i++)
  		args.push_back(ExpressionValue::NothingValue());
  

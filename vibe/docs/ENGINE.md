@@ -198,7 +198,6 @@ The fork's keys:
 
 | Key | What it does |
 |---|---|
-| `Performance.AiLevelOfDetail` | Distant AI, off by default. A pawn out of sight and beyond 1500 units runs its script thinking (its `Tick` event and state code) every 3rd frame, given the time it skipped; beyond 4000 units, every 6th. Its movement, physics, animation and timers run every frame ([how](#settings-the-launcher-exposes)). |
 | `Performance.RenderScale` | The scene drawn at this fraction of the window's size (0.25 to 1; default 1) and scaled up to it, by the Vulkan device and the GL device ([how](#settings-the-launcher-exposes)). |
 | `"Type": "GLES"` in `RenderDevice` | The GL device on an OpenGL ES 3.2 context (on the Smart Pro, the `[GLES]` renderer of its `renderers.ini`). |
 | `Gamepad` | The pad: `Enabled`, `DeadZone`, `LookSensitivityX` and `LookSensitivityY`, `InvertY`, `CursorSpeed`; `Layout` names the binding preset a launcher last applied, which the engine only carries ([controller support](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/docs/LAUNCHER.md#controller-support)). |
@@ -248,14 +247,10 @@ By area, as the code stands. The handheld's numbers are
 ### Settings the launcher exposes
 
 `LauncherSettings` reads the `Gamepad` and `Performance` blocks
-([the keys](#settings-and-environment)). Distant AI is `UActor::ThinkThisFrame`, asked each
-tick; a pawn counts as seen when the renderer drew it this frame (`LastVisibleFrame`). With it
-on, Liberty Island's pawns move and change state as without it: `MoveConsole`'s 52 within
-`move.py`'s tolerance, `AIConsole`'s states at 8 and 20 s the original's. Far NPCs fighting with
-it on is untried. Render scale is `RenderDevice::GetRenderScale`: a device whose
-`SupportsRenderScale()` says so (Vulkan, GL) makes its scene buffers at `GetRenderWidth()` by
-`GetRenderHeight()` and scales them to the window as it presents; the viewport, the canvas and
-the UI see the render size.
+([the keys](#settings-and-environment)). Render scale is `RenderDevice::GetRenderScale`: a
+device whose `SupportsRenderScale()` says so (Vulkan, GL) makes its scene buffers at
+`GetRenderWidth()` by `GetRenderHeight()` and scales them to the window as it presents; the
+viewport, the canvas and the UI see the render size.
 
 ### Rendering
 

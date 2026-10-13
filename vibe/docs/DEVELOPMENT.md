@@ -53,7 +53,7 @@ are gone.
   Internet screen (the game names GameSpy's, which is closed), no uplink, and `OpenGLDrv` for the
   original. Both engines take the game's settings from it; the game's inis are never written.
 - **`Settings.json`.** The fork's renderer, MSAA, VSync, gamma mode, `GammaCorrectScreenshots`,
-  HDR and bloom, AI level of detail and render scale come from
+  HDR, bloom and render scale come from
   `~/.config/SurrealEngine/Settings.json`, an input of every fork run that no run's ini changes,
   or from the file `DXCAP_SETTINGS` names. Without one the fork runs on Vulkan with 4x MSAA.
 - **Results.** A run's log (`engine.log` or `DeusEx.log`), shots and recording land in

@@ -50,7 +50,6 @@ void VisibleActor::Process(VisibleFrame* frame, UActor* actor)
 
 	// Drawn for the depth buffer to hide; counted as drawn only if some of
 	// it survives the world in front of it, as the original counts it
-	actor->LastVisibleFrame = frame->FrameCounter;
 	frame->AddOcclusionProxy(actor);
 
 	EDrawType dt = (EDrawType)actor->DrawType();
