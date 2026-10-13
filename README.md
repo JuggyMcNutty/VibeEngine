@@ -30,7 +30,7 @@ fork's own docs and tools are in [`vibe/`](vibe/).
 ## Building and running
 
 Port Ex Machina builds it for each of its ports and starts it
-([quick start](https://github.com/JuggyMcNutty/port-ex-machina#quick-start));
+([quick start](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#quick-start));
 [running it](vibe/docs/ENGINE.md#running-it) has the command line. On its own it builds with
 CMake as [`Docs/Building.md`](Docs/Building.md) says. Only Linux builds are made and tested here.
 

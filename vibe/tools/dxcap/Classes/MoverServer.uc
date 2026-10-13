@@ -10,9 +10,10 @@
 //   1. as the map has it;
 //   2. the door made not to collide and moved 100 along its line, off it
 //      into the open, still shown: its line at its old place and at its new;
-//   3. 2 s on, both lines again: a mover is filed in the level's BSP again
-//      only in a frame drawn, so a dedicated server's still has the door
-//      where the map's load filed it;
+//   3. 2 s on, both lines again. A dedicated server, with no client, files
+//      no mover in the level's BSP at its load, as the original's: FastTrace
+//      passes the door at either place, and Trace meets it only as an actor,
+//      while it collides;
 // then an exit.
 //=============================================================================
 class MoverServer extends Info;

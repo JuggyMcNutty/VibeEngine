@@ -34,8 +34,8 @@ Its branch is `deusex`. What matches the original and what still differs is
 ## The fork's tools
 
 The workspace builds, stages, runs and pins the engine
-([quick start](https://github.com/JuggyMcNutty/port-ex-machina#quick-start)). In this clone, the
-fork's own:
+([quick start](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#quick-start)).
+In this clone, the fork's own:
 
 ```sh
 vibe/tools/perf/perf.sh on|off|save         # the profiling hooks (below)
@@ -68,10 +68,10 @@ profile and never committed: `vibe/tools/perf/perf.sh on`, and `off` afterwards.
   `save` rewrites the patch from the tree (all of it but `vibe/`), so the next `on` and `off`
   apply cleanly.
 
-With the hooks on, the engine builds with frame pointers (~1% slower on the handheld) and reads
-[the hooks' variables](#settings-and-environment). `SURREAL_PERF_SAMPLE=<file>` is a sampling
-profiler for devices without `perf`: it samples the main thread's CPU time, recording each
-sample's program counter and the return addresses a frame-pointer walk finds, one block per
+With the hooks on, the engine builds with frame pointers (a little slower on the handheld) and
+reads [the hooks' variables](#settings-and-environment). `SURREAL_PERF_SAMPLE=<file>` is a
+sampling profiler for devices without `perf`: it samples the main thread's CPU time, recording
+each sample's program counter and the return addresses a frame-pointer walk finds, one block per
 60-frame report, with `/proc/self/maps` beside it.
 [`vibe/tools/perf/sample-report.py`](../tools/perf/sample-report.py) (Python 3, and the port
 toolchain's `nm` for a cross build) turns that into self and inclusive time per function,
@@ -174,13 +174,15 @@ of the main thread, by area (`frame-report.py --mean`), and the same with the vi
 | Render device, GL driver | 0.32, 0.38 | 0.05, 0.20 |
 | C runtime | 0.96 | 0.17 |
 | Turning: frame (frames a second), cycles | 2.14 (468), 10.1 M | 1.51 (663), 6.9 M |
+| Instructions a cycle | 1.35 | 2.0 |
+| Main thread off the CPU | 0.23 | 0.17 |
+| The original's own counters: its game, its client | 0.45, 3.73 | |
+| The fork's render by part: the visibility walk, meshes, light maps | | about 0.8, 0.25, 0.1 |
 
-The original's own counters at the same runs: its game 0.45 ms a frame, its client 3.73. The
-fork's frame is the shorter, held and turning: its main thread takes some two thirds of the
-original's cycles a frame for about as many instructions (2.0 a cycle to 1.35), and is off the
-CPU a little less, 0.17 ms a frame against 0.23. Its render takes about the original's: the
-visibility walk (`DrawPolygon` and `DrawSpan`, `ProcessNodeSurface`, `ProcessNode`, the box
-tests, about 0.8), meshes (`DrawLodMeshFaceDX`, about 0.25), light maps (about 0.1). The walk
+The fork's frame is the shorter, held and turning: its main thread takes fewer cycles a frame
+for about as many instructions, and is off the CPU a little less. Its render takes about the
+original's: the visibility walk (`DrawPolygon` and `DrawSpan`, `ProcessNodeSurface`,
+`ProcessNode`, the box tests), meshes (`DrawLodMeshFaceDX`), light maps. The walk
 waits on memory, not on arithmetic, so the original's own savings gain nothing here, or lose:
 each node's box tested one frame in 16 while it shows, each point transformed once a frame into
 a cache, a surface outside one side rejected without a clip
@@ -319,7 +321,7 @@ wherever else that state is set.
   at the context, with an error that says so, not at a shader.
 - **The vertices** stream through CPU staging arrays, each flush uploading the range written
   since the last one (`glBufferSubData`): the GE8300 has no `glBufferStorage` (persistent
-  mapping), and mapping the buffers' unused tails on every flush costs 2/3 of its frame.
+  mapping), and mapping the buffers' unused tails on every flush costs most of its frame.
 - **The scene buffers** are RGBA8 unless `Hdr` is on. They hold the frame top row first, so a
   scene drawn in a window (a security camera's view on its computer) lands where the Vulkan
   device puts it: its viewport is placed from the top, where upstream's places it from the
@@ -379,12 +381,12 @@ statement past 500,000 in one function's run.
 - **Deus Ex's traces, moves and physics are `Engine.dll`'s**, in
   `SurrealEngine/Collision/TopLevel/TraceTest.cpp`, `UActor_Phys*.cpp` and `UPawn_Tick.cpp`: its
   backoffs; the movers a line meets where the level's BSP last filed them, filed by
-  `CollisionSystem::FileMovers` at a map's load and a save and `RefileMovers` each frame drawn,
-  in a `CellTable` of their own; `FindSpot` and encroachment, moves held off what they meet as
-  `ULevel::MoveActor` holds them, landing as `processLanded`; walking, falling, swimming,
-  flying, a player's ladders, the speed pawns move at and how they turn, as `physWalking`,
-  `physFalling`, `physSwimming`, `physFlying`, `calcVelocity` and `physicsRotation`, a fall
-  ending its frame where it lands
+  `CollisionSystem::FileMovers` at a map's load, but a dedicated server's, and a save, and
+  `RefileMovers` each frame drawn, in a `CellTable` of their own; `FindSpot` and encroachment,
+  moves held off what they meet as `ULevel::MoveActor` holds them, landing as `processLanded`;
+  walking, falling, swimming, flying, a player's ladders, the speed pawns move at and how they
+  turn, as `physWalking`, `physFalling`, `physSwimming`, `physFlying`, `calcVelocity` and
+  `physicsRotation`, a fall ending its frame where it lands
   ([implemented, not as the original](NATIVES.md#implemented-not-as-the-original)).
 - **A whole frame at once**: a walking, swimming or flying pawn, and anything falling, takes the
   rest of the frame at once, as the original's does, the walk and the fall in their own steps

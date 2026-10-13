@@ -35,27 +35,29 @@
 # size), the fork through its window's X11 backend: one X server and the GPU
 # for both. DXCAP_RENDERER=D3D draws the original through D3DDrv, the game's
 # own renderer, instead of OpenGLDrv: the same picture, gamma ramp and all,
-# though the grabber can miss its shots (vibe/docs/DEVELOPMENT.md, shots). DXCAP_AUDIO=1 gives
-# the fork real audio; it is silent otherwise. DXCAP_RECORD=1 sends either
-# engine's audio to a private sink instead of the speakers and records it into
-# the run's audio.wav, with the music off (vibe/tools/dxcap/sound.py reads it).
-# DXCAP_UPLINK=<host>:<port> has a run's server announce itself there -- a
-# master on this machine (vibe/tools/dxcap/fakemaster.py), its uplink's
-# DoUplink set --, where it otherwise announces itself nowhere.
-# DXCAP_PORT=<port> has a run's server listen there ([URL] Port), as for
-# vibe/tools/dxcap/netrelay.py between it and a client opening 7790.
-# DXCAP_STATS=<password> has a run's server log world stats (bWorldLog) and
-# its player hold that world stats password, so a join carries the player's
-# checksum (the server logs the login's URL). DXCAP_SERVERPKGS=<dir> has a
-# run's server find packages in <dir> too, each named in its ServerPackages,
-# so that a client, whose paths lack <dir>, downloads them.
+# though the grabber can miss its shots (vibe/docs/DEVELOPMENT.md, shots).
+# DXCAP_AUDIO=1 gives the fork real audio; it is silent otherwise.
+# DXCAP_RECORD=1 sends either engine's audio to a private sink instead of the
+# speakers and records it into the run's audio.wav, with the music off
+# (vibe/tools/dxcap/sound.py reads it). DXCAP_UPLINK=<host>:<port> has a run's
+# server announce itself there -- a master on this machine
+# (vibe/tools/dxcap/fakemaster.py), its uplink's DoUplink set --, where it
+# otherwise announces itself nowhere. DXCAP_PORT=<port> has a run's server
+# listen there ([URL] Port), as for vibe/tools/dxcap/netrelay.py between it
+# and a client opening 7790. DXCAP_STATS=<password> has a run's server log
+# world stats (bWorldLog) and its player hold that world stats password, so a
+# join carries the player's checksum (the server logs the login's URL).
+# DXCAP_SERVERPKGS=<dir> has a run's server find packages in <dir> too, each
+# named in its ServerPackages, so that a client, whose paths lack <dir>,
+# downloads them.
 # DXCAP_USERINI=<file> gives a run that User.ini in place of the game's
 # (IniConsole's keys given twice). DXCAP_CONFIG="<key>=<value> ..." gives
 # the run's console class those keys in its section of the ini, as
 # DXCAP_MISSION_MAP gives TargetMap (LightConsole's Effect, Pick, LightName,
-# View, Aim and ShotAt; GlassConsole's Pick, GlassName, View and Behind;
-# FlushConsole's Pick, DoorName, View and Angle; FaceConsole's MeshOf, Ahead
-# and Distance; MeshConsole's LODBias and NoDetail).
+# View, Aim, ShotAt and Macro; GlassConsole's Pick, GlassName, View and
+# Behind; FlushConsole's Pick, DoorName, View and Angle; FaceConsole's MeshOf,
+# Ahead and Distance; MeshConsole's LODBias and NoDetail; LoopConsole's Jumps;
+# CallConsole's Depth).
 # DXCAP_MISSION_MAP=<map> names, through the run's ini, the map a run's
 # console travels to, its TargetMap (MissionConsole's, StaticConsole's,
 # WadeConsole's, ScreenConsole's, PerfConsole's, EndgameConsole's,

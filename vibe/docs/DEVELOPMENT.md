@@ -41,7 +41,7 @@ vibe/tools/dxcap.sh prove 01_NYC_UNATCOIsland.dx   # the fork: shots at 20 s and
 vibe/tools/dxcap.sh fork <console> <map> [<secs>]  # the fork, straight into <map> or a server's address; - the stock console
 vibe/tools/dxcap.sh original <console> [<secs>]    # the original, from its menu map
 vibe/tools/dxcap.sh live <address> [<secs>]        # the fork on a live server (below)
-vibe/tools/dxcap.sh dedicated <engine> <actor> <map> [<secs>]  # either as a dedicated server
+vibe/tools/dxcap.sh dedicated <original|fork> <actor> <map> [<secs>]  # either engine as a dedicated server
 ```
 
 A run stops after `<secs>`, 120 by default. `prove` fails on an unclean exit or a missing or
@@ -89,8 +89,9 @@ are gone.
 
 What each console does is its class's header comment in `vibe/tools/dxcap/Classes`; the table
 names it. A dedicated server runs no console: `dedicated` makes the run's class, an actor, the
-first of the server's `ServerActors`, which drives the run and ends it. The scripts are in `vibe/tools/dxcap/`. *Both*: run in each engine and compare, side by
-side where no script reads the run. *Either*: one engine on each side of a pair.
+first of the server's `ServerActors`, which drives the run and ends it. The scripts are in
+`vibe/tools/dxcap/`. *Both*: run in each engine and compare, side by side where no script reads
+the run. *Either*: one engine on each side of a pair.
 
 | Console | Engines | Drives and logs | Prefix | Read with |
 |---|---|---|---|---|
@@ -280,8 +281,8 @@ stock game's, serve the original here as for the [net tests](#net-tests)
 
 ### Running the original
 
-- **It boots its menu map** whatever map its command line or ini names; a console class travels
-  with `open <map>` itself.
+- **It boots its menu map** whatever map its command line or ini names, but as a dedicated
+  server (`dedicated`: `<map> -server`); a console class travels with `open <map>` itself.
 - **`UCC.exe` crashes on a long base directory** while it reads its ini, and wants both
   `UCC.ini` and `DeusEx.ini`: hence `build/dxcap`. 92 characters as Wine names it
   (`Z:\...\build\dxcap\System\`) work; after a move to a longer path, `setup` and `compile`

@@ -131,9 +131,8 @@ Matches the original
 stops there ends where the original's does, within a unit and a half, though
 25 to 110 units short of its distance: the console counts from its first
 line, 2 s in by its own clock, which takes in the island's first frame, the
-load's -- some 1.5 s in the original's run, of which the actors get 0.4 s,
-and less in the fork's, whose load is shorter ([a long frame](#small)). By
-then the fork's pawns are further along their first walk. `ReachConsole`'s
+load's, longer in the original's ([a long frame](#small)): by then the
+fork's pawns are further along their first walk. `ReachConsole`'s
 144 answers, twelve pawns each asked from its home spot, are the original's
 to the unit. A dead robot frozen in `Dying` for good is the original's own
 behaviour, and the rest of a death is alike too (`DeathConsole`).
@@ -652,10 +651,12 @@ Every other native the scripted runs compare matches the original
   every mover where it is; each frame drawn files again where it is every
   mover not hidden that has moved or turned since; a destroyed one stays
   filed until the next load or save. A dedicated server, which has no
-  client, files none, as the original's makes no tracker without one: its
-  lines pass its movers (`MoverServer` on DXMP_Silo, through
-  `dxcap.sh dedicated`: a closed door's line clear in both engines, and a
-  door moved off it clear at both its places). `FastTrace` and the checks on
+  client, files none at its load, as the original's makes no tracker
+  without one: `FastTrace` and the checks on its line pass its movers, a
+  `Trace` meeting a colliding one only as an actor (`MoverServer` on
+  DXMP_Silo, through `dxcap.sh dedicated`: a closed door's line clear to
+  `FastTrace` in both engines, `Trace` meeting the door; a door moved off it
+  clear at both its places). `FastTrace` and the checks on
   its line (`LineOfSightTo`, hearing, the reach tests and path searches, the
   visible-actor iterators, network relevance, mesh lights' shadows, the AI's
   sight and the mixer's walls, [sound](#sound)) meet the filed polygons, a
