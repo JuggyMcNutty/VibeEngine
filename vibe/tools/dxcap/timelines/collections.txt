@@ -1,0 +1,15 @@
+# The collections a player meets, each timed in the log ("Garbage: ...
+# ms"): Liberty Island's load, the console's full collection there, then
+# Battery Park and the island loaded in turn -- each map change crosses a
+# mission, so Current is emptied and each map loads fresh from Maps -- with
+# the console's collection after each load, then an exit. Run straight into
+# the island with the stock console:
+# DXCAP_TIMELINE=<this> vibe/tools/dxcap.sh fork - 01_NYC_UNATCOIsland 400
+start 60 obj garbage
+start 80 open 03_NYC_BatteryPark
+start 160 obj garbage
+start 180 open 01_NYC_UNATCOIsland
+start 260 obj garbage
+start 280 open 03_NYC_BatteryPark
+start 360 obj garbage
+start 380 exit
