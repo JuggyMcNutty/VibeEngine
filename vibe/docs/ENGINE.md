@@ -397,18 +397,18 @@ statement past 500,000 in one function's run.
 
 ### Objects and memory
 
-`SurrealEngine/GC`: a mark and sweep from roots, as UE1's collector ([the
-original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#garbage-collection)).
+`SurrealEngine/GC`: a mark and sweep from roots, as UE1's collector
+([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#garbage-collection)).
 A collection runs at the end of the frame, with no script running (`Engine::CollectGarbage`, in
 `EngineGC.cpp`), when asked for: by every map load but Entry's, by the console's `obj garbage`,
-by 2048 destroyed actors let go since the last one ([destroyed
-actors](NATIVES.md#housekeeping-not-seen-directly)), and every `SURREAL_GC_STRESS` frames. A map
-load's and the console's do everything; the backlog's and the stress runs' mark and sweep only,
-no level having departed since the last map load's. It logs the original's lines (`Collecting
-garbage`, `Purging garbage`, `Garbage: objects: ...; refs: ...`, the refs those followed, not
-the ones to code) with the milliseconds it took, the resident memory before and after, what it
-freed by kind and the references it made None by holder, and a map load's gives the freed memory
-back to the system (`malloc_trim`).
+by 2048 destroyed actors let go since the last one
+([destroyed actors](NATIVES.md#housekeeping-not-seen-directly)), and every `SURREAL_GC_STRESS`
+frames. A map load's and the console's do everything; the backlog's and the stress runs' mark
+and sweep only, no level having departed since the last map load's. It logs the original's
+lines (`Collecting garbage`, `Purging garbage`, `Garbage: objects: ...; refs: ...`, the refs
+those followed, not the ones to code) with the milliseconds it took, the resident memory before
+and after, what it freed by kind and the references it made None by holder, and a map load's
+gives the freed memory back to the system (`malloc_trim`).
 
 - **Roots** (`Engine::MarkRoots`, in `EngineGC.cpp`): the engine's subsystems, levels and
   objects; the net drivers' players, channels and package maps; the natives; every export of a

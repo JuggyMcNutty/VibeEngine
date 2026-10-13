@@ -252,9 +252,9 @@ stock game's, serve the original here as for the [net tests](#net-tests)
   the game draws some 63 frames a second: a console's mark, up for 0.6 s, can pass ungrabbed,
   and a run keeps 0 to 2 of `MeshConsole`'s 2 shots. `OpenGLDrv`'s window keeps them all.
 - **The desktop awake.** With the monitors blanked (Plasma's energy saving: their DPMS off) no
-  window is viewable and every grab fails, a run keeping no shot. `distrobox-host-exec
-  kscreen-doctor --dpms on` wakes them, and `distrobox-host-exec kde-inhibit --power
-  --screenSaver sleep <seconds>` keeps them on that long.
+  window is viewable and every grab fails, a run keeping no shot.
+  `distrobox-host-exec kscreen-doctor --dpms on` wakes them, and
+  `distrobox-host-exec kde-inhibit --power --screenSaver sleep <seconds>` keeps them on that long.
 - **Gamma.** The original's frames carry its gamma ramp, 1.5 at the runs' Brightness of 0.6, the
   same through `D3DDrv` (`DXCAP_RENDERER=D3D`). The fork's `shot` reads the frame before the
   present pass applies gamma (`GammaCorrectScreenshots` off), so a fork shot takes that gamma
