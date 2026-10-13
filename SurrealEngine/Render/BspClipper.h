@@ -34,6 +34,12 @@ public:
 
 	void Setup(const mat4& world_to_projection, const Array<PortalSpan>& portalSpans, const vec4& portalPlane);
 
+	// Where in a pixel the grid samples what covers it, from its upper left
+	// corner: upstream's centre, 0.5, or for Deus Ex its lower right corner,
+	// 1, as the original's span buffer has it (dx-reverse-info
+	// render-dll.md, a frame).
+	void SetPixelSample(float sample) { PixelSample = sample; }
+
 	bool CheckSurface(const vec3* vertices, uint32_t count, bool solid);
 	bool IsAABBVisible(const BBox& bbox);
 
@@ -68,6 +74,7 @@ private:
 	int ClipEdge(const ShadedVertex* const* verts);
 
 	bool DrawClippedTriangle(const vec4* const* vertices, bool solid);
+	static int16_t PixelFloor(float v, int limit);
 	bool DrawSpan(int16_t y, int16_t x0, int16_t x1, bool solid);
 
 	static bool IsDegenerate(const vec4* const* vert);
@@ -88,4 +95,5 @@ private:
 
 	int ViewportWidth = MaxWidth;
 	int ViewportHeight = MaxHeight;
+	float PixelSample = 0.5f;
 };

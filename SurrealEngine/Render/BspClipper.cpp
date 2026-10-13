@@ -7,6 +7,15 @@
 #include <immintrin.h>
 #endif
 
+// The pixel a screen coordinate falls in, held to 0..limit: floored in
+// float, so a coordinate far off the grid cannot overflow the cast.
+int16_t BspClipper::PixelFloor(float v, int limit)
+{
+	if (!(v > 0.0f)) // a NaN too
+		return 0;
+	return (int16_t)std::min(std::floor(v), (float)limit);
+}
+
 BspClipper::BspClipper()
 {
 	Viewport.resize(ViewportHeight);
@@ -163,15 +172,19 @@ bool BspClipper::DrawPolygon(const vec3* vertices, uint32_t count, bool solid)
 			bottom = i;
 	}
 
+	// A pixel is in when its sample point is (PixelSample): the rows whose
+	// sample lines cross the polygon, each from where its edges cross that
+	// line, the span floored, the right end left out.
+	float bias = 1.0f - PixelSample;
 	int16_t clipright = ViewportWidth;
-	int16_t topY = std::max((int16_t)(sy[top] + 0.5f), (int16_t)0);
-	int16_t bottomY = std::min((int16_t)(sy[bottom] + 0.5f), (int16_t)ViewportHeight);
+	int16_t topY = PixelFloor(sy[top] + bias, ViewportHeight);
+	int16_t bottomY = PixelFloor(sy[bottom] + bias, ViewportHeight);
 	if (topY >= bottomY)
 		return false;
 
 	// The two chains from the top vertex down, one each way round. An edge
-	// takes the rows from its upper end's to its lower end's, its x stepped
-	// from where it crosses its first row, as DrawClippedTriangle steps it.
+	// takes the rows whose sample lines it crosses, its x stepped from where
+	// it crosses its first one, as DrawClippedTriangle steps it.
 	struct Chain
 	{
 		int vertex, dir, endRow;
@@ -182,12 +195,12 @@ bool BspClipper::DrawPolygon(const vec3* vertices, uint32_t count, bool solid)
 		while (true)
 		{
 			int next = (c.vertex + c.dir + n) % n;
-			c.endRow = (int16_t)(sy[next] + 0.5f);
+			c.endRow = PixelFloor(sy[next] + bias, ViewportHeight);
 			if (row < c.endRow || next == bottom)
 			{
 				float dy = sy[next] - sy[c.vertex];
 				c.step = dy != 0.0f ? (sx[next] - sx[c.vertex]) / dy : 0.0f;
-				c.pos = sx[c.vertex] + c.step * (row + 0.5f - sy[c.vertex]) + 0.5f;
+				c.pos = sx[c.vertex] + c.step * (row + PixelSample - sy[c.vertex]) + bias;
 				return;
 			}
 			c.vertex = next;
@@ -212,11 +225,9 @@ bool BspClipper::DrawPolygon(const vec3* vertices, uint32_t count, bool solid)
 			startEdge(right, y);
 		}
 
-		int16_t x0 = (int16_t)left.pos;
-		int16_t x1 = (int16_t)right.pos;
+		int16_t x0 = PixelFloor(left.pos, clipright);
+		int16_t x1 = PixelFloor(right.pos, clipright);
 		if (x1 < x0) std::swap(x0, x1);
-		x0 = clamp(x0, (int16_t)0, clipright);
-		x1 = clamp(x1, (int16_t)0, clipright);
 		result |= DrawSpan(y, x0, x1, solid);
 
 		left.pos += left.step;
@@ -319,14 +330,19 @@ bool BspClipper::IsAABBVisible(const BBox& bbox)
 	if (bits & (1 << 4)) min2d.y = 0;
 	if (bits & (1 << 5)) max2d.y = (float)ViewportHeight;
 
-	// Check if any of it can be seen:
+	// Check if any of it can be seen: its rows by the pixels' sample point,
+	// as a polygon's; each side the pixel it falls in, the right one left
+	// out. Deus Ex's rows so too, as the original's BoundVisible makes a
+	// box's rectangle (dx-reverse-info render-dll.md, which actors are
+	// drawn).
 
-	int topY = std::max((int)(min2d.y + 0.5f), 0);
-	int bottomY = std::min((int)(max2d.y + 0.5f), ViewportHeight);
+	float bias = 1.0f - PixelSample;
+	int topY = PixelFloor(min2d.y + bias, ViewportHeight);
+	int bottomY = PixelFloor(max2d.y + bias, ViewportHeight);
 	if (topY >= bottomY)
 		return false;
-	int x0 = clamp((int)min2d.x, 0, ViewportWidth);
-	int x1 = clamp((int)max2d.x, 0, ViewportWidth);
+	int x0 = PixelFloor(min2d.x, ViewportWidth);
+	int x1 = PixelFloor(max2d.x, ViewportWidth);
 	if (x0 >= x1)
 		return false;
 	for (int y = topY; y < bottomY; y++)
@@ -717,18 +733,14 @@ bool BspClipper::DrawClippedTriangle(const vec4* const* vertices, bool solid)
 	const vec4* sortedVertices[3];
 	SortVertices(vertices, sortedVertices);
 
-	int16_t clipleft = 0;
 	int16_t clipright = ViewportWidth;
-	int16_t cliptop = 0;
 	int16_t clipbottom = ViewportHeight;
 
-	int16_t topY = (int16_t)(sortedVertices[0]->y + 0.5f);
-	int16_t midY = (int16_t)(sortedVertices[1]->y + 0.5f);
-	int16_t bottomY = (int16_t)(sortedVertices[2]->y + 0.5f);
-
-	topY = std::max(topY, cliptop);
-	midY = std::min(midY, clipbottom);
-	bottomY = std::min(bottomY, clipbottom);
+	// A pixel by its sample point, as DrawPolygon takes it
+	float bias = 1.0f - PixelSample;
+	int16_t topY = PixelFloor(sortedVertices[0]->y + bias, clipbottom);
+	int16_t midY = PixelFloor(sortedVertices[1]->y + bias, clipbottom);
+	int16_t bottomY = PixelFloor(sortedVertices[2]->y + bias, clipbottom);
 
 	if (topY >= bottomY)
 		return false;
@@ -740,7 +752,7 @@ bool BspClipper::DrawClippedTriangle(const vec4* const* vertices, bool solid)
 	float longDX = sortedVertices[2]->x - sortedVertices[0]->x;
 	float longDY = sortedVertices[2]->y - sortedVertices[0]->y;
 	float longStep = longDX / longDY;
-	float longPos = sortedVertices[0]->x + longStep * (y + 0.5f - sortedVertices[0]->y) + 0.5f;
+	float longPos = sortedVertices[0]->x + longStep * (y + PixelSample - sortedVertices[0]->y) + bias;
 
 	bool result = false;
 
@@ -749,15 +761,13 @@ bool BspClipper::DrawClippedTriangle(const vec4* const* vertices, bool solid)
 		float shortDX = sortedVertices[1]->x - sortedVertices[0]->x;
 		float shortDY = sortedVertices[1]->y - sortedVertices[0]->y;
 		float shortStep = shortDX / shortDY;
-		float shortPos = sortedVertices[0]->x + shortStep * (y + 0.5f - sortedVertices[0]->y) + 0.5f;
+		float shortPos = sortedVertices[0]->x + shortStep * (y + PixelSample - sortedVertices[0]->y) + bias;
 
 		while (y < midY)
 		{
-			int16_t x0 = (int16_t)shortPos;
-			int16_t x1 = (int16_t)longPos;
+			int16_t x0 = PixelFloor(shortPos, clipright);
+			int16_t x1 = PixelFloor(longPos, clipright);
 			if (x1 < x0) std::swap(x0, x1);
-			x0 = clamp(x0, clipleft, clipright);
-			x1 = clamp(x1, clipleft, clipright);
 
 			result |= DrawSpan(y, x0, x1, solid);
 
@@ -772,15 +782,13 @@ bool BspClipper::DrawClippedTriangle(const vec4* const* vertices, bool solid)
 		float shortDX = sortedVertices[2]->x - sortedVertices[1]->x;
 		float shortDY = sortedVertices[2]->y - sortedVertices[1]->y;
 		float shortStep = shortDX / shortDY;
-		float shortPos = sortedVertices[1]->x + shortStep * (y + 0.5f - sortedVertices[1]->y) + 0.5f;
+		float shortPos = sortedVertices[1]->x + shortStep * (y + PixelSample - sortedVertices[1]->y) + bias;
 
 		while (y < bottomY)
 		{
-			int16_t x0 = (int16_t)shortPos;
-			int16_t x1 = (int16_t)longPos;
+			int16_t x0 = PixelFloor(shortPos, clipright);
+			int16_t x1 = PixelFloor(longPos, clipright);
 			if (x1 < x0) std::swap(x0, x1);
-			x0 = clamp(x0, clipleft, clipright);
-			x1 = clamp(x1, clipleft, clipright);
 
 			result |= DrawSpan(y, x0, x1, solid);
 

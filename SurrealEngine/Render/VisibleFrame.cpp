@@ -38,6 +38,7 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	// what shows through a one-pixel gap. A portal's frame is the same size,
 	// so the spans it inherits are in the same grid.
 	Clipper.SetViewportSize(Frame.X, Frame.Y);
+	Clipper.SetPixelSample(engine->LaunchInfo.IsDeusEx() ? 1.0f : 0.5f);
 	Clipper.Setup(Frame.Projection * Frame.WorldToView * Frame.ObjectToWorld, portalSpans, portalPlane);
 
 	ViewLocation = vec4(location, 1.0f);

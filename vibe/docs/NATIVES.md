@@ -145,18 +145,17 @@ Matches the original
 [which actors are drawn](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#which-actors-are-drawn),
 [stasis and render time](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#stasis-and-render-time)):
 whether an actor counts as drawn is tested piece by piece in the BSP walk,
-and the proxies' rectangles are the original's: at Liberty Island's start
-the same three NPCs count as drawn in both engines, every other one hidden
-from the camera by the level, as the traces have it (`AIConsole`). An actor
+and the proxies' rectangles and the grid's pixels are the original's, a
+pixel in when its lower right corner is
+([a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame);
+`BspClipper::SetPixelSample`): at Liberty Island's start the same three NPCs
+count as drawn in both engines, every other one hidden from the camera by
+the level, as the traces have it (`AIConsole`). An actor
 drawn on its own (`GC.DrawActor`, `Canvas.DrawActor`) counts as drawn
 whenever its rectangle is on the frame, whatever is in front of it: an NPC
 the vision augmentation draws through a wall stays drawn while it is in view
 (`AugVisionConsole`). Differs:
 
-- **The pixels.** The fork's grid takes a pixel whose centre a polygon
-  covers; the original's span buffer, one whose lower right corner it covers
-  ([the pixels](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/render-dll.md#a-frame)).
-  A sliver under a pixel tall can show in one and not the other.
 - **One span buffer** for the frame, where the original keeps one per zone.
   A buffer per zone would change no test in 15,500 at the starts of Liberty
   Island, UNATCO HQ and Battery Park: the walls round a portal are drawn
