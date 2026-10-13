@@ -300,15 +300,9 @@ void NActor::GetAnimGroup(UObject* Self, const NameString& Sequence, NameString&
 
 void NActor::GetBoundingBox(UObject* Self, vec3& MinVect, vec3& MaxVect, std::optional<bool> bExact, std::optional<vec3> testLocation, std::optional<Rotator> testRotation, BitfieldBool& ReturnValue)
 {
-	UActor* actor = UObject::Cast<UActor>(Self);  
-	if (!actor) { ReturnValue = false; return; }  
-  
-	bool bExactVal = bExact ? *bExact : false;  
-	if (bExactVal || testLocation || testRotation)  
-	{  
-		actor->UpdateBspInfo(); 
-	}  
-  
+	UActor* actor = UObject::Cast<UActor>(Self);
+	if (!actor) { ReturnValue = false; return; }
+
 	// With a test place or rotation, as every script call gives, the
 	// original puts the actor there for the moment and takes its
 	// primitive's box; moving the world-space box by them instead left it
@@ -330,6 +324,10 @@ void NActor::GetBoundingBox(UObject* Self, vec3& MinVect, vec3& MaxVect, std::op
 		return;
 	}
 
+	// Without, its box where it is now, as the original takes its
+	// primitive's: the box the renderer last made is a frame old, and a
+	// dedicated server, drawing no frame, makes none.
+	actor->UpdateBspInfo();
 	BBox bbox = actor->BspInfo.BoundingBox;
 	MinVect = bbox.min;
 	MaxVect = bbox.max;

@@ -15,6 +15,9 @@
 #   vibe/tools/dxcap.sh live <address> [<secs>]    the fork joining a live server with the stock console its
 #                                                  game wants, driven by a timeline (the fork's --timeline):
 #                                                  DXCAP_TIMELINE=<file>, else JoinConsole's walk
+#   vibe/tools/dxcap.sh dedicated <original|fork> <actor> <map> [<secs>]
+#                                                  either engine as a dedicated server on <map>, drawing no
+#                                                  frame, driven by DXCapture.<actor> among its ServerActors
 #
 # The workspace is Port Ex Machina's: this clone sits in its repositories'
 # parent folder ($DX_ROOT, or the one the clone is in), with the game, the SDK
@@ -401,6 +404,21 @@ cmd_compile() {
     say "compiled: build/dxcap/System/DXCapture.u"
 }
 
+# server_actor <class> <ini>: DXCapture.<class> the first of the game
+# engine's ServerActors, which a server spawns once its level listens.
+server_actor() {
+    python3 - "$2" "DXCapture.$1" <<'EOF'
+import re, sys
+path, cls = sys.argv[1:]
+s = open(path, encoding='latin1', newline='').read()
+nl = '\r\n' if '\r\n' in s else '\n'
+s, n = re.subn(r'^\[DeusEx\.DeusExGameEngine\]\r?\n', lambda m: m.group(0) + 'ServerActors=' + cls + nl, s, count=1, flags=re.M)
+if n != 1:
+    sys.exit('no [DeusEx.DeusExGameEngine] in ' + path)
+open(path, 'w', encoding='latin1', newline='').write(s)
+EOF
+}
+
 # Shots the game writes into its System folder, but not ones that were
 # already there before the run.
 shots_before() { (cd "$GAME/System" && ls Shot*.bmp 2>/dev/null) || true; }
@@ -661,6 +679,59 @@ cmd_prove() {
     say "proving run clean: $dir"
 }
 
+# Either engine as a dedicated server on <map>, which draws no frame: a
+# server runs no console, so DXCapture.<actor>, the first of its
+# ServerActors, drives the run and ends it (exit). The original's command
+# line is "<map> -server", its first word the start URL (dx-reverse-info
+# cli-flags.md); the fork's, --server. Waited for until it exits or the time
+# runs out; its log lands in the run's folder.
+cmd_dedicated() {
+    local engine="${1:?original or fork}" actor="${2:?server actor class}" map="${3:?map}" secs="${4:-120}"
+    [ -f "$CAP/System/DXCapture.u" ] || die "vibe/tools/dxcap.sh compile first"
+    local ini userini dir
+    case "$engine" in
+        original)
+            need_display
+            ensure_prefix
+            ini="$CAP/System/Original.ini" userini="$CAP/System/OriginalUser.ini"
+            dir="$CAP/runs/original-dedicated-$actor-$(date +%H%M%S)"
+            make_ini original "" "$ini"
+            server_actor "$actor" "$ini"
+            user_ini "$userini"
+            make_view
+            mkdir -p "$dir"
+            (
+                unset WAYLAND_DISPLAY
+                export DISPLAY="$XDISPLAY"
+                cd "$CAP/game/System"
+                (wine_run DeusEx.exe "$map" -server "INI=$(winpath "$ini")" "USERINI=$(winpath "$userini")" > "$dir/wine.log" 2>&1) &
+                i=0
+                while [ $i -lt 60 ] && ! pgrep -f "^DeusEx.exe" > /dev/null; do sleep 1; i=$((i+1)); done
+                i=0
+                while [ $i -lt "$secs" ] && pgrep -f "^DeusEx.exe" > /dev/null; do sleep 1; i=$((i+1)); done
+                if pgrep -f "^DeusEx.exe" > /dev/null; then
+                    kill $(pgrep -f "^DeusEx.exe")
+                    echo "killed after $secs s"
+                else
+                    echo "exited after $i s"
+                fi
+                sleep 3
+            ) || true
+            cp "$CAP/game/System/DeusEx.log" "$dir/DeusEx.log" 2>/dev/null || true
+            say "original: $dir"
+            ;;
+        fork)
+            ini="$CAP/System/Fork.ini" userini="$CAP/System/ForkUser.ini"
+            dir="$CAP/runs/fork-dedicated-$actor-$(date +%H%M%S)"
+            make_ini fork "" "$ini"
+            server_actor "$actor" "$ini"
+            user_ini "$userini"
+            run_fork "$dir" "$ini" "$userini" "$map" "$secs" --server
+            ;;
+        *) die "dedicated takes original or fork, not $engine" ;;
+    esac
+}
+
 cmd="${1:-help}"; shift || true
 case "$cmd" in
     setup)    need_game; cmd_setup ;;
@@ -669,6 +740,7 @@ case "$cmd" in
     fork)     need_game; cmd_fork "$@" ;;
     prove)    need_game; cmd_prove "$@" ;;
     live)     need_game; cmd_live "$@" ;;
+    dedicated) need_game; cmd_dedicated "$@" ;;
     -h|--help|help) usage ;;
     *)        die "unknown command '$cmd' (vibe/tools/dxcap.sh help)" ;;
 esac

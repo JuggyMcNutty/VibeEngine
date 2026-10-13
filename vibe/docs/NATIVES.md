@@ -717,6 +717,9 @@ Every other native the scripted runs compare matches the original
   has not read empty and set nothing (`GetConsole`). `LevelInfo`'s clock is
   the original's
   ([small](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#small)).
+  `Actor.GetBoundingBox` with no test place is the box where the actor is
+  now, a dedicated server's too, as the original takes its primitive's
+  (`MoverServer`).
 
 Differs:
 

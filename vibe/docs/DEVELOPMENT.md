@@ -41,6 +41,7 @@ vibe/tools/dxcap.sh prove 01_NYC_UNATCOIsland.dx   # the fork: shots at 20 s and
 vibe/tools/dxcap.sh fork <console> <map> [<secs>]  # the fork, straight into <map> or a server's address; - the stock console
 vibe/tools/dxcap.sh original <console> [<secs>]    # the original, from its menu map
 vibe/tools/dxcap.sh live <address> [<secs>]        # the fork on a live server (below)
+vibe/tools/dxcap.sh dedicated <engine> <actor> <map> [<secs>]  # either as a dedicated server
 ```
 
 A run stops after `<secs>`, 120 by default. `prove` fails on an unclean exit or a missing or
@@ -87,7 +88,8 @@ are gone.
 ### The console classes
 
 What each console does is its class's header comment in `vibe/tools/dxcap/Classes`; the table
-names it. The scripts are in `vibe/tools/dxcap/`. *Both*: run in each engine and compare, side by
+names it. A dedicated server runs no console: `dedicated` makes the run's class, an actor, the
+first of the server's `ServerActors`, which drives the run and ends it. The scripts are in `vibe/tools/dxcap/`. *Both*: run in each engine and compare, side by
 side where no script reads the run. *Either*: one engine on each side of a pair.
 
 | Console | Engines | Drives and logs | Prefix | Read with |
@@ -118,6 +120,7 @@ side where no script reads the run. *Either*: one engine on each side of a pair.
 | `SlideConsole` | both | the player on low-friction slopes and in a low-friction zone | `DXSLIDE:` | `track.py`, at `DXCAP_FPS=60` and `20` |
 | `VisibleConsole` | both | each mover's line on `TargetMap`: `FastTrace`, `Trace`, its hit and normal, `TraceTexture`'s and `TraceActors`' hits, the line reversed; the visible-actor iterators and `RadiusActors` | `DXVIS:` | the two logs' `mover` lines diffed |
 | `MoverConsole` | both | lines across a door and a window on `TargetMap`, moved, hidden, broken, saved | `DXMOVER:` | the two logs diffed |
+| `MoverServer` | both | a line across a door on a dedicated server, the door moved off it: a server actor (`dedicated`) | `DXDEDI:` | the two logs diffed |
 | `SightConsole` | both | `LineOfSightTo`, `CanSee`, `PlayerCanSeeMe` | `DXSIGHT:` |  |
 | `StandConsole` | both | where a walking player rests, and stops at a wall | `DXSTAND:` |  |
 | `StairConsole` | both | `Pawn.FindStairRotation` on the pier and a slope | `DXSTAIR:` | the two logs' answers diffed |
