@@ -34,8 +34,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Precomp.h
 	SurrealEngine/GameApp.cpp
 	SurrealEngine/GameApp.h
-	SurrealEngine/EditorApp.cpp
-	SurrealEngine/EditorApp.h
 	SurrealEngine/DebuggerApp.cpp
 	SurrealEngine/DebuggerApp.h
 	SurrealEngine/Engine.cpp
@@ -817,24 +815,8 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Light/FogmapBuilder.h
 	SurrealEngine/UI/WidgetResourceData.cpp
 	SurrealEngine/UI/WidgetResourceData.h
-	SurrealEngine/UI/Editor/AboutDialog.cpp
-	SurrealEngine/UI/Editor/AboutDialog.h
 	SurrealEngine/UI/ErrorWindow/ErrorWindow.cpp
 	SurrealEngine/UI/ErrorWindow/ErrorWindow.h
-	SurrealEngine/UI/Editor/EditorMainWindow.cpp
-	SurrealEngine/UI/Editor/EditorMainWindow.h
-	SurrealEngine/UI/Editor/EditorWorkspace.cpp
-	SurrealEngine/UI/Editor/EditorWorkspace.h
-	SurrealEngine/UI/Editor/EditorViewportFrame.cpp
-	SurrealEngine/UI/Editor/EditorViewportFrame.h
-	SurrealEngine/UI/Editor/EditorViewportHeader.cpp
-	SurrealEngine/UI/Editor/EditorViewportHeader.h
-	SurrealEngine/UI/Editor/EditorViewport.cpp
-	SurrealEngine/UI/Editor/EditorViewport.h
-	SurrealEngine/UI/Editor/Editor2DViewport.cpp
-	SurrealEngine/UI/Editor/Editor2DViewport.h
-	SurrealEngine/UI/Editor/Editor3DViewport.cpp
-	SurrealEngine/UI/Editor/Editor3DViewport.h
 	SurrealEngine/UI/Launcher/LauncherBanner.cpp
 	SurrealEngine/UI/Launcher/LauncherBanner.h
 	SurrealEngine/UI/Launcher/LauncherButtonbar.cpp
@@ -994,10 +976,6 @@ set(SURREALENGINE_SOURCES
 	SurrealEngine/MainGame.cpp
 )
 
-set(SURREALEDITOR_SOURCES
-	SurrealEngine/MainEditor.cpp
-)
-
 set(SURREALDEBUGGER_SOURCES
 	SurrealEngine/MainDebugger.cpp
 )
@@ -1060,7 +1038,6 @@ source_group("SurrealEngine\\RenderDevice/D3D11" REGULAR_EXPRESSION "${CMAKE_CUR
 source_group("SurrealEngine\\Render" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Render/.+")
 source_group("SurrealEngine\\UI" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/UI/.+")
 source_group("SurrealEngine\\UI\\ErrorWindow" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/UI/ErrorWindow/.+")
-source_group("SurrealEngine\\UI\\Editor" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/UI/Editor/.+")
 source_group("SurrealEngine\\UI\\Launcher" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/UI/Launcher/.+")
 source_group("SurrealEngine\\Packages" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/.+")
 source_group("SurrealEngine\\Packages\\ConSys" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/ConSys/.+")
@@ -1146,7 +1123,6 @@ endif()
 if(WIN32)
 	set(SURREALCOMMON_SOURCES ${SURREALCOMMON_SOURCES} ${SURREALCOMMON_WIN32_SOURCES})
 	set(SURREALENGINE_SOURCES ${SURREALENGINE_SOURCES} Win32Resources/SurrealEngine.rc Win32Resources/SurrealEngine.manifest)
-	set(SURREALEDITOR_SOURCES ${SURREALEDITOR_SOURCES} Win32Resources/SurrealEngine.rc Win32Resources/SurrealEngine.manifest)
 	set(SURREALDEBUGGER_SOURCES ${SURREALDEBUGGER_SOURCES} Win32Resources/SurrealEngine.rc Win32Resources/SurrealEngine.manifest)
 	set(SURREALCOMMON_LIBS ${SURREALCOMMON_LIBS} ${SURREALCOMMON_WIN32_LIBS})
 	set(THIRDPARTY_SOURCES ${THIRDPARTY_SOURCES} ${THIRDPARTY_WIN32_SOURCES})
@@ -1187,10 +1163,6 @@ include(vibe/cmake/version.cmake)
 add_executable(SurrealEngine WIN32 MACOSX_BUNDLE ${SURREALENGINE_SOURCES})
 target_link_libraries(SurrealEngine SurrealCommon ${SURREALCOMMON_LIBS})
 set_target_properties(SurrealEngine PROPERTIES CXX_STANDARD 20)
-
-add_executable(SurrealEditor WIN32 MACOSX_BUNDLE ${SURREALEDITOR_SOURCES})
-target_link_libraries(SurrealEditor SurrealCommon ${SURREALCOMMON_LIBS})
-set_target_properties(SurrealEditor PROPERTIES CXX_STANDARD 20)
 
 add_executable(SurrealDebugger ${SURREALDEBUGGER_SOURCES})
 target_link_libraries(SurrealDebugger SurrealCommon ${SURREALCOMMON_LIBS})
@@ -1280,7 +1252,6 @@ endif()
 add_zip(SurrealEngine.pk3 ${CMAKE_CURRENT_SOURCE_DIR}/Resources)
 
 add_dependencies(SurrealEngine Resources)
-add_dependencies(SurrealEditor Resources)
 
 if(WIN32)
 	add_custom_command(TARGET SurrealEngine POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:OpenAL::OpenAL>" $<TARGET_FILE_DIR:SurrealEngine>)
@@ -1292,7 +1263,7 @@ if(APPLE)
 		MACOSX_BUNDLE_BUNDLE_NAME "SurrealEngine"
 	)
 
-	foreach(bundle_target SurrealEngine SurrealEditor)
+	foreach(bundle_target SurrealEngine)
 		set_property(TARGET ${bundle_target} APPEND PROPERTY BUILD_RPATH "@executable_path/../Frameworks")
 		set_property(TARGET ${bundle_target} APPEND PROPERTY INSTALL_RPATH "@executable_path/../Frameworks")
 		add_custom_command(TARGET ${bundle_target} POST_BUILD
@@ -1317,10 +1288,8 @@ endif()
 if(MSVC)
 	# Create stripped PDBs for nightly builds
 	set_target_properties(SurrealEngine PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/SurrealEngine-stripped.pdb)
-	set_target_properties(SurrealEditor PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/SurrealEditor-stripped.pdb)
 	set_target_properties(SurrealDebugger PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/SurrealDebugger-stripped.pdb)
 endif()
 
 install(TARGETS SurrealEngine RUNTIME DESTINATION bin BUNDLE DESTINATION app)
-install(TARGETS SurrealEditor RUNTIME DESTINATION bin BUNDLE DESTINATION app)
 install(TARGETS SurrealDebugger RUNTIME DESTINATION bin)

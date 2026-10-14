@@ -22,7 +22,6 @@ public:
 	void DrawWindow(UWindow* window, float offsetX, float offsetY);
 	void ResetWindowGC(UWindow* window, float offsetX, float offsetY);
 
-	void DrawEditorViewport();
 	void DrawVideoFrame(TextureInfo* frame, TextureInfo* background);
 
 	void DrawGame(float levelTimeElapsed);

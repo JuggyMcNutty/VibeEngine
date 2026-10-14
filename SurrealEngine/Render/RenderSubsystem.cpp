@@ -99,12 +99,6 @@ bool RenderSubsystem::ReadLastFrame(Array<TextureColor>& pixels, int& width, int
 	return true;
 }
 
-void RenderSubsystem::DrawEditorViewport()
-{
-	Device->Brightness = engine->client->Brightness;
-	DrawScene();
-}
-
 void RenderSubsystem::DrawVideoFrame(TextureInfo* frame, TextureInfo* background)
 {
 	vec3 flashScale = 0.5f;
