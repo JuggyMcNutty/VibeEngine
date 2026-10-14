@@ -12,11 +12,6 @@ void UMesh::Load(ObjectStream* stream)
 	if (stream->GetVersion() > 61) VertsSkipOffset = stream->ReadUInt32();
 	int NumVerts = stream->ReadIndex();
 
-	// XXX: Something to consider if we decide to load DeusEx packages
-	//      without necessarily running DeusEx, we will need some kind
-	//      of indicator as to what mesh type we're looking at.
-	//      Maybe just some optional metadata in the package that describes 
-	//			which type of mesh this is?
 	for (int i = 0; i < NumVerts; i++)
 	{
 		struct DeusExVertex
@@ -204,7 +199,7 @@ void UMesh::Save(PackageStreamWriter* stream)
 
 	stream->WriteIndex((int)Verts.size());
 
-	if (false/*stream->GetPackage()->GetPackageManager()->IsDeusEx()*/)
+	if (false) // Deus Ex's packing, which Load reads, is off upstream
 	{
 		for (const vec3& v : Verts)
 		{

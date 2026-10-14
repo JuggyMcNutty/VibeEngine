@@ -10,8 +10,8 @@ game's files are included.
   ([the ports](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#ports)).
 - **Deus Ex as the original plays it**: where Surreal Engine lacks something the game needs, the
   original's behaviour is read from the game's DLLs
-  ([dx-reverse-info](https://github.com/JuggyMcNutty/dx-reverse-info)) and reimplemented. The
-  other UE1 games Surreal Engine runs are not tested here.
+  ([dx-reverse-info](https://github.com/JuggyMcNutty/dx-reverse-info)) and reimplemented. It
+  runs no other UE1 game ([how it is kept](vibe/docs/ENGINE.md#how-it-is-kept)).
 
 ## The fork and Surreal Engine
 

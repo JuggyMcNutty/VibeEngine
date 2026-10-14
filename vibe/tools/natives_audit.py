@@ -5,8 +5,6 @@ For each native a Deus Ex package declares -- its script declaration, its
 `exec` export in the original DLL -- which function the fork registers for
 Deus Ex, whether that function is a stub (it, or the package method it hands
 over to, logs `Unimplemented`), and how often the game's scripts call it.
-Surreal registers some natives per game (`if (engine->LaunchInfo.IsDeusEx())`);
-the conditions are evaluated as Deus Ex 1112fm.
 
     python3 vibe/tools/natives_audit.py [--game DIR] [--engine DIR] [--tsv FILE]
                                         [--runs LOG...] [--all]
@@ -150,15 +148,7 @@ REG = re.compile(r'RegisterVMNativeFunc_\d+\(\s*"(\w+)"\s*,\s*"(\w+)"\s*,\s*&(\w
 
 
 def cond_true_for_deusex(cond):
-    c = cond
-    c = re.sub(r"(?:engine->)?[lL]aunchInfo\.", "", c)
-    c = c.replace("IsDeusEx()", "True")
-    c = re.sub(r"\bIs\w+\(\)", "False", c)
-    c = re.sub(r"\bue1Version\b", "500", c)
-    c = re.sub(r"\bgameVersion\b", "1112", c)
-    c = re.sub(r'\bgameExecutableName\b', '"DeusEx"', c)
-    c = re.sub(r'\bgameVersionString\b', '"1112fm"', c)
-    c = c.replace("&&", " and ").replace("||", " or ")
+    c = cond.replace("&&", " and ").replace("||", " or ")
     c = re.sub(r"!(?!=)", " not ", c)
     try:
         return bool(eval(c, {"__builtins__": {}}, {"True": True, "False": False}))

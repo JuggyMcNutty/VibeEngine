@@ -2,8 +2,8 @@
 
 What the fork does for Deus Ex, feature by feature, each against the
 original: its write-up in dx-reverse-info, the console that compares the two
-engines, what matches, and what still differs. What the fork changes for
-every game: [what the fork changes](ENGINE.md#what-the-fork-changes).
+engines, what matches, and what still differs. What else the fork changes:
+[what the fork changes](ENGINE.md#what-the-fork-changes).
 
 ## How it is known
 

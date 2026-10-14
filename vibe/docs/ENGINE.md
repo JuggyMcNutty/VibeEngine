@@ -21,13 +21,9 @@ Its branch is `deusex`. What matches the original and what still differs is
   fork runs them through the `ExpressionEvaluator` it reworked ([script VM](#script-vm)). A fix
   of upstream's worth having is ported by hand, as a commit of the fork's own; upstream's
   contribution rules do not apply here.
-- **Deus Ex alone.** The engine knows no other game (`UE1GameDatabase.h`), and upstream's tests
-  of the game are constants (`GameLaunchInfo`): `IsDeusEx()` true, every other game's false,
-  `ue1Version` 500, so the compiler leaves out the code they keep from Deus Ex. Code that makes
-  the engine behave as Deus Ex's original binaries do is gated on `IsDeusEx()`, asked as
-  `engine->LaunchInfo.IsDeusEx()` or `engine->packages->IsDeusEx()`; a render device's flags are
-  `RenderDevice`'s constants (`DarkClamp`, `MacroTwoPass`, `GammaScale`). Natives of Deus Ex's
-  own classes need no gate: only Deus Ex has them.
+- **Deus Ex alone.** The engine knows no other game (`UE1GameDatabase.h`): upstream's code for
+  the others is out, and with it its tests of which game runs. A render device's flags are
+  `RenderDevice`'s constants (`DarkClamp`, `MacroTwoPass`, `GammaScale`).
 - **Licence.** Using and building the engine is permitted by its own licence, which grants use
   "for any purpose".
 
@@ -258,7 +254,7 @@ viewport, the canvas and the UI see the render size.
 
 ### Rendering
 
-For every game, the renderer's CPU work is lighter:
+The renderer's CPU work is lighter than upstream's:
 
 - **Light maps** are lit only where a light reaches; a map whose animating or moving lights
   changed is built, converted and uploaded again only where they reach, now or at its last
@@ -277,7 +273,7 @@ For every game, the renderer's CPU work is lighter:
   drawn in one device call, set up once (the GL device's `DrawGouraudTriangles` too).
 - **A portal's spans** are put in order by row in linear time, not sorted (`SortPortalSpans`).
 
-Deus Ex's look, as `Render.dll` and `D3DDrv.dll` make it, is gated and described by feature in
+Deus Ex's look, as `Render.dll` and `D3DDrv.dll` make it, is described by feature in
 [`NATIVES.md`](NATIVES.md); its code is in `SurrealEngine/Render/` (`VisibleFrame.cpp`,
 `VisibleMesh.cpp`), `SurrealEngine/Light/` and
 `SurrealEngine/Packages/Engine/Resources/Textures/` (`FireEngine.cpp`, the fractal textures).
@@ -364,8 +360,7 @@ Deus Ex's script runs under the original's guards
 ([stops the game](NATIVES.md#stops-the-game), [a singular function](NATIVES.md#small)), on
 while `Frame::Guards` is: the jumps counted by `Frame::CountJump` from each level tick and map
 load (`Frame::InitRunaway`), the nesting and each object's singular mark kept by
-`Frame::GuardedRun` in `Frame::CallScript`. Other games keep upstream's warning, logged for each
-statement past 500,000 in one function's run.
+`Frame::GuardedRun` in `Frame::CallScript`.
 
 ### Game tick
 
@@ -374,12 +369,11 @@ statement past 500,000 in one function's run.
   `ULevel::TickDeusEx`, `UActor::StartTick`;
   [housekeeping](NATIVES.md#housekeeping-not-seen-directly)).
 - **The actor iterators** find a class's actors from an index, not a scan of the level.
-- **Collision, for every game**: a ray trace hands each BSP child only its part of the segment
-  and tests a polygon's plane before its vertex count and surface; sight lines test the actors
-  of only the cells they cross; each cell's actors sit in an open-addressed table (`CellTable`),
-  where upstream keeps a `std::unordered_map` of `std::list`s; moves and traces go without casts
-  and heap allocations; another game's walking pawn steps to the ground with its dry run's
-  trace.
+- **Collision**: a ray trace hands each BSP child only its part of the segment and tests a
+  polygon's plane before its vertex count and surface; sight lines test the actors of only the
+  cells they cross; each cell's actors sit in an open-addressed table (`CellTable`), where
+  upstream keeps a `std::unordered_map` of `std::list`s; moves and traces go without casts and
+  heap allocations.
 - **Deus Ex's traces, moves and physics are `Engine.dll`'s**, in
   `SurrealEngine/Collision/TopLevel/TraceTest.cpp`, `UActor_Phys*.cpp` and `UPawn_Tick.cpp`: its
   backoffs; the movers a line meets where the level's BSP last filed them, filed by
@@ -470,23 +464,21 @@ gives the freed memory back to the system (`malloc_trim`).
 
 ### Gameplay
 
-What else Deus Ex needs is gated as [above](#how-it-is-kept) and described by feature in
-[`NATIVES.md`](NATIVES.md). Where most of its code is:
+What else Deus Ex needs is described by feature in [`NATIVES.md`](NATIVES.md). Where most of
+its code is:
 
 - **The path search and reachability tests**: Deus Ex's `FindPathToward`, `FindPathTo` and the
   `pointReachable`, `actorReachable` and `Reachable` they ask are `Engine.dll`'s, walking its
   own moves (`UPawn_Path.cpp`, `UPawn_ReachDeusEx.cpp`); `RouteCache` stays empty, as the
-  original never fills it; other games keep their own flow over the corrected search
-  ([moving](NATIVES.md#moving-wandering-and-tactical-movement)).
+  original never fills it ([moving](NATIVES.md#moving-wandering-and-tactical-movement)).
 - **The audio mixer**: `GalaxyMixer` (`SurrealEngine/Audio/GalaxyMixer.cpp`) mixes Deus Ex's
   sounds as `Galaxy.dll` does (pan, fall-off, sliders, resampling, its reverb) and streams them
-  through one OpenAL source at `OutputRate`; other games keep OpenAL's 3D sources. The fork's
-  audio device adds `SpeechVolume` and `DopplerSpeed` to its ini section, and keeps Deus Ex's
-  channel count under Galaxy's name, `EffectsChannels`, other games' as `Channels`
-  ([sound](NATIVES.md#sound)). Its render device keeps `DetailTextures` beside upstream's keys;
-  on Deus Ex's first run it takes them from the section of the device the game's ini names
-  (`GameRenderDevice`) ([the menus' settings](NATIVES.md#the-menus-settings)). Who hears a sound
-  an actor plays, a remote player through its client, is `UActor::HearSound` and
+  through one OpenAL source at `OutputRate`. The fork's audio device adds `SpeechVolume` and
+  `DopplerSpeed` to its ini section, and keeps Deus Ex's channel count under Galaxy's name,
+  `EffectsChannels` ([sound](NATIVES.md#sound)). Its render device keeps `DetailTextures` beside
+  upstream's keys; on Deus Ex's first run it takes them from the section of the device the game's
+  ini names (`GameRenderDevice`) ([the menus' settings](NATIVES.md#the-menus-settings)). Who hears a
+  sound an actor plays, a remote player through its client, is `UActor::HearSound` and
   `CheckHearSound` (`UActor.cpp`), from Deus Ex's `PlaySound`, `PlayOwnedSound` and
   `DemoPlaySound` natives (`NActor.cpp`).
 - **The network driver**: `SurrealEngine/Network/` is the fork's own, the original's protocol

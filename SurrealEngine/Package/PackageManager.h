@@ -34,8 +34,6 @@ class PackageManager
 public:
 	PackageManager(const GameLaunchInfo& launchInfo);
 
-	bool IsDeusEx() const { return true; }
-
 	fs::path GetRootFolderPath() const { return gameRootFolderPath; }
 	fs::path GetSystemFolderPath() const { return gameSystemFolderPath; }
 	fs::path GetSaveFolderPath() const { return gameSaveFolderPath; }
