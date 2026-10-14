@@ -27,18 +27,9 @@ UClass::UClass(NameString name, UClass* base, ObjectFlags flags) : UState(std::m
 		// Object is special as its the base class for everything. Described in Core.u with circular references.
 		// This creates just enough of the properties to resolve it, hopefully.
 
-		if (engine->LaunchInfo.IsUnrealTournament_469()) // 469 changed ObjectInternal from int to pointer
-		{
-			auto objInternal = GC::Alloc<UPointerProperty>("ObjectInternal", nullptr, ObjectFlags::Native);
-			objInternal->ArrayDimension = 6;
-			Properties.push_back(objInternal);
-		}
-		else
-		{
-			auto objInternal = GC::Alloc<UIntProperty>("ObjectInternal", nullptr, ObjectFlags::Native);
-			objInternal->ArrayDimension = 6;
-			Properties.push_back(objInternal);
-		}
+		auto objInternal = GC::Alloc<UIntProperty>("ObjectInternal", nullptr, ObjectFlags::Native);
+		objInternal->ArrayDimension = 6;
+		Properties.push_back(objInternal);
 
 		Properties.push_back(GC::Alloc<UObjectProperty>("Outer", nullptr, ObjectFlags::Native));
 		Properties.push_back(GC::Alloc<UIntProperty>("ObjectFlags", nullptr, ObjectFlags::Native));

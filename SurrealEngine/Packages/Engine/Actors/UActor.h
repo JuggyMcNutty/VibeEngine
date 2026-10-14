@@ -209,15 +209,6 @@ enum class EDodgeDir : uint8_t
 	DODGE_Done
 };
 
-// UT 469
-enum FontFamily
-{
-	FF_Arial,	// Arial on Windows, Helvetica on Linux/Mac
-	FF_Times,	// Times New Roman on Windows, times on Linux/Mac
-	FF_Courier, // Courier New on Windows, courier on Linux/Mac
-	FF_Tahoma   // Standard UWindow font, Linux/Mac will use Verdana if requested.
-};
-
 enum class EAnimType : uint8_t
 {
 	AT_Replace,
@@ -652,7 +643,6 @@ public:
 	float& TimerCounter() { return Value<float>(PropOffsets_Actor.TimerCounter); }
 	float& TimerRate() { return Value<float>(PropOffsets_Actor.TimerRate); }
 	FixedArrayView<UActor*, 4> Touching() { return FixedArray<UActor*, 4>(PropOffsets_Actor.Touching); }
-	TypedScriptArray<UActor*> Touching_UT469() { return DynamicArray<UActor*>(PropOffsets_Actor.Touching); }
 	float& TransientSoundRadius() { return Value<float>(PropOffsets_Actor.TransientSoundRadius); }
 	float& TransientSoundVolume() { return Value<float>(PropOffsets_Actor.TransientSoundVolume); }
 	float& TweenRate() { return Value<float>(PropOffsets_Actor.TweenRate); }

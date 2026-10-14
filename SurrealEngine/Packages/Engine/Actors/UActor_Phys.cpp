@@ -195,21 +195,10 @@ bool UActor::SetLocation(const vec3& newLocation, bool noCheck)
 		}
 
 		// Untouch everything we aren't overlapping anymore
-		if (engine->LaunchInfo.IsUnrealTournament_469())
+		for (const auto actor : Touching())
 		{
-			for (const auto actor : Touching_UT469())
-			{
-				if (actor && !IsOverlapping(actor))
-					UnTouch(actor);
-			}
-		}
-		else
-		{
-			for (const auto actor : Touching())
-			{
-				if (actor && !IsOverlapping(actor))
-					UnTouch(actor);
-			}
+			if (actor && !IsOverlapping(actor))
+				UnTouch(actor);
 		}
 	}
 
@@ -689,12 +678,6 @@ UObject* UActor::Trace(vec3& hitLocation, vec3& hitNormal, const vec3& traceEnd,
 		flags.onlyProjectiles = true;
 	}
 
-	// hack?
-	if (IsA("ChallengeHUD"))
-	{
-		flags.zoneChanges = true;
-	}
-
 	CollisionHit hit = XLevel()->Collision.TraceFirstHit(traceStart, traceEnd, this, extent, flags);
 	if (!hit.Actor)
 	{
@@ -910,18 +893,9 @@ CollisionHit UActor::FinishMove(const vec3& delta, const CollisionHitList& hits,
 	}
 
 	// Untouch everything we aren't overlapping anymore
-	if (engine->LaunchInfo.IsUnrealTournament_469())
-	{
-		for (const auto actor : Touching_UT469())
-			if (actor && !IsOverlapping(actor))
-				UnTouch(actor);
-	}
-	else
-	{
-		for (const auto actor : Touching())
-			if (actor && !IsOverlapping(actor))
-				UnTouch(actor);
-	}
+	for (const auto actor : Touching())
+		if (actor && !IsOverlapping(actor))
+			UnTouch(actor);
 
 	UpdateActorZone();
 

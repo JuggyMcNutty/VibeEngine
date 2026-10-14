@@ -180,18 +180,9 @@ bool UActor::Destroy()
 
 	CallEvent(this, EventName::Destroyed);
 
-	if (engine->LaunchInfo.IsUnrealTournament_469())
-	{
-		for (const auto actor : Touching_UT469())
-			if (actor)
-				UnTouch(actor);
-	}
-	else
-	{
-		for (const auto actor : Touching())
-			if (actor)
-				UnTouch(actor);
-	}
+	for (const auto actor : Touching())
+		if (actor)
+			UnTouch(actor);
 
 
 	SetOwner(nullptr);

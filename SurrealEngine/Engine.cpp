@@ -1018,8 +1018,6 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		if (!gameInfoClass)
 			gameInfoClass = packages->FindClass(packages->GetIniValue("system", "Engine.Engine", "DefaultGame"));
 		if (!gameInfoClass)
-			gameInfoClass = packages->FindClass("Botpack.DeathMatchPlus");
-		if (!gameInfoClass)
 			Exception::Throw("Could not find any gameinfo class!");
 
 		// Spawn GameInfo actor
@@ -3158,13 +3156,7 @@ void Engine::LogGamePackageSHA1Sums() const
 	LogMessage("Core.u: " + SHA1Sum::of_file(systemPath / "Core.u"));
 	LogMessage("Engine.u: " + SHA1Sum::of_file(systemPath / "Engine.u"));
 
-	if (packages->IsUnrealTournament())
-	{
-		LogMessage("Botpack.u: " + SHA1Sum::of_file(systemPath / "Botpack.u"));
-		LogMessage("UnrealI.u: " + SHA1Sum::of_file(systemPath / "UnrealI.u"));
-		LogMessage("UnrealShare.u: " + SHA1Sum::of_file(systemPath / "UnrealShare.u"));
-	}
-	else if (packages->IsKlingonHonorGuard())
+	if (packages->IsKlingonHonorGuard())
 	{
 		LogMessage("Klingons.u: " + SHA1Sum::of_file(systemPath / "Klingons.u"));
 	}

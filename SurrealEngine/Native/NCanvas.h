@@ -20,8 +20,4 @@ public:
 	static void StrLen(UObject* Self, const std::string& String, float& XL, float& YL);
 	static void StrLen_219(UObject* Self, const std::string& Text, int NumChars, int StartIndex, int& XL, int& YL);
 	static void TextSize(UObject* Self, const std::string& String, float& XL, float& YL);
-
-	// UT469 additions
-	static void CreateFont_UT469(UObject* Self, uint8_t Font, int Size, bool Bold, bool Italic, bool Underlined, bool DPIScaled, bool Antialiased, UObject*& ReturnValue);
-	static void GetDesktopDPI_UT469(UObject* Self, int& ReturnValue);
 };

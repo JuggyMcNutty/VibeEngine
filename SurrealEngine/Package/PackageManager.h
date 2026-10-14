@@ -34,8 +34,6 @@ class PackageManager
 public:
 	PackageManager(const GameLaunchInfo& launchInfo);
 
-	bool IsUnrealTournament() const { return false; }
-	bool IsUnrealTournament_469() const { return false; }
 	bool IsDeusEx() const { return true; }
 	bool IsCliveBarkersUndying() const { return false; }
 	bool IsKlingonHonorGuard() const  { return false; }
@@ -197,7 +195,6 @@ private:
 
 	std::string mapExtension;
 	std::string saveExtension;
-	std::string languageExtension;
 
 	bool missing_se_system_ini = false;
 

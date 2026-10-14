@@ -18,8 +18,6 @@ struct GameLaunchInfo
 	std::string timelinePath = "";			// --timeline: keys and commands at set times, the harness's live mode (Timeline.h)
 
 	// The engine knows no game but Deus Ex (UE1GameDatabase.h).
-	bool IsUnrealTournament() const { return false; }
-	bool IsUnrealTournament_469() const { return false; }
 	bool IsDeusEx() const { return true; }
 	bool IsCliveBarkersUndying() const { return false; }
 	bool IsKlingonHonorGuard() const { return false; }

@@ -32,11 +32,6 @@ void NCanvas::RegisterFunctions()
 		RegisterVMNativeFunc_5("Canvas", "StrLen", &NCanvas::StrLen_219, 467); // Maybe only in KHG?
 	}
 	RegisterVMNativeFunc_3("Canvas", "TextSize", &NCanvas::TextSize, 470);
-	if (engine->LaunchInfo.IsUnrealTournament_469())
-	{
-		RegisterVMNativeFunc_9("Canvas", "CreateFont", &NCanvas::CreateFont_UT469, 0);
-		RegisterVMNativeFunc_1("Canvas", "GetDesktopDPI", &NCanvas::GetDesktopDPI_UT469, 0);
-	}
 }
 
 void NCanvas::DrawActor(UObject* Self, UObject* A, bool WireFrame, std::optional<bool> ClearZ)
@@ -251,15 +246,4 @@ void NCanvas::TextSize(UObject* Self, const std::string& String, float& XL, floa
 	vec2 size = engine->render->GetTextSize(font, String);
 	XL = size.x;
 	YL = size.y;
-}
-
-void NCanvas::CreateFont_UT469(UObject* Self, uint8_t Font, int Size, bool Bold, bool Italic, bool Underlined, bool DPIScaled, bool Antialiased, UObject*& ReturnValue)
-{
-	LogUnimplemented("Canvas.CreateFont() [UT469]");
-	ReturnValue = nullptr;
-}
-
-void NCanvas::GetDesktopDPI_UT469(UObject* Self, int& ReturnValue)
-{
-	ReturnValue = static_cast<int>(engine->window->GetDpiScale() * 96.0);
 }

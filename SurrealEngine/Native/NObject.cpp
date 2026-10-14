@@ -234,11 +234,6 @@ void NObject::RegisterFunctions()
 		RegisterVMNativeFunc_1("Object", "GetLanguage", &NObject::GetLanguage, 0);
 	}
 
-	if (engine->LaunchInfo.IsUnrealTournament_469())
-	{
-		RegisterVMNativeFunc_3("Object", "ConcatEqual_StrStr", &NObject::ConcatEqual_StrStr, 322);
-	}
-
 	if (engine->LaunchInfo.IsNerfArenaBlast())
 	{
 		RegisterVMNativeFunc_4("Object", "SetConfigString", &NObject::SetConfigString_Nerf, 739);
@@ -395,11 +390,6 @@ void NObject::Complement_PreInt(int A, int& ReturnValue)
 void NObject::Concat_StrStr(const std::string& A, const std::string& B, std::string& ReturnValue)
 {
 	ReturnValue = A + B;
-}
-
-void NObject::ConcatEqual_StrStr(std::string& A, std::string& B, std::string& ReturnValue)
-{
-	ReturnValue = A += B;
 }
 
 void NObject::Cos(float A, float& ReturnValue)
