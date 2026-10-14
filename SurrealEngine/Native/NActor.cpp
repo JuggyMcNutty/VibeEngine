@@ -841,7 +841,7 @@ void NActor::ParabolicTrace(UObject* Self, vec3& finalLocation, std::optional<ve
 		if (timeElapsed >= timeLimit)
 			return; // ran out of time: it fails
 
-		UZoneInfo* zone = UObject::TryCast<UZoneInfo>(engine->LevelInfo->GetLocZone(pos, SelfActor).Zone);
+		UZoneInfo* zone = UObject::TryCast<UZoneInfo>(engine->LevelInfo->GetLocZone(pos).Zone);
 		if (!zone)
 			return; // left the world
 		if (zone->bWaterZone())

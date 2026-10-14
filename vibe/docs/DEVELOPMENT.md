@@ -13,10 +13,8 @@ Keeping, running and profiling the fork, and what it changes: [`ENGINE.md`](ENGI
 A fidelity change is done when `vibe/tools/natives_audit.py --runs <logs>` shows no stub firing
 on its path in the maps that reached one, a side-by-side
 [scripted run](#scripted-runs-of-both-engines) against the original proves it, and
-[`NATIVES.md`](NATIVES.md) says what still differs. The audit reads a native "partial" when
-another game's branch on its call chain logs `Unimplemented`: `ParabolicTrace` reads so, though
-its Deus Ex path is the original's. It reads `AICanSmell` "empty": the original's answer is
-always 0 too. The runs say whether a stub fired.
+[`NATIVES.md`](NATIVES.md) says what still differs. The audit reads `AICanSmell` "empty": the
+original's answer is always 0 too. The runs say whether a stub fired.
 
 ## Temporary debug hooks
 

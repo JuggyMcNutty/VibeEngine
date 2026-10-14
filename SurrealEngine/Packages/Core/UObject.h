@@ -407,7 +407,7 @@ public:
 	UClass*& uc_Class() { return Value<UClass*>(PropOffsets_Object.Class); } // native
 	NameString& uc_Name() { return Value<NameString>(PropOffsets_Object.Name); } // native
 	int& uc_ObjectFlags() { return Value<int>(PropOffsets_Object.ObjectFlags); } // native
-	int& uc_ObjectInternal() { return Value<int>(PropOffsets_Object.ObjectInternal); } // native, not available in 227
+	int& uc_ObjectInternal() { return Value<int>(PropOffsets_Object.ObjectInternal); } // native
 	UObject*& Outer() { return Value<UObject*>(PropOffsets_Object.Outer); } // native
 
 	std::string GCClassName() const override;

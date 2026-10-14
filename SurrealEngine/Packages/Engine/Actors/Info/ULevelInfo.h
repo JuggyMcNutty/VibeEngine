@@ -26,8 +26,7 @@ public:
 
 	void UpdateActorZone() override;
 
-	// Unreal 227 addition
-	PointRegion GetLocZone(const vec3& pos, std::optional<UActor*> InActor);
+	PointRegion GetLocZone(const vec3& pos);
 
 	UnrealURL URL;
 

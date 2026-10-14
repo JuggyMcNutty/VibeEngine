@@ -223,7 +223,7 @@ UObject* Package::GetUObject(int objref)
 		if (entry->ObjOuter == 0)
 			return nullptr; // This is a root package object. We don't have an UObject for those currently
 
-		// Find the path for the outer object (we can't just grab the object pointer due to UnrealI/UnrealShare)
+		// Find the path for the outer object
 		std::string group;
 		ImportTableEntry* outerEntry = GetImportEntry(entry->ObjOuter);
 		while (outerEntry->ObjOuter != 0)
@@ -236,12 +236,7 @@ UObject* Package::GetUObject(int objref)
 
 		NameString packageName = GetName(outerEntry->ObjName);
 
-		UObject* obj = Packages->GetPackage(packageName)->GetUObject(className, objectName, group);
-		if (!obj && packageName == "UnrealI")
-			obj = Packages->GetPackage("UnrealShare")->GetUObject(className, objectName, group);
-		else if (!obj && packageName == "UnrealShare")
-			obj = Packages->GetPackage("UnrealI")->GetUObject(className, objectName, group);
-		return obj;
+		return Packages->GetPackage(packageName)->GetUObject(className, objectName, group);
 	}
 	else
 	{
