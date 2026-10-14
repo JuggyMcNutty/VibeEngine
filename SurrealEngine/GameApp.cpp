@@ -10,7 +10,6 @@
 #include "Engine.h"
 #include "UI/WidgetResourceData.h"
 #include "UI/ErrorWindow/ErrorWindow.h"
-#include "UI/Launcher/LauncherWindow.h"
 #include "Utils/File.h"
 #include <stdexcept>
 #include <iostream>
@@ -56,40 +55,21 @@ int GameApp::main(Array<std::string> args)
 
 		if (commandline->HasArg("-h", "--help"))
 		{
-			std::cout << "SurrealEngine [--url=<mapname>] [--engineversion=X] [--server [--lanplay]] [--cmdline=<the original's>] [Path to game folder]\n";
+			std::cout << "SurrealEngine [--url=<mapname>] [--server [--lanplay]] [--cmdline=<the original's>] [Path to game folder]\n";
 			return 0;
 		}
 
-		// Skip the desktop launcher window when a game folder is given on the
-		// command line, or when --no-launcher is passed.
-		//
-		// Needed twice over: it is the only way to drive the engine headlessly
-		// for testing, and the handheld target has no mouse and no desktop --
-		// game selection happens in our own launcher before this process starts.
-		int selectedGameIndex;
-		if (!commandline->GetItems().empty() || commandline->HasArg("-n", "--no-launcher"))
+		GameFolderSelection::UpdateList();
+		if (GameFolderSelection::Games.empty())
 		{
-			GameFolderSelection::UpdateList();
-			if (GameFolderSelection::Games.empty())
-			{
-				std::cout << "No UE1 game found in the given folder." << std::endl;
-				selectedGameIndex = -1;
-			}
-			else
-			{
-				selectedGameIndex = 0;
-				std::cout << "Launching " << GameFolderSelection::Games[0].gameName
-				          << " " << GameFolderSelection::Games[0].gameVersionString
-				          << std::endl;
-			}
+			std::cout << "No UE1 game found in the given folder." << std::endl;
 		}
 		else
 		{
-			selectedGameIndex = LauncherWindow::ExecModal();
-		}
-		if (selectedGameIndex >= 0)
-		{
-			GameLaunchInfo info = GameFolderSelection::GetLaunchInfo(selectedGameIndex);
+			std::cout << "Launching " << GameFolderSelection::Games[0].gameName
+			          << " " << GameFolderSelection::Games[0].gameVersionString
+			          << std::endl;
+			GameLaunchInfo info = GameFolderSelection::GetLaunchInfo(0);
 			Engine engine(info);
 			engine.Run();
 			relaunchLine = engine.RelaunchLine;

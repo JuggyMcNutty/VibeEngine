@@ -4,13 +4,8 @@
     "DeadZone": 0.2,
     "Enabled": false,
     "InvertY": false,
-    "Layout": "modern",
     "LookSensitivityX": 1,
     "LookSensitivityY": 1
-  },
-  "Games": {
-    "LastSelected": 0,
-    "SearchList": []
   },
   "Performance": {
     "RenderScale": 1

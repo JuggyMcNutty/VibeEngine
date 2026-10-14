@@ -61,12 +61,6 @@ LauncherSettings::LauncherSettings()
 		RenderDevice.BloomAmount = settings["RenderDevice"]["BloomAmount"].to_int();
 		RenderDevice.UseDebugLayer = settings["RenderDevice"]["UseDebugLayer"].to_boolean();
 
-		for (const JsonValue& jsonItem : settings["Games"]["SearchList"].items())
-		{
-			Games.SearchList.push_back(jsonItem.to_string());
-		}
-		Games.LastSelected = settings["Games"]["LastSelected"].to_int();
-
 		// Absent members keep their defaults: a missing bool would otherwise
 		// read as false and quietly turn controller support off.
 		const JsonValue& pad = settings["Gamepad"];
@@ -76,7 +70,6 @@ LauncherSettings::LauncherSettings()
 		if (!pad["LookSensitivityY"].is_undefined()) Gamepad.LookSensitivityY = (float)pad["LookSensitivityY"].to_number();
 		if (!pad["InvertY"].is_undefined()) Gamepad.InvertY = pad["InvertY"].to_boolean();
 		if (!pad["CursorSpeed"].is_undefined()) Gamepad.CursorSpeed = (float)pad["CursorSpeed"].to_number();
-		if (!pad["Layout"].is_undefined()) Gamepad.Layout = pad["Layout"].to_string();
 
 		const JsonValue& perf = settings["Performance"];
 		if (!perf["RenderScale"].is_undefined()) Performance.RenderScale = (float)perf["RenderScale"].to_number();
@@ -84,75 +77,4 @@ LauncherSettings::LauncherSettings()
 	catch (...)
 	{
 	}
-}
-
-void LauncherSettings::Save()
-{
-	JsonValue rendev = JsonValue::object();
-
-	switch (RenderDevice.Type)
-	{
-	default:
-	case RenderDeviceType::Vulkan: rendev["Type"] = JsonValue::string("Vulkan"); break;
-	case RenderDeviceType::D3D11: rendev["Type"] = JsonValue::string("D3D11"); break;
-	case RenderDeviceType::OpenGL: rendev["Type"] = JsonValue::string("OpenGL"); break;
-	case RenderDeviceType::GLES: rendev["Type"] = JsonValue::string("GLES"); break;
-	}
-
-	switch (RenderDevice.Antialias)
-	{
-	default:
-	case AntialiasMode::Off: rendev["Antialias"] = JsonValue::string("Off"); break;
-	case AntialiasMode::MSAA2x: rendev["Antialias"] = JsonValue::string("MSAA2x"); break;
-	case AntialiasMode::MSAA4x: rendev["Antialias"] = JsonValue::string("MSAA4x"); break;
-	}
-
-	switch (RenderDevice.Light)
-	{
-	default:
-	case LightMode::Normal: rendev["Light"] = JsonValue::string("Normal"); break;
-	case LightMode::OneX: rendev["Light"] = JsonValue::string("OneX"); break;
-	case LightMode::BrighterActors: rendev["Light"] = JsonValue::string("BrighterActors"); break;
-	}
-
-	switch (RenderDevice.Gamma)
-	{
-	default:
-	case GammaMode::D3D9: rendev["Gamma"] = JsonValue::string("D3D9"); break;
-	case GammaMode::XOpenGL: rendev["Gamma"] = JsonValue::string("XOpenGL"); break;
-	}
-
-	rendev["GammaCorrectScreenshots"] = JsonValue::boolean(RenderDevice.GammaCorrectScreenshots);
-	rendev["UseVSync"] = JsonValue::boolean(RenderDevice.UseVSync);
-	rendev["Hdr"] = JsonValue::boolean(RenderDevice.Hdr);
-	rendev["HdrScale"] = JsonValue::number(RenderDevice.HdrScale);
-	rendev["Bloom"] = JsonValue::boolean(RenderDevice.Bloom);
-	rendev["BloomAmount"] = JsonValue::number(RenderDevice.BloomAmount);
-	rendev["UseDebugLayer"] = JsonValue::boolean(RenderDevice.UseDebugLayer);
-
-	JsonValue games = JsonValue::object();
-	games["SearchList"] = JsonValue::array(Games.SearchList);
-	games["LastSelected"] = JsonValue::number(Games.LastSelected);
-
-	JsonValue pad = JsonValue::object();
-	pad["Enabled"] = JsonValue::boolean(Gamepad.Enabled);
-	pad["DeadZone"] = JsonValue::number(Gamepad.DeadZone);
-	pad["LookSensitivityX"] = JsonValue::number(Gamepad.LookSensitivityX);
-	pad["LookSensitivityY"] = JsonValue::number(Gamepad.LookSensitivityY);
-	pad["InvertY"] = JsonValue::boolean(Gamepad.InvertY);
-	pad["CursorSpeed"] = JsonValue::number(Gamepad.CursorSpeed);
-	pad["Layout"] = JsonValue::string(Gamepad.Layout);
-
-	JsonValue perf = JsonValue::object();
-	perf["RenderScale"] = JsonValue::number(Performance.RenderScale);
-
-	JsonValue settings = JsonValue::object();
-	settings["RenderDevice"] = std::move(rendev);
-	settings["Games"] = std::move(games);
-	settings["Gamepad"] = std::move(pad);
-	settings["Performance"] = std::move(perf);
-
-	const std::string filename = GetSettingsFilename();
-	Directory::create(fs::path(filename).parent_path().string());
-	File::write_all_text(filename, settings.to_json(true));
 }

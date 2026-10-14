@@ -758,18 +758,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/UI/WidgetResourceData.h
 	SurrealEngine/UI/ErrorWindow/ErrorWindow.cpp
 	SurrealEngine/UI/ErrorWindow/ErrorWindow.h
-	SurrealEngine/UI/Launcher/LauncherBanner.cpp
-	SurrealEngine/UI/Launcher/LauncherBanner.h
-	SurrealEngine/UI/Launcher/LauncherButtonbar.cpp
-	SurrealEngine/UI/Launcher/LauncherButtonbar.h
-	SurrealEngine/UI/Launcher/LauncherWindow.cpp
-	SurrealEngine/UI/Launcher/LauncherWindow.h
-	SurrealEngine/UI/Launcher/PlayGamePage.cpp
-	SurrealEngine/UI/Launcher/PlayGamePage.h
-	SurrealEngine/UI/Launcher/VideoSettingsPage.cpp
-	SurrealEngine/UI/Launcher/VideoSettingsPage.h
-	SurrealEngine/UI/Launcher/GameFoldersPage.cpp
-	SurrealEngine/UI/Launcher/GameFoldersPage.h
 )
 
 set(SURREALCOMMON_WIN32_SOURCES
@@ -859,7 +847,6 @@ source_group("SurrealEngine\\RenderDevice/D3D11" REGULAR_EXPRESSION "${CMAKE_CUR
 source_group("SurrealEngine\\Render" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Render/.+")
 source_group("SurrealEngine\\UI" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/UI/.+")
 source_group("SurrealEngine\\UI\\ErrorWindow" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/UI/ErrorWindow/.+")
-source_group("SurrealEngine\\UI\\Launcher" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/UI/Launcher/.+")
 source_group("SurrealEngine\\Packages" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/.+")
 source_group("SurrealEngine\\Packages\\ConSys" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/ConSys/.+")
 source_group("SurrealEngine\\Packages\\ConSys\\Events" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/ConSys/Events/.+")

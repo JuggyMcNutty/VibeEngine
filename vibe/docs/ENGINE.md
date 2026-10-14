@@ -97,8 +97,10 @@ Each port's `run-game.sh` starts it for every real launch. By hand, from the gam
 SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 ```
 
-- `--no-launcher`, or a game folder on the command line, skips upstream's desktop launcher
-  window. `--no-launcher` (or `-v`) also puts the log on stderr.
+- `--no-launcher` (or `-v`) puts the log on stderr, and `--no-launcher` opens no error window: an
+  error goes to stderr alone. With no game folder given, the engine runs the game whose `System`
+  folder it starts in, or on Windows the Deus Ex the registry names; with neither, it says no game
+  is found and exits.
 - **A map is `--url=<map>` (or `-u=<map>`): an option's value follows its `=`.** `-u <map>` or
   `--url <map>` sets an empty URL and the map name becomes a stray argument, so the intro loads
   with no warning.
@@ -193,8 +195,8 @@ than the transforms they save.
 
 ## Settings and environment
 
-The engine reads `$HOME/.config/SurrealEngine/Settings.json`, which the ports' launcher writes;
-the ports' `run-game.sh` pins `HOME` to the app's `home/`
+The engine reads `$HOME/.config/SurrealEngine/Settings.json` and never writes it: the ports'
+launcher does, and their `run-game.sh` pins `HOME` to the app's `home/`
 ([where the settings live](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/docs/LAUNCHER.md#where-the-settings-actually-live)).
 The fork's keys:
 
@@ -202,7 +204,7 @@ The fork's keys:
 |---|---|
 | `Performance.RenderScale` | The scene drawn at this fraction of the window's size (0.25 to 1; default 1) and scaled up to it, by the Vulkan device and the GL device ([how](#settings-the-launcher-exposes)). |
 | `"Type": "GLES"` in `RenderDevice` | The GL device on an OpenGL ES 3.2 context (on the Smart Pro, the `[GLES]` renderer of its `renderers.ini`). |
-| `Gamepad` | The pad: `Enabled`, `DeadZone`, `LookSensitivityX` and `LookSensitivityY`, `InvertY`, `CursorSpeed`; `Layout` names the binding preset a launcher last applied, which the engine only carries ([controller support](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/docs/LAUNCHER.md#controller-support)). |
+| `Gamepad` | The pad: `Enabled`, `DeadZone`, `LookSensitivityX` and `LookSensitivityY`, `InvertY`, `CursorSpeed` ([controller support](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/docs/LAUNCHER.md#controller-support)). |
 
 The environment:
 
@@ -228,8 +230,8 @@ By area, as the code stands. The handheld's numbers are
   changes, so only what reads it recompiles); `GetDeusExVersion` shows it under the main menu,
   as `1.112fm VibeEngine <commit> (<date>)`. A tree with uncommitted changes to tracked files
   reads `-dirty`; one without git, `unknown`.
-- **Headless and embedded**: no launcher window; the log and errors on stderr; a non-zero exit
-  after a caught exception, which the launcher's crash sentinel reads. The cross build for an
+- **Headless and embedded**: `--no-launcher` ([running it](#running-it)); a non-zero exit after a
+  caught exception, which the launcher's crash sentinel reads. The cross build for an
   embedded aarch64 device is SDL2 only (no X11, Wayland or desktop GL), and takes SDL from
   pkg-config and a host-built `zipdir`. The UI's fonts are `SurrealEngine.pk3`'s.
 - **The gamepad**: the SDL2 display backend gives the pad as polled state (`GetGamepadState`),

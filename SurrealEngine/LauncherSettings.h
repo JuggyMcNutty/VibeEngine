@@ -32,7 +32,6 @@ class LauncherSettings
 {
 public:
 	static LauncherSettings& Get();
-	void Save();
 
 	struct
 	{
@@ -49,14 +48,7 @@ public:
 		bool UseDebugLayer = false;
 	} RenderDevice;
 
-	struct
-	{
-		Array<std::string> SearchList;
-		int LastSelected = -1;
-	} Games;
-
-	// Controller support (Engine::UpdateGamepad). Layout is the name of the
-	// binding preset a launcher last applied; the engine only carries it.
+	// Controller support (Engine::UpdateGamepad).
 	struct
 	{
 		bool Enabled = true;
@@ -65,7 +57,6 @@ public:
 		float LookSensitivityY = 1.0f;
 		bool InvertY = false;
 		float CursorSpeed = 1.0f;
-		std::string Layout = "modern";
 	} Gamepad;
 
 	// Speed for slow hardware.
