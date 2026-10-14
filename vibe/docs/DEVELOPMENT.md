@@ -163,6 +163,7 @@ the run. *Either*: one engine on each side of a pair.
 | `SoundConsole` | both | sounds behind a wall, a reverb zone, beeps from three sides and the root window | `DXCAP:` | `sound.py <run>`, with `DXCAP_RECORD=1` |
 | `SkipConsole` | both | a conversation's lines skipped | `DXSKIP:` | `skip.py <run> [<run> ...]`, with `DXCAP_RECORD=1` |
 | `SaveConsole`, `LoadConsole` | either | a save to slot 9, and its load | `DXSAVE:` |  |
+| `LoadingConsole` | both | the screen while a map loads or a level is saved: a load, a travel within a mission, a save and its load | `DXLOADING:` | the two logs' lines diffed; `shots.py`, at 4:3 |
 | `NetConsole` | both | the script's sockets, a master server's list | `DXCAP:` |  |
 | `ServeConsole` | either | a listen server, its players and beeps; it exits after 290 s | `DXCAP:` | `netquery.py`, `fakemaster.py`, `netrelay.py` |
 | `JoinConsole` | either | a client of `127.0.0.1:7790`; the moves its velocity does not account for (a server's corrections) | `DXNET:` | `sound.py --onsets <run>`, the client alone with `DXCAP_RECORD=1`: the server's beeps |
@@ -170,11 +171,12 @@ the run. *Either*: one engine on each side of a pair.
 | `TravelServeConsole` | either | a server that travels; it exits after 150 s | `DXCAP:` |  |
 | `TravelJoinConsole` | either | a client that follows it | `DXNET:` |  |
 
-- `SaveConsole` and `LoadConsole` use the game's own `Save\Save0009` and `Save\Current`: delete
-  them after. The original's own saves are in `reference/original-saves/`: Liberty Island's start
-  (no cheats), and a quick save, a hub save (`bCheatsEnabled`) and the `Current` folder from a
-  travel to UNATCO HQ and back. Copied into `Save0009`, the hub save loads in both engines; with
-  the quick save there the original never finishes its run.
+- `SaveConsole`, `LoadConsole` and `LoadingConsole` use the game's own `Save\Save0009` and
+  `Save\Current`: delete them after. The original's own saves are in
+  `reference/original-saves/`: Liberty Island's start (no cheats), and a quick save, a hub save
+  (`bCheatsEnabled`) and the `Current` folder from a travel to UNATCO HQ and back. Copied into
+  `Save0009`, the hub save loads in both engines; with the quick save there the original never
+  finishes its run.
 - In `VisibleConsole`'s logs the original numbers the player and its shadow one higher: its menu
   map made the first.
 - **A fork run started on its map has no load frame there.** The original's always travels from
@@ -252,6 +254,9 @@ stock game's, serve the original here as for the [net tests](#net-tests)
   window, drawn through `OpenGLDrv`, is read five times a second by `vibe/tools/dxcap/grab.py`
   (the window found by its name), keeping each frame whose corner carries the console's mark (a
   magenta block, then the shot's number in eight black or white blocks).
+- **A frame up through a load or a save** (`LoadingConsole`'s) reaches the original's window for
+  all of it or not at all, whatever the load's length: each is grabbed in about half the runs,
+  so a comparison takes the original's shots from two or three runs.
 - **Through `D3DDrv`** the window's contents reach the grabber only every 0.2 to 1.4 s, though
   the game draws some 63 frames a second: a console's mark, up for 0.6 s, can pass ungrabbed,
   and a run keeps 0 to 2 of `MeshConsole`'s 2 shots. `OpenGLDrv`'s window keeps them all.

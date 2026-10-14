@@ -92,7 +92,13 @@ public:
 	void LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo = {}, bool asClient = false);
 	// A save in place of the level; false when there is none to load.
 	bool LoadFromSaveFile(const UnrealURL& url);
-	void SaveGameToSlot(int32_t slotNum, const std::string& saveDescription) const;
+	// The original's loading screen (dx-reverse-info/engine-dll.md, the
+	// loading screen): one frame painted before a map loads or a level is
+	// saved, up until the next. PaintLoading is the map load's: LOADING, or
+	// CONNECTING for a join's map.
+	void PaintProgress();
+	void PaintLoading(bool connecting);
+	void SaveGameToSlot(int32_t slotNum, const std::string& saveDescription);
 	// Deus Ex's save picture, taken when the save is asked for: of the frame
 	// the player last saw, where the save itself waits for the next one.
 	void TakeSaveSnapshot();
@@ -111,7 +117,7 @@ public:
 	// Current (dx-reverse-info/deusex-dll.md, travel and saving).
 	void DeusExPreTravel(const UnrealURL& url);
 	void PruneTravelActors() const;
-	void SaveCurrentLevel(int32_t slot) const;
+	void SaveCurrentLevel(int32_t slot);
 	void SetLevelURLForSave() const;
 	int32_t DeusExMissionNumber(const std::string& mapName) const;
 	void UnloadMap();

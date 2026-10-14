@@ -854,6 +854,43 @@ void Engine::UnloadMap()
 	LevelPackage = nullptr;
 }
 
+// The original's PaintProgress (Engine.dll 0x10388740): the viewport's
+// player's flash at a tenth and its fog black for one frame, drawn and shown
+// as any frame is, both put back. The flash ends before the player's and the
+// console's PostRender, so the view and the windows come out at a tenth of
+// their brightness and the console's word at full. No clock moves, and no
+// event is taken: input mid-load could start a travel or a save.
+void Engine::PaintProgress()
+{
+	UPlayerPawn* player = viewport ? viewport->Actor() : nullptr;
+	if (!render || !Level || !player)
+		return;
+
+	vec3 flashScale = player->FlashScale();
+	vec3 flashFog = player->FlashFog();
+	player->FlashScale() = vec3(0.1f);
+	player->FlashFog() = vec3(0.0f);
+	viewport->SetViewportRect(0, 0, window->GetPixelWidth(), window->GetPixelHeight());
+	render->DrawGame(0.0f);
+	player->FlashScale() = flashScale;
+	player->FlashFog() = flashFog;
+}
+
+// The original's map load, before anything of the new map is read
+// (UGameEngine::LoadMap 0x1038c1f0): the level's action Loading, or
+// Connecting for a join's map; no pauser, and no menu to hide the word; the
+// frame painted; the sounds stopped; the action none again, whatever it was.
+void Engine::PaintLoading(bool connecting)
+{
+	LevelInfo->LevelAction() = connecting ? LEVACT_Connecting : LEVACT_Loading;
+	LevelInfo->Pauser() = "";
+	if (viewport && viewport->Actor())
+		viewport->Actor()->bShowMenu() = false;
+	PaintProgress();
+	audiodev->StopSounds();
+	LevelInfo->LevelAction() = LEVACT_None;
+}
+
 void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::string>& travelInfo, bool asClient)
 {
 	ClientTravelInfo.URL.Clear();
@@ -867,11 +904,14 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 		return;
 	}
 
+	// The loading screen. None at the start, with no level yet: the
+	// original's Init loads its first map before it has a viewport.
+	if (Level && !LaunchInfo.dedicatedServer)
+		PaintLoading(asClient);
+
 	if (Level)
 		CallEvent(console, EventName::NotifyLevelChange);
 
-	if (!LaunchInfo.dedicatedServer)
-		audiodev->StopSounds();
 	UnloadMap();
 
 	// Load map objects
@@ -1086,9 +1126,6 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 {
 	ClientTravelInfo.URL.Clear();
 
-	if (Level)
-		CallEvent(console, EventName::NotifyLevelChange);
-
 	if (url.HasOption("entry")) // Not sure what the purpose of this kind of travel is - do nothing for now.
 		return false;
 
@@ -1128,7 +1165,14 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 	if (!savefilePackage)
 		return false;
 
-	audiodev->StopSounds();
+	// The loading screen, as the original's load of a save is a map's
+	// load; none for an empty slot.
+	if (Level && !LaunchInfo.dedicatedServer)
+		PaintLoading(false);
+
+	if (Level)
+		CallEvent(console, EventName::NotifyLevelChange);
+
 	UnloadMap();
 
 	LevelPackage = savefilePackage;
@@ -1215,7 +1259,7 @@ void Engine::EnsureFlagBase(UPlayerPawn* pawn)
 	}
 }
 
-void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription) const
+void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 {
 	if (slotNum < -1)
 		Exception::Throw("Invalid save slot: " + std::to_string(slotNum));
@@ -1507,8 +1551,14 @@ void Engine::PruneTravelActors() const
 
 // The level package into a save directory: -2 Current, -1 the quick save,
 // else the numbered slot. The file goes first, or the writer keeps a .old.
-void Engine::SaveCurrentLevel(int32_t slot) const
+void Engine::SaveCurrentLevel(int32_t slot)
 {
+	// SAVING on the screen first, at every save, the quick save's too, as
+	// the original's SaveCurrentLevel (DeusEx.dll 0x1000fac0) marks the
+	// level saving and paints it; the action none again at the end.
+	LevelInfo->LevelAction() = LEVACT_Saving;
+	PaintProgress();
+
 	const auto folder = packages->GetSaveFolderPath() / SaveSlotFolderName(slot);
 	if (!fs::exists(folder))
 		fs::create_directories(folder);
@@ -1522,6 +1572,7 @@ void Engine::SaveCurrentLevel(int32_t slot) const
 	// And makes its brush tracker again, as the original's SaveGame does:
 	// the movers filed where they are, a destroyed one's polygons gone
 	Level->Collision.FileMovers();
+	LevelInfo->LevelAction() = LEVACT_None;
 }
 
 // The level's own URL as the original's is when saved: the one it was

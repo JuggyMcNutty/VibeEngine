@@ -67,6 +67,25 @@ teleporter of that tag (`PortalConsole`). Differs: a level returned to from
 saved file (`..\Save\Current\<map>.dxs`), as `Level.GetLocalURL` shows
 (`ReturnConsole`).
 
+While a map loads or a level is saved the screen shows one frame, painted
+before the work, as the original's does
+([the loading screen](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-loading-screen)):
+the view and the windows at a tenth of their brightness, under the screen
+flash, and the stock console's `LOADING`, `SAVING` or `CONNECTING` (a join's
+map) centred over them in blue. A map's load, a save's too, first empties
+the pauser and takes down the in-game menu's `bShowMenu`, which hides the
+word; every save paints `SAVING`, the quick save's too, and a travel within
+a mission shows `SAVING`, then `LOADING` (`LoadingConsole`: the same frames
+in the same order, their shots within 1% of the original's). Differs:
+
+- The word sits a pixel lower: the console centres it at a half pixel for an
+  odd size, which the original's canvas truncates and the fork's draws as
+  it is.
+- The original's draw ticks the console (`UConsole::PreRender`), so its
+  painted frame ticks it once more; the fork's paint does not.
+- No frame shows `PRECACHING`: the original's shows it only with its
+  driver's precache on, which the game's ini has off.
+
 ## Flags
 
 Matches the original
@@ -303,8 +322,9 @@ Vulkan, with descriptor indexing and without (the Smart Pro's), are within
 ### The screen flash
 
 Matches the original
-([the rest of a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-rest-of-a-frame));
-`FlashConsole`.
+([the rest of a frame](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-rest-of-a-frame)):
+`FlashConsole`, and over the windows the loading screen's
+(`LoadingConsole`).
 
 ### Draw order and movers
 
