@@ -508,10 +508,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_Path.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_Reach.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachDeusEx.cpp
-	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachFlying.cpp
-	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachSpider.cpp
-	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachSwimming.cpp
-	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_ReachWalking.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_Tick.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPawn_Zone.cpp
 	SurrealEngine/Packages/Engine/Actors/Pawn/UPlayerPawn.cpp

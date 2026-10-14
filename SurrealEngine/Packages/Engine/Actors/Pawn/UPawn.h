@@ -90,11 +90,6 @@ public:
 	bool FindBestJump(vec3 dest, vec3 testVel, vec3& landing, bool movePawn);
 	bool DeusExAIDirectionReachable(const vec3& focus, int yaw, int pitch, float minDist, float maxDist, vec3& bestDest);
 
-	bool ReachableFlying(UActor* anActor);
-	bool ReachableSpider(UActor* anActor);
-	bool ReachableSwimming(UActor* anActor);
-	bool ReachableWalking(UActor* anActor);
-
 	// Deus Ex's native: a viewport's player plays the sound it hears
 	// (UActor::CheckHearSound).
 	void DeusExClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters);
