@@ -2,7 +2,6 @@
 
 struct GameLaunchInfo
 {
-	bool noEntryMap = false;
 	std::string gameName = "";				// Name of the game ("Deus Ex")
 	std::string gameRootFolder = "";		// Path to the folder that contains all the subfolders and files
 	std::string gameExecutableName = "";	// Name of the game executable ("DeusEx")

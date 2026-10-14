@@ -203,7 +203,9 @@ void Engine::Run()
 		window->LockCursor();
 	}
 
-	if (!LaunchInfo.noEntryMap && !dedicated)
+	// The Entry level, as the original's Init loads it for a client: a
+	// client that loses its server goes back there (ReturnToEntry).
+	if (!dedicated)
 		LoadEntryMap();
 
 	bool launchServer = !LaunchInfo.url.empty() && !UnrealURL(LaunchInfo.url).Host.empty() && !dedicated;
