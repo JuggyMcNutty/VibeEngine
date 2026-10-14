@@ -93,10 +93,10 @@ Each port's `run-game.sh` starts it for every real launch. By hand, from the gam
 SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 ```
 
-- `--no-launcher` (or `-v`) puts the log on stderr, and `--no-launcher` opens no error window: an
-  error goes to stderr alone. With no game folder given, the engine runs the game whose `System`
-  folder it starts in, or on Windows the Deus Ex the registry names; with neither, it says no game
-  is found and exits.
+- `--no-launcher` (`-n`) puts the log on stderr, as `--verbose` (`-v`) does, and opens no error
+  window: an error goes to stderr alone. With no game folder given, the engine runs the game
+  whose `System` folder it starts in, or on Windows the Deus Ex the registry names; with
+  neither, it says no game is found and exits.
 - **A map is `--url=<map>` (or `-u=<map>`): an option's value follows its `=`.** `-u <map>` or
   `--url <map>` sets an empty URL and the map name becomes a stray argument, so the intro loads
   with no warning.
@@ -226,10 +226,10 @@ By area, as the code stands. The handheld's numbers are
   changes, so only what reads it recompiles); `GetDeusExVersion` shows it under the main menu,
   as `1.112fm VibeEngine <commit> (<date>)`. A tree with uncommitted changes to tracked files
   reads `-dirty`; one without git, `unknown`.
-- **Headless and embedded**: `--no-launcher` ([running it](#running-it)); a non-zero exit after a
-  caught exception, which the launcher's crash sentinel reads. The cross build for an
-  embedded aarch64 device is SDL2 only (no X11, Wayland or desktop GL), and takes SDL from
-  pkg-config and a host-built `zipdir`. The UI's fonts are `SurrealEngine.pk3`'s.
+- **Headless and embedded**: `--no-launcher` ([running it](#running-it)); a non-zero exit after
+  a caught exception, which the launcher's crash sentinel reads. The cross build for an embedded
+  aarch64 device is SDL2 only (no X11, Wayland or desktop GL), and takes SDL from pkg-config and
+  a host-built `zipdir`. The UI's fonts are `SurrealEngine.pk3`'s.
 - **The gamepad**: the SDL2 display backend gives the pad as polled state (`GetGamepadState`),
   and `GamepadInput` turns it into UE1 joystick keys and axes that `User.ini` binds; menus get
   their own controls. Only the SDL2 backend has it, and SurrealWidgets builds SDL3's instead
@@ -294,11 +294,11 @@ eight opaque pipelines again with it, GL's `glPolygonOffset`;
 **The GL device** runs desktop GL 4.2+ and OpenGL ES 3.2 from one code path: `RenderAPI::GLES`
 and `RenderDeviceType::GLES`, an ES 3.2 context from every Linux window backend (SDL2 and SDL3
 through `SDL_GL_CONTEXT_PROFILE_ES`, X11 and Wayland through EGL with the ES3 bit), and `IsGLES`
-read at init from `glGetString(GL_VERSION)`. It draws at the render scale, as the Vulkan device does
-([the setting](#settings-the-launcher-exposes)). The same shader sources compile as GLSL ES 3.20
-(`CompileGlsl` prepends the version and highp precision; the sources keep to `u`-suffixed masks,
-float literals and `std140` push-constant blocks). No desktop-only calls: `glClearDepthf` and
-`glDepthRangef`, `glDrawBuffers` for every `glDrawBuffer`, no `GL_DEPTH_CLAMP` or
+read at init from `glGetString(GL_VERSION)`. It draws at the render scale, as the Vulkan device
+does ([the setting](#settings-the-launcher-exposes)). The same shader sources compile as GLSL ES
+3.20 (`CompileGlsl` prepends the version and highp precision; the sources keep to `u`-suffixed
+masks, float literals and `std140` push-constant blocks). No desktop-only calls: `glClearDepthf`
+and `glDepthRangef`, `glDrawBuffers` for every `glDrawBuffer`, no `GL_DEPTH_CLAMP` or
 `GL_MULTISAMPLE` on ES, the plain blend calls, the null texture as `UNSIGNED_BYTE`. It asks for
 GL errors once a frame, not at each flush of its batches and each texture upload: every
 `glGetError` makes Mesa's GL thread finish all it has queued. A draw sets only the state that
@@ -343,6 +343,9 @@ wherever else that state is set.
 - **Depth is clamped** at the near and far planes on desktop GL, as the Vulkan device clamps it
   (the weapon close up): `DepthClipEnable` is D3D11's, off meaning a clamp. ES has no clamp and
   clips there.
+- **The screen flash** is a quad on the near plane, z -1 and depth 0, where the Vulkan device's
+  z 0 is: at z 0, GL's depth 0.5, the depth test would pass it only where the windows draw
+  nothing solid, leaving their text, bars and icons out of the flash.
 
 ### Script VM
 
@@ -356,11 +359,11 @@ plain values, not through an `ExpressionValue`; conditions, jumps, plain assignm
 `ExpressionEvalResult` each (`Frame::ClassifyStatement`). A call leaving out an optional struct
 or array argument does not copy it, where upstream crashes.
 
-Script runs under the original's guards
-([stops the game](NATIVES.md#stops-the-game), [a singular function](NATIVES.md#small)), on from the
-engine's start (`Frame::Guards`): the jumps counted by `Frame::CountJump` from each level tick and
-map load (`Frame::InitRunaway`), the nesting and each object's singular mark kept by
-`Frame::GuardedRun` in `Frame::CallScript`.
+Script runs under the original's guards ([stops the game](NATIVES.md#stops-the-game),
+[a singular function](NATIVES.md#small)), on from the engine's start (`Frame::Guards`): the
+jumps counted by `Frame::CountJump` from each level tick and each map load but a save's
+(`Frame::InitRunaway`), the nesting and each object's singular mark kept by `Frame::GuardedRun`
+in `Frame::CallScript`.
 
 ### Game tick
 

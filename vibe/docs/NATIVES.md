@@ -37,7 +37,9 @@ a loop past 10,000,000 jumps run, taken or not, in one level tick or one
 map's load, "Runaway loop detected (over 10000000 iterations)"
 (`LoopConsole`); a 251st nested script call, "Infinite script recursion
 (250 calls) detected" (`CallConsole`). Differs: the original's
-`-norunaway`, which lets the loop run on, is not carried.
+`-norunaway`, which lets the loop run on, is not carried; a save's load
+counts on from its frame's level tick, where the original's, a map's load,
+starts the count afresh.
 
 ## Saving, loading and travel
 
@@ -71,12 +73,14 @@ While a map loads or a level is saved the screen shows one frame, painted
 before the work, as the original's does
 ([the loading screen](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/engine-dll.md#the-loading-screen)):
 the view and the windows at a tenth of their brightness, under the screen
-flash, and the stock console's `LOADING`, `SAVING` or `CONNECTING` (a join's
-map) centred over them in blue. A map's load, a save's too, first empties
-the pauser and takes down the in-game menu's `bShowMenu`, which hides the
-word; every save paints `SAVING`, the quick save's too, and a travel within
-a mission shows `SAVING`, then `LOADING` (`LoadingConsole`: the same frames
-in the same order, their shots within 1% of the original's). Differs:
+flash (with the client's `ScreenFlashes` on, as the game's ini has it, or in
+a net game), and the stock console's `LOADING`, `SAVING` or `CONNECTING` (a
+join's map) centred over them in blue. A map's load, a save's load too,
+first empties the pauser and clears the player's `bShowMenu`, set while an
+in-game menu is up, which would hide the word; every save paints `SAVING`,
+the quick save's too, and a travel within a mission shows `SAVING`, then
+`LOADING` (`LoadingConsole`: the same frames in the same order, their shots
+within 1% of the original's). Differs:
 
 - The word sits a pixel lower: the console centres it at a half pixel for an
   odd size, which the original's canvas truncates and the fork's draws as
@@ -821,6 +825,7 @@ the GPU, and on the Smart Pro:
 |---|---|---|
 | Liberty Island and Battery Park loaded in turn (`reload-fresh.txt`), twenty loads | `d491a5c`, the GPU | 379 MB resident at the end, 393 MB at most; each island load's collection leaves the same 43,054 objects and frees some 130 textures and 20 sounds |
 | Liberty Island and UNATCO HQ through `Current` (`reload-current.txt`) | `2bdaa7d` | 522 MB at most throughout |
+| Liberty Island and UNATCO HQ through `Current` (`reload-current.txt`), twenty travels | `d88898f`, the GPU | 380 MB resident at the end, 386 MB at most |
 | A collection | `d491a5c`, the GPU | a map load's 14 to 24 ms, the destroyed actors' backlog's 7 to 8 ms mid-game, the console's `obj garbage` 6 ms |
 | A collection on the Smart Pro, Overclock: `ChurnConsole`, and `collections.txt` | `cd07879` | a map load's 147 to 230 ms; the destroyed actors' backlog's, 2,100 actors, 85 to 92 ms; the console's `obj garbage` 73 to 78 ms on the island, 102 to 103 ms in Battery Park |
 | `ChurnConsole`, 2,200 actors a second for two minutes | `d491a5c`, the GPU | 360 MB resident throughout; a collection 7 to 8 ms |

@@ -102,7 +102,7 @@ the run. *Either*: one engine on each side of a pair.
 | `FaceConsole` | both | a character's mesh close up (`MeshOf`, `Ahead`, `Distance`) | `DXFACE:` | `shots.py <original run> <fork run>` |
 | `MeshConsole` | both | meshes lit on the pier (`LODBias`, `NoDetail`) | `DXMESH:` | `shots.py` |
 | `LightConsole` | both | a light of one effect on `TargetMap` (`Effect`, `Pick`, `LightName`, `View`, `Aim`, `ShotAt`); the spot's texture as its own macro texture (`Macro`) | `DXLIGHT:` | `shots.py` |
-| `FlashConsole` | both | the screen flash | `DXFLASH:` |  |
+| `FlashConsole` | both | the screen flash | `DXFLASH:` | the fork at `DXCAP_FPS=60`: above some 105 frames a second the game's `ViewFlash`, which drops a fog under 0.019 each frame, never builds the glow's 0.2 |
 | `GlassConsole` | both | a glass mover on `TargetMap`, and what is behind it (`Pick`, `GlassName`, `View`, `Behind`) | `DXGLASS:` | `shots.py` |
 | `FlushConsole` | both | a door on `TargetMap` slid half into the flat wall beside it, its face in the wall's plane (`Pick`, `DoorName`, `View`, `Angle`) | `DXFLUSH:` | `shots.py` |
 | `HeldConsole` | both | what a pawn holds | `DXHELD:` |  |
@@ -180,8 +180,8 @@ the run. *Either*: one engine on each side of a pair.
   finishes its run.
 - In `VisibleConsole`'s logs the original numbers the player and its shadow one higher: its menu
   map made the first.
-- **A fork run started on its map has no load frame there.** The original's always travels from
-  its menu map, its first frame on the map taking in the load
+- **A fork run started on its map has no long first frame there.** The original's always travels
+  from its menu map, its first frame on the map taking in the load
   ([a long frame](NATIVES.md#small)): a fork run compared over a map's first seconds starts at
   `DX.dx` and travels as the original's does (`StandConsole`, `MoveConsole`).
 - A sweep runs `MissionConsole` over every mission map; no driver for it is committed.
