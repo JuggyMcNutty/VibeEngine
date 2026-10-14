@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c66e973..54e09e3 100644
+index 5afe782..719f29f 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -12,6 +12,11 @@ endif()
@@ -15,7 +15,7 @@ index c66e973..54e09e3 100644
  	SurrealEngine/Precomp.cpp
  	SurrealEngine/Precomp.h
 diff --git a/SurrealEngine/Engine.cpp b/SurrealEngine/Engine.cpp
-index 734811f..0df58db 100644
+index 37fad46..f839ca4 100644
 --- a/SurrealEngine/Engine.cpp
 +++ b/SurrealEngine/Engine.cpp
 @@ -2,6 +2,7 @@
@@ -26,7 +26,7 @@ index 734811f..0df58db 100644
  #include "Utils/File.h"
  #include "Utils/StrTools.h"
  #include "Utils/SHA1Sum.h"
-@@ -285,8 +286,10 @@ void Engine::Run()
+@@ -279,8 +280,10 @@ void Engine::Run()
  		// makes this frame has been laid out by the time they next tick.
  		// They tick by real seconds since their last tick, not the level's
  		// time (XRootWindow::TickWindows 0x1003a4a0).
@@ -37,7 +37,7 @@ index 734811f..0df58db 100644
  
  		TotalTime += realTimeElapsed;
  
-@@ -320,10 +323,16 @@ void Engine::Run()
+@@ -314,10 +317,16 @@ void Engine::Run()
  		// original's level tick holds it (dx-reverse-info engine-dll.md, a
  		// level's tick).
  		if (!dedicated)
@@ -54,7 +54,7 @@ index 734811f..0df58db 100644
  		// Do NOT pause this Tick event otherwise some messages will stay on screen forever.
  		if (!dedicated)
  			CallEvent(console, EventName::Tick, { ExpressionValue::FloatValue(levelElapsed) });
-@@ -352,6 +361,10 @@ void Engine::Run()
+@@ -346,6 +355,10 @@ void Engine::Run()
  		if (LevelNetDriver)
  			LevelNetDriver->TickFlush();
  
@@ -65,7 +65,7 @@ index 734811f..0df58db 100644
  		// To do: improve CallEvent so parameter passing isn't this painful
  		UFunction* funcPlayerCalcView = viewport->Actor() ? FindEventFunction(viewport->Actor(), "PlayerCalcView") : nullptr;
  		if (funcPlayerCalcView)
-@@ -370,12 +383,17 @@ void Engine::Run()
+@@ -364,12 +377,17 @@ void Engine::Run()
  		}
  
  		if (!dedicated)
@@ -84,7 +84,7 @@ index 734811f..0df58db 100644
  
  		// Save the game if there is a request for it
  		if (SaveGameInfo.SaveGameSlot != DONT_SAVE_GAME)
-@@ -2960,6 +2978,9 @@ void Engine::UpdateInput(float timeElapsed)
+@@ -2738,6 +2756,9 @@ void Engine::UpdateInput(float timeElapsed)
  	if (!viewport->Actor())
  		return;
  
@@ -952,7 +952,7 @@ index 0000000..6a4a776
 +	}
 +}
 diff --git a/SurrealEngine/VM/Frame.cpp b/SurrealEngine/VM/Frame.cpp
-index d59953b..007f9d6 100644
+index effcd01..d1edcd0 100644
 --- a/SurrealEngine/VM/Frame.cpp
 +++ b/SurrealEngine/VM/Frame.cpp
 @@ -1,6 +1,7 @@
@@ -963,7 +963,7 @@ index d59953b..007f9d6 100644
  #include "Bytecode.h"
  #include "Expression.h"
  #include "ExpressionEvaluator.h"
-@@ -344,14 +345,17 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
+@@ -250,14 +251,17 @@ ExpressionValue Frame::Call(UFunction* func, UObject* instance, CallArguments& a
  	for (size_t i = args.size(); i < parms.size() && AllFlags(parms[i]->PropFlags, PropertyFlags::Parm | PropertyFlags::OptionalParm); i++)
  		args.push_back(ExpressionValue::NothingValue());
  

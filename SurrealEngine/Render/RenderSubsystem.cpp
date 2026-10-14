@@ -99,39 +99,6 @@ bool RenderSubsystem::ReadLastFrame(Array<TextureColor>& pixels, int& width, int
 	return true;
 }
 
-void RenderSubsystem::DrawVideoFrame(TextureInfo* frame, TextureInfo* background)
-{
-	vec3 flashScale = 0.5f;
-	vec3 flashFog = vec3(0.0f, 0.0f, 0.0f);
-	Device->Brightness = 0.4f;// engine->client->Brightness;
-	Device->Lock(vec4(flashScale, 0.0f), vec4(flashFog, 0.0f), vec4(0.0f), nullptr, nullptr);
-	FrameInProgress = true;
-	ResetCanvas();
-	Device->SetSceneNode(&Canvas.Frame);
-
-	float sizeX = (float)(int)(engine->viewport->ViewportWidth() / (float)Canvas.uiscale);
-	float sizeY = (float)(int)(engine->viewport->ViewportHeight() / (float)Canvas.uiscale);
-
-	Rectf clipBox = Rectf::xywh(0.0f, 0.0f, sizeX, sizeY);
-	Rectf dest = clipBox;
-
-	if (frame)
-	{
-		Rectf src = Rectf::xywh(0.0f, 0.0f, (float)frame->USize, (float)frame->VSize);
-		DrawTile(*frame, dest, src, clipBox, 1.0f, vec4(1.0f), vec4(0.0f), PF_TwoSided);
-	}
-
-	if (background)
-	{
-		Rectf src = Rectf::xywh(0.0f, 0.0f, (float)background->USize, (float)background->VSize);
-		DrawTile(*background, dest, src, clipBox, 1.0f, vec4(1.0f), vec4(0.0f), PF_TwoSided | PF_Highlighted);
-	}
-
-	Device->EndFlash();
-	Device->Unlock(true);
-	FrameInProgress = false;
-}
-
 void RenderSubsystem::UpdateTexture(UTexture* tex)
 {
 	if (tex && tex->FrameCounter != TextureFrameCounter)

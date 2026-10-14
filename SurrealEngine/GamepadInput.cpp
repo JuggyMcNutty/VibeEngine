@@ -105,19 +105,6 @@ void GamepadInput::ReadButtons(const GamepadState& state, bool down[NumButtons])
 	down[TriggerRight] = wasDown[TriggerRight] ? rt > TriggerRelease : rt > TriggerPress;
 }
 
-bool GamepadInput::PollSkip()
-{
-	Configure();
-	GamepadState state;
-	if (!enabled || !DisplayBackend::Get()->GetGamepadState(state))
-		return false;
-	bool down = state.Buttons[(int)GamepadButton::A] || state.Buttons[(int)GamepadButton::B] ||
-		state.Buttons[(int)GamepadButton::Back] || state.Buttons[(int)GamepadButton::Start];
-	bool edge = down && !skipWasDown;
-	skipWasDown = down;
-	return edge;
-}
-
 void GamepadInput::Press(Engine* engine, int button, bool ui)
 {
 	if (!ui)

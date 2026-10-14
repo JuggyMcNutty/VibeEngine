@@ -49,8 +49,6 @@ class AudioSubsystem;
 class Rotator;
 class ExpressionValue;
 class UnrealURL;
-class VideoPlayer;
-class UnrealMipmap;
 class UFloatProperty;
 class UObjectProperty;
 class UStructProperty;
@@ -184,9 +182,6 @@ public:
 	bool ExecCommand(const Array<std::string>& args);
 	Array<std::string> GetArgs(const std::string& commandline);
 	Array<std::string> GetSubcommands(const std::string& commandline);
-
-	void PlayAVI(const Array<std::string>& args);
-	UnrealMipmap* PlayVideo(VideoPlayer* video, UnrealMipmap* background);
 
 	void UpdateAudio();
 
@@ -369,8 +364,6 @@ private:
 	bool m_DrawDebugDXWindowHierarchy = false; // If set to true, engine will show the Deus Ex window hierarchy
 
 	bool khgSplashScreen = false;
-	bool playingAvi = false;
-	bool skipAvi = false;
 };
 
 extern Engine* engine;

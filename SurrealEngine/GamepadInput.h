@@ -30,10 +30,6 @@ class GamepadInput
 public:
 	void Update(Engine* engine, float timeElapsed);
 
-	// True once when A, B, SELECT or START goes down: for skipping a movie,
-	// whose playback loop reads no other input.
-	bool PollSkip();
-
 private:
 	enum class Owner : uint8_t { None, Game, UI };
 	enum { NumButtons = 15 + 2 };   // SDL's buttons, then the two triggers
@@ -63,6 +59,4 @@ private:
 
 	// Sub-pixel pointer movement carried between ticks.
 	float pointerRemX = 0.0f, pointerRemY = 0.0f;
-
-	bool skipWasDown = false;
 };

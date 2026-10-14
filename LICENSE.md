@@ -21,10 +21,6 @@
 	   misrepresented as being the original software.
 	3. This notice may not be removed or altered from any source distribution.
 
-## License for SurrealVideo
-
-	This uses the GNU LGPL 2.1 or later. Please see SurrealVideo/README.md
-
 ## License for Thirdparty/resample
 
 	The MIT License (MIT)

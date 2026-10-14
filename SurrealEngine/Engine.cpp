@@ -56,7 +56,6 @@
 #include "RenderDevice/RenderDevice.h"
 #include "VM/Frame.h"
 #include "VM/ScriptCall.h"
-#include "Video/VideoPlayer.h"
 #include "Utils/Convert.h"
 #include "Network/NetClient.h"
 #include "Network/NetChannel.h"
@@ -205,11 +204,6 @@ void Engine::Run()
 			viewport->bWindowsMouseAvailable() = true;
 
 		window->LockCursor();
-
-		if (packages->IsKlingonHonorGuard())
-		{
-			PlayAVI({ "playavi", "INTRO.AVI", "N" });
-		}
 	}
 
 	if (!LaunchInfo.noEntryMap && !dedicated)
@@ -675,214 +669,6 @@ void Engine::OnLauncherLine(const std::string& line)
 	{
 		LogMessage("Launcher: unknown line: " + line);
 	}
-}
-
-void Engine::PlayAVI(const Array<std::string>& args)
-{
-	if (args.size() < 3)
-		return;
-
-	// What did KHG request?
-	std::string buildup, breakdown, video;
-	if (args.size() > 4 && args[2] == "C")
-	{
-		buildup = args[1];
-		video = args[3];
-		breakdown = "breakdn.avi";
-	}
-	else if (args.size() > 3 && args[2] == "Y")
-	{
-		buildup = "buildup.avi";
-		video = args[1];
-		breakdown = "breakdn.avi";
-	}
-	else
-	{
-		video = args[1];
-	}
-
-	playingAvi = true;
-	skipAvi = false;
-
-	try
-	{
-		// Load the videos
-
-		std::unique_ptr<VideoPlayer> buildupPlayer, videoPlayer, breakdownPlayer;
-		if (!buildup.empty())
-			buildupPlayer = VideoPlayer::Create(packages->GetVideoFilename(buildup));
-		if (!video.empty())
-			videoPlayer = VideoPlayer::Create(packages->GetVideoFilename(video));
-		if (!breakdown.empty())
-			breakdownPlayer = VideoPlayer::Create(packages->GetVideoFilename(breakdown));
-
-		CalcTimeElapsed(); // Reset so load time doesn't affect playback
-
-		UnrealMipmap* background = nullptr;
-		if (buildupPlayer)
-		{
-			background = PlayVideo(buildupPlayer.get(), nullptr);
-			if (!background)
-			{
-				CalcTimeElapsed();
-				return;
-			}
-
-			// Cut a hole in the background image
-			uint32_t* pixels = (uint32_t*)background->Data.data();
-			int w = background->Width;
-			int h = background->Height;
-
-			ivec2 v0 = { 232, 125 };
-			ivec2 v1 = { 161, 246 };
-			ivec2 v2 = { 406, 125 };
-			ivec2 v3 = { 475, 246 };
-			ivec2 v4 = { 258, 125 };
-			ivec2 v5 = { 270, 144 };
-			ivec2 v6 = { 380, 125 };
-			ivec2 v7 = { 368, 144 };
-			ivec2 v8 = { 210, 327 };
-			ivec2 v9 = { 427, 327 };
-
-			for (int y = 126; y < 144; y++)
-			{
-				int x0 = (int)(v0.x + 0.5f + (y - v0.y + 0.5f) * (v1.x - v0.x) / (v1.y - v0.y));
-				int x1 = (int)(v4.x + 0.5f + (y - v4.y + 0.5f) * (v5.x - v4.x) / (v5.y - v4.y));
-				int x2 = (int)(v6.x + 0.5f + (y - v6.y + 0.5f) * (v7.x - v6.x) / (v7.y - v6.y));
-				int x3 = (int)(v2.x + 0.5f + (y - v2.y + 0.5f) * (v3.x - v2.x) / (v3.y - v2.y));
-
-				pixels[x0 + y * w] = 0x80000000;
-				pixels[x1 - 1 + y * w] = 0x80000000;
-				for (int x = x0 + 1; x < x1 - 1; x++)
-					pixels[x + y * w] = 0;
-
-				pixels[x2 + y * w] = 0x80000000;
-				pixels[x3 - 1 + y * w] = 0x80000000;
-				for (int x = x2 + 1; x < x3 - 1; x++)
-					pixels[x + y * w] = 0;
-			}
-
-			for (int y = 144; y < 246; y++)
-			{
-				int x0 = (int)(v0.x + 0.5f + (y - v0.y + 0.5f) * (v1.x - v0.x) / (v1.y - v0.y));
-				int x1 = (int)(v2.x + 0.5f + (y - v2.y + 0.5f) * (v3.x - v2.x) / (v3.y - v2.y));
-				pixels[x0 + y * w] = 0x80000000;
-				pixels[x1 - 1 + y * w] = 0x80000000;
-				for (int x = x0 + 1; x < x1 - 1; x++)
-					pixels[x + y * w] = 0;
-			}
-
-			for (int y = 246; y < 325; y++)
-			{
-				int x0 = (int)(v1.x + 0.5f + (y - v1.y + 0.5f) * (v8.x - v1.x) / (v8.y - v1.y));
-				int x1 = (int)(v3.x + 0.5f + (y - v3.y + 0.5f) * (v9.x - v3.x) / (v9.y - v3.y));
-				pixels[x0 + y * w] = 0x80000000;
-				pixels[x1 - 1 + y * w] = 0x80000000;
-				for (int x = x0 + 1; x < x1 - 1; x++)
-					pixels[x + y * w] = 0;
-			}
-		}
-
-		if (videoPlayer)
-		{
-			if (!PlayVideo(videoPlayer.get(), background))
-			{
-				playingAvi = false;
-				CalcTimeElapsed();
-				return;
-			}
-		}
-
-		if (breakdownPlayer)
-		{
-			PlayVideo(breakdownPlayer.get(), nullptr);
-		}
-	}
-	catch (const std::exception& e)
-	{
-		LogMessage("Error playing " + video + ": " + e.what());
-	}
-
-	playingAvi = false;
-	CalcTimeElapsed(); // Reset so game isn't affected
-}
-
-UnrealMipmap* Engine::PlayVideo(VideoPlayer* video, UnrealMipmap* background)
-{
-	UnrealMipmap* frame = nullptr;
-
-	TextureInfo texinfo[2];
-	texinfo[0].CacheID = 0xffffffff'ffffffffULL;
-	texinfo[0].Format = TextureFormat::BGRA8;
-	texinfo[0].NumMips = 1;
-
-	if (background)
-	{
-		texinfo[1].CacheID = 0xffffffff'fffffffeULL;
-		texinfo[1].Format = TextureFormat::BGRA8;
-		texinfo[1].NumMips = 1;
-		texinfo[1].Mips = background;
-		texinfo[1].USize = background->Width;
-		texinfo[1].VSize = background->Height;
-		texinfo[1].bRealtimeChanged = true;
-	}
-
-	audiodev->SetViewport(nullptr);
-	audiodev->GetDevice()->PlayMusic(video->GetAudio());
-
-	float timestamp = 0.0f;
-	int curframe = -1;
-	while (!quit && !skipAvi)
-	{
-		timestamp += CalcTimeElapsed();
-
-		bool done = false;
-		while (curframe < video->GetFrameIndexForTime(timestamp))
-		{
-			while (true)
-			{
-				UnrealMipmap* nextframe = video->NextVideoFrame();
-				if (nextframe)
-				{
-					frame = nextframe;
-					curframe++;
-					texinfo[0].bRealtimeChanged = true;
-					break;
-				}
-				if (!video->Decode())
-				{
-					done = true;
-					break;
-				}
-			}
-			if (done)
-				break;
-		}
-		if (done)
-			break;
-
-		audiodev->GetDevice()->Update();
-		GameWindow::ProcessEvents();
-		if (gamepad.PollSkip())
-			skipAvi = true;
-
-		if (frame)
-		{
-			texinfo[0].Mips = frame;
-			texinfo[0].USize = frame->Width;
-			texinfo[0].VSize = frame->Height;
-
-			viewport->SetViewportRect(0, 0, engine->window->GetPixelWidth(), engine->window->GetPixelHeight());
-			render->DrawVideoFrame(&texinfo[0], background ? &texinfo[1] : nullptr);
-		}
-	}
-
-	audiodev->GetDevice()->PlayMusic(nullptr);
-
-	if (quit || skipAvi)
-		return nullptr;
-
-	return frame;
 }
 
 void Engine::UpdateAudio()
@@ -2825,11 +2611,6 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		khgSplashScreen = true;
 		return {};
 	}
-	else if (command == "playavi")
-	{
-		PlayAVI(args);
-		return {};
-	}
 	else if (command == "flush")
 	{
 		engine->render->Device->Flush(1);
@@ -3039,9 +2820,6 @@ void Engine::OnWindowPaint()
 
 void Engine::OnWindowMouseMove(const Point& pos)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseMove(pos))
 		return;
 
@@ -3055,9 +2833,6 @@ void Engine::OnWindowMouseMove(const Point& pos)
 
 void Engine::OnWindowMouseDown(const Point& pos, EInputKey key)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseDown(pos, key))
 	{
 		ReleaseFireButtons();
@@ -3069,9 +2844,6 @@ void Engine::OnWindowMouseDown(const Point& pos, EInputKey key)
 
 void Engine::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseDoubleclick(pos, key))
 	{
 		ReleaseFireButtons();
@@ -3086,9 +2858,6 @@ void Engine::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 
 void Engine::OnWindowMouseUp(const Point& pos, EInputKey key)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseUp(pos, key))
 	{
 		ReleaseFireButtons();
@@ -3100,9 +2869,6 @@ void Engine::OnWindowMouseUp(const Point& pos, EInputKey key)
 
 void Engine::OnWindowMouseWheel(const Point& pos, EInputKey key)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseWheel(pos, key))
 		return;
 
@@ -3112,9 +2878,6 @@ void Engine::OnWindowMouseWheel(const Point& pos, EInputKey key)
 
 void Engine::OnWindowRawMouseMove(int dx, int dy)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowRawMouseMove(dx, dy))
 		return;
 
@@ -3124,9 +2887,6 @@ void Engine::OnWindowRawMouseMove(int dx, int dy)
 
 void Engine::OnWindowKeyChar(std::string chars)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowKeyChar(chars))
 		return;
 
@@ -3135,13 +2895,6 @@ void Engine::OnWindowKeyChar(std::string chars)
 
 void Engine::OnWindowKeyDown(EInputKey key)
 {
-	if (playingAvi)
-	{
-		if (key == EInputKey::IK_Escape)
-			skipAvi = true;
-		return;
-	}
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowKeyDown(key))
 	{
 		ReleaseHeldInputKeys();
@@ -3153,9 +2906,6 @@ void Engine::OnWindowKeyDown(EInputKey key)
 
 void Engine::OnWindowKeyUp(EInputKey key)
 {
-	if (playingAvi)
-		return;
-
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowKeyUp(key))
 	{
 		ReleaseHeldInputKeys();
@@ -3204,7 +2954,7 @@ void Engine::UnlockCursor()
 
 void Engine::Key(std::string key)
 {
-	if (Frame::Halted || playingAvi)
+	if (Frame::Halted)
 		return;
 
 	if (LaunchInfo.IsDeusEx() && key == "~" && window->GetKeyState(IK_Shift))
@@ -3260,7 +3010,7 @@ void Engine::ReleaseFireButtons()
 
 void Engine::InputEvent(EInputKey key, EInputType type, int delta)
 {
-	if (Frame::Halted || playingAvi)
+	if (Frame::Halted)
 		return;
 
 	bool handled = CallEvent(console, EventName::KeyEvent, { ExpressionValue::ByteValue(key), ExpressionValue::ByteValue(type), ExpressionValue::FloatValue((float)delta) }).ToBool();

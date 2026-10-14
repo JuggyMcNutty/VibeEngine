@@ -742,18 +742,6 @@ void PackageManager::ScanPaths()
 
 		ScanFolder(finalPath.string(), filename.string());
 	}
-
-	if (IsKlingonHonorGuard())
-	{
-		for (const auto& dir_entry: fs::directory_iterator{gameSystemFolderPath})
-		{
-			if (dir_entry.is_regular_file() && NameString(dir_entry.path().extension().string()) == ".avi")
-			{
-				auto fileName = dir_entry.path().filename();
-				aviFilenames[NameString(fileName.string())] = (gameSystemFolderPath / fileName).string();
-			}
-		}
-	}
 }
 
 void PackageManager::ScanSaveInfos()
@@ -778,15 +766,6 @@ void PackageManager::ScanSaveInfos()
 		if (saveInfos.find(saveFolderName) == saveInfos.end())
 			saveInfos[saveFolderName] = GC::Alloc<Package>(this, saveFolderName, save.string());
 	}
-}
-
-std::string PackageManager::GetVideoFilename(const std::string& name)
-{
-	NameString filename = name;
-	auto it = aviFilenames.find(name);
-	if (it == aviFilenames.end())
-		return {};
-	return it->second;
 }
 
 Array<NameString> PackageManager::GetPackageNames() const

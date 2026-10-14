@@ -136,8 +136,6 @@ public:
 	void SetIniValues(NameString iniName, const NameString& sectionName, const NameString& keyName, const Array<std::string>& newValues);
 	void SaveAllIniFiles();
 
-	std::string GetVideoFilename(const std::string& name);
-
 	std::string Localize(NameString packageName, const NameString& sectionName, const NameString& keyName);
 
 	Array<IntObject>& GetIntObjects(const NameString& metaclass);
@@ -186,8 +184,6 @@ private:
 	std::map<NameString, std::unique_ptr<IniFile>> intFiles;
 	std::map<std::string, std::string> packageRemaps;
 	std::map<NameString, Package*> saveInfos;
-
-	std::map<NameString, std::string> aviFilenames;
 
 	std::map<NameString, Array<IntObject>> IntObjects;
 
