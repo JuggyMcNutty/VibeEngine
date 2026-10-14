@@ -27,9 +27,6 @@ RenderDevice::RenderDevice()
 	UseDebugLayer = settings.RenderDevice.UseDebugLayer;
 }
 
-bool RenderDevice::DarkClamp = true;
-bool RenderDevice::MacroTwoPass = false;
-
 std::unique_ptr<RenderDevice> RenderDevice::Create(Widget* viewport, RenderAPI renderAPI)
 {
 	if (renderAPI == RenderAPI::Vulkan)

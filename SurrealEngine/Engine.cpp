@@ -2755,10 +2755,6 @@ void Engine::UpdateInput(float timeElapsed)
 
 void Engine::OpenWindow()
 {
-	// Deus Ex's D3DDrv draws a texture's colours as they are, with no
-	// darkClamp (RenderDevice::DarkClamp); the device compiles it in.
-	RenderDevice::DarkClamp = !LaunchInfo.IsDeusEx();
-	RenderDevice::MacroTwoPass = LaunchInfo.IsDeusEx();
 	if (!window)
 		window = GameWindow::Create(this);
 

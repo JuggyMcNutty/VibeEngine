@@ -2,7 +2,7 @@
 
 struct GameLaunchInfo
 {
-	int ue1Version = 0;						// Epic UE1 engine version game was forked from. 500 means unknown version newer than UT but before UE2
+	static constexpr int ue1Version = 500;	// Epic UE1 engine version game was forked from: Deus Ex's, an unknown version newer than UT but before UE2
 	int gameVersion = 0;					// Engine version as named by the game (e.g. 226, 227, 436...)
 	int gameSubVersion = 0;				// Engine sub version displayed as a letter (Note: Isn't always consistent)
 	bool noEntryMap = false;
@@ -17,19 +17,20 @@ struct GameLaunchInfo
 	bool lanPlay = false;					// --lanplay: a dedicated server's LAN tick rate, as the original's -LANPLAY
 	std::string timelinePath = "";			// --timeline: keys and commands at set times, the harness's live mode (Timeline.h)
 
-	bool IsUnreal1() const { return gameExecutableName == "Unreal"; }
-	bool IsUnreal1_226() const { return IsUnreal1() && gameVersion == 226; }
-	bool IsUnreal1_227() const { return IsUnreal1() && gameVersion == 227; }
-	bool IsUnreal1_227k() const { return IsUnreal1_227() && gameSubVersion == 11; }
-	bool IsUnrealTournament() const { return gameExecutableName == "UnrealTournament" || gameExecutableName == "ut-bin" || gameExecutableName == "ut-bin-x86" || gameExecutableName == "ut-amd64" || gameExecutableName == "ut-bin-x64"; }
-	bool IsUnrealTournament_469() const { return IsUnrealTournament() && gameVersion == 469; }
-	bool IsDeusEx() const { return gameExecutableName == "DeusEx"; }
-	bool IsCliveBarkersUndying() const { return gameExecutableName == "Undying"; }
-	bool IsKlingonHonorGuard() const { return gameExecutableName == "Klingons" || gameExecutableName == "Khg"; }
-	bool IsRune() const { return gameExecutableName == "Rune"; }
-	bool IsHarryPotter1() const { return gameExecutableName == "HP"; }
-	bool IsHarryPotter2() const { return gameExecutableName == "Game"; }
-	bool IsNerfArenaBlast() const { return gameExecutableName == "nerf" || gameExecutableName == "Nerf"; }
+	// The engine knows no game but Deus Ex (UE1GameDatabase.h).
+	bool IsUnreal1() const { return false; }
+	bool IsUnreal1_226() const { return false; }
+	bool IsUnreal1_227() const { return false; }
+	bool IsUnreal1_227k() const { return false; }
+	bool IsUnrealTournament() const { return false; }
+	bool IsUnrealTournament_469() const { return false; }
+	bool IsDeusEx() const { return true; }
+	bool IsCliveBarkersUndying() const { return false; }
+	bool IsKlingonHonorGuard() const { return false; }
+	bool IsRune() const { return false; }
+	bool IsHarryPotter1() const { return false; }
+	bool IsHarryPotter2() const { return false; }
+	bool IsNerfArenaBlast() const { return false; }
 };
 
 class GameFolderSelection

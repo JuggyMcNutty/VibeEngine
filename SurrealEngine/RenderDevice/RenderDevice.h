@@ -174,19 +174,17 @@ public:
 	// The display gamma a brightness gives: GammaScale x Brightness. Deus
 	// Ex's D3DDrv makes it 2.5, so 0.4 is neutral (dx-reverse-info's
 	// d3ddrv-dll.md, gamma).
-	float GammaScale = 2.0f;
+	static constexpr float GammaScale = 2.5f;
 	// Upstream's darkClamp, 3.1/255 off every texture's colour in the scene
 	// shader. Deus Ex goes without: its D3DDrv draws a texture's colours as
 	// they are, in 32-bit textures on any display of 24 bits or more
-	// (dx-reverse-info/d3ddrv-dll.md, textures). Set before a device is made,
-	// as its shaders are compiled with it.
-	static bool DarkClamp;
+	// (dx-reverse-info/d3ddrv-dll.md, textures).
+	static constexpr bool DarkClamp = false;
 	// A surface with a macro texture drawn as Deus Ex's D3DDrv draws it, in
 	// its two passes: the macro in the modulated blend, twice its colour,
 	// then the light map, twice as bright as on one pass
-	// (dx-reverse-info/d3ddrv-dll.md, the light maps' brightness). Set
-	// before a device is made, as DarkClamp.
-	static bool MacroTwoPass;
+	// (dx-reverse-info/d3ddrv-dll.md, the light maps' brightness).
+	static constexpr bool MacroTwoPass = true;
 
 	// 2D rendering
 	bool IsOrtho = false;

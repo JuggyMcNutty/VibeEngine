@@ -97,7 +97,6 @@ GameLaunchInfo GameFolderSelection::ExamineFolder(const std::string& path)
 			case KnownUE1Games::DEUS_EX_1002f:
 			{
 				info.gameName = "Deus Ex";
-				info.ue1Version = 500;
 				info.gameVersion = 1002;
 				info.gameSubVersion = 0;
 				info.gameVersionString = "1002";
@@ -106,7 +105,6 @@ GameLaunchInfo GameFolderSelection::ExamineFolder(const std::string& path)
 			case KnownUE1Games::DEUS_EX_1112fm:
 			{
 				info.gameName = "Deus Ex";
-				info.ue1Version = 500;
 				info.gameVersion = 1112;
 				info.gameSubVersion = 0;
 				info.gameVersionString = "1112fm";

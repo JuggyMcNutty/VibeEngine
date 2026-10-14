@@ -289,8 +289,7 @@ curve) takes the same product. Deus Ex's shaders take nothing off a
 texture's colours (`NO_DARKCLAMP`), as `D3DDrv` draws 32-bit textures on any
 display of 24 bits or more, on every device: `MeshConsole`'s shots under
 Vulkan, with descriptor indexing and without (the Smart Pro's), are within
-0.2% of the GL device's. Other games keep upstream's `darkClamp`. How a fork
-shot meets the original's frames:
+0.2% of the GL device's. How a fork shot meets the original's frames:
 [scripted runs](DEVELOPMENT.md#scripted-runs-of-both-engines). Differs:
 
 - `MeshConsole`'s Liberty Island pier, where nothing is in hand, is 1.6%

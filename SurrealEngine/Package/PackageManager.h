@@ -34,16 +34,16 @@ class PackageManager
 public:
 	PackageManager(const GameLaunchInfo& launchInfo);
 
-	bool IsUnreal1() const { return launchInfo.IsUnreal1(); }
-	bool IsUnreal1_226() const { return launchInfo.IsUnreal1_226(); }
-	bool IsUnreal1_227() const { return launchInfo.IsUnreal1_227(); }
-	bool IsUnreal1_227k() const { return launchInfo.IsUnreal1_227k(); }
-	bool IsUnrealTournament() const { return launchInfo.IsUnrealTournament(); }
-	bool IsUnrealTournament_469() const { return launchInfo.IsUnrealTournament_469(); }
-	bool IsDeusEx() const { return launchInfo.IsDeusEx(); }
-	bool IsCliveBarkersUndying() const { return launchInfo.IsCliveBarkersUndying(); }
-	bool IsKlingonHonorGuard() const  { return launchInfo.IsKlingonHonorGuard(); }
-	bool IsRune() const { return launchInfo.IsRune(); }
+	bool IsUnreal1() const { return false; }
+	bool IsUnreal1_226() const { return false; }
+	bool IsUnreal1_227() const { return false; }
+	bool IsUnreal1_227k() const { return false; }
+	bool IsUnrealTournament() const { return false; }
+	bool IsUnrealTournament_469() const { return false; }
+	bool IsDeusEx() const { return true; }
+	bool IsCliveBarkersUndying() const { return false; }
+	bool IsKlingonHonorGuard() const  { return false; }
+	bool IsRune() const { return false; }
 
 	fs::path GetRootFolderPath() const { return gameRootFolderPath; }
 	fs::path GetSystemFolderPath() const { return gameSystemFolderPath; }

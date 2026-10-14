@@ -21,13 +21,13 @@ Its branch is `deusex`. What matches the original and what still differs is
   fork runs them through the `ExpressionEvaluator` it reworked ([script VM](#script-vm)). A fix
   of upstream's worth having is ported by hand, as a commit of the fork's own; upstream's
   contribution rules do not apply here.
-- **Deus Ex gets the fork's behaviour; other games keep upstream's.** Code that makes the engine
-  behave as Deus Ex's original binaries do is gated on `IsDeusEx()`, upstream's test that the
-  game's executable is `DeusEx`, asked as `engine->LaunchInfo.IsDeusEx()` or
-  `engine->packages->IsDeusEx()`. A render device does not ask: the engine sets its flags from
-  the test (`RenderDevice::DarkClamp` before the device is made, `GammaScale`). Natives of Deus
-  Ex's own classes need no gate: only Deus Ex has them. The speed-ups and device support apply
-  to every game.
+- **Deus Ex alone.** The engine knows no other game (`UE1GameDatabase.h`), and upstream's tests
+  of the game are constants (`GameLaunchInfo`): `IsDeusEx()` true, every other game's false,
+  `ue1Version` 500, so the compiler leaves out the code they keep from Deus Ex. Code that makes
+  the engine behave as Deus Ex's original binaries do is gated on `IsDeusEx()`, asked as
+  `engine->LaunchInfo.IsDeusEx()` or `engine->packages->IsDeusEx()`; a render device's flags are
+  `RenderDevice`'s constants (`DarkClamp`, `MacroTwoPass`, `GammaScale`). Natives of Deus Ex's
+  own classes need no gate: only Deus Ex has them.
 - **Licence.** Using and building the engine is permitted by its own licence, which grants use
   "for any purpose".
 
