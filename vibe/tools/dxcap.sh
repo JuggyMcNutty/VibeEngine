@@ -38,8 +38,9 @@
 # though the grabber can miss its shots (vibe/docs/DEVELOPMENT.md, shots).
 # DXCAP_AUDIO=1 gives the fork real audio; it is silent otherwise.
 # DXCAP_RECORD=1 sends either engine's audio to a private sink instead of the
-# speakers and records it into the run's audio.wav, with the music off
-# (vibe/tools/dxcap/sound.py reads it). DXCAP_UPLINK=<host>:<port> has a run's
+# speakers and records it into the run's audio.wav, with the music off, or on
+# with DXCAP_MUSIC=1 (vibe/tools/dxcap/sound.py reads it).
+# DXCAP_UPLINK=<host>:<port> has a run's
 # server announce itself there -- a master on this machine
 # (vibe/tools/dxcap/fakemaster.py), its uplink's DoUplink set --, where it
 # otherwise announces itself nowhere. DXCAP_PORT=<port> has a run's server
@@ -238,8 +239,9 @@ winpath() { printf 'Z:%s' "${1//\//\\}"; }
 
 # make_ini <original|fork> <console> <out>: the game's DeusEx.ini with the
 # console class, the package's path, the run's window, the music off when
-# recording, and for the original the OpenGL renderer (DXCAP_RENDERER=D3D:
-# D3DDrv), whose window its frames are grabbed from.
+# recording (but with DXCAP_MUSIC=1), and for the original the OpenGL
+# renderer (DXCAP_RENDERER=D3D: D3DDrv), whose window its frames are grabbed
+# from.
 make_ini() {
     local engine="$1" console="$2" out="$3" path
     if [ "$engine" = original ]; then
@@ -263,7 +265,7 @@ if console:
 s, n = re.subn(r'^(Paths=\.\.\\System\\\*\.u)\r?$', lambda m: m.group(1) + nl + 'Paths=' + path, s, count=1, flags=re.M)
 if n != 1:
     sys.exit('no Paths=..\\System\\*.u in ' + src)
-if os.environ.get('DXCAP_RECORD') == '1':
+if os.environ.get('DXCAP_RECORD') == '1' and os.environ.get('DXCAP_MUSIC') != '1':
     put('MusicVolume', '0')
 # The Join Internet screen asks a live master server: the game's names
 # GameSpy's, closed.

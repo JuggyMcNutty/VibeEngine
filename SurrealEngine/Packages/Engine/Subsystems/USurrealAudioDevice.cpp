@@ -752,15 +752,23 @@ void USurrealAudioDevice::StopSound(size_t index)
 	PlayingSounds[index] = {};
 }
 
-void USurrealAudioDevice::StopSounds()
+void USurrealAudioDevice::StopEffects()
 {
 	for (size_t i = 0; i < PlayingSounds.size(); i++)
 		StopSound(i);
 	SoundSerials.clear();
 	// Set again from the next level's zones.
 	m_ReverbZone = nullptr;
+}
 
+void USurrealAudioDevice::StopSounds()
+{
+	StopEffects();
+
+	// The song goes with the music: a level of the same song starts it
+	// again, where it would only jump the order of music stopped.
 	m_Device->PlayMusic(nullptr);
+	CurrentSong = nullptr;
 	m_Viewport = nullptr;
 }
 

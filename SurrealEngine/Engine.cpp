@@ -879,7 +879,9 @@ void Engine::PaintProgress()
 // The original's map load, before anything of the new map is read
 // (UGameEngine::LoadMap 0x1038c1f0): the level's action Loading, or
 // Connecting for a join's map; no pauser, and no menu to hide the word; the
-// frame painted; the sounds stopped; the action none again, whatever it was.
+// frame painted; the sounds stopped and the music left playing, as the
+// original hands its audio the viewport it has; the action none again,
+// whatever it was.
 void Engine::PaintLoading(bool connecting)
 {
 	LevelInfo->LevelAction() = connecting ? LEVACT_Connecting : LEVACT_Loading;
@@ -887,7 +889,7 @@ void Engine::PaintLoading(bool connecting)
 	if (viewport && viewport->Actor())
 		viewport->Actor()->bShowMenu() = false;
 	PaintProgress();
-	audiodev->StopSounds();
+	audiodev->StopEffects();
 	LevelInfo->LevelAction() = LEVACT_None;
 }
 
@@ -1725,6 +1727,12 @@ void Engine::LoginPlayer(const UnrealURL& loginURL)
 
 	ClearIgnoreNextShowMenu(pawn);
 
+	// The sounds the load and the login started stop, the music playing on:
+	// the original's map load hands its audio the viewport it has once the
+	// players are in (UGameEngine::LoadMap, 0x1038dfc6). The new player's
+	// PostLogin has asked for the level's song: the one playing fades out
+	// first.
+	audiodev->StopEffects();
 	render->OnMapLoaded();
 }
 
@@ -1817,6 +1825,9 @@ void Engine::LoadClientMap(NetPendingLevel* pending)
 
 	viewport->Actor() = nullptr;
 	CameraActor = nullptr;
+	// As after any map's load (LoginPlayer): the sounds stop, the music
+	// plays on.
+	audiodev->StopEffects();
 	render->OnMapLoaded();
 
 	// The driver is the level's now.

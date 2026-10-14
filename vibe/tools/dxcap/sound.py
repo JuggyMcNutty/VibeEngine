@@ -3,6 +3,7 @@
 
     sound.py <run dir>
     sound.py --onsets <run dir>
+    sound.py --levels <run dir>
 
 The run's audio.wav is laid against its log (engine.log or DeusEx.log) by
 each scenario's three beeps, half a second apart, which SoundConsole plays
@@ -25,6 +26,10 @@ the time a map takes to load, so each scenario is laid by its own beeps.
 --onsets reads any recording alone: each sound that starts out of quiet,
 its time and peak, and the longest run of them a second apart -- a net
 test's client hearing the server's beeps (ServeConsole).
+
+--levels reads any recording alone too: its level every 0.1 s, the median
+over the tenth -- the music through a map's load, against the beeps'
+onsets (LoadingConsole, with DXCAP_MUSIC=1).
 
 Levels are dB of full scale. Brightness is the frequency of a sine with the
 same share of first-difference energy -- a low-pass filter lowers it.
@@ -246,6 +251,16 @@ def report_onsets(rec, strength):
         print('longest run a second apart: %d, from %.2f s' % (len(best), best[0]))
 
 
+def report_levels(rec):
+    """The level every 0.1 s: the median over each tenth (Recording.level)."""
+    print('levels: the median of each 0.1 s, dB')
+    tenths = int(rec.frames / rec.rate * 10)
+    for i in range(tenths):
+        lvl, _ = rec.level(i / 10.0, (i + 1) / 10.0)
+        if lvl is not None:
+            print('  %7.1f s  %6.1f dB' % (i / 10.0, lvl))
+
+
 def shot(rec, t):
     """Peak (dB), ring (s) and tail (dB) of a shot fired at recording time t."""
     env = rec.env
@@ -312,16 +327,19 @@ def report_pan(rec, offset, rest):
 
 def main():
     args = sys.argv[1:]
-    only_onsets = bool(args) and args[0] == '--onsets'
-    if only_onsets:
+    mode = args[0] if args and args[0] in ('--onsets', '--levels') else None
+    if mode:
         args = args[1:]
     if len(args) != 1:
         sys.exit(__doc__)
     run = args[0]
     rec = Recording(os.path.join(run, 'audio.wav'))
-    strength = onsets(rec)
     print('%s: %.1f s of audio' % (run, rec.frames / rec.rate))
-    if only_onsets:
+    if mode == '--levels':
+        report_levels(rec)
+        return
+    strength = onsets(rec)
+    if mode == '--onsets':
         report_onsets(rec, strength)
         return
     evts = events(read_log(run))

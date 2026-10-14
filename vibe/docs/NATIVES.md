@@ -613,7 +613,14 @@ in the world, one unit from the player, turned by its place on the screen,
 at the window's own volume, which is 0, unheard, unless the window sets it.
 `SoundConsole`'s root beeps from the screen's left edge, centre and right
 edge come out within 0.2 dB of the original's, panned alike, the one at the
-root's own volume unheard in both. Differs:
+root's own volume unheard in both. A map's load stops the sounds and leaves
+the music playing, as Galaxy does when the load hands it the viewport it has
+([playing a sound](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/galaxy-dll.md#playing-a-sound)):
+the old song fades out and the new level's starts (its player's
+`MTRAN_Fade`), a level of the same song jumping to its section
+(`LoadingConsole` with `DXCAP_RECORD=1 DXCAP_MUSIC=1`: no silence across a
+load in either engine, the fade after it, the music on after a save of the
+map it is on is loaded). Differs:
 
 - The music plays on an OpenAL source of its own.
 - Not carried: Galaxy's quirk with the Sound and Speech sliders equal, both

@@ -80,6 +80,11 @@ public:
 	void StopSound(UActor* Actor, int Id);
 	int SoundId(UObject* Object, int Slot);
 	void ActorDestroyed(UActor* Actor);
+	// Every sound stopped, the music playing on, as Galaxy's SetViewport
+	// given the viewport it has: a map's load (galaxy-dll.md, playing a
+	// sound).
+	void StopEffects();
+	// The sounds and the music stopped, and the viewport let go of.
 	void StopSounds();
 
 	void AddStats(Array<std::string>& lines);
