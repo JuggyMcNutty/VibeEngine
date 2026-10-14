@@ -257,13 +257,10 @@ void UPawn::ClearPaths()
 		cur->visitedWeight() = 10000000;
 		cur->nextOrdered() = nullptr;
 		cur->prevOrdered() = nullptr;
-		if (!engine->LaunchInfo.IsKlingonHonorGuard())
-		{
-			if (cur->bSpecialCost())
-				cur->cost() = CallEvent(cur, "SpecialCost", { ExpressionValue::ObjectValue(this) }).ToInt();
-			else
-				cur->cost() = cur->ExtraCost();
-		}
+		if (cur->bSpecialCost())
+			cur->cost() = CallEvent(cur, "SpecialCost", { ExpressionValue::ObjectValue(this) }).ToInt();
+		else
+			cur->cost() = cur->ExtraCost();
 	}
 }
 

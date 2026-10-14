@@ -17,12 +17,6 @@ bool UActor::IsAnimating()
 	return AnimRate() != 0.0f;
 }
 
-bool UActor::IsAnimating_HP(std::optional<NameString> RootBone)
-{
-	LogUnimplemented("Actor.IsAnimating_HP");
-	return IsAnimating();
-}
-
 void UActor::FinishAnim()
 {
 	if (bAnimLoop())
@@ -33,12 +27,6 @@ void UActor::FinishAnim()
 
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::FinishAnim;
-}
-
-void UActor::FinishAnim_HP(std::optional<NameString> RootBone)
-{
-	LogUnimplemented("Actor.FinishAnim_HP");
-	FinishAnim();
 }
 
 NameString UActor::GetAnimGroup(const NameString& sequence)
@@ -334,16 +322,6 @@ void UActor::TweenAnim(const NameString& sequence, float tweenTime)
 	}
 }
 
-void UActor::PlayAnim_HP(const NameString& Sequence, std::optional<float> Rate, std::optional<float> TweenTime, std::optional<EAnimType> Type, std::optional<NameString> RootBone)
-{
-	LogUnimplemented("Actor.PlayAnim_HP");
-}
-
-void UActor::LoopAnim_HP(const NameString& Sequence, std::optional<float> Rate, std::optional<float> TweenTime, std::optional<float> MinRate, std::optional<EAnimType> Type, std::optional<NameString> RootBone)
-{
-	LogUnimplemented("Actor.LoopAnim_HP");
-}
-
 void UActor::TickAnimation(float elapsed)
 {
 	if (StateFrame && StateFrame->LatentState == LatentRunState::FinishAnim)
@@ -614,41 +592,10 @@ void UActor::SetTweenFromBlendAnimFrame(int slot)
 	}
 }
 
-UActor* UActor::CreateAnimChannel(UClass* NewClass, EAnimType Type, const NameString& RootBone, bool bTransient)
-{
-	auto animChannel = Spawn(NewClass, {}, {}, {}, {});
-	LogUnimplemented("Actor.CreateAnimChannel");
-	return animChannel;
-}
-
-int UActor::BoneNumber(const NameString& Bone)
-{
-	LogUnimplemented("Actor.BoneNumber");
-	return 0;
-}
-
-NameString UActor::BoneName(int Bone)
-{
-	LogUnimplemented("Actor.BoneName");
-	return {};
-}
-
-vec3 UActor::BonePos(const NameString& Bone)
-{
-	LogUnimplemented("Actor.BonePos");
-	return vec3(0.0f);
-}
-
 UTexture* UActor::GetMultiskin(int index)
 {
 	if (engine->LaunchInfo.ue1Version > 219 && index >= 0 && index < 8)
 		return MultiSkins()[index];
 	else
 		return nullptr;
-}
-
-vec3 UActor::GetRenderExtent()
-{
-	LogUnimplemented("Actor.GetRenderExtent");
-	return vec3(100.0f);
 }

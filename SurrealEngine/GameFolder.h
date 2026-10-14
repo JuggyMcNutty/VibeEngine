@@ -19,12 +19,6 @@ struct GameLaunchInfo
 
 	// The engine knows no game but Deus Ex (UE1GameDatabase.h).
 	bool IsDeusEx() const { return true; }
-	bool IsCliveBarkersUndying() const { return false; }
-	bool IsKlingonHonorGuard() const { return false; }
-	bool IsRune() const { return false; }
-	bool IsHarryPotter1() const { return false; }
-	bool IsHarryPotter2() const { return false; }
-	bool IsNerfArenaBlast() const { return false; }
 };
 
 class GameFolderSelection

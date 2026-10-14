@@ -660,12 +660,6 @@ bool UActor::IsOverlapping(UActor* other)
 	return XLevel()->Collision.IsOverlapping(this, other);
 }
 
-BoundingBox UActor::GetWorldCollisionBox(bool bVisual)
-{
-	LogUnimplemented("Actor.GetWorldCollisionBox");
-	return {};
-}
-
 UObject* UActor::Trace(vec3& hitLocation, vec3& hitNormal, const vec3& traceEnd, const vec3& traceStart, bool bTraceActors, const vec3& extent)
 {
 	TraceFlags flags;

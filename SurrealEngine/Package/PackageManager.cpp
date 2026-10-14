@@ -653,7 +653,7 @@ void PackageManager::ScanFolder(const std::string& packagedir, const std::string
 void PackageManager::ScanPaths()
 {
 	Array<std::string> paths;
-	if (!IsRune() && launchInfo.ue1Version <= 219) // khg with 219 uses old format. unreal uses new in 226
+	if (launchInfo.ue1Version <= 219) // khg with 219 uses old format. unreal uses new in 226
 	{
 		for (int i = 0; i < 16; i++)
 		{
@@ -834,7 +834,7 @@ std::unique_ptr<IniFile> PackageManager::GetIniFile(NameString iniName)
 
 std::unique_ptr<IniFile> PackageManager::GetUserIniFile()
 {
-	if (IsKlingonHonorGuard() || launchInfo.ue1Version <= 219)
+	if (launchInfo.ue1Version <= 219)
 		return std::make_unique<IniFile>(*iniFiles[launchInfo.gameExecutableName]);
 
 	return std::make_unique<IniFile>(*iniFiles["User"]);
@@ -842,10 +842,6 @@ std::unique_ptr<IniFile> PackageManager::GetUserIniFile()
 
 std::unique_ptr<IniFile> PackageManager::GetSystemIniFile()
 {
-	// Clive Barker's Undying uses System.ini instead of ExeName.ini
-	if (IsCliveBarkersUndying())
-		return std::make_unique<IniFile>(*iniFiles["System"]);
-
 	return std::make_unique<IniFile>(*iniFiles[launchInfo.gameExecutableName]);
 }
 
@@ -879,20 +875,6 @@ std::unique_ptr<IniFile>& PackageManager::LoadIniFile(NameString iniName)
 
 std::unique_ptr<IniFile>& PackageManager::LoadUserIniFile()
 {
-	if (IsKlingonHonorGuard())
-	{
-		// User.ini contents are in the system ini file
-		auto& ini = iniFiles[launchInfo.gameExecutableName];
-
-		if (!ini)
-		{
-			const auto iniFilePath = gameSystemFolderPath / (launchInfo.gameExecutableName + ".ini");
-			ini = std::make_unique<IniFile>(iniFilePath.string());
-		}
-
-		return ini;
-	}
-
 	auto& ini = iniFiles["User"];
 
 	if (!ini)
@@ -909,7 +891,7 @@ std::unique_ptr<IniFile>& PackageManager::LoadUserIniFile()
 
 std::unique_ptr<IniFile>& PackageManager::LoadSystemIniFile()
 {
-	const std::string iniName = IsCliveBarkersUndying() ? "System" : launchInfo.gameExecutableName;
+	const std::string iniName = launchInfo.gameExecutableName;
 
 	auto& ini = iniFiles[iniName];
 
@@ -952,7 +934,7 @@ Array<std::string> PackageManager::GetDefaultIniValues(const NameString& section
 
 std::string PackageManager::GetDefUserIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value)
 {
-	if (IsKlingonHonorGuard() || launchInfo.ue1Version <= 219)
+	if (launchInfo.ue1Version <= 219)
 		return defaultIniFile->GetValue(sectionName, keyName, default_value);
 
 	return defaultUserFile->GetValue(sectionName, keyName, default_value);
@@ -960,7 +942,7 @@ std::string PackageManager::GetDefUserIniValue(const NameString& sectionName, co
 
 Array<std::string> PackageManager::GetDefUserIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values)
 {
-	if (IsKlingonHonorGuard() || launchInfo.ue1Version <= 219)
+	if (launchInfo.ue1Version <= 219)
 		return defaultIniFile->GetValues(sectionName, keyName, default_values);
 
 	return defaultUserFile->GetValues(sectionName, keyName, default_values);
@@ -972,7 +954,7 @@ void PackageManager::ResetIniSection(NameString iniName, const NameString& secti
 	if (iniName == "system")
 		defaults = defaultIniFile.get();
 	else if (iniName == "user")
-		defaults = (IsKlingonHonorGuard() || launchInfo.ue1Version <= 219) ? defaultIniFile.get() : defaultUserFile.get();
+		defaults = (launchInfo.ue1Version <= 219) ? defaultIniFile.get() : defaultUserFile.get();
 	if (!defaults)
 		return;
 
@@ -1034,7 +1016,7 @@ void PackageManager::LoadEngineIniFiles()
 	// Load SE-[GameName].ini and SE-User.ini from the appropriate places
 	// If they do not exist, import the appropriate [GameName].ini and User.ini files
 	// If those also do not exist, import Default.ini and DefUser.ini files
-	const auto systemIniName = IsCliveBarkersUndying() ? "System" : launchInfo.gameExecutableName;
+	const auto systemIniName = launchInfo.gameExecutableName;
 	std::string systemIniFileName = "SE-" + systemIniName + ".ini";
 	std::string userIniName = "SE-User.ini";
 

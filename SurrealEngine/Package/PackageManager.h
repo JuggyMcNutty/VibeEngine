@@ -35,9 +35,6 @@ public:
 	PackageManager(const GameLaunchInfo& launchInfo);
 
 	bool IsDeusEx() const { return true; }
-	bool IsCliveBarkersUndying() const { return false; }
-	bool IsKlingonHonorGuard() const  { return false; }
-	bool IsRune() const { return false; }
 
 	fs::path GetRootFolderPath() const { return gameRootFolderPath; }
 	fs::path GetSystemFolderPath() const { return gameSystemFolderPath; }

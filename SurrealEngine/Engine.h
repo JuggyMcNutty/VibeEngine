@@ -362,8 +362,6 @@ private:
 	bool m_GamePaused = false;
 
 	bool m_DrawDebugDXWindowHierarchy = false; // If set to true, engine will show the Deus Ex window hierarchy
-
-	bool khgSplashScreen = false;
 };
 
 extern Engine* engine;

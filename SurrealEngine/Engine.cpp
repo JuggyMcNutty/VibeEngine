@@ -2244,8 +2244,6 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	}*/
 	else if (command == "getres")
 	{
-		if (LaunchInfo.IsHarryPotter1()) // FEOptionsPage.IsSupportedResolution is so sad :)
-			return "1024x768";
 		if (LaunchInfo.IsDeusEx())
 			return window->GetMenuResolutions();
 		return window->GetAvailableResolutions();
@@ -2575,22 +2573,6 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		window->ToggleWindowFullscreen(resolution);
 		viewport->SetViewportRect(0, 0, width, height);
 
-		return {};
-	}
-	else if (command == "prsq")
-	{
-		// Klingon Honor Guard: CD check
-		// "mpgameplay"
-		// "mpinstall"
-		return "mpgameplay";
-	}
-	else if (command == "getsplash")
-	{
-		return khgSplashScreen ? "true" : "false";
-	}
-	else if (command == "setsplash")
-	{
-		khgSplashScreen = true;
 		return {};
 	}
 	else if (command == "flush")
@@ -3155,11 +3137,6 @@ void Engine::LogGamePackageSHA1Sums() const
 	LogMessage("SHA1Sums of some system files:");
 	LogMessage("Core.u: " + SHA1Sum::of_file(systemPath / "Core.u"));
 	LogMessage("Engine.u: " + SHA1Sum::of_file(systemPath / "Engine.u"));
-
-	if (packages->IsKlingonHonorGuard())
-	{
-		LogMessage("Klingons.u: " + SHA1Sum::of_file(systemPath / "Klingons.u"));
-	}
 }
 
 void Engine::GetLevelInfoObject()

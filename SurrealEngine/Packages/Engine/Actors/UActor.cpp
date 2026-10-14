@@ -589,47 +589,6 @@ void UActor::CheckHearSound(UPawn* hearer, int id, USound* sound, vec3 parameter
 		ExpressionValue::VectorValue(Location()), ExpressionValue::VectorValue(parameters) });
 }
 
-UTexture* UActor::CreateTextureFromScreenShot(UViewport* vport)
-{
-	LogUnimplemented("Actor.CreateTextureFromScreenShot");
-	return nullptr;
-}
-
-UTexture* UActor::CreateTextureFromBMP(const std::string& name, const std::string& filename)
-{
-	LogUnimplemented("Actor.CreateTextureFromBMP");
-	return nullptr;
-}
-
-bool UActor::SaveObjectAsFile(const std::string& dir, UObject* object)
-{
-	LogUnimplemented("Actor.SaveObjectAsFile");
-	return false;
-}
-
-bool UActor::LoadObjectAsFile(const std::string& dir, UObject* object)
-{
-	LogUnimplemented("Actor.LoadObjectAsFile");
-	return false;
-}
-
-bool UActor::SaveGameSaveInfo(const std::string& dir, UObject* object)
-{
-	LogUnimplemented("Actor.SaveGameSaveInfo");
-	return false;
-}
-
-bool UActor::LoadGameSaveInfo(const std::string& dir, UObject* object)
-{
-	LogUnimplemented("Actor.LoadGameSaveInfo");
-	return false;
-}
-
-bool UActor::IsOSVer2kOrXP()
-{
-	return true;
-}
-
 void UActor::AIClearEvent(const NameString& eventName)
 {
 	if (UEventManager* manager = UEventManager::Get())
