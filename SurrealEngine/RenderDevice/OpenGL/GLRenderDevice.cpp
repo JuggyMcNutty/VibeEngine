@@ -98,8 +98,8 @@ bool GLRenderDevice::Init(int NewX, int NewY, bool Fullscreen)
 		}
 
 		// GL_MIRROR_CLAMP_TO_EDGE: 4.4 desktop and 3.2 ES core on paper, but
-		// optional in practice (the GE8300's ES 3.2 driver rejects it — the
-		// on-device probe, plans/gles-sampler-probe.c). Probe once; fall back
+		// optional in practice (the GE8300's ES 3.2 driver rejects it: Port Ex
+		// Machina's tools/probes/probe-gles-sampler.c). Probe once; fall back
 		// to CLAMP_TO_EDGE where absent.
 		{
 			GLuint probe = 0;
@@ -226,9 +226,9 @@ void GLRenderDevice::ResizeSceneBuffers(int width, int height, int multisample)
 	SceneBuffers.Multisample = multisample;
 
 	// The scene and post-process color buffers are 8-bit unless HDR is asked
-	// for: half the bandwidth on the handheld's shared-memory SoC, and what
-	// the original XOpenGLDrv's own 8-bit buffer was (the overbright the
-		// scene shader can write clamps at the write, as it did there).
+	// for: half the bandwidth, which tells most on a shared-memory SoC, and
+	// what the original XOpenGLDrv's own 8-bit buffer was (the overbright the
+	// scene shader can write clamps at the write, as it did there).
 	GLenum colorInternal = ActiveHdr ? GL_RGBA16F : GL_RGBA8;
 	GLenum colorFormat = GL_RGBA;
 	GLenum colorType = ActiveHdr ? GL_FLOAT : GL_UNSIGNED_BYTE;
@@ -2263,11 +2263,8 @@ void GLRenderDevice::DrawBatches(bool nextBuffer)
 	if (Exited)
 		return; // a frame may still be in flight when the engine tears us down (the intro ends mid-frame)
 
-	// Nothing queued and nothing written since the last flush: keep the
-	// current mapping. SetSceneNode flushes per BSP node -- hundreds a
-	// frame -- and every unmap/remap of the stream buffers' unused ranges
-		// submits the vendor driver's command buffer (measured at 2/3 of the
-		// frame on the GE8300).
+	// Nothing queued and nothing written since the last flush: nothing to
+	// upload or draw. SetSceneNode flushes per BSP node, hundreds a frame.
 	if (!nextBuffer && QueuedBatches.empty() && Batch.SceneIndexStart == SceneIndexPos)
 		return;
 

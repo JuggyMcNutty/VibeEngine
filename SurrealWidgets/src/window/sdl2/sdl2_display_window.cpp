@@ -122,6 +122,7 @@ void SDL2DisplayWindow::Show()
 
 void SDL2DisplayWindow::ShowFullscreen()
 {
+#ifdef VIBE_SDL2_BORDERLESS_FULLSCREEN
 	// Not SDL_SetWindowFullscreen: on some vendor SDL2 builds (the Smart
 	// Pro's mali backend) switching a GL window to fullscreen deadlocks --
 	// the EGL surface recreation the switch waits on never completes --
@@ -138,6 +139,10 @@ void SDL2DisplayWindow::ShowFullscreen()
 		SDL_SetWindowSize(Handle.window, bounds.w, bounds.h);
 	}
 	SDL_ShowWindow(Handle.window);
+#else
+	SDL_ShowWindow(Handle.window);
+	SDL_SetWindowFullscreen(Handle.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+#endif
 	isFullscreen = true;
 }
 
@@ -155,11 +160,16 @@ void SDL2DisplayWindow::ShowMinimized()
 
 void SDL2DisplayWindow::ShowNormal()
 {
+#ifdef VIBE_SDL2_BORDERLESS_FULLSCREEN
 	// Leaving fullscreen never goes through SDL_SetWindowFullscreen either
 	// (the same vendor deadlock, and our fullscreen was borderless).
 	if (isFullscreen)
 		SDL_SetWindowBordered(Handle.window, SDL_TRUE);
 	SDL_ShowWindow(Handle.window);
+#else
+	SDL_ShowWindow(Handle.window);
+	SDL_SetWindowFullscreen(Handle.window, 0);
+#endif
 	isFullscreen = false;
 }
 

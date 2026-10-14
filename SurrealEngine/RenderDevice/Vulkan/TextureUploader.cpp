@@ -756,8 +756,8 @@ void TextureUploader_RGBA32F_Decode::UploadRect(void* d, UnrealMipmap* mip, int 
 	float* src = (float*)(mip->Data.data() + (size_t)x * 16 + (size_t)y * pitch);
 	uint8_t* dst = (uint8_t*)d;
 #ifdef USE_NEON
-	// Every lightmap rebuilt goes through here, several a frame on the
-	// handheld. The same clamp, scale and truncation, four channels at once:
+	// Every lightmap rebuilt goes through here, several a frame where a light
+	// animates. The same clamp, scale and truncation, four channels at once:
 	// checked on the device against the loop below for every float from 0 to
 	// 1 and for negatives, overflows, infinities and NaNs -- all the same.
 	const float32x4_t zero = vdupq_n_f32(0.0f), one = vdupq_n_f32(1.0f), scale = vdupq_n_f32(255.0f), half = vdupq_n_f32(0.5f);

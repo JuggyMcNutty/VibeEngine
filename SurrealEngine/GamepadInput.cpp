@@ -21,7 +21,7 @@ namespace
 		IK_Joy3,        // X
 		IK_Joy4,        // Y
 		IK_Joy7,        // SELECT
-		IK_None,        // MENU: the handheld's own menu button, not ours
+		IK_None,        // GUIDE: the system's own (a handheld's menu), not the game's
 		IK_Joy8,        // START
 		IK_Joy9,        // L3
 		IK_Joy10,       // R3
@@ -42,7 +42,7 @@ namespace
 	const float RepeatRate = 0.09f;
 
 	// Pointer speed at full deflection, in screen pixels per second, before
-	// the CursorSpeed setting. Crosses the 1280-wide panel in about 1.3 s.
+	// the CursorSpeed setting. Crosses a 1280-wide window in about 1.3 s.
 	const float PointerSpeed = 1000.0f;
 
 	// Game axes in the order they are reported: left stick, right stick,

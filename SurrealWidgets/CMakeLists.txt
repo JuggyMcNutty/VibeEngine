@@ -19,6 +19,12 @@ endif()
 option(ENABLE_X11 "Enable the X11 display backend" ON)
 option(ENABLE_WAYLAND "Enable the Wayland display backend" ON)
 
+# SDL2's fullscreen as a borderless window covering the display, set up while
+# the window is hidden, in place of SDL_SetWindowFullscreen: a vendor SDL2 (the
+# TrimUI Smart Pro's mali backend) deadlocks switching a GL window that way.
+# Off, it is SDL's own FULLSCREEN_DESKTOP.
+option(VIBE_SDL2_BORDERLESS_FULLSCREEN "SDL2 fullscreen as a borderless window, for a vendor SDL2 that deadlocks in SDL_SetWindowFullscreen" OFF)
+
 if (UNIX AND NOT APPLE)
 	include(FindPkgConfig)
 	if (ENABLE_X11 OR ENABLE_WAYLAND)
@@ -404,7 +410,8 @@ else()
 
 	# The system-font lookup asks GSettings what the desktop UI font is and
 	# resolves it with fontconfig. With neither available, resourcedata_unix.cpp
-	# falls back to the fonts the device actually ships.
+	# looks for the usual font files. (The engine's own UI fonts are
+	# SurrealEngine.pk3's.)
 	if (GLIB_FOUND AND FONTCONFIG_FOUND)
 		set(SURREALWIDGETS_INCLUDE_DIRS ${SURREALWIDGETS_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} ${FONTCONFIG_INCLUDE_DIRS})
 		set(SURREALWIDGETS_LIBS ${SURREALWIDGETS_LIBS} ${GLIB_LDFLAGS} -lgio-2.0 ${FONTCONFIG_LDFLAGS})
@@ -420,6 +427,9 @@ endif()
 if(SDL2_FOUND AND NOT SDL3_FOUND)
 	set(SURREALWIDGETS_SOURCES ${SURREALWIDGETS_SOURCES} ${SURREALWIDGETS_SDL2_SOURCES})
 	set(SURREALWIDGETS_DEFINES ${SURREALWIDGETS_DEFINES} -DUSE_SDL2)
+	if(VIBE_SDL2_BORDERLESS_FULLSCREEN)
+		set(SURREALWIDGETS_DEFINES ${SURREALWIDGETS_DEFINES} -DVIBE_SDL2_BORDERLESS_FULLSCREEN)
+	endif()
 endif()
 
 add_library(surrealwidgets STATIC ${SURREALWIDGETS_SOURCES} ${SURREALWIDGETS_INCLUDES})

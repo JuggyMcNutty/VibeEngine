@@ -165,7 +165,8 @@ public:
 	bool GarbageTextureDied = false;
 	// Actors freed by no collection yet since ULevel::CleanupDestroyed let go
 	// of them: past the threshold a collection is asked for. A collection
-	// takes some 250 ms on the Smart Pro, so the backlog is let grow.
+	// is long on a slow CPU (some 250 ms on a Cortex-A53), so the backlog is
+	// let grow.
 	int GarbageDestroyedBacklog = 0;
 	static constexpr int GarbageDestroyedThreshold = 2048;
 	// SURREAL_GC_STRESS=<frames>: a collection every that many frames.

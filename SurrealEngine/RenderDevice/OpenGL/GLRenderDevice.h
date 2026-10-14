@@ -210,10 +210,10 @@ public:
 	void ForgetBoundTexture() { DrawState.Textures[0] = ~0u; }
 
 	// The draw code writes into CPU staging arrays; every flush uploads the
-	// range written since the last one (glBufferSubData) and draws it. The
-		// mapped-buffer streaming this replaced spent 2/3 of the frame on the
-		// GE8300 in per-flush glMapBufferRange/glUnmapBuffer of the buffers'
-		// whole unused tails (which GL cannot unmap partially).
+	// range written since the last one (glBufferSubData) and draws it.
+	// Mapping the buffers instead costs a glMapBufferRange/glUnmapBuffer of
+	// their whole unused tails at every flush (GL cannot unmap partially):
+	// most of a frame on a driver without glBufferStorage (the GE8300's).
 	std::vector<GLSceneVertex> StagingVertices;
 	std::vector<uint32_t> StagingIndexes;
 	GLSceneVertex* SceneVertices = nullptr;

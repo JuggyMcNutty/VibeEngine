@@ -88,10 +88,6 @@ static std::vector<SingleFontData> GetGtkUIFont(const std::string& propertyName)
 	if (override && *override)
 		candidates.push_back(override);
 
-	// TrimUI / spruceOS
-	candidates.push_back("/usr/trimui/res/regular.ttf");
-	candidates.push_back("/usr/trimui/res/full.ttf");
-	candidates.push_back("/mnt/SDCARD/spruce/Font Files/Noto.ttf");
 	// Ordinary Linux installs, so a desktop build without glib still works
 	candidates.push_back("/usr/share/fonts/TTF/DejaVuSans.ttf");
 	candidates.push_back("/usr/share/fonts/dejavu/DejaVuSans.ttf");

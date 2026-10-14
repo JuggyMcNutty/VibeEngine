@@ -498,8 +498,8 @@ void GLTextureUploader_RGBA32F_Decode::UploadRect(void* d, UnrealMipmap* mip, in
 	float* src = (float*)(mip->Data.data() + (size_t)x * 16 + (size_t)y * pitch);
 	uint8_t* dst = (uint8_t*)d;
 #ifdef USE_NEON
-	// Every lightmap rebuilt goes through here, several a frame on the
-	// handheld. The same clamp, scale and truncation, four channels at once
+	// Every lightmap rebuilt goes through here, several a frame where a light
+	// animates. The same clamp, scale and truncation, four channels at once
 	// (the Vulkan device's decoder, checked on the device against the loop
 	// below for every float from 0 to 1 and for negatives, overflows,
 	// infinities and NaNs -- all the same).

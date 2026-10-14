@@ -210,7 +210,6 @@ The environment:
 |---|---|
 | `SURREAL_VK_NO_BINDLESS=1` | Forces the Vulkan device's per-batch descriptor-set path, the one a GPU without descriptor indexing (the handheld's) takes. |
 | `SURREALWIDGETS_DISPLAY_BACKEND` | The window backend: `SDL2`, `SDL3` or `X11`. Unset, or naming one the build lacks: the first that starts of Wayland, X11, SDL3 and SDL2. `run-game.sh` defaults it to `SDL2`, the backend with the pad. |
-| `SURREALWIDGETS_FONT`, `SURREALWIDGETS_MONOSPACE_FONT` | The UI's font files, on a build without GSettings and fontconfig (the embedded cross build). |
 | `DXL_LAUNCHER_FD` | The recreated launcher's line ([running it](#running-it)). |
 | `SURREAL_GC_DRYRUN=1` | Each collection marks and frees nothing: the log has what would go, by where it lives and by class, and the first holder outside them of each object of a level left behind ([objects and memory](#objects-and-memory)). |
 | `SURREAL_GC_STRESS=<frames>` | A collection every that many frames, besides the map loads'. |
@@ -231,8 +230,8 @@ By area, as the code stands. The handheld's numbers are
   reads `-dirty`; one without git, `unknown`.
 - **Headless and embedded**: no launcher window; the log and errors on stderr; a non-zero exit
   after a caught exception, which the launcher's crash sentinel reads. The cross build for an
-  embedded aarch64 device is SDL2 only (no X11, Wayland or desktop GL), takes SDL from
-  pkg-config and a host-built `zipdir`, and finds fonts without GSettings or fontconfig.
+  embedded aarch64 device is SDL2 only (no X11, Wayland or desktop GL), and takes SDL from
+  pkg-config and a host-built `zipdir`. The UI's fonts are `SurrealEngine.pk3`'s.
 - **The gamepad**: the SDL2 display backend gives the pad as polled state (`GetGamepadState`),
   and `GamepadInput` turns it into UE1 joystick keys and axes that `User.ini` binds; menus get
   their own controls. Only the SDL2 backend has it, and SurrealWidgets builds SDL3's instead
@@ -242,9 +241,10 @@ By area, as the code stands. The handheld's numbers are
   takes a map's file name; `RELAUNCH` passed to the launcher, or a dedicated server started
   again by the engine itself (`Engine::Relaunch`, `GameApp::Relaunch`;
   [the menus' settings](NATIVES.md#the-menus-settings)).
-- **Fullscreen under SDL2** is a borderless window covering the display, set up while the window
-  is hidden: `SDL_SetWindowFullscreen` deadlocks on a GL window with the Smart Pro's vendor
-  SDL2.
+- **Fullscreen under SDL2** is SDL's `FULLSCREEN_DESKTOP`, or with
+  `VIBE_SDL2_BORDERLESS_FULLSCREEN` (the Smart Pro's build) a borderless window covering the
+  display, set up while the window is hidden: `SDL_SetWindowFullscreen` deadlocks on a GL window
+  with that device's vendor SDL2.
 
 ### Settings the launcher exposes
 
