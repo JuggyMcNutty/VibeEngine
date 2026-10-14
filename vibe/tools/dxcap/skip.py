@@ -18,11 +18,10 @@ nothing), so the verdict needs runs to compare.
 
 With two or more, the same windows are read side by side and differenced
 per tail: the same conversation, the same skips, so a window's difference
-is the tail itself. A fork with the StopSound bug shows every NPC line's
-tail a dB or more louder than a fixed fork's, and the player's own tails
-level -- the player's lines stopped even unfixed, as the player is both the
-StopSound caller and the sound's actor, which is what the old match
-required. Absolute levels are not comparable between the engines -- the
+is the tail itself. A fork whose StopSound leaves an NPC's line playing
+shows that line's tail a dB or more louder than one that stops it; the
+player's own tails stay level in both, the player being both StopSound's
+caller and the sound's actor. Absolute levels are not comparable between the engines -- the
 original's audio passes through wine's mixer -- so only differences between
 runs are read.
 

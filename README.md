@@ -32,7 +32,8 @@ tools are in [`vibe/`](vibe/).
 Port Ex Machina builds it for each of its ports and starts it
 ([quick start](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#quick-start));
 [running it](vibe/docs/ENGINE.md#running-it) has the command line. On its own it builds with
-CMake, `cmake -S . -B build && cmake --build build --target SurrealEngine`, with the packages
+CMake, `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_SDL3=OFF` and
+`cmake --build build --target SurrealEngine`, with the packages
 [Port Ex Machina's dependencies](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#dependencies)
 list. Only Linux builds are made and tested here. Kept, but neither built nor tested here: the
 D3D11 device and the Win32 code it needs (SurrealWidgets' Win32 backend, `Win32Resources/`, the

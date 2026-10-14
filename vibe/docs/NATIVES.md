@@ -9,7 +9,8 @@ engines, what matches, and what still differs. What else the fork changes:
 
 - **The audit**, [`vibe/tools/natives_audit.py`](../tools/natives_audit.py):
   every native the game's packages declare against the fork's -- a stub, a
-  partial one, an iterator that makes none, or none registered -- with its
+  partial or empty one, an iterator that makes none, or none registered --
+  with its
   call sites in the game's scripts; `--runs` adds which stubs a run's log
   fired. A stub logs once a session, naming the script function that called
   it, so a run shows which stubs a map reaches, not how often. Run it for
@@ -285,8 +286,8 @@ Matches the original's picture
 [textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#textures)):
 the Brightness slider raises the picture to 1 / (2.5 × Brightness), as
 `D3DDrv` sets its ramp, and the launcher's other gamma mode (XOpenGL's
-curve) takes the same product. Deus Ex's shaders take nothing off a
-texture's colours (`NO_DARKCLAMP`), as `D3DDrv` draws 32-bit textures on any
+curve) takes the same product. The shaders take nothing off a texture's
+colours (`NO_DARKCLAMP`), as `D3DDrv` draws 32-bit textures on any
 display of 24 bits or more, on every device: `MeshConsole`'s shots under
 Vulkan, with descriptor indexing and without (the Smart Pro's), are within
 0.2% of the GL device's. How a fork shot meets the original's frames:
@@ -544,7 +545,8 @@ and the ones on the walls are not drawn
   a window the common sizes from 640x480 that fit the screen, with the
   window's own and the screen's, a choice resizing the window and kept as
   its size; full screen, the screen's size alone, the fork's full screen
-  being a borderless window that size.
+  never changing the display's mode
+  ([fullscreen under SDL2](ENGINE.md#running-on-our-devices)).
 - **Detail Textures** draws or leaves the world's detail textures in one
   pass in the shaders, not `D3DDrv`'s three, each placed by its own pan, not
   panned with its surface, as the original's reads: no frame shows it. The
@@ -859,7 +861,7 @@ engine's own objects are not deleted (the log says so).
   is Deus Ex's own config, 75 (`[Engine.PlayerPawn]` in `User.ini`), the
   angle across a 4:3 view ([the view's width](#the-views-width)). Upstream's
   own key, `MainFOV`, which the game's ini lacks (it would make the view
-  90), is neither read nor written for Deus Ex.
+  90), is neither read nor written.
 - **A singular function** does not run while any singular function of its
   object does, as the original's
   ([variables and calls](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#variables-and-calls)):
@@ -1054,11 +1056,13 @@ Stubs a single-player game does without; the audit lists each:
 - `DebugInfo` (compiled out in the original too:
   [`DebugInfo`](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#debuginfo)),
   `SaveTimeDemo` and `Commandlet.Main`.
-- `StatLog`'s and `StatLogFile`'s natives, which do nothing, so a fork
-  server logging world stats writes no log of them.
 - `ComputerWindow`'s 22, which no script calls: the InfoLink's text window,
   its only user, calls only implemented ones.
 - `GC`'s `PushGC`, `PopGC`, `CopyGC` and `Intersect`, and 3 more of the
   windows' stubs, which no script calls.
 - One more that no script of the game calls, so only a mod reaches it:
   `Canvas.DrawPortal` 480, which draws nothing; the original's is unread.
+
+`StatLog`'s and `StatLogFile`'s natives do nothing too, though the audit
+reads them implemented (they log no `Unimplemented`), so a fork server
+logging world stats writes no log of them.

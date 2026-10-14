@@ -2,9 +2,9 @@
 """Every native of the game's DLLs, against the engine fork's.
 
 For each native a Deus Ex package declares -- its script declaration, its
-`exec` export in the original DLL -- which function the fork registers for
-Deus Ex, whether that function is a stub (it, or the package method it hands
-over to, logs `Unimplemented`), and how often the game's scripts call it.
+`exec` export in the original DLL -- which function the fork registers,
+whether that function is a stub (it, or the package method it hands over
+to, logs `Unimplemented`), and how often the game's scripts call it.
 
     python3 vibe/tools/natives_audit.py [--game DIR] [--engine DIR] [--tsv FILE]
                                         [--runs LOG...] [--all]

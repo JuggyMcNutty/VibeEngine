@@ -765,9 +765,9 @@ void VisibleFrame::AddTranslucent(TranslucentList list, const VisibleTranslucent
 
 void VisibleFrame::SortTranslucent()
 {
-	// By the distance of one point of each: back to front for Deus Ex, as
+	// By the distance of one point of each: back to front (DeusExOrder), as
 	// the original's lists run in the order its walk met them, each new one
-	// at the head; nearest first for the other games
+	// at the head; nearest first without it
 	for (Array<VisibleTranslucent>& list : Translucents)
 	{
 		if (DeusExOrder)

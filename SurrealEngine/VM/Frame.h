@@ -151,8 +151,8 @@ public:
 	// - a singular function held off while any singular function of its
 	//   object runs (CallScript);
 	// - the game stopped at the 251st nested script function (CallScript).
-	// Other games keep upstream's warning, logged for each statement past
-	// 500,000 in one function's run, and neither of the others.
+	// With Guards off, upstream's warning instead, logged for each statement
+	// past 500,000 in one function's run, and neither of the others.
 	static bool Guards;
 	static int Jumps;
 	static int ScriptDepth;

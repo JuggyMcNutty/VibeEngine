@@ -287,14 +287,14 @@ the lightmaps for upload in NEON on ARM. Its translucent, modulated and highligh
 upstream's depth bias toward the viewer, a step and a slope of 1; the GL device's take none, nor
 do `D3DDrv`'s but its detail pass
 ([detail textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#detail-textures)).
-A Deus Ex mover's surfaces take that step on both devices (`SurfaceInfo::DepthBias`; Vulkan's
+A mover's surfaces take that step on both devices (`SurfaceInfo::DepthBias`; Vulkan's
 eight opaque pipelines again with it, GL's `glPolygonOffset`;
 [draw order and movers](NATIVES.md#draw-order-and-movers)).
 
 **The GL device** runs desktop GL 4.2+ and OpenGL ES 3.2 from one code path: `RenderAPI::GLES`
-and `RenderDeviceType::GLES`, an ES 3.2 context from every window backend (SDL2 and SDL3 through
-`SDL_GL_CONTEXT_PROFILE_ES`, X11 and Wayland through EGL with the ES3 bit), and `IsGLES` read at
-init from `glGetString(GL_VERSION)`. It draws at the render scale, as the Vulkan device does
+and `RenderDeviceType::GLES`, an ES 3.2 context from every Linux window backend (SDL2 and SDL3
+through `SDL_GL_CONTEXT_PROFILE_ES`, X11 and Wayland through EGL with the ES3 bit), and `IsGLES`
+read at init from `glGetString(GL_VERSION)`. It draws at the render scale, as the Vulkan device does
 ([the setting](#settings-the-launcher-exposes)). The same shader sources compile as GLSL ES 3.20
 (`CompileGlsl` prepends the version and highp precision; the sources keep to `u`-suffixed masks,
 float literals and `std140` push-constant blocks). No desktop-only calls: `glClearDepthf` and
@@ -356,10 +356,10 @@ plain values, not through an `ExpressionValue`; conditions, jumps, plain assignm
 `ExpressionEvalResult` each (`Frame::ClassifyStatement`). A call leaving out an optional struct
 or array argument does not copy it, where upstream crashes.
 
-Deus Ex's script runs under the original's guards
-([stops the game](NATIVES.md#stops-the-game), [a singular function](NATIVES.md#small)), on
-while `Frame::Guards` is: the jumps counted by `Frame::CountJump` from each level tick and map
-load (`Frame::InitRunaway`), the nesting and each object's singular mark kept by
+Script runs under the original's guards
+([stops the game](NATIVES.md#stops-the-game), [a singular function](NATIVES.md#small)), on from the
+engine's start (`Frame::Guards`): the jumps counted by `Frame::CountJump` from each level tick and
+map load (`Frame::InitRunaway`), the nesting and each object's singular mark kept by
 `Frame::GuardedRun` in `Frame::CallScript`.
 
 ### Game tick
@@ -467,17 +467,20 @@ gives the freed memory back to the system (`malloc_trim`).
 What else Deus Ex needs is described by feature in [`NATIVES.md`](NATIVES.md). Where most of
 its code is:
 
-- **The path search and reachability tests**: Deus Ex's `FindPathToward`, `FindPathTo` and the
-  `pointReachable`, `actorReachable` and `Reachable` they ask are `Engine.dll`'s, walking its
-  own moves (`UPawn_Path.cpp`, `UPawn_ReachDeusEx.cpp`); `RouteCache` stays empty, as the
+- **The path search and reachability tests**: the script's `FindPathToward`, `FindPathTo` and
+  the `pointReachable`, `actorReachable` and `Reachable` they ask are `Engine.dll`'s, walking
+  its own moves (`UPawn_Path.cpp`, `UPawn_ReachDeusEx.cpp`); `RouteCache` stays empty, as the
   original never fills it ([moving](NATIVES.md#moving-wandering-and-tactical-movement)).
+  Upstream's own search serves only `FindRandomDest` and `FindBestInventoryPath`, which no
+  stock script calls ([mods](NATIVES.md#mods)).
 - **The audio mixer**: `GalaxyMixer` (`SurrealEngine/Audio/GalaxyMixer.cpp`) mixes Deus Ex's
   sounds as `Galaxy.dll` does (pan, fall-off, sliders, resampling, its reverb) and streams them
   through one OpenAL source at `OutputRate`. The fork's audio device adds `SpeechVolume` and
   `DopplerSpeed` to its ini section, and keeps Deus Ex's channel count under Galaxy's name,
   `EffectsChannels` ([sound](NATIVES.md#sound)). Its render device keeps `DetailTextures` beside
-  upstream's keys; on Deus Ex's first run it takes them from the section of the device the game's
-  ini names (`GameRenderDevice`) ([the menus' settings](NATIVES.md#the-menus-settings)). Who hears a
+  upstream's keys; on a first run (no `SE-DeusEx.ini`, or an `--ini` without the engine's
+  sections) it takes them from the section of the device the game's ini names
+  (`GameRenderDevice`) ([the menus' settings](NATIVES.md#the-menus-settings)). Who hears a
   sound an actor plays, a remote player through its client, is `UActor::HearSound` and
   `CheckHearSound` (`UActor.cpp`), from Deus Ex's `PlaySound`, `PlayOwnedSound` and
   `DemoPlaySound` natives (`NActor.cpp`).
