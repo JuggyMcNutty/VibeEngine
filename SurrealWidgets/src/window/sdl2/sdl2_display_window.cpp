@@ -20,10 +20,6 @@ SDL2DisplayWindow::SDL2DisplayWindow(DisplayWindowHost* windowHost, WidgetType t
 		flags |= SDL_WINDOW_VULKAN;
 	else if (renderAPI == RenderAPI::OpenGL || renderAPI == RenderAPI::GLES)
 		flags |= SDL_WINDOW_OPENGL;
-#if defined(__APPLE__)
-	else if (renderAPI == RenderAPI::Metal)
-		flags |= SDL_WINDOW_METAL;
-#endif
 	if (type == WidgetType::Popup)
 		flags |= SDL_WINDOW_BORDERLESS;
 

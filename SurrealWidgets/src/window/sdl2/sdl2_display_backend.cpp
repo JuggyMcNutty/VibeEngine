@@ -24,7 +24,7 @@ SDL2DisplayBackend::SDL2DisplayBackend()
 	SDL2DisplayWindow::PaintEventNumber = SDL_RegisterEvents(1);
 
 	// SDL2 doesn't have proper native hidpi support for Linux. Cheat a bit here by asking X11 ourselves.
-#if !defined(WIN32) && !defined(__APPLE__)
+#ifndef WIN32
 	const char* driver = SDL_GetCurrentVideoDriver();
 	if (driver && strcmp(driver, "x11") == 0)
 	{

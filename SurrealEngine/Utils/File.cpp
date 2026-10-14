@@ -16,9 +16,6 @@
 #include <dirent.h>
 #include <cstdio>
 #include <unistd.h>
-#ifdef __APPLE__
-#include <CoreFoundation/CoreFoundation.h>
-#endif
 #ifdef EXTERN___PROGNAME
 extern const char* __progname;
 #endif
@@ -392,24 +389,6 @@ std::string OS::executable_path()
 	_wsplitpath_s(exe_filename, drive, _MAX_DRIVE, dir, _MAX_DIR, NULL, 0, NULL, 0);
 
 	return from_utf16(std::wstring(drive) + dir);
-#elif defined(__APPLE__)
-	CFBundleRef mainBundle = CFBundleGetMainBundle();
-	if (mainBundle)
-	{
-		CFURLRef mainURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
-
-		if (mainURL)
-		{
-			char exe_file[PATH_MAX];
-			int ok = CFURLGetFileSystemRepresentation(mainURL, (Boolean)true, (UInt8*)exe_file, PATH_MAX);
-			if (ok)
-			{
-				return std::string(exe_file) + "/";
-			}
-		}
-	}
-
-	Exception::Throw("get_exe_path failed");
 #else
 	#ifndef PROC_EXE_PATH
 	#define PROC_EXE_PATH "/proc/self/exe"
@@ -484,8 +463,6 @@ std::string OS::get_default_font_name()
 {
 #ifdef WIN32
 	return "segoeui.ttf";
-#elif defined(APPLE)
-	return "SFUIDisplay-Regular.otf"; // Guess this is the default on Apple?
 #else
 	return "DejaVuSans.ttf";
 #endif
@@ -496,14 +473,6 @@ std::string OS::find_truetype_font(const std::string& font_name_and_extension)
 #ifdef WIN32
 	const Array<std::string> possible_fonts_folders = {
 		"C:\\Windows\\Fonts"
-	};
-#elif defined(APPLE)
-	// Based on: https://superuser.com/a/407449
-	// Start from user Fonts folder, and go up from there
-	const Array<std::string> possible_fonts_folders = {
-		"~/Library/Fonts",
-		"/Library/Fonts",
-		"/System/Library/Fonts"
 	};
 #else
 	// Linux is Linux and as always, how the fonts stored can be wholly different

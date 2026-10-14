@@ -1370,17 +1370,9 @@ class ZWidgetX11VulkanLoader
 public:
 	ZWidgetX11VulkanLoader()
 	{
-#if defined(__APPLE__)
-		module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
-		if (!module)
-			module = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
-		if (!module)
-			module = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
-#else
 		module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
 		if (!module)
 			module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
-#endif
 
 		if (!module)
 			throw std::runtime_error("Could not load vulkan");

@@ -6,25 +6,8 @@ add_subdirectory(Thirdparty/openmpt)
 add_subdirectory(SurrealGPU)
 add_subdirectory(SurrealWidgets)
 
-if (WIN32 OR APPLE)
+if (WIN32)
 	add_subdirectory(Thirdparty/openal-soft)
-endif()
-
-if(APPLE)
-	include(FetchContent)
-	FetchContent_Declare(moltenvk
-		URL "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar"
-		URL_HASH "SHA256=f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e"
-		DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-		SOURCE_SUBDIR "cmake-source-not-used"
-	)
-	FetchContent_MakeAvailable(moltenvk)
-
-	set(MOLTENVK_DYLIB
-		"${moltenvk_SOURCE_DIR}/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib")
-	if(NOT EXISTS "${MOLTENVK_DYLIB}")
-		message(FATAL_ERROR "MoltenVK runtime was not found in the downloaded package")
-	endif()
 endif()
 
 project(SurrealEngine)
@@ -1113,7 +1096,7 @@ source_group("Thirdparty\\kissfft" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DI
 
 include_directories(SurrealEngine SurrealWidgets/include Thirdparty SurrealGPU/include Thirdparty/openmpt Thirdparty/openal-soft/include Thirdparty/miniz)
 
-if(NOT APPLE AND SDL2_FOUND)
+if(SDL2_FOUND)
 	include_directories(SurrealEngine ${SDL2_INCLUDE_DIRS})
 	if (NOT DEFINED USE_SDL2)
 		add_definitions(-DUSE_SDL2)
@@ -1127,12 +1110,6 @@ if(WIN32)
 	set(SURREALCOMMON_LIBS ${SURREALCOMMON_LIBS} ${SURREALCOMMON_WIN32_LIBS})
 	set(THIRDPARTY_SOURCES ${THIRDPARTY_SOURCES} ${THIRDPARTY_WIN32_SOURCES})
 	add_definitions(-DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
-elseif(APPLE)
-	set(SURREALCOMMON_SOURCES ${SURREALCOMMON_SOURCES} ${SURREALCOMMON_UNIX_SOURCES})
-	set(THIRDPARTY_SOURCES ${THIRDPARTY_SOURCES} ${THIRDPARTY_UNIX_SOURCES})
-	set(SURREALCOMMON_LIBS ${SURREALCOMMON_LIBS} ${CMAKE_DL_LIBS} OpenAL::OpenAL)
-	add_definitions(-DUNIX -D_UNIX)
-	add_link_options(-pthread)
 else()
 	set(SURREALCOMMON_SOURCES ${SURREALCOMMON_SOURCES})
 	set(SURREALCOMMON_LIBS ${SURREALCOMMON_LIBS} ${SURREALCOMMON_UNIX_LIBS} ${CMAKE_DL_LIBS} -lasound)
@@ -1160,7 +1137,7 @@ set_target_properties(SurrealCommon PROPERTIES CXX_STANDARD 20)
 target_precompile_headers(SurrealCommon PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Precomp.h>)
 include(vibe/cmake/version.cmake)
 
-add_executable(SurrealEngine WIN32 MACOSX_BUNDLE ${SURREALENGINE_SOURCES})
+add_executable(SurrealEngine WIN32 ${SURREALENGINE_SOURCES})
 target_link_libraries(SurrealEngine SurrealCommon ${SURREALCOMMON_LIBS})
 set_target_properties(SurrealEngine PROPERTIES CXX_STANDARD 20)
 
@@ -1244,9 +1221,6 @@ if (NOT ZIPDIR_EXECUTABLE)
 	add_executable(zipdir ${ZIPDIR_SOURCES})
 	set_target_properties(zipdir PROPERTIES CXX_STANDARD 20)
 	set_target_properties(zipdir PROPERTIES C_STANDARD 17)
-	if (APPLE)
-		target_link_libraries(zipdir "-framework CoreFoundation")
-	endif()
 endif()
 
 add_zip(SurrealEngine.pk3 ${CMAKE_CURRENT_SOURCE_DIR}/Resources)
@@ -1257,33 +1231,11 @@ if(WIN32)
 	add_custom_command(TARGET SurrealEngine POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:OpenAL::OpenAL>" $<TARGET_FILE_DIR:SurrealEngine>)
 endif()
 
-if(APPLE)
-	set_target_properties(SurrealEngine PROPERTIES
-		MACOSX_BUNDLE_GUI_IDENTIFIER "com.surrealengine.SurrealEngine"
-		MACOSX_BUNDLE_BUNDLE_NAME "SurrealEngine"
-	)
-
-	foreach(bundle_target SurrealEngine)
-		set_property(TARGET ${bundle_target} APPEND PROPERTY BUILD_RPATH "@executable_path/../Frameworks")
-		set_property(TARGET ${bundle_target} APPEND PROPERTY INSTALL_RPATH "@executable_path/../Frameworks")
-		add_custom_command(TARGET ${bundle_target} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${bundle_target}>/Contents/Resources"
-			COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${bundle_target}>/Contents/Frameworks"
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				"${CMAKE_BINARY_DIR}/SurrealEngine.pk3"
-				"$<TARGET_BUNDLE_DIR:${bundle_target}>/Contents/Resources"
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				"${MOLTENVK_DYLIB}"
-				"$<TARGET_BUNDLE_DIR:${bundle_target}>/Contents/Frameworks/libMoltenVK.dylib"
-		)
-	endforeach()
-else()
-	add_custom_command(TARGET SurrealEngine POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-		"${CMAKE_BINARY_DIR}/SurrealEngine.pk3"
-		$<TARGET_FILE_DIR:SurrealEngine>
-	)
-endif()
+add_custom_command(TARGET SurrealEngine POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	"${CMAKE_BINARY_DIR}/SurrealEngine.pk3"
+	$<TARGET_FILE_DIR:SurrealEngine>
+)
 
 if(MSVC)
 	# Create stripped PDBs for nightly builds

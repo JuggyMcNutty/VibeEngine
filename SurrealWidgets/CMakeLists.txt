@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 project(surrealwidgets)
 
-option(ENABLE_METAL "Enable Metal support for application rendering" ON)
-option(ENABLE_OPENGL "Enable OpenGL support for application rendering" ON)
-
 if(WIN32)
 	option(ENABLE_SDL3 "Enable SDL3 backend. Optional on all platforms" OFF)
 	option(ENABLE_SDL2 "Enable SDL2 backend. Optional on all platforms" OFF)
@@ -25,7 +22,7 @@ option(ENABLE_WAYLAND "Enable the Wayland display backend" ON)
 # Off, it is SDL's own FULLSCREEN_DESKTOP.
 option(VIBE_SDL2_BORDERLESS_FULLSCREEN "SDL2 fullscreen as a borderless window, for a vendor SDL2 that deadlocks in SDL_SetWindowFullscreen" OFF)
 
-if (UNIX AND NOT APPLE)
+if (UNIX)
 	include(FindPkgConfig)
 	if (ENABLE_X11 OR ENABLE_WAYLAND)
 		pkg_check_modules(DBUS dbus-1)
@@ -211,18 +208,6 @@ set(SURREALWIDGETS_UNIX_SOURCES
 	src/core/resourcedata_unix.cpp
 )
 
-set(SURREALWIDGETS_COCOA_SOURCES
-	src/core/resourcedata_mac.mm
-)
-
-set(SURREALWIDGETS_COCOA_ARC_SOURCES
-	src/window/cocoa/cocoa_open_file_dialog.mm
-	src/window/cocoa/cocoa_save_file_dialog.mm
-	src/window/cocoa/cocoa_open_folder_dialog.mm
-	src/window/cocoa/cocoa_display_backend.mm
-	src/window/cocoa/cocoa_display_window.mm
-)
-
 set(SURREALWIDGETS_SDL2_SOURCES
 	src/window/sdl2/sdl2_display_backend.cpp
 	src/window/sdl2/sdl2_display_backend.h
@@ -338,48 +323,6 @@ if(WIN32)
 		# Ignore warning about legacy CRT functions
 		#set(SURREALWIDGETS_DEFINES ${SURREALWIDGETS_DEFINES} -D_CRT_SECURE_NO_WARNINGS)
 	endif()
-elseif(APPLE)
-	list(APPEND SURREALWIDGETS_SOURCES ${SURREALWIDGETS_COCOA_SOURCES} ${SURREALWIDGETS_COCOA_ARC_SOURCES})
-	set_source_files_properties(${SURREALWIDGETS_COCOA_ARC_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fobjc-arc")
-	set(SURREALWIDGETS_LIBS ${CMAKE_DL_LIBS} -ldl)
-	set(SURREALWIDGETS_DEFINES -DUNIX -D_UNIX)
-	set(SURREALWIDGETS_LINK_OPTIONS -pthread)
-
-	find_library(COCOA_FRAMEWORK Cocoa)
-	if (NOT COCOA_FRAMEWORK)
-		message(FATAL_ERROR "Cocoa framework not found")
-	endif()
-
-	find_library(COREVIDEO_FRAMEWORK CoreVideo)
-	if (NOT COREVIDEO_FRAMEWORK)
-		message(FATAL_ERROR "CoreVideo framework not found")
-	endif()
-
-	find_library(QUARTZCORE_FRAMEWORK QuartzCore)
-	if (NOT QUARTZCORE_FRAMEWORK)
-		message(FATAL_ERROR "QuartzCore framework not found")
-	endif()
-
-	if(ENABLE_METAL)
-		find_library(METAL_FRAMEWORK Metal)
-	endif()
-
-	if(ENABLE_OPENGL)
-		find_library(OPENGL_FRAMEWORK OpenGL)
-		if (NOT OPENGL_FRAMEWORK)
-			message(FATAL_ERROR "OpenGL framework not found")
-		endif()
-	endif()
-
-	find_library(UNIFORMTYPEIDENTIFIERS_FRAMEWORK UniformTypeIdentifiers)
-	if (NOT UNIFORMTYPEIDENTIFIERS_FRAMEWORK)
-		message(FATAL_ERROR "UniformTypeIdentifiers framework not found")
-	endif()
-elseif(HAIKU)
-	set(SURREALWIDGETS_SOURCES ${SURREALWIDGETS_SOURCES} ${SURREALWIDGETS_UNIX_SOURCES})
-	set(SURREALWIDGETS_LIBS ${CMAKE_DL_LIBS})
-	set(SURREALWIDGETS_DEFINES -DUNIX -D_UNIX)
-	set(SURREALWIDGETS_LINK_OPTIONS -pthread)
 else()
 	set(SURREALWIDGETS_SOURCES ${SURREALWIDGETS_SOURCES} ${SURREALWIDGETS_UNIX_SOURCES})
 	set(SURREALWIDGETS_LIBS ${CMAKE_DL_LIBS})
@@ -437,19 +380,7 @@ target_compile_options(surrealwidgets PRIVATE ${SURREALWIDGETS_COMPILE_OPTIONS})
 target_compile_definitions(surrealwidgets PRIVATE ${SURREALWIDGETS_DEFINES})
 target_include_directories(surrealwidgets PRIVATE ${SURREALWIDGETS_INCLUDE_DIRS})
 target_link_options(surrealwidgets PRIVATE ${SURREALWIDGETS_LINK_OPTIONS})
-if(APPLE)
-	target_link_libraries(surrealwidgets PRIVATE ${SURREALWIDGETS_LIBS} ${COCOA_FRAMEWORK} ${COREVIDEO_FRAMEWORK} ${UNIFORMTYPEIDENTIFIERS_FRAMEWORK} ${QUARTZCORE_FRAMEWORK})
-	if(ENABLE_OPENGL AND OPENGL_FRAMEWORK)
-		target_link_libraries(surrealwidgets PRIVATE ${OPENGL_FRAMEWORK})
-		target_compile_definitions(surrealwidgets PRIVATE HAVE_OPENGL)
-	endif()
-	if(ENABLE_METAL AND METAL_FRAMEWORK)
-		target_link_libraries(surrealwidgets PRIVATE ${METAL_FRAMEWORK} ${QUARTZCORE_FRAMEWORK})
-		target_compile_definitions(surrealwidgets PRIVATE HAVE_METAL)
-	endif()
-else()
-	target_link_libraries(surrealwidgets PRIVATE ${SURREALWIDGETS_LIBS})
-endif()
+target_link_libraries(surrealwidgets PRIVATE ${SURREALWIDGETS_LIBS})
 # SDL can arrive either from find_package (which defines the imported target
 # and SDLn_LIBRARY) or from pkg-config (which defines SDLn_LIBRARIES instead).
 # Cross builds take the pkg-config path, where SDLn_LIBRARY is empty -- so try
