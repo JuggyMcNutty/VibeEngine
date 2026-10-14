@@ -2,13 +2,6 @@ cmake_minimum_required(VERSION 3.11)
 project(surrealgpu)
 
 set(SURREALGPU_SOURCES
-	src/gpubindgroup.cpp
-	src/gpubuffer.cpp
-	src/gpucommands.cpp
-	src/gpudevice.cpp
-	src/gpupipeline.cpp
-	src/gputexture.cpp
-	src/gpuqueryset.cpp
 	src/vulkanbuilders.cpp
 	src/vulkandevice.cpp
 	src/vulkaninstance.cpp
@@ -123,14 +116,6 @@ set(SURREALGPU_SOURCES
 )
 
 set(SURREALGPU_INCLUDES
-	include/surrealgpu/gpubindgroup.h
-	include/surrealgpu/gpubuffer.h
-	include/surrealgpu/gpucommands.h
-	include/surrealgpu/gpudevice.h
-	include/surrealgpu/gpupipeline.h
-	include/surrealgpu/gputexture.h
-	include/surrealgpu/gpuqueryset.h
-	include/surrealgpu/gpuformat.h
 	include/surrealgpu/vulkanbuilders.h
 	include/surrealgpu/vulkancompatibledevice.h
 	include/surrealgpu/vulkandevice.h
@@ -177,10 +162,6 @@ set(VULKAN_INCLUDES
 	include/vulkan/vulkan_xlib_xrandr.h
 )
 
-set(EXAMPLE_SOURCES
-	example/example.cpp
-)
-
 source_group("src" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/src/.+")
 source_group("src\\glslang" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/src/glslang/.+")
 source_group("src\\glslang\\glslang" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/src/glslang/glslang/.+")
@@ -202,8 +183,6 @@ source_group("src\\volk" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/src/vol
 source_group("include" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/include/surrealgpu/.+")
 source_group("include\\vk_mem_alloc" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/include/surrealgpu/vk_mem_alloc/.+")
 source_group("include\\volk" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/include/surrealgpu/volk/.+")
-
-source_group("example" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/example/.+")
 
 include_directories(include include/surrealgpu src)
 
@@ -228,12 +207,3 @@ endif()
 add_library(surrealgpu STATIC ${SURREALGPU_SOURCES} ${SURREALGPU_INCLUDES} ${VULKAN_INCLUDES})
 target_link_libraries(surrealgpu ${SURREALGPU_LIBS})
 set_target_properties(surrealgpu PROPERTIES CXX_STANDARD 17)
-
-# add_executable(surrealgpu_example WIN32 MACOSX_BUNDLE ${EXAMPLE_SOURCES})
-# target_link_libraries(surrealgpu_example surrealgpu)
-# set_target_properties(surrealgpu_example PROPERTIES CXX_STANDARD 17)
-
-#if(MSVC)
-#	set_property(TARGET surrealgpu PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-#	set_property(TARGET surrealgpu_example PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-#endif()

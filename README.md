@@ -17,9 +17,9 @@ game's files are included.
 
 Upstream's work does not come in: the two differ at the core
 ([how it is kept](vibe/docs/ENGINE.md#how-it-is-kept)). The source keeps upstream's names (the
-`SurrealEngine` executable and its folders), and [`Docs/`](Docs/) (`Building.md`,
-`PackageFormat.md`) is upstream's documentation, about Surreal Engine rather than this fork. The
-fork's own docs and tools are in [`vibe/`](vibe/).
+`SurrealEngine` executable and its folders), and [`Docs/PackageFormat.md`](Docs/PackageFormat.md)
+is upstream's documentation, about Surreal Engine rather than this fork. The fork's own docs and
+tools are in [`vibe/`](vibe/).
 
 - [`vibe/docs/ENGINE.md`](vibe/docs/ENGINE.md): how the fork is kept, run and profiled, and
   [what it changes](vibe/docs/ENGINE.md#what-the-fork-changes).
@@ -32,7 +32,11 @@ fork's own docs and tools are in [`vibe/`](vibe/).
 Port Ex Machina builds it for each of its ports and starts it
 ([quick start](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#quick-start));
 [running it](vibe/docs/ENGINE.md#running-it) has the command line. On its own it builds with
-CMake as [`Docs/Building.md`](Docs/Building.md) says. Only Linux builds are made and tested here.
+CMake, `cmake -S . -B build && cmake --build build --target SurrealEngine`, with the packages
+[Port Ex Machina's dependencies](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#dependencies)
+list. Only Linux builds are made and tested here. Kept, but neither built nor tested here: the
+D3D11 device and the Win32 code it needs (SurrealWidgets' Win32 backend, `Win32Resources/`, the
+natvis, the vendored OpenAL Soft, the crash reporter's Windows part), and the SDL3 backend.
 
 ## License
 

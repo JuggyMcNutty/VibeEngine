@@ -911,7 +911,6 @@ set(THIRDPARTY_SOURCES
 	Thirdparty/resample/CDSPResampler.h
 	Thirdparty/resample/CDSPRealFFT.h
 	Thirdparty/resample/CDSPFIRFilter.h
-	# pffft.cpp and pffft.h are left out: R8B_PFFFT is 0, and pffft.cpp's ARM test warns on aarch64
 	Thirdparty/resample/r8butil.h
 	Thirdparty/resample/CDSPHBUpsampler.h
 	Thirdparty/resample/CDSPProcessor.h
@@ -1084,24 +1083,10 @@ source_group("SurrealVideo\\libavutil" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURC
 
 source_group("Thirdparty" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/.+")
 source_group("Thirdparty\\resample" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/resample/.+")
-source_group("Thirdparty\\dumb" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/dumb/.+")
-source_group("Thirdparty\\dumb\\src" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/dumb/src/.+")
-source_group("Thirdparty\\dumb\\src\\core" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/dumb/src/core.+")
-source_group("Thirdparty\\dumb\\src\\helpers" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/dumb/src/helpers/.+")
-source_group("Thirdparty\\dumb\\src\\it" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/dumb/src/it/.+")
-source_group("Thirdparty\\dumb\\include" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/dumb/include/.+")
-source_group("Thirdparty\\dumb\\include\\internal" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/dumb/include/internal/.+")
 source_group("Thirdparty\\miniz" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/miniz/.+")
 source_group("Thirdparty\\kissfft" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/kissfft/.+")
 
 include_directories(SurrealEngine SurrealWidgets/include Thirdparty SurrealGPU/include Thirdparty/openmpt Thirdparty/openal-soft/include Thirdparty/miniz)
-
-if(SDL2_FOUND)
-	include_directories(SurrealEngine ${SDL2_INCLUDE_DIRS})
-	if (NOT DEFINED USE_SDL2)
-		add_definitions(-DUSE_SDL2)
-	endif()
-endif()
 
 if(WIN32)
 	set(SURREALCOMMON_SOURCES ${SURREALCOMMON_SOURCES} ${SURREALCOMMON_WIN32_SOURCES})
@@ -1112,7 +1097,7 @@ if(WIN32)
 	add_definitions(-DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
 else()
 	set(SURREALCOMMON_SOURCES ${SURREALCOMMON_SOURCES})
-	set(SURREALCOMMON_LIBS ${SURREALCOMMON_LIBS} ${SURREALCOMMON_UNIX_LIBS} ${CMAKE_DL_LIBS} -lasound)
+	set(SURREALCOMMON_LIBS ${SURREALCOMMON_LIBS} ${SURREALCOMMON_UNIX_LIBS} ${CMAKE_DL_LIBS})
 	set(THIRDPARTY_SOURCES ${THIRDPARTY_SOURCES} ${THIRDPARTY_UNIX_SOURCES})
 	add_definitions(-DUNIX -D_UNIX)
 	add_link_options(-pthread)
@@ -1242,6 +1227,3 @@ if(MSVC)
 	set_target_properties(SurrealEngine PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/SurrealEngine-stripped.pdb)
 	set_target_properties(SurrealDebugger PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/SurrealDebugger-stripped.pdb)
 endif()
-
-install(TARGETS SurrealEngine RUNTIME DESTINATION bin BUNDLE DESTINATION app)
-install(TARGETS SurrealDebugger RUNTIME DESTINATION bin)

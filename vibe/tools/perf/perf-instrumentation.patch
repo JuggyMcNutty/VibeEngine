@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 49e6806..f4817bf 100644
+index c66e973..54e09e3 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -29,6 +29,11 @@ endif()
+@@ -12,6 +12,11 @@ endif()
  
  project(SurrealEngine)
  
@@ -15,7 +15,7 @@ index 49e6806..f4817bf 100644
  	SurrealEngine/Precomp.cpp
  	SurrealEngine/Precomp.h
 diff --git a/SurrealEngine/Engine.cpp b/SurrealEngine/Engine.cpp
-index 614c96f..d01477e 100644
+index 734811f..0df58db 100644
 --- a/SurrealEngine/Engine.cpp
 +++ b/SurrealEngine/Engine.cpp
 @@ -2,6 +2,7 @@
@@ -84,7 +84,7 @@ index 614c96f..d01477e 100644
  
  		// Save the game if there is a request for it
  		if (SaveGameInfo.SaveGameSlot != DONT_SAVE_GAME)
-@@ -2958,6 +2976,9 @@ void Engine::UpdateInput(float timeElapsed)
+@@ -2960,6 +2978,9 @@ void Engine::UpdateInput(float timeElapsed)
  	if (!viewport->Actor())
  		return;
  
@@ -278,7 +278,7 @@ index c0995fa..3bf3745 100644
  	FrameDrawn = true;
  }
 diff --git a/SurrealEngine/Render/VisibleFrame.cpp b/SurrealEngine/Render/VisibleFrame.cpp
-index 5420df2..274652f 100644
+index 3cca804..b9171a8 100644
 --- a/SurrealEngine/Render/VisibleFrame.cpp
 +++ b/SurrealEngine/Render/VisibleFrame.cpp
 @@ -1,6 +1,7 @@
@@ -289,7 +289,7 @@ index 5420df2..274652f 100644
  #include "VisibleCorona.h"
  #include "RenderSubsystem.h"
  #include "RenderDevice/RenderDevice.h"
-@@ -493,7 +494,11 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
+@@ -494,7 +495,11 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
  
  	// Skip node if its AABB is not visible -- and what came down into its
  	// space with it, as the original drops it
@@ -302,7 +302,7 @@ index 5420df2..274652f 100644
  	{
  		return;
  	}
-@@ -506,6 +511,7 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
+@@ -507,6 +512,7 @@ void VisibleFrame::ProcessNode(BspNode* node, size_t fragFirst, size_t fragCount
  			actor->LastDrawFrame = FrameCounter;
  
  			VisibleActor visactor;
@@ -310,7 +310,7 @@ index 5420df2..274652f 100644
  			visactor.Process(this, actor);
  		}
  	}
-@@ -628,7 +634,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -629,7 +635,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  			if (zoneInfo->SkyZone())
  			{
  				gatherPoints();
@@ -320,7 +320,7 @@ index 5420df2..274652f 100644
  				if (!spans.empty())
  				{
  					USkyZoneInfo* skyZone = zoneInfo->SkyZone();
-@@ -659,7 +667,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -660,7 +668,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  				if (warpZone)
  				{
  					gatherPoints();
@@ -330,7 +330,7 @@ index 5420df2..274652f 100644
  					if (!spans.empty())
  					{
  						for (auto& p : Portals)
-@@ -687,7 +697,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -688,7 +698,9 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  				return;
  
  			gatherPoints();
@@ -340,7 +340,7 @@ index 5420df2..274652f 100644
  			if (!spans.empty())
  			{
  				for (auto& p : Portals)
-@@ -724,7 +736,11 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
+@@ -725,7 +737,11 @@ void VisibleFrame::ProcessNodeSurface(BspNode* node, bool front)
  	}
  
  	gatherPoints();
@@ -353,7 +353,7 @@ index 5420df2..274652f 100644
  		return;
  
  	// A visible portal surface means the zones it borders were seen: their
-@@ -805,6 +821,14 @@ int VisibleFrame::FindZoneAt(const vec4& location, BspNode* node, BspNode* nodes
+@@ -806,6 +822,14 @@ int VisibleFrame::FindZoneAt(const vec4& location, BspNode* node, BspNode* nodes
  
  void VisibleFrame::Draw()
  {

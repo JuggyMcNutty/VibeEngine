@@ -4,6 +4,4 @@
 *.user
 .vscode
 *.internal
-/.cppbuild
 /*.sln
-.DS_Store

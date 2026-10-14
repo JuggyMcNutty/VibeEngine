@@ -1,2 +1,0 @@
-pugixml v1.15 (2025-01-10).
-The docs and scripts folders have been omitted.
