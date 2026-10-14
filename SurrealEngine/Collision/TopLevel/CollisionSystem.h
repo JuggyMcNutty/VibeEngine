@@ -98,8 +98,8 @@ private:
 	}
 
 	static uint32_t Hash(uint32_t id) { uint32_t h = id * 0x9E3779B1u; return h ^ (h >> 16); }
-	static const uint32_t NoCell = 0xffffffff; // never a bucket id: those have 30 bits
-	static const size_t NoSlot = ~(size_t)0;
+	static constexpr uint32_t NoCell = 0xffffffff; // never a bucket id: those have 30 bits
+	static constexpr size_t NoSlot = ~(size_t)0;
 
 	Array<uint32_t> Ids; // NoCell where a slot is free
 	Array<Array<T>> Items;
