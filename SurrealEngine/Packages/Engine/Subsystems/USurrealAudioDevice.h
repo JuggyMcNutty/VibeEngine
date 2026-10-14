@@ -82,7 +82,6 @@ public:
 	void ActorDestroyed(UActor* Actor);
 	void StopSounds();
 
-	void BreakpointTriggered();
 	void AddStats(Array<std::string>& lines);
 
 	AudioDevice* GetDevice() { return m_Device.get(); }

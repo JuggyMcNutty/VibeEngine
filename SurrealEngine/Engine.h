@@ -327,8 +327,6 @@ public:
 
 	GamepadInput gamepad;
 
-	std::function<void()> tickDebugger;
-
 	bool getEditorMode() const { return m_EditorMode; }
 	void setEditorMode(const bool value) { m_EditorMode = value; }
 

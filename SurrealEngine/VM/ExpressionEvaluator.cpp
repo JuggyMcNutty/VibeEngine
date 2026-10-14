@@ -20,22 +20,9 @@ static bool IsVariable(TypedKind kind)
 
 ExpressionEvalResult ExpressionEvaluator::Eval(Expression* expr, UObject* self, UObject* context, void* localVariables)
 {
-	auto oldExpr = Frame::StepExpression;
-	Frame::StepExpression = expr;
-
-	// Breakpoints are set on statements only, so nested expressions need no check
-	for (const Breakpoint& bp : Frame::Breakpoints)
-	{
-		if (bp.Expr == expr && bp.Enabled)
-		{
-			Frame::Break();
-		}
-	}
-
 	ExpressionEvalResult result;
 	ExpressionEvaluator evaluator(result, self, context, localVariables);
 	expr->Visit(&evaluator);
-	Frame::StepExpression = oldExpr;
 	return result;
 }
 
@@ -71,8 +58,7 @@ bool ExpressionEvaluator::IsAssignable(Expression* lhs)
 
 ExpressionValue ExpressionEvaluator::Value(Expression* expr)
 {
-	// The commonest leaves, made here as their Expr would make them. None can
-	// throw, so none needs to be the StepExpression.
+	// The commonest leaves, made here as their Expr would make them.
 	switch (expr->Leaf)
 	{
 	default: break;
@@ -97,16 +83,11 @@ ExpressionValue ExpressionEvaluator::Value(Expression* expr)
 
 ExpressionValue ExpressionEvaluator::VisitValue(Expression* expr)
 {
-	auto oldExpr = Frame::StepExpression;
-	Frame::StepExpression = expr;
-
 	ExpressionValue value;
 	ExpressionValue* out = Out;
 	Out = &value;
 	expr->Visit(this);
 	Out = out;
-
-	Frame::StepExpression = oldExpr;
 	return value;
 }
 
@@ -121,15 +102,10 @@ ExpressionValue ExpressionEvaluator::Value(Expression* expr, UObject* context)
 
 void ExpressionEvaluator::PassThrough(Expression* expr, UObject* context)
 {
-	auto oldExpr = Frame::StepExpression;
-	Frame::StepExpression = expr;
-
 	UObject* oldContext = Context;
 	Context = context;
 	expr->Visit(this);
 	Context = oldContext;
-
-	Frame::StepExpression = oldExpr;
 }
 
 void ExpressionEvaluator::Expr(LocalVariableExpression* expr)

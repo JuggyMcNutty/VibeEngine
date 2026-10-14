@@ -832,16 +832,6 @@ void USurrealAudioDevice::StopSounds()
 	m_Viewport = nullptr;
 }
 
-void USurrealAudioDevice::BreakpointTriggered()
-{
-	if (m_Device)
-	{
-		m_Device->SetSoundVolume(0.0f);
-		m_Device->SetSpeechVolume(0.0f);
-		m_Device->Update();
-	}
-}
-
 void USurrealAudioDevice::AddStats(Array<std::string>& lines)
 {
 	const int bufsize = 1024;

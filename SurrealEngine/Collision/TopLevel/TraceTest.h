@@ -35,6 +35,4 @@ private:
 
 	// Ray/plane hit trace
 	static bool RayPlaneTrace(const dvec3& rayOrigin, const dvec3& rayDirNormalized, const dvec3& planeOrigin, const dvec3& planeNormal, double& t);
-
-	friend class CollisionCommandlet;
 };

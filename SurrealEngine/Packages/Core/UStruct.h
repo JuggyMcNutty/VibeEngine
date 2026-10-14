@@ -7,7 +7,6 @@ class UStruct;
 class UProperty;
 enum class ExprToken : uint8_t;
 class Bytecode;
-class FunctionDebugInfo;
 class Expression;
 
 class UStruct : public UField
@@ -42,9 +41,6 @@ public:
 	// LocalVariables: 1 if every property is plain data (zero-filled, nothing
 	// to destruct), 0 if not, -1 before the first frame of this struct.
 	int PlainDataLocals = -1;
-
-	int GetStatementLine(Expression* statement);
-	FunctionDebugInfo* GetDebugInfo();
 
 	// The properties whose values can hold references to objects, as the
 	// original's RefLink and StructLink: what the collector walks in an

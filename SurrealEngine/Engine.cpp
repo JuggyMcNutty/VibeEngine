@@ -2452,7 +2452,6 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	}
 	else if (command == "showlog")
 	{
-		//Frame::ShowDebuggerWindow();
 	}
 	/*else if (command == "playsong")
 	{
@@ -2954,8 +2953,6 @@ void Engine::UpdateInput(float timeElapsed)
 
 	TickWindow();
 	gamepad.Update(this, timeElapsed);
-	if (tickDebugger)
-		tickDebugger();
 
 	if (!viewport->Actor())
 		return;
@@ -3207,7 +3204,7 @@ void Engine::UnlockCursor()
 
 void Engine::Key(std::string key)
 {
-	if (Frame::RunState != FrameRunState::Running || playingAvi)
+	if (Frame::Halted || playingAvi)
 		return;
 
 	if (LaunchInfo.IsDeusEx() && key == "~" && window->GetKeyState(IK_Shift))
@@ -3228,7 +3225,7 @@ void Engine::Key(std::string key)
 // buttons and axes tracked here are the fork's equivalent of those bindings.
 void Engine::ReleaseHeldInputKeys()
 {
-	if (Frame::RunState != FrameRunState::Running || !viewport || !viewport->Actor())
+	if (Frame::Halted || !viewport || !viewport->Actor())
 		return;
 
 	for (auto& button : activeInputButtons)
@@ -3244,7 +3241,7 @@ void Engine::ReleaseHeldInputKeys()
 // the player's bFire and bAltFire (extension-dll.md, the root window).
 void Engine::ReleaseFireButtons()
 {
-	if (Frame::RunState != FrameRunState::Running || !viewport || !viewport->Actor())
+	if (Frame::Halted || !viewport || !viewport->Actor())
 		return;
 
 	for (auto it = activeInputButtons.begin(); it != activeInputButtons.end();)
@@ -3263,7 +3260,7 @@ void Engine::ReleaseFireButtons()
 
 void Engine::InputEvent(EInputKey key, EInputType type, int delta)
 {
-	if (Frame::RunState != FrameRunState::Running || playingAvi)
+	if (Frame::Halted || playingAvi)
 		return;
 
 	bool handled = CallEvent(console, EventName::KeyEvent, { ExpressionValue::ByteValue(key), ExpressionValue::ByteValue(type), ExpressionValue::FloatValue((float)delta) }).ToBool();

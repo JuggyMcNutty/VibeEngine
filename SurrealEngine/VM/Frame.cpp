@@ -16,21 +16,16 @@
 #include "Packages/Core/Properties/UObjectProperty.h"
 #include "Packages/Core/Properties/UPointerProperty.h"
 #include "Packages/Core/Properties/UStructProperty.h"
-#include "Packages/Engine/Subsystems/USurrealAudioDevice.h"
 #include "Engine.h"
 #include "Package/PackageManager.h"
 #include "Network/NetDriver.h"
 #include "Network/NetRemote.h"
 #include "Utils/AlignedAlloc.h"
-#include "Commandlet/VM/DisassemblyCommandlet.h"
+#include "VM/PrintPrettyExpression.h"
 
-std::function<void()> Frame::RunDebugger;
-Array<Breakpoint> Frame::Breakpoints;
 Array<Frame*> Frame::Callstack;
-FrameRunState Frame::RunState = FrameRunState::Running;
-Frame* Frame::StepFrame = nullptr;
-Expression* Frame::StepExpression = nullptr;
 std::string Frame::ExceptionText;
+bool Frame::Halted = false;
 std::unique_ptr<Iterator> Frame::CreatedIterator;
 bool Frame::Guards = false;
 int Frame::Jumps = 0;
@@ -71,76 +66,17 @@ void Frame::SetState(UStruct* func)
 	Variables.Init(func);
 }
 
-bool Frame::AddBreakpoint(const NameString& clsName, const NameString& funcName, const NameString& stateName, int statementIndex)
-{
-	Breakpoint bp;
-	bp.Class = clsName;
-	bp.Function = funcName;
-	bp.State = stateName;
-
-	UClass* cls = engine->packages->FindClass(clsName);
-	if (!cls)
-		return false;
-
-	if (stateName.IsNone())
-	{
-		for (UField* child = cls->Children; child; child = child->Next)
-		{
-			if (child->Name == funcName && UObject::IsType<UFunction>(child))
-			{
-				UFunction* func = UObject::Cast<UFunction>(child);
-				if (statementIndex < 0 || (size_t)statementIndex >= func->Code->Statements.size())
-					return false;
-				bp.Expr = func->Code->Statements[statementIndex];
-				Breakpoints.push_back(bp);
-				return true;
-			}
-		}
-	}
-	else
-	{
-		for (UField* child = cls->Children; child; child = child->Next)
-		{
-			if (child->Name == stateName && UObject::IsType<UState>(child))
-			{
-				UState* state = UObject::Cast<UState>(child);
-				for (UField* stateChild = state->Children; stateChild; stateChild = stateChild->Next)
-				{
-					if (stateChild->Name == funcName && UObject::IsType<UFunction>(stateChild))
-					{
-						UFunction* func = UObject::Cast<UFunction>(stateChild);
-						if (statementIndex < 0 || (size_t)statementIndex >= func->Code->Statements.size())
-							return false;
-						bp.Expr = func->Code->Statements[statementIndex];
-						Breakpoints.push_back(bp);
-						return true;
-					}
-				}
-			}
-		}
-	}
-	return false;
-}
-
 void Frame::Break()
 {
-	RunState = FrameRunState::DebugBreak;
+	Halted = true;
 
-	if (RunDebugger)
+	if (!ExceptionText.empty())
 	{
-		engine->audiodev->BreakpointTriggered();
-		RunDebugger();
-	}
-	else
-	{
-		if (!ExceptionText.empty())
-		{
-			std::string callstack = Frame::GetCallstack();
-			std::string message = "Script execution error:\r\n\r\n";
-			message += ExceptionText;
-			message += "\r\n\r\nCall stack:\r\n\r\n" + callstack;
-			Exception::Throw(message);
-		}
+		std::string callstack = Frame::GetCallstack();
+		std::string message = "Script execution error:\r\n\r\n";
+		message += ExceptionText;
+		message += "\r\n\r\nCall stack:\r\n\r\n" + callstack;
+		Exception::Throw(message);
 	}
 }
 
@@ -185,29 +121,6 @@ Frame::GuardedRun::~GuardedRun()
 		ScriptDepth--;
 }
 
-void Frame::Resume()
-{
-	RunState = FrameRunState::Running;
-}
-
-void Frame::StepInto()
-{
-	StepFrame = Callstack.back();
-	RunState = FrameRunState::StepInto;
-}
-
-void Frame::StepOver()
-{
-	StepFrame = Callstack.back();
-	RunState = FrameRunState::StepOver;
-}
-
-void Frame::StepOut()
-{
-	StepFrame = Callstack.back();
-	RunState = FrameRunState::StepOut;
-}
-
 void Frame::ThrowException(const std::string& text)
 {
 #if defined(_DEBUG) && defined(WIN32)
@@ -216,13 +129,6 @@ void Frame::ThrowException(const std::string& text)
 
 	ExceptionText = text;
 	Break();
-}
-
-std::string debugCallstack;
-const char* GetCallStack()
-{
-	debugCallstack = Frame::GetCallstack();
-	return debugCallstack.c_str();
 }
 
 std::string Frame::GetName()
@@ -562,15 +468,6 @@ ExpressionEvalResult Frame::Run()
 
 	ActiveCallStackFrame activeFrame(this);
 
-	if (!Func->Code->Statements.empty())
-		StepExpression = Func->Code->Statements[StatementIndex];
-
-	if (RunState == FrameRunState::StepInto)
-	{
-		// We entered a new function. Break for step into.
-		Break();
-	}
-
 	const int maxInstructions = 500'000;
 	int instructionsRetired = 0;
 	while (true)
@@ -582,21 +479,9 @@ ExpressionEvalResult Frame::Run()
 		size_t curStatementIndex = StatementIndex;
 		StatementIndex++;
 
-		StepExpression = Func->Code->Statements[curStatementIndex];
-
 		if (instructionsRetired >= maxInstructions && !Guards)
 		{
 			LogMessage("Too many VM instructions executed in a single tick");
-			Break();
-		}
-		else if ((RunState == FrameRunState::StepOver || RunState == FrameRunState::StepInto) && StepFrame == this)
-		{
-			// We are running a new expression. Break on step over, but also step into as there might not been a function to step into.
-			Break();
-		}
-		else if (RunState == FrameRunState::StepOut && StepFrame == nullptr)
-		{
-			// We found the function exit point. Break the debugger.
 			Break();
 		}
 
@@ -610,7 +495,7 @@ ExpressionEvalResult Frame::Run()
 		// general path below does the same with each one's result. Only this
 		// object's state frame can lose its Func or wait on a latent function,
 		// and what its Run returns is not used.
-		if (statement->Statement != Expression::StatementKind::General && Breakpoints.empty())
+		if (statement->Statement != Expression::StatementKind::General)
 		{
 			switch (statement->Statement)
 			{
@@ -650,8 +535,6 @@ ExpressionEvalResult Frame::Run()
 				break;
 			case Expression::StatementKind::ReturnNothing:
 				{
-					if (RunState == FrameRunState::StepOut && StepFrame == this)
-						StepFrame = nullptr;
 					ExpressionEvalResult result;
 					result.Result = StatementResult::Return;
 					return result;
@@ -738,11 +621,6 @@ ExpressionEvalResult Frame::Run()
 				}
 			}
 
-			if (RunState == FrameRunState::StepOut && StepFrame == this)
-			{
-				// We are exiting the function. Break on next instruction by requesting a break on next instruction.
-				StepFrame = nullptr;
-			}
 			return result;
 		case StatementResult::Iterator:
 			if (!result.Iter)

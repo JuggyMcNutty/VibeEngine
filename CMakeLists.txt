@@ -17,8 +17,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Precomp.h
 	SurrealEngine/GameApp.cpp
 	SurrealEngine/GameApp.h
-	SurrealEngine/DebuggerApp.cpp
-	SurrealEngine/DebuggerApp.h
 	SurrealEngine/Engine.cpp
 	SurrealEngine/EngineGC.cpp
 	SurrealEngine/Engine.h
@@ -68,44 +66,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Utils/CrashReporter.cpp
 	SurrealEngine/Utils/CrashReporter.h
 	SurrealEngine/Utils/AlignedAlloc.h
-	SurrealEngine/Commandlet/Commandlet.cpp
-	SurrealEngine/Commandlet/Commandlet.h
-	SurrealEngine/Commandlet/Native/NativeCommandlet.cpp
-	SurrealEngine/Commandlet/Native/NativeCommandlet.h
-	SurrealEngine/Commandlet/Native/NativeObjExtractor.cpp
-	SurrealEngine/Commandlet/Native/NativeObjExtractor.h
-	SurrealEngine/Commandlet/Native/NativeFuncExtractor.cpp
-	SurrealEngine/Commandlet/Native/NativeFuncExtractor.h
-	SurrealEngine/Commandlet/Native/NativeCppGenerator.cpp
-	SurrealEngine/Commandlet/Native/NativeCppGenerator.h
-	SurrealEngine/Commandlet/Native/NativeCppUpdater.cpp
-	SurrealEngine/Commandlet/Native/NativeCppUpdater.h
-	SurrealEngine/Commandlet/QuitCommandlet.cpp
-	SurrealEngine/Commandlet/QuitCommandlet.h
-	SurrealEngine/Commandlet/RunCommandlet.cpp
-	SurrealEngine/Commandlet/RunCommandlet.h
-	SurrealEngine/Commandlet/ExportCommandlet.cpp
-	SurrealEngine/Commandlet/ExportCommandlet.h
-	SurrealEngine/Commandlet/CompilerCommandlet.cpp
-	SurrealEngine/Commandlet/CompilerCommandlet.h
-	SurrealEngine/Commandlet/Debug/CollisionCommandlet.cpp
-	SurrealEngine/Commandlet/Debug/CollisionCommandlet.h
-	SurrealEngine/Commandlet/VM/BreakpointCommandlet.cpp
-	SurrealEngine/Commandlet/VM/BreakpointCommandlet.h
-	SurrealEngine/Commandlet/VM/CallstackCommandlet.cpp
-	SurrealEngine/Commandlet/VM/CallstackCommandlet.h
-	SurrealEngine/Commandlet/VM/DisassemblyCommandlet.cpp
-	SurrealEngine/Commandlet/VM/DisassemblyCommandlet.h
-	SurrealEngine/Commandlet/VM/ListSourceCommandlet.cpp
-	SurrealEngine/Commandlet/VM/ListSourceCommandlet.h
-	SurrealEngine/Commandlet/VM/LocalsCommandlet.cpp
-	SurrealEngine/Commandlet/VM/LocalsCommandlet.h
-	SurrealEngine/Commandlet/VM/PrintCommandlet.cpp
-	SurrealEngine/Commandlet/VM/PrintCommandlet.h
-	SurrealEngine/Commandlet/VM/StepCommandlet.cpp
-	SurrealEngine/Commandlet/VM/StepCommandlet.h
-	SurrealEngine/Editor/Export.cpp
-	SurrealEngine/Editor/Export.h
 	SurrealEngine/Render/VisibleActor.cpp
 	SurrealEngine/Render/VisibleActor.h
 	SurrealEngine/Render/VisibleBrush.cpp
@@ -151,6 +111,8 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/VM/ExpressionVisitor.h
 	SurrealEngine/VM/Iterator.cpp
 	SurrealEngine/VM/Iterator.h
+	SurrealEngine/VM/PrintPrettyExpression.cpp
+	SurrealEngine/VM/PrintPrettyExpression.h
 	SurrealEngine/Audio/AudioSource.h
 	SurrealEngine/Audio/AudioSource.cpp
 	SurrealEngine/Audio/AudioDevice.cpp
@@ -812,76 +774,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/UI/Launcher/VideoSettingsPage.h
 	SurrealEngine/UI/Launcher/GameFoldersPage.cpp
 	SurrealEngine/UI/Launcher/GameFoldersPage.h
-	SurrealEngine/Compiler/Ast/Ast.h
-	SurrealEngine/Compiler/Ast/AstAccessType.h
-	SurrealEngine/Compiler/Ast/AstArray.h
-	SurrealEngine/Compiler/Ast/AstCompilationUnit.h
-	SurrealEngine/Compiler/Ast/AstExpression.h
-	SurrealEngine/Compiler/Ast/AstExpressionVisitor.h
-	SurrealEngine/Compiler/Ast/AstGenerics.h
-	SurrealEngine/Compiler/Ast/AstMemberDeclaration.h
-	SurrealEngine/Compiler/Ast/AstName.h
-	SurrealEngine/Compiler/Ast/AstNameVisitor.h
-	SurrealEngine/Compiler/Ast/AstNode.h
-	SurrealEngine/Compiler/Ast/AstStatement.h
-	SurrealEngine/Compiler/Ast/AstStatementVisitor.h
-	SurrealEngine/Compiler/Ast/AstTypeDeclaration.h
-	SurrealEngine/Compiler/Codegen/Codegen.cpp
-	SurrealEngine/Compiler/Codegen/Codegen.h
-	SurrealEngine/Compiler/Codegen/ClassDebugInfoBuilder.cpp
-	SurrealEngine/Compiler/Codegen/ClassDebugInfoBuilder.h
-	SurrealEngine/Compiler/Codegen/FunctionDebugInfoBuilder.cpp
-	SurrealEngine/Compiler/Codegen/FunctionDebugInfoBuilder.h
-	SurrealEngine/Compiler/Frontend/Compiler.cpp
-	SurrealEngine/Compiler/Frontend/Compiler.h
-	SurrealEngine/Compiler/Frontend/CompilerException.h
-	SurrealEngine/Compiler/Frontend/CompilerMessage.h
-	SurrealEngine/Compiler/Lex/Tokenizer.cpp
-	SurrealEngine/Compiler/Lex/Tokenizer.h
-	SurrealEngine/Compiler/Lex/Token.h
-	SurrealEngine/Compiler/Lex/TextUtil.cpp
-	SurrealEngine/Compiler/Lex/TextUtil.h
-	SurrealEngine/Compiler/Parse/Parser.cpp
-	SurrealEngine/Compiler/Parse/Parser.h
-	SurrealEngine/Compiler/Parse/ParserArray.cpp
-	SurrealEngine/Compiler/Parse/ParserExpression.cpp
-	SurrealEngine/Compiler/Parse/ParserGenerics.cpp
-	SurrealEngine/Compiler/Parse/ParserMemberDeclaration.cpp
-	SurrealEngine/Compiler/Parse/ParserName.cpp
-	SurrealEngine/Compiler/Parse/ParserStatement.cpp
-	SurrealEngine/Compiler/Parse/ParserTypeDeclaration.cpp
-	SurrealEngine/Compiler/Sema/ConstResolver.cpp
-	SurrealEngine/Compiler/Sema/ConstResolver.h
-	SurrealEngine/Compiler/Sema/CreateTypeConstExpression.cpp
-	SurrealEngine/Compiler/Sema/CreateTypeConstExpression.h
-	SurrealEngine/Compiler/Sema/CreateTypeExpressions.cpp
-	SurrealEngine/Compiler/Sema/CreateTypeExpressions.h
-	SurrealEngine/Compiler/Sema/CreateTypeMembers.cpp
-	SurrealEngine/Compiler/Sema/CreateTypeMembers.h
-	SurrealEngine/Compiler/Sema/CreateTypeNames.cpp
-	SurrealEngine/Compiler/Sema/CreateTypeNames.h
-	SurrealEngine/Compiler/Sema/ExpressionSema.cpp
-	SurrealEngine/Compiler/Sema/ExpressionSema.h
-	SurrealEngine/Compiler/Sema/MethodSema.cpp
-	SurrealEngine/Compiler/Sema/MethodSema.h
-	SurrealEngine/Compiler/Sema/ResolveExpressionConstants.cpp
-	SurrealEngine/Compiler/Sema/ResolveExpressionConstants.h
-	SurrealEngine/Compiler/Sema/ResolveTypeConstExpression.cpp
-	SurrealEngine/Compiler/Sema/ResolveTypeConstExpression.h
-	SurrealEngine/Compiler/Sema/SemanticAnalysis.cpp
-	SurrealEngine/Compiler/Sema/SemanticAnalysis.h
-	SurrealEngine/Compiler/Sema/StatementSema.cpp
-	SurrealEngine/Compiler/Sema/StatementSema.h
-	SurrealEngine/Compiler/Typesystem/ReferenceType.h
-	SurrealEngine/Compiler/Typesystem/Type.h
-	SurrealEngine/Compiler/Typesystem/TypeExpression.h
-	SurrealEngine/Compiler/Typesystem/TypeExpressionVisitor.h
-	SurrealEngine/Compiler/Typesystem/TypeMember.h
-	SurrealEngine/Compiler/Typesystem/TypeMemberVisitor.h
-	SurrealEngine/Compiler/Typesystem/TypeSystem.cpp
-	SurrealEngine/Compiler/Typesystem/TypeSystem.h
-	SurrealEngine/Compiler/Typesystem/TypeVisitor.h
-	SurrealEngine/Compiler/Typesystem/ValueType.h
 )
 
 set(SURREALCOMMON_WIN32_SOURCES
@@ -956,10 +848,6 @@ set(SURREALCOMMON_UNIX_LIBS
 
 set(SURREALENGINE_SOURCES
 	SurrealEngine/MainGame.cpp
-)
-
-set(SURREALDEBUGGER_SOURCES
-	SurrealEngine/MainDebugger.cpp
 )
 
 set(SURREALVIDEO_SOURCES
@@ -1059,23 +947,10 @@ source_group("SurrealEngine\\Collision" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOUR
 source_group("SurrealEngine\\Collision\\TopLevel" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/TopLevel/.+")
 source_group("SurrealEngine\\Collision\\BottomLevel" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/BottomLevel/.+")
 source_group("SurrealEngine\\Light" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Light/.+")
-source_group("SurrealEngine\\Commandlet" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Commandlet/.+")
-source_group("SurrealEngine\\Commandlet\\Debug" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Commandlet/Debug/.+")
-source_group("SurrealEngine\\Commandlet\\VM" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Commandlet/VM/.+")
-source_group("SurrealEngine\\Commandlet\\Native" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Commandlet/Native/.+")
-source_group("SurrealEngine\\Editor" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Editor/.+")
 source_group("SurrealEngine\\Utils" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Utils/.+")
 source_group("SurrealEngine\\GC" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/GC/.+")
 source_group("SurrealEngine\\VM" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/VM/.+")
 source_group("SurrealEngine\\Video" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Video/.+")
-source_group("SurrealEngine\\Compiler" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/.+")
-source_group("SurrealEngine\\Compiler\\Ast" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/Ast/.+")
-source_group("SurrealEngine\\Compiler\\Codegen" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/Codegen/.+")
-source_group("SurrealEngine\\Compiler\\Frontend" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/Frontend/.+")
-source_group("SurrealEngine\\Compiler\\Lex" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/Lex/.+")
-source_group("SurrealEngine\\Compiler\\Parse" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/Parse/.+")
-source_group("SurrealEngine\\Compiler\\Typesystem" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/Typesystem/.+")
-source_group("SurrealEngine\\Compiler\\Sema" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Compiler/Sema/.+")
 
 source_group("SurrealVideo" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealVideo/.+")
 source_group("SurrealVideo\\libavcodec" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealVideo/libavcodec/.+")
@@ -1091,7 +966,6 @@ include_directories(SurrealEngine SurrealWidgets/include Thirdparty SurrealGPU/i
 if(WIN32)
 	set(SURREALCOMMON_SOURCES ${SURREALCOMMON_SOURCES} ${SURREALCOMMON_WIN32_SOURCES})
 	set(SURREALENGINE_SOURCES ${SURREALENGINE_SOURCES} Win32Resources/SurrealEngine.rc Win32Resources/SurrealEngine.manifest)
-	set(SURREALDEBUGGER_SOURCES ${SURREALDEBUGGER_SOURCES} Win32Resources/SurrealEngine.rc Win32Resources/SurrealEngine.manifest)
 	set(SURREALCOMMON_LIBS ${SURREALCOMMON_LIBS} ${SURREALCOMMON_WIN32_LIBS})
 	set(THIRDPARTY_SOURCES ${THIRDPARTY_SOURCES} ${THIRDPARTY_WIN32_SOURCES})
 	add_definitions(-DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
@@ -1125,10 +999,6 @@ include(vibe/cmake/version.cmake)
 add_executable(SurrealEngine WIN32 ${SURREALENGINE_SOURCES})
 target_link_libraries(SurrealEngine SurrealCommon ${SURREALCOMMON_LIBS})
 set_target_properties(SurrealEngine PROPERTIES CXX_STANDARD 20)
-
-add_executable(SurrealDebugger ${SURREALDEBUGGER_SOURCES})
-target_link_libraries(SurrealDebugger SurrealCommon ${SURREALCOMMON_LIBS})
-set_target_properties(SurrealDebugger PROPERTIES CXX_STANDARD 20)
 
 function( create_zip_source_groups FOLDER_NAME ZIP_DIR )
 	file(GLOB ZIP_SRCS ${ZIP_DIR}/*)
@@ -1225,5 +1095,4 @@ add_custom_command(TARGET SurrealEngine POST_BUILD
 if(MSVC)
 	# Create stripped PDBs for nightly builds
 	set_target_properties(SurrealEngine PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/SurrealEngine-stripped.pdb)
-	set_target_properties(SurrealDebugger PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/SurrealDebugger-stripped.pdb)
 endif()

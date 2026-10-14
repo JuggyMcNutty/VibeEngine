@@ -3,7 +3,6 @@
 #include "ExpressionValue.h"
 #include "Iterator.h"
 
-class DebuggerWindow;
 class Bytecode;
 class UObject;
 class UFunction;
@@ -16,15 +15,6 @@ class ScriptCriticalError : public std::runtime_error
 {
 public:
 	using std::runtime_error::runtime_error;
-};
-
-enum class FrameRunState
-{
-	Running,
-	DebugBreak,
-	StepInto,
-	StepOver,
-	StepOut
 };
 
 enum class LatentRunState
@@ -41,16 +31,6 @@ enum class LatentRunState
 	TurnTo,
 	TurnToward,
 	WaitForLanding
-};
-
-struct Breakpoint
-{
-	NameString Class;
-	NameString Function;
-	NameString State;
-	Expression* Expr = nullptr;
-	UProperty* Property = nullptr; // For watchpoints. Not implemented yet.
-	bool Enabled = true;
 };
 
 class LocalVariables
@@ -150,21 +130,14 @@ public:
 	static std::string GetCallstack();
 	static std::string GetDisassembly(Expression* statement);
 
-	static bool AddBreakpoint(const NameString& cls, const NameString& func, const NameString& state = {}, int statementIndex = 0);
-
-	static std::function<void()> RunDebugger;
-	static Array<Breakpoint> Breakpoints;
 	static Array<Frame*> Callstack;
-	static FrameRunState RunState;
-	static Frame* StepFrame;
-	static Expression* StepExpression;
 	static std::string ExceptionText;
 
+	// Set by a script error and by a function's run past the instruction cap
+	// (Break), and never cleared: from then on the engine takes no input.
+	static bool Halted;
+
 	static void Break();
-	static void Resume();
-	static void StepInto();
-	static void StepOver();
-	static void StepOut();
 	static void ThrowException(const std::string& text);
 
 	static std::unique_ptr<Iterator> CreatedIterator;
