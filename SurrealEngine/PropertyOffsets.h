@@ -17,9 +17,6 @@ struct PropertyOffsets_Object
 	PropertyDataOffset ObjectFlags;
 	PropertyDataOffset ObjectInternal;
 	PropertyDataOffset Outer;
-	// 227k additions
-	PropertyDataOffset ObjectIndex;
-	PropertyDataOffset ObjectArchetype;
 };
 
 extern PropertyOffsets_Object PropOffsets_Object;
@@ -231,18 +228,6 @@ struct PropertyOffsets_Pawn
 	PropertyDataOffset SmellThreshold;
 	PropertyDataOffset Alliance;
 	PropertyDataOffset AIAddViewRotation;
-
-	// Unreal 227 additions
-	PropertyDataOffset BleedingActor;
-	PropertyDataOffset bIsBleeding;
-	PropertyDataOffset SightDistanceMulti;
-	PropertyDataOffset SightCheckType;
-	PropertyDataOffset SerpentineDist;
-	PropertyDataOffset SerpentineTime;
-	PropertyDataOffset MovementStart;
-	PropertyDataOffset bIsCrawler;
-	PropertyDataOffset HuntOffDistance;
-	PropertyDataOffset bDoAutoSerpentine;
 };
 
 extern PropertyOffsets_Pawn PropOffsets_Pawn;
@@ -465,41 +450,6 @@ struct PropertyOffsets_Actor
 	PropertyDataOffset LastSmellNode;
 	PropertyDataOffset bOwned;
 	PropertyDataOffset bVisionImportant;
-
-	// Unreal 227 Additions
-	PropertyDataOffset bNetNotify;
-	PropertyDataOffset bHandleOwnCorona;
-	PropertyDataOffset bRenderMultiEnviroMaps;
-	PropertyDataOffset bWorldGeometry;
-	PropertyDataOffset bUseMeshCollision;
-	PropertyDataOffset bEditorSelectRender;
-	PropertyDataOffset bNoDynamicShadowCast;
-	PropertyDataOffset bIsInOctree;
-	PropertyDataOffset bProjectorDecal;
-	PropertyDataOffset bUseLitSprite;
-	PropertyDataOffset bAlwaysRender;
-
-	PropertyDataOffset LastRenderedTime;
-	PropertyDataOffset ActorRenderColor;
-	PropertyDataOffset ActorGUnlitColor;
-	PropertyDataOffset CollisionOverride;
-	PropertyDataOffset MeshInstance;
-	PropertyDataOffset RelativeLocation;
-	PropertyDataOffset RelativeRotation;
-	PropertyDataOffset LightDataPtr;
-	PropertyDataOffset MeshDataPtr;
-	PropertyDataOffset ProjectorList;
-	PropertyDataOffset NetInitialProperties;
-	PropertyDataOffset RealTouching;
-
-	PropertyDataOffset DefaultAnimationNotify;
-	PropertyDataOffset AnimationNotify;
-
-	PropertyDataOffset bSkipActorReplication;
-	PropertyDataOffset bRepAnimations;
-	PropertyDataOffset bRepAmbientSound;
-	PropertyDataOffset bSimulatedPawnRep;
-	PropertyDataOffset bRepMesh;
 };
 
 extern PropertyOffsets_Actor PropOffsets_Actor;
@@ -562,19 +512,6 @@ struct PropertyOffsets_LevelInfo
 	PropertyDataOffset bNoCheating;
 	PropertyDataOffset bPlayersOnly;
 	PropertyDataOffset bStartup;
-
-	// 227 additions
-	PropertyDataOffset bSupportsRealCrouching;
-	PropertyDataOffset EdBuildOpt;
-	PropertyDataOffset backup_Song;
-	PropertyDataOffset backup_SongSection;
-	PropertyDataOffset WhiteTexture;
-	PropertyDataOffset TemplateLightTex;
-	PropertyDataOffset EngineSubVersion;
-	PropertyDataOffset FootprintManager;
-	PropertyDataOffset ObjList;
-	PropertyDataOffset DynamicZonesList;
-	PropertyDataOffset ReplicationTarget;
 };
 
 extern PropertyOffsets_LevelInfo PropOffsets_LevelInfo;
@@ -971,37 +908,6 @@ struct PropertyOffsets_GameInfo
 	PropertyDataOffset bTeamGame;
 	PropertyDataOffset bVeryLowGore;
 	PropertyDataOffset bWorldLog;
-
-	// 227 Additions
-	PropertyDataOffset LastPreloginIP;
-	PropertyDataOffset LastLoginPlayerNames;
-	PropertyDataOffset LastPreloginIdentity;
-	PropertyDataOffset LastPreloginIdent;
-	PropertyDataOffset MaleGender;
-	PropertyDataOffset FemaleGender;
-	PropertyDataOffset GameRules;
-	PropertyDataOffset AccessManager;
-	PropertyDataOffset AccessManagerClass;
-	PropertyDataOffset BleedingDamageMin;
-	PropertyDataOffset BleedingDamageMax;
-
-	PropertyDataOffset bBleedingEnabled;
-	PropertyDataOffset bBleedingDamageEnabled;
-	PropertyDataOffset bAllHealthStopsBleeding;
-	PropertyDataOffset bBandagesStopBleeding;
-	PropertyDataOffset bMessageAdminsAliases;
-	PropertyDataOffset bLogNewPlayerAliases;
-	PropertyDataOffset bLogDownloadsToClient;
-	PropertyDataOffset bHandleDownloadMessaging;
-	PropertyDataOffset bShowRecoilAnimations;
-	PropertyDataOffset bCastShadow;
-	PropertyDataOffset bDecoShadows;
-	PropertyDataOffset bCastProjectorShadows;
-	PropertyDataOffset bUseRealtimeShadow;
-	PropertyDataOffset bNoWalkInAir;
-	PropertyDataOffset bProjectorDecals;
-	PropertyDataOffset bIsSavedGame;
-	PropertyDataOffset bAlwaysEnhancedSightCheck;
 };
 
 extern PropertyOffsets_GameInfo PropOffsets_GameInfo;
@@ -1062,24 +968,6 @@ struct PropertyOffsets_ZoneInfo
 	PropertyDataOffset bReverbZone;
 	PropertyDataOffset bWaterZone;
 	PropertyDataOffset locationid;
-
-	// 227 Additions
-	PropertyDataOffset SkyZoneInfoTag;
-	PropertyDataOffset SkyZoneInfoLevelID;
-	PropertyDataOffset MinWalkableZ;
-	PropertyDataOffset ZoneTimeDilation;
-	PropertyDataOffset bDistanceFogClips;
-	PropertyDataOffset bDistanceFog;
-	PropertyDataOffset FogDistanceStart;
-	PropertyDataOffset bZoneBasedFog;
-	PropertyDataOffset FadeTime;
-	PropertyDataOffset EnvironmentUScale, EnvironmentVScale;
-	PropertyDataOffset EnvironmentColor;
-	PropertyDataOffset DirtyShadowLevel;
-	PropertyDataOffset LightMapDetailLevels;
-	PropertyDataOffset EFXAmbients;
-	PropertyDataOffset VisNotify;
-	PropertyDataOffset bRepZoneProperties;
 };
 
 extern PropertyOffsets_ZoneInfo PropOffsets_ZoneInfo;

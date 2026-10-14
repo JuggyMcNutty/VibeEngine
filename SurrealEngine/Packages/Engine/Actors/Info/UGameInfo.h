@@ -97,36 +97,4 @@ public:
 	BitfieldBool bTeamGame() { return BoolValue(PropOffsets_GameInfo.bTeamGame); }
 	BitfieldBool bVeryLowGore() { return BoolValue(PropOffsets_GameInfo.bVeryLowGore); }
 	BitfieldBool bWorldLog() { return BoolValue(PropOffsets_GameInfo.bWorldLog); }
-
-	// 227 Additions
-	std::string& LastPreloginIP() { return Value<std::string>(PropOffsets_GameInfo.LastPreloginIP); }
-	std::string& LastLoginPlayerNames() { return Value<std::string>(PropOffsets_GameInfo.LastLoginPlayerNames); }
-	std::string& LastPreloginIdentity() { return Value<std::string>(PropOffsets_GameInfo.LastPreloginIdentity); }
-	std::string& LastPreloginIdent() { return Value<std::string>(PropOffsets_GameInfo.LastPreloginIdent); }
-	std::string& MaleGender() { return Value<std::string>(PropOffsets_GameInfo.MaleGender); }
-	std::string& FemaleGender() { return Value<std::string>(PropOffsets_GameInfo.FemaleGender); }
-	// GameRules and AdminAccessManager are not native classes
-	// GameRules& GameRules() { return Value<GameRules>(PropOffsets_GameInfo.GameRules); }
-	// AdminAccessManager& AccessManager() { return Value<AdminAccessManager>(PropOffsets_GameInfo.AccessManager); }
-	std::string& AccessManagerClass() { return Value<std::string>(PropOffsets_GameInfo.AccessManagerClass); }
-	int& BleedingDamageMin() { return Value<int>(PropOffsets_GameInfo.BleedingDamageMin); }
-	int& BleedingDamageMax() { return Value<int>(PropOffsets_GameInfo.BleedingDamageMax); }
-
-	BitfieldBool bBleedingEnabled() { return BoolValue(PropOffsets_GameInfo.bBleedingEnabled); }
-	BitfieldBool bBleedingDamageEnabled() { return BoolValue(PropOffsets_GameInfo.bBleedingDamageEnabled); }
-	BitfieldBool bAllHealthStopsBleeding() { return BoolValue(PropOffsets_GameInfo.bAllHealthStopsBleeding); }
-	BitfieldBool bBandagesStopBleeding() { return BoolValue(PropOffsets_GameInfo.bBandagesStopBleeding); }
-	BitfieldBool bMessageAdminsAliases() { return BoolValue(PropOffsets_GameInfo.bMessageAdminsAliases); }
-	BitfieldBool bLogNewPlayerAliases() { return BoolValue(PropOffsets_GameInfo.bLogNewPlayerAliases); }
-	BitfieldBool bLogDownloadsToClient() { return BoolValue(PropOffsets_GameInfo.bLogDownloadsToClient); }
-	BitfieldBool bHandleDownloadMessaging() { return BoolValue(PropOffsets_GameInfo.bHandleDownloadMessaging); }
-	BitfieldBool bShowRecoilAnimations() { return BoolValue(PropOffsets_GameInfo.bShowRecoilAnimations); }
-	BitfieldBool bCastShadow() { return BoolValue(PropOffsets_GameInfo.bCastShadow); }
-	BitfieldBool bDecoShadows() { return BoolValue(PropOffsets_GameInfo.bDecoShadows); }
-	BitfieldBool bCastProjectorShadows() { return BoolValue(PropOffsets_GameInfo.bCastProjectorShadows); }
-	BitfieldBool bUseRealtimeShadow() { return BoolValue(PropOffsets_GameInfo.bUseRealtimeShadow); }
-	BitfieldBool bNoWalkInAir() { return BoolValue(PropOffsets_GameInfo.bNoWalkInAir); }
-	BitfieldBool bProjectorDecals() { return BoolValue(PropOffsets_GameInfo.bProjectorDecals); }
-	BitfieldBool bIsSavedGame() { return BoolValue(PropOffsets_GameInfo.bIsSavedGame); }
-	BitfieldBool bAlwaysEnhancedSightCheck() { return BoolValue(PropOffsets_GameInfo.bAlwaysEnhancedSightCheck); }
 };

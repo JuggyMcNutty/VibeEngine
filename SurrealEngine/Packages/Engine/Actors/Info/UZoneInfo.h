@@ -66,22 +66,4 @@ public:
 	BitfieldBool bReverbZone() { return BoolValue(PropOffsets_ZoneInfo.bReverbZone); }
 	BitfieldBool bWaterZone() { return BoolValue(PropOffsets_ZoneInfo.bWaterZone); }
 	Ulocationid*& locationid() { return Value<Ulocationid*>(PropOffsets_ZoneInfo.locationid); }
-	// 227 additions
-	NameString& SkyZoneInfoTag() { return Value<NameString>(PropOffsets_ZoneInfo.SkyZoneInfoTag); }
-	NameString& SkyZoneInfoLevelID() { return Value<NameString>(PropOffsets_ZoneInfo.SkyZoneInfoLevelID); }
-	float& MinWalkableZ() { return Value<float>(PropOffsets_ZoneInfo.MinWalkableZ); }
-	BitfieldBool bDistanceFog() { return BoolValue(PropOffsets_ZoneInfo.bDistanceFog); }
-	BitfieldBool bDistanceFogClips() { return BoolValue(PropOffsets_ZoneInfo.bDistanceFogClips); }
-	BitfieldBool bRepZoneProperties() { return BoolValue(PropOffsets_ZoneInfo.bRepZoneProperties); }
-	BitfieldBool bZoneBasedFog() { return BoolValue(PropOffsets_ZoneInfo.bZoneBasedFog); }
-	float& DirtyShadowLevel() { return Value<float>(PropOffsets_ZoneInfo.DirtyShadowLevel); }
-	EAmbients EFXAmbients() { return static_cast<EAmbients>(Value<uint8_t>(PropOffsets_ZoneInfo.EFXAmbients)); }
-	vec3& EnvironmentColor() { return Value<vec3>(PropOffsets_ZoneInfo.EnvironmentColor); }
-	float& EnvironmentUScale() { return Value<float>(PropOffsets_ZoneInfo.EnvironmentUScale); }
-	float& EnvironmentVScale() { return Value<float>(PropOffsets_ZoneInfo.EnvironmentVScale); }
-	float& FadeTime() { return Value<float>(PropOffsets_ZoneInfo.FadeTime); }
-	float& FogDistanceStart() { return Value<float>(PropOffsets_ZoneInfo.FogDistanceStart); }
-	FixedArrayView<uint8_t, 4> LightMapDetailLevels() { return FixedArray<uint8_t, 4>(PropOffsets_ZoneInfo.LightMapDetailLevels); }
-	float& ZoneTimeDilation() { return Value<float>(PropOffsets_ZoneInfo.ZoneTimeDilation); }
-	// VisibilityNotify& VisNotify() { return Value<VisibilityNotify>(PropOffsets_ZoneInfo.VisNotify); }
 };

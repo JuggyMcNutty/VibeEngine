@@ -9,7 +9,6 @@ class UPawn;
 class UMusic;
 class USpawnNotify;
 class ULevelSummary;
-class UDynamicZoneInfo;
 
 enum ELevelAction
 {
@@ -88,16 +87,4 @@ public:
 	BitfieldBool bNoCheating() { return BoolValue(PropOffsets_LevelInfo.bNoCheating); }
 	BitfieldBool bPlayersOnly() { return BoolValue(PropOffsets_LevelInfo.bPlayersOnly); }
 	BitfieldBool bStartup() { return BoolValue(PropOffsets_LevelInfo.bStartup); }
-
-	// 227 exclusive properties
-	BitfieldBool bSupportsRealCrouching() { return BoolValue(PropOffsets_LevelInfo.bSupportsRealCrouching); }
-	int& EdBuildOpt() { return Value<int>(PropOffsets_LevelInfo.EdBuildOpt); }
-	UMusic*& backup_Song() { return Value<UMusic*>(PropOffsets_LevelInfo.backup_Song); }
-	uint8_t& backup_SongSection() { return Value<uint8_t>(PropOffsets_LevelInfo.backup_SongSection); }
-	UTexture*& WhiteTexture() { return Value<UTexture*>(PropOffsets_LevelInfo.WhiteTexture); }
-	UTexture*& TemplateLightTex() { return Value<UTexture*>(PropOffsets_LevelInfo.TemplateLightTex); }
-	std::string& EngineSubVersion() { return Value<std::string>(PropOffsets_LevelInfo.EngineSubVersion); }
-	// FootStepManager is not a native class
-	TypedScriptArray<UObject*> ObjList() { return DynamicArray<UObject*>(PropOffsets_LevelInfo.ObjList); }
-	UDynamicZoneInfo*& DynamicZonesList() { return Value<UDynamicZoneInfo*>(PropOffsets_LevelInfo.DynamicZonesList); }
 };

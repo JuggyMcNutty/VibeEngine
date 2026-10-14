@@ -4,7 +4,6 @@
 
 class UTexture;
 class UAnimation;
-class UStaticMesh;
 
 struct MeshTri
 {

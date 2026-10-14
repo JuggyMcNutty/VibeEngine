@@ -313,18 +313,6 @@ public:
 	NameString Alliance() { return Value<NameString>(PropOffsets_Pawn.Alliance); }
 	Rotator& AIAddViewRotation() { return Value<Rotator>(PropOffsets_Pawn.AIAddViewRotation); }
 
-	//Unreal 227 exclusive properties
-	UActor*& BleedingActor() { return Value<UActor*>(PropOffsets_Pawn.BleedingActor); }
-	BitfieldBool bIsBleeding() { return BoolValue(PropOffsets_Pawn.bIsBleeding); }
-	float& SightDistanceMulti() { return Value<float>(PropOffsets_Pawn.SightDistanceMulti); }
-	EPawnSightCheck SightCheckType() { return static_cast<EPawnSightCheck>(Value<uint8_t>(PropOffsets_Pawn.SightCheckType)); }
-	float& SerpentineDist() { return Value<float>(PropOffsets_Pawn.SerpentineDist); }
-	float& SerpentineTime() { return Value<float>(PropOffsets_Pawn.SerpentineTime); }
-	vec3& MovementStart() { return Value<vec3>(PropOffsets_Pawn.MovementStart); }
-	BitfieldBool bIsCrawler() { return BoolValue(PropOffsets_Pawn.bIsCrawler); }
-	float& HuntOffDistance() { return Value<float>(PropOffsets_Pawn.HuntOffDistance); }
-	BitfieldBool bDoAutoSerpentine() { return BoolValue(PropOffsets_Pawn.bDoAutoSerpentine); }
-
 private:
 	bool IsInPathSpecialHandling = false;
 };

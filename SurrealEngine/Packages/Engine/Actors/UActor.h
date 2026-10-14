@@ -15,9 +15,6 @@ class UModel;
 class UAnimation;
 class UViewport;
 class USound;
-class U227SkeletalMeshInstance;
-class U227Projector;
-class U227AnimationNotify;
 class CollisionHit;
 class CollisionHitList;
 class BspNode;
@@ -151,15 +148,6 @@ enum class ETravelType : uint8_t
 	TRAVEL_Relative  // Relative URL
 };
 
-// Unreal 227 only
-// 227's Pawn class has a SightCheckType variable that will affect LineOfSightTo() function
-enum class EPawnSightCheck : uint8_t
-{
-	SEE_PlayersOnly, // See bIsPlayer pawns only
-	SEE_All,		 // See all pawns
-	SEE_None		 // Do not do sight checks
-};
-
 // Deus Ex
 enum class EAIEventState : uint8_t
 {
@@ -219,126 +207,6 @@ enum class EDodgeDir : uint8_t
 	DODGE_Back,
 	DODGE_Active,
 	DODGE_Done
-};
-
-// Unreal 227
-enum class EAmbients : uint8_t
-{
-	REVERB_PRESET_GENERIC,
-	REVERB_PRESET_PADDEDCELL,
-	REVERB_PRESET_ROOM,
-	REVERB_PRESET_BATHROOM,
-	REVERB_PRESET_LIVINGROOM,
-	REVERB_PRESET_STONEROOM,
-	REVERB_PRESET_AUDITORIUM,
-	REVERB_PRESET_CONCERTHALL,
-	REVERB_PRESET_CAVE,
-	REVERB_PRESET_ARENA,
-	REVERB_PRESET_HANGAR,
-	REVERB_PRESET_CARPETTEDHALLWAY,
-	REVERB_PRESET_HALLWAY,
-	REVERB_PRESET_STONECORRIDOR,
-	REVERB_PRESET_ALLEY,
-	REVERB_PRESET_FOREST,
-	REVERB_PRESET_CITY,
-	REVERB_PRESET_MOUNTAINS,
-	REVERB_PRESET_QUARRY,
-	REVERB_PRESET_PLAIN,
-	REVERB_PRESET_PARKINGLOT,
-	REVERB_PRESET_SEWERPIPE,
-	REVERB_PRESET_UNDERWATER,
-	REVERB_PRESET_DRUGGED,
-	REVERB_PRESET_DIZZY,
-	REVERB_PRESET_PSYCHOTIC,
-	REVERB_PRESET_CASTLE_SMALLROOM,
-	REVERB_PRESET_CASTLE_SHORTPASSAGE,
-	REVERB_PRESET_CASTLE_MEDIUMROOM,
-	REVERB_PRESET_CASTLE_LONGPASSAGE,
-	REVERB_PRESET_CASTLE_LARGEROOM,
-	REVERB_PRESET_CASTLE_HALL,
-	REVERB_PRESET_CASTLE_CUPBOARD,
-	REVERB_PRESET_CASTLE_COURTYARD,
-	REVERB_PRESET_CASTLE_ALCOVE,
-	REVERB_PRESET_FACTORY_ALCOVE,
-	REVERB_PRESET_FACTORY_SHORTPASSAGE,
-	REVERB_PRESET_FACTORY_MEDIUMROOM,
-	REVERB_PRESET_FACTORY_LONGPASSAGE,
-	REVERB_PRESET_FACTORY_LARGEROOM,
-	REVERB_PRESET_FACTORY_HALL,
-	REVERB_PRESET_FACTORY_CUPBOARD,
-	REVERB_PRESET_FACTORY_COURTYARD,
-	REVERB_PRESET_FACTORY_SMALLROOM,
-	REVERB_PRESET_ICEPALACE_ALCOVE,
-	REVERB_PRESET_ICEPALACE_SHORTPASSAGE,
-	REVERB_PRESET_ICEPALACE_MEDIUMROOM,
-	REVERB_PRESET_ICEPALACE_LONGPASSAGE,
-	REVERB_PRESET_ICEPALACE_LARGEROOM,
-	REVERB_PRESET_ICEPALACE_HALL,
-	REVERB_PRESET_ICEPALACE_CUPBOARD,
-	REVERB_PRESET_ICEPALACE_COURTYARD,
-	REVERB_PRESET_ICEPALACE_SMALLROOM,
-	REVERB_PRESET_SPACESTATION_ALCOVE,
-	REVERB_PRESET_SPACESTATION_MEDIUMROOM,
-	REVERB_PRESET_SPACESTATION_SHORTPASSAGE,
-	REVERB_PRESET_SPACESTATION_LONGPASSAGE,
-	REVERB_PRESET_SPACESTATION_LARGEROOM,
-	REVERB_PRESET_SPACESTATION_HALL,
-	REVERB_PRESET_SPACESTATION_CUPBOARD,
-	REVERB_PRESET_SPACESTATION_SMALLROOM,
-	REVERB_PRESET_WOODEN_ALCOVE,
-	REVERB_PRESET_WOODEN_SHORTPASSAGE,
-	REVERB_PRESET_WOODEN_MEDIUMROOM,
-	REVERB_PRESET_WOODEN_LONGPASSAGE,
-	REVERB_PRESET_WOODEN_LARGEROOM,
-	REVERB_PRESET_WOODEN_HALL,
-	REVERB_PRESET_WOODEN_CUPBOARD,
-	REVERB_PRESET_WOODEN_SMALLROOM,
-	REVERB_PRESET_WOODEN_COURTYARD,
-	REVERB_PRESET_SPORT_EMPTYSTADIUM,
-	REVERB_PRESET_SPORT_SQUASHCOURT,
-	REVERB_PRESET_SPORT_SMALLSWIMMINGPOOL,
-	REVERB_PRESET_SPORT_LARGESWIMMINGPOOL,
-	REVERB_PRESET_SPORT_GYMNASIUM,
-	REVERB_PRESET_SPORT_FULLSTADIUM,
-	REVERB_PRESET_SPORT_STADIUMTANNOY,
-	REVERB_PRESET_PREFAB_WORKSHOP,
-	REVERB_PRESET_PREFAB_SCHOOLROOM,
-	REVERB_PRESET_PREFAB_PRACTISEROOM,
-	REVERB_PRESET_PREFAB_OUTHOUSE,
-	REVERB_PRESET_PREFAB_CARAVAN,
-	REVERB_PRESET_DOME_TOMB,
-	REVERB_PRESET_PIPE_SMALL,
-	REVERB_PRESET_DOME_SAINTPAULS,
-	REVERB_PRESET_PIPE_LONGTHIN,
-	REVERB_PRESET_PIPE_LARGE,
-	REVERB_PRESET_PIPE_RESONANT,
-	REVERB_PRESET_OUTDOORS_BACKYARD,
-	REVERB_PRESET_OUTDOORS_ROLLINGPLAINS,
-	REVERB_PRESET_OUTDOORS_DEEPCANYON,
-	REVERB_PRESET_OUTDOORS_CREEK,
-	REVERB_PRESET_OUTDOORS_VALLEY,
-	REVERB_PRESET_MOOD_HEAVEN,
-	REVERB_PRESET_MOOD_HELL,
-	REVERB_PRESET_MOOD_MEMORY,
-	REVERB_PRESET_DRIVING_COMMENTATOR,
-	REVERB_PRESET_DRIVING_PITGARAGE,
-	REVERB_PRESET_DRIVING_INCAR_RACER,
-	REVERB_PRESET_DRIVING_INCAR_SPORTS,
-	REVERB_PRESET_DRIVING_INCAR_LUXURY,
-	REVERB_PRESET_DRIVING_FULLGRANDSTAND,
-	REVERB_PRESET_DRIVING_EMPTYGRANDSTAND,
-	REVERB_PRESET_DRIVING_TUNNEL,
-	REVERB_PRESET_CITY_STREETS,
-	REVERB_PRESET_CITY_SUBWAY,
-	REVERB_PRESET_CITY_MUSEUM,
-	REVERB_PRESET_CITY_LIBRARY,
-	REVERB_PRESET_CITY_UNDERPASS,
-	REVERB_PRESET_CITY_ABANDONED,
-	REVERB_PRESET_DUSTYROOM,
-	REVERB_PRESET_CHAPEL,
-	REVERB_PRESET_SMALLWATERROOM,
-	REVERB_PRESET_UNDERSLIME,
-	REVERB_PRESET_NONE
 };
 
 // UT 469
@@ -915,41 +783,6 @@ public:
 	FixedArrayView<float, 4> BlendAnimFrame() { return FixedArray<float, 4>(PropOffsets_Actor.BlendAnimFrame); }
 	FixedArrayView<float, 4> BlendAnimRate() { return FixedArray<float, 4>(PropOffsets_Actor.BlendAnimRate); }
 	FixedArrayView<float, 4> BlendTweenRate() { return FixedArray<float, 4>(PropOffsets_Actor.BlendTweenRate); }
-
-	// Unreal 227 exclusive Properties
-	BitfieldBool bNetNotify() { return BoolValue(PropOffsets_Actor.bNetNotify); }
-	BitfieldBool bHandleOwnCorona() { return BoolValue(PropOffsets_Actor.bHandleOwnCorona); }
-	BitfieldBool bRenderMultiEnviroMaps() { return BoolValue(PropOffsets_Actor.bRenderMultiEnviroMaps); }
-	BitfieldBool bWorldGeometry() { return BoolValue(PropOffsets_Actor.bWorldGeometry); }
-	BitfieldBool bUseMeshCollision() { return BoolValue(PropOffsets_Actor.bUseMeshCollision); }
-	BitfieldBool bEditorSelectRender() { return BoolValue(PropOffsets_Actor.bEditorSelectRender); }
-	BitfieldBool bNoDynamicShadowCast() { return BoolValue(PropOffsets_Actor.bNoDynamicShadowCast); }
-	BitfieldBool bIsInOctree() { return BoolValue(PropOffsets_Actor.bIsInOctree); }
-	BitfieldBool bProjectorDecal() { return BoolValue(PropOffsets_Actor.bProjectorDecal); }
-	BitfieldBool bUseLitSprite() { return BoolValue(PropOffsets_Actor.bUseLitSprite); }
-	BitfieldBool bAlwaysRender() { return BoolValue(PropOffsets_Actor.bAlwaysRender); }
-
-	float& LastRenderedTime() { return Value<float>(PropOffsets_Actor.LastRenderedTime); }
-	Color& ActorRenderColor() { return Value<Color>(PropOffsets_Actor.ActorRenderColor); }
-	Color& ActorGUnlitColor() { return Value<Color>(PropOffsets_Actor.ActorGUnlitColor); }
-	UPrimitive*& CollisionOverride() { return Value<UPrimitive*>(PropOffsets_Actor.CollisionOverride); }
-	U227SkeletalMeshInstance*& MeshInstance() { return Value<U227SkeletalMeshInstance*>(PropOffsets_Actor.MeshInstance); }
-	vec3*& RelativeLocation() { return Value<vec3*>(PropOffsets_Actor.RelativeLocation); }
-	Rotator*& RelativeRotation() { return Value<Rotator*>(PropOffsets_Actor.RelativeRotation); }
-	// Pointer type LightDataPtr()
-	// Pointer type MeshDataPtr()
-	TypedScriptArray<U227Projector*> ProjectorList() { return DynamicArray<U227Projector*>(PropOffsets_Actor.ProjectorList); }
-	// Pointer type NetInitialProperties()
-	TypedScriptArray<UActor*> RealTouching() { return DynamicArray<UActor*>(PropOffsets_Actor.RealTouching); }
-
-	UClass*& DefaultAnimationNotify() { return Value<UClass*>(PropOffsets_Actor.DefaultAnimationNotify); }
-	U227AnimationNotify*& AnimationNotify() { return Value<U227AnimationNotify*>(PropOffsets_Actor.AnimationNotify); }
-
-	BitfieldBool bSkipActorReplication() { return BoolValue(PropOffsets_Actor.bSkipActorReplication); }
-	BitfieldBool bRepAnimations() { return BoolValue(PropOffsets_Actor.bRepAnimations); }
-	BitfieldBool bRepAmbientSound() { return BoolValue(PropOffsets_Actor.bRepAmbientSound); }
-	BitfieldBool bSimulatedPawnRep() { return BoolValue(PropOffsets_Actor.bSimulatedPawnRep); }
-	BitfieldBool bRepMesh() { return BoolValue(PropOffsets_Actor.bRepMesh); }
 
 protected:
 	static constexpr float stepDownDeltaFactor = 1.3f;
