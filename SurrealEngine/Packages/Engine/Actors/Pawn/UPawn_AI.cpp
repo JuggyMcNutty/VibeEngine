@@ -167,11 +167,6 @@ bool UPawn::LineOfSightTo(UActor* other, bool ignoreDistance)
 	if (!other)
 		return false;
 
-	if (engine->LaunchInfo.IsUnreal1_227() &&
-		(SightCheckType() == EPawnSightCheck::SEE_None ||
-		(SightCheckType() == EPawnSightCheck::SEE_PlayersOnly && !Cast<UPawn>(other)->bIsPlayer())))
-		return false;
-
 	if (!ignoreDistance && length(Location() - other->Location()) > SightRadius())
 		return false;
 

@@ -5,7 +5,6 @@
 #include "VM/Frame.h"
 #include "Package/PackageManager.h"
 #include "Engine.h"
-#include "Math/quaternion.h"
 #include "Utils/StrTools.h"
 #include "Utils/Random.h"
 #include "Package/ObjectFlags.h"
@@ -111,10 +110,7 @@ void NObject::RegisterFunctions()
 	RegisterVMNativeFunc_3("Object", "Greater_FloatFloat", &NObject::Greater_FloatFloat, 177);
 	RegisterVMNativeFunc_3("Object", "Greater_IntInt", &NObject::Greater_IntInt, 151);
 	RegisterVMNativeFunc_3("Object", "Greater_StrStr", &NObject::Greater_StrStr, 116);
-	if (engine->LaunchInfo.IsUnreal1_227())
-		RegisterVMNativeFunc_4("Object", "InStr", &NObject::InStr_U227, 126);
-	else
-		RegisterVMNativeFunc_3("Object", "InStr", &NObject::InStr, 126);
+	RegisterVMNativeFunc_3("Object", "InStr", &NObject::InStr, 126);
 	RegisterVMNativeFunc_3("Object", "Invert", &NObject::Invert, 227);
 	RegisterVMNativeFunc_2("Object", "IsA", &NObject::IsA, 303);
 	RegisterVMNativeFunc_2("Object", "IsInState", &NObject::IsInState, 281);
@@ -170,10 +166,7 @@ void NObject::RegisterFunctions()
 	RegisterVMNativeFunc_0("Object", "ResetConfig", &NObject::ResetConfig, 0);
 	RegisterVMNativeFunc_3("Object", "Right", &NObject::Right, 234);
 	RegisterVMNativeFunc_2("Object", "RotRand", &NObject::RotRand, 320);
-	if (engine->LaunchInfo.IsUnreal1_227k())
-		RegisterVMNativeFunc_1("Object", "SaveConfig", &NObject::SaveConfig_U227k, 536);
-	else
-		RegisterVMNativeFunc_0("Object", "SaveConfig", &NObject::SaveConfig, 536);
+	RegisterVMNativeFunc_0("Object", "SaveConfig", &NObject::SaveConfig, 536);
 	RegisterVMNativeFunc_2("Object", "SetPropertyText", &NObject::SetPropertyText, 0);
 	RegisterVMNativeFunc_2("Object", "Sin", &NObject::Sin, 187);
 	RegisterVMNativeFunc_4("Object", "Smerp", &NObject::Smerp, 248);
@@ -202,90 +195,6 @@ void NObject::RegisterFunctions()
 	RegisterVMNativeFunc_1("Object", "Warn", &NObject::Warn, 232);
 	RegisterVMNativeFunc_3("Object", "XorXor_BoolBool", &NObject::XorXor_BoolBool, 131);
 	RegisterVMNativeFunc_3("Object", "Xor_IntInt", &NObject::Xor_IntInt, 157);
-
-	// Unreal Gold 227 exclusive functions
-	if (engine->LaunchInfo.IsUnreal1_227())
-	{
-		RegisterVMNativeFunc_3("Object", "Add_QuatQuat", &NObject::Add_QuatQuat_U227, 613);
-		RegisterVMNativeFunc_3("Object", "AddEqual_QuatQuat", &NObject::AddEqual_QuatQuat_U227, 615);
-		RegisterVMNativeFunc_3("Object", "AlignQuatWith", &NObject::AlignQuatWith_U227, 634);
-		RegisterVMNativeFunc_3("Object", "AllFiles", &NObject::AllFiles_U227, 603);
-		RegisterVMNativeFunc_7("Object", "AllLinkers", &NObject::AllLinkers_U227, 636);
-		RegisterVMNativeFunc_3("Object", "AllObjects", &NObject::AllObjects_U227, 602);
-		RegisterVMNativeFunc_3("Object", "Array_Size", &NObject::Array_Size_U227, 640);
-		RegisterVMNativeFunc_4("Object", "Array_Insert", &NObject::Array_Insert_U227, 641);
-		RegisterVMNativeFunc_4("Object", "Array_Remove", &NObject::Array_Remove_U227, 642);
-		RegisterVMNativeFunc_3("Object", "And_RotatorRotator", &NObject::And_RotatorRotator_U227, 607);
-		RegisterVMNativeFunc_1("Object", "AppSeconds", &NObject::AppSeconds_U227, 643);
-		RegisterVMNativeFunc_1("Object", "AppInEditor", &NObject::AppInEditor_U227, 645);
-		RegisterVMNativeFunc_2("Object", "Ceil", &NObject::Ceil_U227, 635);
-		RegisterVMNativeFunc_2("Object", "ClearConfig", &NObject::ClearConfig_U227, 537);
-		RegisterVMNativeFunc_2("Object", "Complement_PreQuat", &NObject::Complement_PreQuat_U227, 619);
-		RegisterVMNativeFunc_2("Object", "CoordsToQuat", &NObject::CoordsToQuat_U227, 620);
-		RegisterVMNativeFunc_5("Object", "Divide", &NObject::Divide_U227, 638);
-		RegisterVMNativeFunc_3("Object", "DivideEqual_CoordsRotator", &NObject::DivideEqual_CoordsRotator_U227, 333);
-		RegisterVMNativeFunc_3("Object", "DivideEqual_QuatFloat", &NObject::DivideEqual_QuatFloat_U227, 618);
-		RegisterVMNativeFunc_3("Object", "Dot_QuatQuat", &NObject::Dot_QuatQuat_U227, 622);
-		RegisterVMNativeFunc_3("Object", "ExecFunctionStr", &NObject::ExecFunctionStr_U227, 390);
-		RegisterVMNativeFunc_2("Object", "ExportFullProperties", &NObject::ExportFullProperties_U227, 0);
-		RegisterVMNativeFunc_6("Object", "ExtractString", &NObject::ExtractString_U227, 639);
-		RegisterVMNativeFunc_3("Object", "FindFunction", &NObject::FindFunction_U227, 646);
-		RegisterVMNativeFunc_3("Object", "FindObject", &NObject::FindObject_U227, 600);
-		RegisterVMNativeFunc_2("Object", "FindObjectIndex", &NObject::FindObjectIndex_U227, 644);
-		RegisterVMNativeFunc_2("Object", "GetClassFlags", &NObject::GetClassFlags_U227, 649);
-		RegisterVMNativeFunc_2("Object", "GetDefaultObject", &NObject::GetDefaultObject_U227, 637);
-		RegisterVMNativeFunc_2("Object", "GetParentClass", &NObject::GetParentClass_U227, 601);
-		// RegisterVMNativeFunc_4("Object", "GetPerObjectNames", &NObject::GetPerObjectNames_U227, 0);
-		RegisterVMNativeFunc_1("Object", "GetUnitCoords", &NObject::GetUnitCoords_U227, 335);
-		RegisterVMNativeFunc_1("Object", "ImportFullProperties", &NObject::ImportFullProperties_U227, 0);
-		// RegisterVMNativeFunc_3("Object", "InterpCurveEval", &NObject::InterpCurveEval_U227, 0); // Necessary structs not implemented yet
-		RegisterVMNativeFunc_3("Object", "IntToStr", &NObject::IntToStr_U227, 325);
-		RegisterVMNativeFunc_4("Object", "LerpRotation", &NObject::LerpRotation_U227, 0);
-		RegisterVMNativeFunc_4("Object", "LerpVector", &NObject::LerpVector_U227, 0);
-		// RegisterVMNativeFunc_4("Object", "LoadPackageContents", &NObject::LoadPackageContents_U227, 257);
-		RegisterVMNativeFunc_2("Object", "Locs", &NObject::Locs_U227, 238);
-		RegisterVMNativeFunc_5("Object", "MakeColor", &NObject::MakeColor_U227, 198);
-		if (engine->LaunchInfo.IsUnreal1_227k())
-			RegisterVMNativeFunc_5("Object", "MakeQuat", &NObject::MakeQuat_U227, 606);
-		else
-			RegisterVMNativeFunc_5("Object", "Quad", &NObject::MakeQuat_U227, 606);
-		RegisterVMNativeFunc_3("Object", "MultiplyEqual_CoordsCoords", &NObject::MultiplyEqual_CoordsCoords_U227, 331);
-		RegisterVMNativeFunc_3("Object", "MultiplyEqual_CoordsRotator", &NObject::MultiplyEqual_CoordsRotator_U227, 332);
-		RegisterVMNativeFunc_3("Object", "MultiplyEqual_QuatFloat", &NObject::MultiplyEqual_QuatFloat_U227, 617);
-		RegisterVMNativeFunc_3("Object", "MultiplyEqual_VectorCoords", &NObject::MultiplyEqual_VectorCoords_U227, 334);
-		RegisterVMNativeFunc_3("Object", "Multiply_CoordsCoords", &NObject::Multiply_CoordsCoords_U227, 330);
-		RegisterVMNativeFunc_3("Object", "Multiply_FloatQuat", &NObject::Multiply_FloatQuat_U227, 611);
-		RegisterVMNativeFunc_3("Object", "Multiply_QuatFloat", &NObject::Multiply_QuatFloat_U227, 610);
-		RegisterVMNativeFunc_3("Object", "Multiply_QuatQuat", &NObject::Multiply_QuatQuat_U227, 612);
-		RegisterVMNativeFunc_2("Object", "Normal2D", &NObject::Normal2D_U227, 274);
-		RegisterVMNativeFunc_3("Object", "QuatError", &NObject::QuatError_U227, 633);
-		RegisterVMNativeFunc_3("Object", "QuatFromAxisAndAngle", &NObject::QuatFromAxisAndAngle_U227, 632);
-		RegisterVMNativeFunc_2("Object", "QuatGetAngle", &NObject::QuatGetAngle_U227, 627);
-		RegisterVMNativeFunc_2("Object", "QuatGetAxis", &NObject::QuatGetAxis_U227, 628);
-		RegisterVMNativeFunc_2("Object", "QuatGetVect", &NObject::QuatGetVect_U227, 623);
-		RegisterVMNativeFunc_3("Object", "QuatRotate", &NObject::QuatRotate_U227, 629);
-		RegisterVMNativeFunc_2("Object", "QuatSizeSquared", &NObject::QuatSizeSquared_U227, 624);
-		RegisterVMNativeFunc_2("Object", "QuatSize", &NObject::QuatSize_U227, 625);
-		RegisterVMNativeFunc_5("Object", "QuatSlerp", &NObject::QuatSlerp_U227, 631);
-		RegisterVMNativeFunc_3("Object", "QuatToCoords", &NObject::QuatToCoords_U227, 621);
-		RegisterVMNativeFunc_2("Object", "QuatToRotation", &NObject::QuatToRotation_U227, 605);
-		RegisterVMNativeFunc_3("Object", "QuatVRotate", &NObject::QuatVRotate_U227, 630);
-		RegisterVMNativeFunc_3("Object", "RandIntRange", &NObject::RandIntRange_U227, 0);
-		RegisterVMNativeFunc_5("Object", "ReplaceStr", &NObject::ReplaceStr_U227, 239);
-		RegisterVMNativeFunc_2("Object", "RotationToQuat", &NObject::RotationToQuat_U227, 604);
-		RegisterVMNativeFunc_4("Object", "SlerpRotation", &NObject::SlerpRotation_U227, 0);
-		RegisterVMNativeFunc_3("Object", "SortArray", &NObject::SortArray_U227, 240);
-		RegisterVMNativeFunc_4("Object", "SortStaticArray", &NObject::SortStaticArray_U227, 241);
-		RegisterVMNativeFunc_4("Object", "StartsWith", &NObject::StartsWith_U227, 392);
-		RegisterVMNativeFunc_3("Object", "StringToName", &NObject::StringToName_U227, 391);
-		RegisterVMNativeFunc_3("Object", "Subtract_QuatQuat", &NObject::Subtract_QuatQuat_U227, 614);
-		RegisterVMNativeFunc_3("Object", "SubtractEqual_QuatQuat", &NObject::SubtractEqual_QuatQuat_U227, 616);
-		RegisterVMNativeFunc_3("Object", "TransformCoordsByNormal", &NObject::TransformCoordsByNormal_U227, 337);
-		RegisterVMNativeFunc_3("Object", "TransformRotatorByNormal", &NObject::TransformRotatorByNormal_U227, 336);
-		RegisterVMNativeFunc_2("Object", "VSizeSq", &NObject::VSizeSq_U227, 253);
-		RegisterVMNativeFunc_2("Object", "VSize2D", &NObject::VSize2D_U227, 271);
-		RegisterVMNativeFunc_2("Object", "VSize2DSq", &NObject::VSize2DSq_U227, 273);
-	}
 
 	if (engine->LaunchInfo.IsDeusEx())
 	{
@@ -387,11 +296,6 @@ void NObject::AddEqual_VectorVector(vec3& A, const vec3& B, vec3& ReturnValue)
 	ReturnValue = A += B;
 }
 
-void NObject::AddEqual_QuatQuat_U227(quaternion& A, quaternion& B, quaternion& ReturnValue)
-{
-	ReturnValue = A += B;
-}
-
 void NObject::Add_FloatFloat(float A, float B, float& ReturnValue)
 {
 	ReturnValue = A + B;
@@ -412,11 +316,6 @@ void NObject::Add_VectorVector(const vec3& A, const vec3& B, vec3& ReturnValue)
 	ReturnValue = A + B;
 }
 
-void NObject::Add_QuatQuat_U227(quaternion& A, quaternion& B, quaternion& ReturnValue)
-{
-	ReturnValue = A + B;
-}
-
 void NObject::OrOr_BoolBool(bool A, std::optional<bool> B, BitfieldBool& ReturnValue)
 {
 	ReturnValue = A || *B;
@@ -430,61 +329,6 @@ void NObject::AndAnd_BoolBool(bool A, std::optional<bool> B, BitfieldBool& Retur
 void NObject::And_IntInt(int A, int B, int& ReturnValue)
 {
 	ReturnValue = A & B;
-}
-
-void NObject::And_RotatorRotator_U227(Rotator& R1, Rotator& R2, Rotator& ReturnValue)
-{
-	LogUnimplemented("Object.And_RotatorRotator() [U227]");
-	ReturnValue = Rotator();
-}
-
-void NObject::AlignQuatWith_U227(quaternion& A, quaternion& B, quaternion& ReturnValue)
-{
-	LogUnimplemented("Object.AlignQuatWith() [U227]");
-	ReturnValue = quaternion();
-}
-
-void NObject::AllLinkers_U227(NameString& PackageName, std::string& FileName, std::string& GUID, int& NameCount, int& ImportCount, int& ExportCount, int& FileSize)
-{
-	LogUnimplemented("Object.AllLinkersIterator [U227]");
-}
-
-void NObject::AppSeconds_U227(float& ReturnValue)
-{
-	ReturnValue = static_cast<float>(engine->TotalTime);
-}
-
-void NObject::AppInEditor_U227(BitfieldBool& ReturnValue)
-{
-	ReturnValue = engine->getEditorMode();
-}
-
-void NObject::Array_Size_U227(ScriptArray& Ar, std::optional<int> SetSize, int& ReturnValue)
-{
-	if (SetSize.has_value() && SetSize.value() >= 0)
-		Ar.Resize((size_t)SetSize.value());
-	ReturnValue = (int)Ar.GetSize();
-}
-
-void NObject::Array_Insert_U227(ScriptArray& Ar, int Offset, std::optional<int> Count, BitfieldBool& ReturnValue)
-{
-	// To do: return false if Offset and Count is out of bounds
-	// To do: is the Count default correct?
-	Ar.Insert(Offset, Count.has_value() ? Count.value() : 1);
-	ReturnValue = true;
-}
-
-void NObject::Array_Remove_U227(ScriptArray& Ar, int Offset, std::optional<int> Count, BitfieldBool& ReturnValue)
-{
-	// To do: return false if out of bounds
-	// To do: is the Count default correct?
-	Ar.Remove(Offset, Count.has_value() ? Count.value() : 1);
-	ReturnValue = true;
-}
-
-void NObject::AllFiles_U227(const std::string& FileExtension, const std::string& FilePrefix, std::string& outFileName)
-{
-	Frame::CreatedIterator = std::make_unique<AllFilesIterator>(FileExtension, FilePrefix, outFileName);
 }
 
 void NObject::Asc(const std::string& S, int& ReturnValue)
@@ -510,11 +354,6 @@ void NObject::Caps(const std::string& S, std::string& ReturnValue)
 		ReturnValue.push_back(std::toupper(c));
 }
 
-void NObject::Ceil_U227(const float f, float& ReturnValue)
-{
-	ReturnValue = std::ceil(f);
-}
-
 void NObject::Chr(int i, std::string& ReturnValue)
 {
 	ReturnValue = std::string(1, i);
@@ -538,11 +377,6 @@ void NObject::ClassIsChildOf(UObject* TestClass, UObject* ParentClass, BitfieldB
 	ReturnValue = false;
 }
 
-void NObject::ClearConfig_U227(UObject* Class, std::optional<std::string> PropName)
-{
-	LogUnimplemented("Object.ClearConfig() [U227]");
-}
-
 void NObject::ComplementEqual_FloatFloat(float A, float B, BitfieldBool& ReturnValue)
 {
 	ReturnValue = std::abs(A - B) < 0.0001;
@@ -558,11 +392,6 @@ void NObject::Complement_PreInt(int A, int& ReturnValue)
 	ReturnValue = ~A;
 }
 
-void NObject::Complement_PreQuat_U227(const quaternion A, quaternion& ReturnValue)
-{
-	ReturnValue = inverse(A);
-}
-
 void NObject::Concat_StrStr(const std::string& A, const std::string& B, std::string& ReturnValue)
 {
 	ReturnValue = A + B;
@@ -571,12 +400,6 @@ void NObject::Concat_StrStr(const std::string& A, const std::string& B, std::str
 void NObject::ConcatEqual_StrStr(std::string& A, std::string& B, std::string& ReturnValue)
 {
 	ReturnValue = A += B;
-}
-
-void NObject::CoordsToQuat_U227(Coords& C, quaternion& ReturnValue)
-{
-	LogUnimplemented("Object.CoordsToQuat() [U227]");
-	ReturnValue = quaternion();
 }
 
 void NObject::Cos(float A, float& ReturnValue)
@@ -641,33 +464,10 @@ void NObject::CyclesToSeconds(int cycles, float& ReturnValue)
 	ReturnValue = (float)(cycles * 1e-9);
 }
 
-void NObject::Divide_U227(std::string& Src, std::string& Divider, std::string& LeftPart, std::string& RightPart, BitfieldBool& ReturnValue)
-{
-	auto pos = Src.find(Divider);
-
-	if (pos == std::string::npos)
-	{
-		LeftPart = Src;
-		RightPart = "";
-		ReturnValue = false;
-	}
-	else
-	{
-		LeftPart = Src.substr(0, pos);
-		RightPart = Src.substr(pos + 1);
-		ReturnValue = true;
-	}
-}
-
 void NObject::DivideEqual_ByteByte(uint8_t& A, uint8_t B, uint8_t& ReturnValue)
 {
 	// By zero: 0, and the byte keeps its value, as the original answers.
 	ReturnValue = B != 0 ? (A /= B) : 0;
-}
-
-void NObject::DivideEqual_CoordsRotator_U227(Coords& A, Rotator& B, Coords& ReturnValue)
-{
-	ReturnValue = A * Coords::InverseRotation(B);
 }
 
 void NObject::DivideEqual_FloatFloat(float& A, float B, float& ReturnValue)
@@ -686,11 +486,6 @@ void NObject::DivideEqual_RotatorFloat(Rotator& A, float B, Rotator& ReturnValue
 }
 
 void NObject::DivideEqual_VectorFloat(vec3& A, float B, vec3& ReturnValue)
-{
-	ReturnValue = A /= B;
-}
-
-void NObject::DivideEqual_QuatFloat_U227(quaternion& A, float B, quaternion& ReturnValue)
 {
 	ReturnValue = A /= B;
 }
@@ -719,11 +514,6 @@ void NObject::Divide_VectorFloat(const vec3& A, float B, vec3& ReturnValue)
 void NObject::Dot_VectorVector(const vec3& A, const vec3& B, float& ReturnValue)
 {
 	ReturnValue = dot(A, B);
-}
-
-void NObject::Dot_QuatQuat_U227(quaternion& A, quaternion& B, float& ReturnValue)
-{
-	ReturnValue = dot(vec3{A.x, A.y, A.z}, vec3{B.x, B.y, B.z});
 }
 
 void NObject::DynamicLoadObject(const std::string& ObjectName, UObject* ObjectClass, std::optional<bool> MayFail, UObject*& ReturnValue)
@@ -836,65 +626,14 @@ void NObject::EqualEqual_VectorVector(const vec3& A, const vec3& B, BitfieldBool
 	ReturnValue = (A == B);
 }
 
-void NObject::ExecFunctionStr_U227(const NameString& FuncName, const std::string& Params, std::optional<std::string> ReturnVal)
-{
-	LogUnimplemented("Object.ExecFunctionStr() [U227]");
-	ReturnVal = std::nullopt;
-}
-
 void NObject::Exp(float A, float& ReturnValue)
 {
 	ReturnValue = std::exp(A);
 }
 
-void NObject::ExportFullProperties_U227(std::optional<bool> bDelta, std::string& ReturnValue)
-{
-	LogUnimplemented("Object.ExportFullProperties() [U227]");
-	ReturnValue = "";
-}
-
-void NObject::ExtractString_U227(std::string& Src, std::string& LeftDivider, std::string& RightDivider, std::string& MidString, std::optional<bool> bAdvanced, BitfieldBool& ReturnValue)
-{
-	LogUnimplemented("Object.ExtractString() [U227]");
-	ReturnValue = false;
-}
-
 void NObject::FClamp(float V, float A, float B, float& ReturnValue)
 {
 	ReturnValue = clamp(V, A, B);
-}
-
-void NObject::FindFunction_U227(NameString& FuncName, std::optional<NameString> TestState, UObject*& ReturnValue)
-{
-	LogUnimplemented("Object.FindFunction() [U227]");
-	ReturnValue = nullptr;
-}
-
-void NObject::FindObject_U227(UObject* ObjClass, std::string& ObjectName, UObject*& ReturnValue)
-{
-	ReturnValue = engine->FindObject(ObjClass->Class->Name, ObjectName);
-}
-
-void NObject::FindObjectIndex_U227(int Index, UObject*& ReturnValue)
-{
-	auto allObjects = GC::GetObjects();
-
-	auto objIterator = allObjects.begin();
-
-	while (objIterator != allObjects.end())
-	{
-		auto currObject = dynamic_cast<UObject*>(*objIterator);
-
-		if (currObject->ObjectIndex() == Index)
-		{
-			ReturnValue = currObject;
-			return;
-		}
-
-		++objIterator;
-	}
-
-	ReturnValue = nullptr;
 }
 
 void NObject::FMax(float A, float B, float& ReturnValue)
@@ -918,17 +657,6 @@ void NObject::GetAxes(const Rotator& A, vec3& X, vec3& Y, vec3& Z)
 	Coords::TableRotation(A).GetAxes(X, Y, Z);
 }
 
-void NObject::GetClassFlags_U227(UObject* Class, int& ReturnValue)
-{
-	ReturnValue = static_cast<int>(Class->Class->ClsFlags);
-}
-
-void NObject::GetDefaultObject_U227(UObject* ObjClass, UObject*& ReturnValue)
-{
-	LogUnimplemented("Object.GetDefaultObject() [U227]");
-	ReturnValue = nullptr;
-}
-
 void NObject::GetEnum(UObject* E, int i, NameString& ReturnValue)
 {
 	UEnum* type = UObject::Cast<UEnum>(E);
@@ -936,12 +664,6 @@ void NObject::GetEnum(UObject* E, int i, NameString& ReturnValue)
 		ReturnValue = type->ElementNames[i];
 	else
 		ReturnValue = {};
-}
-
-void NObject::GetParentClass_U227(UObject* SelfClass, std::optional<UObject*> ObjClass, UObject*& ReturnValue)
-{
-	UStruct* clsStruct = ObjClass ? (*ObjClass)->Class : SelfClass->Class;
-	ReturnValue = clsStruct->BaseStruct;
 }
 
 // Deus Ex's are the original's (Core.dll 0x1013e0b0, 0x1013e320): only a
@@ -976,12 +698,6 @@ void NObject::GetUnAxes(const Rotator& A, vec3& X, vec3& Y, vec3& Z)
 	X = { axes.XAxis.x, axes.YAxis.x, axes.ZAxis.x };
 	Y = { axes.XAxis.y, axes.YAxis.y, axes.ZAxis.y };
 	Z = { axes.XAxis.z, axes.YAxis.z, axes.ZAxis.z };
-}
-
-void NObject::GetUnitCoords_U227(Coords& ReturnValue)
-{
-	LogUnimplemented("Object.GetUnitCoords() [U227]");
-	ReturnValue = Coords::Identity();
 }
 
 void NObject::GotoState(UObject* Self, std::optional<NameString> NewState, std::optional<NameString> Label)
@@ -1034,28 +750,10 @@ void NObject::Greater_StrStr(const std::string& A, const std::string& B, Bitfiel
 	ReturnValue = A > B;
 }
 
-void NObject::ImportFullProperties_U227(const std::string& S)
-{
-	LogUnimplemented("Object.ImportFullProperties() [U227]");
-}
-
 void NObject::InStr(const std::string& S, const std::string& t, int& ReturnValue)
 {
 	auto pos = S.find(t);
 	ReturnValue = (pos != std::string::npos) ? (int)pos : -1;
-}
-
-void NObject::InStr_U227(const std::string& S, const std::string& t, std::optional<int> Start, int& ReturnValue)
-{
-	auto start = Start ? *Start : 0;
-	// Ignore start if it is bigger than the length of S
-	const auto pos = S.find(t, (start > S.length()) ? start : 0);
-	ReturnValue = (pos != std::string::npos) ? (int)pos : -1;
-}
-
-void NObject::IntToStr_U227(int value, int minWidth, std::string& ReturnValue)
-{
-	ReturnValue = StrTools::int_to_string(value, minWidth);
 }
 
 void NObject::Invert(vec3& X, vec3& Y, vec3& Z)
@@ -1093,18 +791,6 @@ void NObject::Len(const std::string& S, int& ReturnValue)
 void NObject::Lerp(float Alpha, float A, float B, float& ReturnValue)
 {
 	ReturnValue = mix(A, B, Alpha);
-}
-
-void NObject::LerpRotation_U227(Rotator& Dest, Rotator& Src, float Alpha, Rotator& ReturnValue)
-{
-	LogUnimplemented("Object.LerpRotation() [U227]");
-	ReturnValue = {};
-}
-
-void NObject::LerpVector_U227(vec3& Dest, vec3& Src, float Alpha, vec3& ReturnValue)
-{
-	LogUnimplemented("Object.LerpVector() [U227]");
-	ReturnValue = {};
 }
 
 void NObject::LessEqual_FloatFloat(float A, float B, BitfieldBool& ReturnValue)
@@ -1152,14 +838,6 @@ void NObject::Localize(const std::string& SectionName, const std::string& KeyNam
 	ReturnValue = engine->packages->Localize(PackageName, SectionName, KeyName);
 }
 
-void NObject::Locs_U227(const std::string& S, std::string& ReturnValue)
-{
-	ReturnValue = "";
-
-	for (const char c : S)
-		ReturnValue += std::tolower(c);
-}
-
 void NObject::Log(const std::string& S, std::optional<NameString> Tag)
 {
 	if (Tag)
@@ -1171,17 +849,6 @@ void NObject::Log(const std::string& S, std::optional<NameString> Tag)
 void NObject::Loge(float A, float& ReturnValue)
 {
 	ReturnValue = std::log(A);
-}
-
-void NObject::MakeColor_U227(uint8_t R, uint8_t G, uint8_t B, std::optional<uint8_t> A, Color& ReturnValue)
-{
-	const uint8_t alpha = A ? *A : 255;
-	ReturnValue = Color{R, G, B, alpha};
-}
-
-void NObject::MakeQuat_U227(float X, float Y, float Z, float W, quaternion& ReturnValue)
-{
-	ReturnValue = quaternion(X, Y, Z, W);
 }
 
 void NObject::Max(int A, int B, int& ReturnValue)
@@ -1223,24 +890,7 @@ void NObject::MultiplyEqual_ByteByte(uint8_t& A, uint8_t B, uint8_t& ReturnValue
 	ReturnValue = A *= B;
 }
 
-void NObject::MultiplyEqual_CoordsCoords_U227(Coords& A, Coords& B, Coords& ReturnValue)
-{
-	Exception::Throw("Object.MultiplyEqual_CoordsRotator [U227]");
-	ReturnValue = Coords::Identity();
-}
-
-void NObject::MultiplyEqual_CoordsRotator_U227(Coords& A, Rotator& B, Coords& ReturnValue)
-{
-	Exception::Throw("Object.MultiplyEqual_CoordsRotator [U227]");
-	ReturnValue = Coords::Identity();
-}
-
 void NObject::MultiplyEqual_FloatFloat(float& A, float B, float& ReturnValue)
-{
-	ReturnValue = A *= B;
-}
-
-void NObject::MultiplyEqual_QuatFloat_U227(quaternion& A, float B, quaternion& ReturnValue)
 {
 	ReturnValue = A *= B;
 }
@@ -1253,13 +903,6 @@ void NObject::MultiplyEqual_IntFloat(int& A, float B, int& ReturnValue)
 void NObject::MultiplyEqual_RotatorFloat(Rotator& A, float B, Rotator& ReturnValue)
 {
 	ReturnValue = A * B;
-}
-
-void NObject::MultiplyEqual_VectorCoords_U227(vec3& A, Coords& B, vec3& ReturnValue)
-{
-	Exception::Throw("Object.MultiplyEqual_VectorCoords [U227]");
-	ReturnValue = vec3();
-	// ReturnValue = A *= B;
 }
 
 void NObject::MultiplyEqual_VectorFloat(vec3& A, float B, vec3& ReturnValue)
@@ -1277,17 +920,7 @@ void NObject::MultiplyMultiply_FloatFloat(float A, float B, float& ReturnValue)
 	ReturnValue = std::pow(A, B);
 }
 
-void NObject::Multiply_CoordsCoords_U227(Coords& A, Coords& B, Coords& ReturnValue)
-{
-	ReturnValue = A * B;
-}
-
 void NObject::Multiply_FloatFloat(float A, float B, float& ReturnValue)
-{
-	ReturnValue = A * B;
-}
-
-void NObject::Multiply_FloatQuat_U227(float A, quaternion& B, quaternion& ReturnValue)
 {
 	ReturnValue = A * B;
 }
@@ -1303,16 +936,6 @@ void NObject::Multiply_FloatVector(float A, const vec3& B, vec3& ReturnValue)
 }
 
 void NObject::Multiply_IntInt(int A, int B, int& ReturnValue)
-{
-	ReturnValue = A * B;
-}
-
-void NObject::Multiply_QuatFloat_U227(quaternion& A, float B, quaternion& ReturnValue)
-{
-	ReturnValue = A * B;
-}
-
-void NObject::Multiply_QuatQuat_U227(quaternion& A, quaternion& B, quaternion& ReturnValue)
 {
 	ReturnValue = A * B;
 }
@@ -1335,12 +958,6 @@ void NObject::Multiply_VectorVector(const vec3& A, const vec3& B, vec3& ReturnVa
 void NObject::Normal(const vec3& A, vec3& ReturnValue)
 {
 	ReturnValue = normalize(A);
-}
-
-void NObject::Normal2D_U227(const vec3& A, vec3& ReturnValue)
-{
-	const auto v2d = normalize(A.xy());
-	ReturnValue = vec3(v2d.x, v2d.y, A.z);
 }
 
 void NObject::Normalize(const Rotator& Rot, Rotator& ReturnValue)
@@ -1409,105 +1026,15 @@ void NObject::Percent_FloatFloat(float A, float B, float& ReturnValue)
 	ReturnValue = std::fmod(A, B);
 }
 
-void NObject::QuatError_U227(quaternion& A, quaternion& B, float& ReturnValue)
-{
-	LogUnimplemented("Object.QuatError() [U227]");
-	ReturnValue = 0.0f;
-}
-
-void NObject::QuatFromAxisAndAngle_U227(const vec3& axis, float angle, quaternion& ReturnValue)
-{
-	ReturnValue = quaternion(angle, axis);
-}
-
-void NObject::QuatGetAngle_U227(quaternion& A, float& ReturnValue)
-{
-	LogUnimplemented("Object.QuatGetAngle() [U227]");
-	ReturnValue = 0.0f;
-}
-
-void NObject::QuatGetAxis_U227(quaternion& A, vec3& ReturnValue)
-{
-	LogUnimplemented("Object.QuatGetAxis() [U227]");
-	ReturnValue = vec3();
-}
-
-void NObject::QuatGetVect_U227(quaternion& A, vec3& ReturnValue)
-{
-	ReturnValue = normalize(vec3{A.x, A.y, A.z});
-}
-
-void NObject::QuatRotate_U227(quaternion& A, quaternion& B, quaternion& ReturnValue)
-{
-	LogUnimplemented("Object.QuatRotate() [U227]");
-	ReturnValue = quaternion();
-}
-
-void NObject::QuatSizeSquared_U227(quaternion& A, float& ReturnValue)
-{
-	ReturnValue = magnitude_squared(A);
-}
-
-void NObject::QuatSize_U227(quaternion& A, float& ReturnValue)
-{
-	ReturnValue = magnitude(A);
-}
-
-void NObject::QuatSlerp_U227(quaternion& A, quaternion& B, float C, std::optional<bool> bAlign, quaternion& ReturnValue)
-{
-	// TODO: Unsure if this is correct
-	bool align = bAlign ? *bAlign : false;
-
-	if (align)
-	{
-		auto invA = inverse(A);
-		auto delta = normalize(B * invA);
-
-		ReturnValue = slerp(delta, B, C);
-	}
-	else
-		ReturnValue = slerp(A, B, C);
-}
-
-void NObject::QuatToCoords_U227(quaternion& Q, std::optional<vec3> Origin, Coords& ReturnValue)
-{
-	LogUnimplemented("Object.QuatToCoords() [U227]");
-	ReturnValue = Coords::Identity();
-}
-
-void NObject::QuatToRotation_U227(quaternion& Q, Rotator& ReturnValue)
-{
-	LogUnimplemented("Object.QuatToRotation() [U227]");
-	ReturnValue = Rotator();
-}
-
-void NObject::QuatVRotate_U227(quaternion& A, vec3& B, vec3& ReturnValue)
-{
-	LogUnimplemented("Object.QuatVRotate() [U227]");
-	ReturnValue = vec3();
-}
-
 void NObject::Rand(int Max, int& ReturnValue)
 {
 	// Note: Object.Rand is Max exclusive, while RandInt is Max inclusive!
 	ReturnValue = RandInt(std::min(std::max(Max - 1, 0), 32767));
 }
 
-void NObject::RandIntRange_U227(UObject* Self, int Min, int Max, int& ReturnValue)
-{
-	// Assuming in the 227 version that Max also exclusive. See note for NObject::Rand
-	ReturnValue = RandInt(Min, std::max(Max - 1, Min));
-}
-
 void NObject::RandRange(UObject* Self, float Min, float Max, float& ReturnValue)
 {
 	ReturnValue = FRandRange(Min, Max);
-}
-
-void NObject::ReplaceStr_U227(std::string& text, std::string& findStr, std::string& replaceWith, std::optional<bool> bCaseInsensitive, std::string& ReturnValue)
-{
-	auto ignoreCase = bCaseInsensitive ? *bCaseInsensitive : false;
-	ReturnValue = StrTools::replace(text, findStr, replaceWith, ignoreCase);
 }
 
 // The config read again into a class's defaults or an object, its base
@@ -1581,12 +1108,6 @@ void NObject::Right(const std::string& S, int i, std::string& ReturnValue)
 	ReturnValue = S.substr(S.size() - count);
 }
 
-void NObject::RotationToQuat_U227(Rotator& R, quaternion& ReturnValue)
-{
-	LogUnimplemented("Object.RotationToQuat() [U227]");
-	ReturnValue = quaternion();
-}
-
 void NObject::RotRand(std::optional<bool> bRoll, Rotator& ReturnValue)
 {
 	ReturnValue.Yaw = (int)(std::rand() * 0xffffLL / RAND_MAX);
@@ -1596,12 +1117,6 @@ void NObject::RotRand(std::optional<bool> bRoll, Rotator& ReturnValue)
 
 void NObject::SaveConfig(UObject* Self)
 {
-	Self->SaveConfig();
-}
-
-void NObject::SaveConfig_U227k(UObject* Self, std::optional<bool> bNoWriteINI)
-{
-	LogUnimplemented("Object.SaveConfig() [U227k - bNoWriteINI parameter not implemented]");
 	Self->SaveConfig();
 }
 
@@ -1628,27 +1143,9 @@ void NObject::Sin(float A, float& ReturnValue)
 	ReturnValue = std::sin(A);
 }
 
-void NObject::SlerpRotation_U227(Rotator& Dest, Rotator& Src, float Alpha, Rotator& ReturnValue)
-{
-	LogUnimplemented("Object.SlerpRotation() [U227]");
-	ReturnValue = Dest;
-}
-
 void NObject::Smerp(float Alpha, float A, float B, float& ReturnValue)
 {
 	ReturnValue = (float)(A + (3.0 * Alpha * Alpha - 2.0 * Alpha * Alpha * Alpha) * (B - A));
-}
-
-void NObject::SortArray_U227(UObject* ArrayProperty, UObject* SortCode, BitfieldBool& ReturnValue)
-{
-	LogUnimplemented("Object.SortArray() [U227]");
-	ReturnValue = false;
-}
-
-void NObject::SortStaticArray_U227(UObject* Prop, UObject* SortCode, std::optional<int> SortSize, BitfieldBool& ReturnValue)
-{
-	LogUnimplemented("Object.SortStaticArray() [U227]");
-	ReturnValue = false;
 }
 
 void NObject::Sqrt(float A, float& ReturnValue)
@@ -1661,21 +1158,9 @@ void NObject::Square(float A, float& ReturnValue)
 	ReturnValue = A * A;
 }
 
-void NObject::StartsWith_U227(const std::string& Str, const std::string& SubStr, std::optional<bool> bCaseInsensitive, BitfieldBool& ReturnValue)
-{
-	auto ignoreCase = bCaseInsensitive ? *bCaseInsensitive : false;
-	ReturnValue = StrTools::startswith(Str, SubStr, ignoreCase);
-}
-
 void NObject::StaticSaveConfig(UObject* Class)
 {
 	Class->SaveConfig();
-}
-
-void NObject::StringToName_U227(const std::string& S, std::optional<bool> bFind, NameString& ReturnValue)
-{
-	LogUnimplemented("Object.StringToName() [U227]");
-	ReturnValue = "";
 }
 
 void NObject::SubtractEqual_ByteByte(uint8_t& A, uint8_t B, uint8_t& ReturnValue)
@@ -1699,11 +1184,6 @@ void NObject::SubtractEqual_RotatorRotator(Rotator& A, const Rotator& B, Rotator
 }
 
 void NObject::SubtractEqual_VectorVector(vec3& A, const vec3& B, vec3& ReturnValue)
-{
-	ReturnValue = A -= B;
-}
-
-void NObject::SubtractEqual_QuatQuat_U227(quaternion& A, quaternion& B, quaternion& ReturnValue)
 {
 	ReturnValue = A -= B;
 }
@@ -1763,26 +1243,9 @@ void NObject::Subtract_VectorVector(const vec3& A, const vec3& B, vec3& ReturnVa
 	ReturnValue = A - B;
 }
 
-void NObject::Subtract_QuatQuat_U227(quaternion& A, quaternion& B, quaternion& ReturnValue)
-{
-	ReturnValue = A - B;
-}
-
 void NObject::Tan(float A, float& ReturnValue)
 {
 	ReturnValue = std::tan(A);
-}
-
-void NObject::TransformCoordsByNormal_U227(Coords& C, vec3& FloorNormal, Coords& ReturnValue)
-{
-	LogUnimplemented("Object.TransformCoordsByNormal() [U227]");
-	ReturnValue = C;
-}
-
-void NObject::TransformRotatorByNormal_U227(Rotator& R, vec3& FloorNormal, Rotator& ReturnValue)
-{
-	LogUnimplemented("Object.TransformRotatorByNormal() [U227]");
-	ReturnValue = R;
 }
 
 void NObject::VRand(vec3& ReturnValue)
@@ -1806,21 +1269,6 @@ void NObject::VSize(const vec3& A, float& ReturnValue)
 	ReturnValue = length(A);
 }
 
-void NObject::VSizeSq_U227(const vec3& A, float& ReturnValue)
-{
-	ReturnValue = dot(A, A);
-}
-
-void NObject::VSize2D_U227(const vec3& A, float& ReturnValue)
-{
-	ReturnValue = length(A.xy());
-}
-
-void NObject::VSize2DSq_U227(const vec3& A, float& ReturnValue)
-{
-	ReturnValue = dot(A.xy(), A.xy());
-}
-
 void NObject::Warn(const std::string& S)
 {
 	LogMessage("Warning: " + S);
@@ -1836,14 +1284,9 @@ void NObject::Xor_IntInt(int A, int B, int& ReturnValue)
 	ReturnValue = A ^ B;
 }
 
-void NObject::AllObjects_U227(UObject* Self, UObject* BaseClass, UObject*& Actor, UObject* InOuter)
-{
-	Frame::CreatedIterator = std::make_unique<AllObjectsIterator>(BaseClass, &Actor, InOuter);
-}
-
 void NObject::AllObjects_DeusEx(UObject* Self, UObject* BaseClass, UObject*& Actor)
 {
-	Frame::CreatedIterator = std::make_unique<AllObjectsIterator>(BaseClass, &Actor, nullptr);
+	Frame::CreatedIterator = std::make_unique<AllObjectsIterator>(BaseClass, &Actor);
 }
 
 void NObject::GetLanguage(std::string& ReturnValue)

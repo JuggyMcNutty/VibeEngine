@@ -709,84 +709,9 @@ UObject* UActor::Trace(vec3& hitLocation, vec3& hitNormal, const vec3& traceEnd,
 	return hit.Actor;
 }
 
-UObject* UActor::Trace(vec3& hitLocation, vec3& hitNormal, const vec3& traceEnd, const vec3& traceStart, bool bTraceActors, const vec3& extent, bool bTraceBSP, uint8_t BSPTraceFlags)
-{
-	LogUnimplemented("Actor.Trace() [U227 - BSPTraceFlags parameter isn't implemented");
-	TraceFlags flags;
-	flags.movers = true;
-	flags.world = bTraceBSP;
-	if (bTraceActors)
-	{
-		flags.pawns = true;
-		flags.others = true;
-		flags.onlyProjectiles = true;
-	}
-
-	// hack?
-	if (IsA("ChallengeHUD"))
-	{
-		flags.zoneChanges = true;
-	}
-
-	CollisionHit hit = XLevel()->Collision.TraceFirstHit(traceStart, traceEnd, this, extent, flags);
-	hitNormal = hit.Normal;
-	hitLocation = traceStart + (traceEnd - traceStart) * hit.Fraction;
-	return hit.Actor;
-}
-
 bool UActor::FastTrace(const vec3& traceEnd, const vec3& traceStart)
 {
 	return !XLevel()->Collision.TraceAnyHit(traceStart, traceEnd, this, false, true, false);
-}
-
-bool UActor::TraceSurfHitInfo(vec3& Start, vec3& End, vec3* HitLocation, vec3* HitNormal, UTexture* HitTex, int* HitFlags)
-{
-	const TraceFlags flags = {
-		.movers = true,
-		.world = true
-	};
-
-	const auto hit = XLevel()->Collision.TraceFirstHit(Start, End, this, vec3(), flags);
-
-	if (!hit.Node)
-		return false;
-
-	if (HitLocation)
-		*HitLocation = Start + (End - Start) * hit.Fraction;
-
-	if (HitNormal)
-		*HitNormal = hit.Normal;
-
-	if (HitTex)
-		HitTex = XLevel()->Model->Surfaces[hit.Node->Surf].Material;
-
-	if (HitFlags)
-		*HitFlags = hit.Node->NodeFlags;
-
-	return true;
-}
-
-bool UActor::TraceThisActor(vec3& TraceEnd, vec3 TraceStart, vec3* HitLocation, vec3* HitNormal, std::optional<vec3> Extent)
-{
-	TraceFlags flags{
-		.pawns = true,
-		.movers = true,
-		.others = true,
-		.world = true
-	};
-
-	const auto hit = XLevel()->Collision.TraceFirstHit(TraceStart, TraceEnd, this, Extent ? *Extent : vec3(), flags);
-
-	if (!hit.Node && !hit.Actor)
-		return false;
-
-	if (HitLocation)
-		*HitLocation = TraceStart + (TraceEnd - TraceStart) * hit.Fraction;
-
-	if (HitNormal)
-		*HitNormal = hit.Normal;
-
-	return true;
 }
 
 CollisionHit UActor::TryMove(const vec3& delta, bool dryRun, bool isOwnBaseBlocking, CollisionHitList* traced)

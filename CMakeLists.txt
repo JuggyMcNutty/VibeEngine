@@ -132,10 +132,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Native/NScriptedTexture.h
 	SurrealEngine/Native/NObject.h
 	SurrealEngine/Native/NActor.cpp
-	SurrealEngine/Native/N227Emitter.h
-	SurrealEngine/Native/N227Emitter.cpp
-	SurrealEngine/Native/N227Projector.h
-	SurrealEngine/Native/N227Projector.cpp
 	SurrealEngine/Native/NPlayerPawn.h
 	SurrealEngine/Native/NStatLog.cpp
 	SurrealEngine/Native/NStatLogFile.cpp
@@ -179,10 +175,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Native/NParticleIterator.h
 	SurrealEngine/Native/NPlayerPawnExt.cpp
 	SurrealEngine/Native/NPlayerPawnExt.h
-	SurrealEngine/Native/NUPakPathNodeIterator.cpp
-	SurrealEngine/Native/NUPakPathNodeIterator.h
-	SurrealEngine/Native/NUPakPawnPathNodeIterator.cpp
-	SurrealEngine/Native/NUPakPawnPathNodeIterator.h
 	SurrealEngine/Native/NRMusicPlayer.cpp
 	SurrealEngine/Native/NRMusicPlayer.h
 	SurrealEngine/Native/NBorderWindow.cpp
@@ -391,8 +383,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Core/USubsystem.h
 	SurrealEngine/Packages/Core/UTextBuffer.cpp
 	SurrealEngine/Packages/Core/UTextBuffer.h
-	SurrealEngine/Packages/Core/Properties/UAnyProperty.cpp
-	SurrealEngine/Packages/Core/Properties/UAnyProperty.h
 	SurrealEngine/Packages/Core/Properties/UArrayProperty.cpp
 	SurrealEngine/Packages/Core/Properties/UArrayProperty.h
 	SurrealEngine/Packages/Core/Properties/UBoolProperty.cpp
@@ -440,24 +430,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/DeusEx/UScriptedPawn.h
 	SurrealEngine/Packages/DeusExText/UDeusExTextParser.cpp
 	SurrealEngine/Packages/DeusExText/UDeusExTextParser.h
-	SurrealEngine/Packages/Emitter/UDistantLightActor.h
-	SurrealEngine/Packages/Emitter/UEmitterGarbageCollector.h
-	SurrealEngine/Packages/Emitter/UEmitterRC.h
-	SurrealEngine/Packages/Emitter/UKillParticleForce.h
-	SurrealEngine/Packages/Emitter/UParticleConcentrateForce.h
-	SurrealEngine/Packages/Emitter/UVelocityForce.h
-	SurrealEngine/Packages/Emitter/UXBeamEmitter.h
-	SurrealEngine/Packages/Emitter/UXEmitter.cpp
-	SurrealEngine/Packages/Emitter/UXEmitter.h
-	SurrealEngine/Packages/Emitter/UXMeshEmitter.h
-	SurrealEngine/Packages/Emitter/UXParticleEmitter.cpp
-	SurrealEngine/Packages/Emitter/UXParticleEmitter.h
-	SurrealEngine/Packages/Emitter/UXParticleForces.h
-	SurrealEngine/Packages/Emitter/UXRainRestrictionVolume.h
-	SurrealEngine/Packages/Emitter/UXSpriteEmitter.h
-	SurrealEngine/Packages/Emitter/UXTrailEmitter.h
-	SurrealEngine/Packages/Emitter/UXTrailParticle.h
-	SurrealEngine/Packages/Emitter/UXWeatherEmitter.h
 	SurrealEngine/Packages/Engine/UCanvas.h
 	SurrealEngine/Packages/Engine/UClient.h
 	SurrealEngine/Packages/Engine/UConsole.h
@@ -490,22 +462,17 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Engine/Actors/UActor_Render.cpp
 	SurrealEngine/Packages/Engine/Actors/UActor_Touch.cpp
 	SurrealEngine/Packages/Engine/Actors/UActor_Zone.cpp
-	SurrealEngine/Packages/Engine/Actors/UAnimationNotify.h
 	SurrealEngine/Packages/Engine/Actors/UDecal.cpp
 	SurrealEngine/Packages/Engine/Actors/UDecal.h
 	SurrealEngine/Packages/Engine/Actors/UHUD.h
 	SurrealEngine/Packages/Engine/Actors/ULight.h
 	SurrealEngine/Packages/Engine/Actors/UMenu.h
 	SurrealEngine/Packages/Engine/Actors/UProjectile.h
-	SurrealEngine/Packages/Engine/Actors/UProjector.h
-	SurrealEngine/Packages/Engine/Actors/USkeletalMeshInstance.h
-	SurrealEngine/Packages/Engine/Actors/UStaticMeshActor.h
 	SurrealEngine/Packages/Engine/Actors/USpawnNotify.h
 	SurrealEngine/Packages/Engine/Actors/Brush/UBrush.h
 	SurrealEngine/Packages/Engine/Actors/Brush/UMover.h
 	SurrealEngine/Packages/Engine/Actors/Decoration/UCarcass.h
 	SurrealEngine/Packages/Engine/Actors/Decoration/UDecoration.h
-	SurrealEngine/Packages/Engine/Actors/Info/UDynamicZoneInfo.h
 	SurrealEngine/Packages/Engine/Actors/Info/UGameInfo.h
 	SurrealEngine/Packages/Engine/Actors/Info/UGameReplicationInfo.h
 	SurrealEngine/Packages/Engine/Actors/Info/UInfo.h
@@ -524,9 +491,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Engine/Actors/Info/UZoneInfo.h
 	SurrealEngine/Packages/Engine/Actors/Inventory/UInventory.h
 	SurrealEngine/Packages/Engine/Actors/Inventory/UWeapon.h
-	SurrealEngine/Packages/Engine/Actors/InventoryAttachment/UInventoryAttachment.h
-	SurrealEngine/Packages/Engine/Actors/InventoryAttachment/UWeaponAttachment.h
-	SurrealEngine/Packages/Engine/Actors/InventoryAttachment/UWeaponMuzzleFlash.h
 	SurrealEngine/Packages/Engine/Actors/Keypoint/UInterpolationPoint.h
 	SurrealEngine/Packages/Engine/Actors/Keypoint/UKeypoint.h
 	SurrealEngine/Packages/Engine/Actors/Keypoint/Ulocationid.h
@@ -576,7 +540,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Engine/Resources/UPrimitive.h
 	SurrealEngine/Packages/Engine/Resources/USound.cpp
 	SurrealEngine/Packages/Engine/Resources/USound.h
-	SurrealEngine/Packages/Engine/Resources/UStaticLightData.h
 	SurrealEngine/Packages/Engine/Resources/Level/UBspNodes.cpp
 	SurrealEngine/Packages/Engine/Resources/Level/UBspNodes.h
 	SurrealEngine/Packages/Engine/Resources/Level/UBspSurfs.cpp
@@ -602,8 +565,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/Engine/Resources/Mesh/UMesh.h
 	SurrealEngine/Packages/Engine/Resources/Mesh/USkeletalMesh.cpp
 	SurrealEngine/Packages/Engine/Resources/Mesh/USkeletalMesh.h
-	SurrealEngine/Packages/Engine/Resources/Mesh/UStaticMesh.cpp
-	SurrealEngine/Packages/Engine/Resources/Mesh/UStaticMesh.h
 	SurrealEngine/Packages/Engine/Resources/Textures/UBitmap.h
 	SurrealEngine/Packages/Engine/Resources/Textures/FireEngine.cpp
 	SurrealEngine/Packages/Engine/Resources/Textures/FireEngine.h
@@ -722,10 +683,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Component.h
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.cpp
 	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.h
-	SurrealEngine/Packages/UPak/UPathNodeIterator.cpp
-	SurrealEngine/Packages/UPak/UPathNodeIterator.h
-	SurrealEngine/Packages/UPak/UPawnPathNodeIterator.cpp
-	SurrealEngine/Packages/UPak/UPawnPathNodeIterator.h
 	SurrealEngine/Collision/TopLevel/CollisionSystem.cpp
 	SurrealEngine/Collision/TopLevel/CollisionSystem.h
 	SurrealEngine/Collision/TopLevel/CollisionHit.h
@@ -855,14 +812,12 @@ source_group("SurrealEngine\\Packages\\Core" REGULAR_EXPRESSION "${CMAKE_CURRENT
 source_group("SurrealEngine\\Packages\\Core\\Properties" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Core/Properties/.+")
 source_group("SurrealEngine\\Packages\\DeusEx" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/DeusEx/.+")
 source_group("SurrealEngine\\Packages\\DeusExText" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/DeusExText/.+")
-source_group("SurrealEngine\\Packages\\Emitter" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Emitter/.+")
 source_group("SurrealEngine\\Packages\\Engine" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors\\Brush" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/Brush/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors\\Decoration" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/Decoration/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors\\Info" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/Info/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors\\Inventory" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/Inventory/.+")
-source_group("SurrealEngine\\Packages\\Engine\\Actors\\InventoryAttachment" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/InventoryAttachment/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors\\Keypoint" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/Keypoint/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors\\NavigationPoint" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/NavigationPoint/.+")
 source_group("SurrealEngine\\Packages\\Engine\\Actors\\Pawn" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Engine/Actors/Pawn/.+")
@@ -880,7 +835,6 @@ source_group("SurrealEngine\\Packages\\Extension\\Windows\\TabGroup" REGULAR_EXP
 source_group("SurrealEngine\\Packages\\Extension\\Windows\\Text" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Extension/Windows/Text/.+")
 source_group("SurrealEngine\\Packages\\IpDrv" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/IpDrv/.+")
 source_group("SurrealEngine\\Packages\\RMusicPlayer" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/RMusicPlayer/.+")
-source_group("SurrealEngine\\Packages\\UPak" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/UPak/.+")
 source_group("SurrealEngine\\Collision" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/.+")
 source_group("SurrealEngine\\Collision\\TopLevel" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/TopLevel/.+")
 source_group("SurrealEngine\\Collision\\BottomLevel" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/BottomLevel/.+")

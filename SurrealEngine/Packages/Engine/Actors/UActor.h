@@ -341,15 +341,6 @@ enum class EAmbients : uint8_t
 	REVERB_PRESET_NONE
 };
 
-// Unreal 227
-enum class EDynZoneInfoType : uint8_t
-{
-	DZONE_Cube,
-	DZONE_Sphere,
-	DZONE_Cylinder,
-	DZONE_Script
-};
-
 // UT 469
 enum FontFamily
 {
@@ -456,13 +447,7 @@ public:
 	bool SetCollisionSize(float newRadius, float newHeight);
 
 	UObject* Trace(vec3& hitLocation, vec3& hitNormal, const vec3& traceEnd, const vec3& traceStart, bool bTraceActors, const vec3& extent);
-	// Unreal 227's version of Actor.Trace()
-	UObject* Trace(vec3& hitLocation, vec3& hitNormal, const vec3& traceEnd, const vec3& traceStart, bool bTraceActors, const vec3& extent, bool bTraceBSP, uint8_t	BSPTraceFlags);
 	bool FastTrace(const vec3& traceEnd, const vec3& traceStart);
-	// Unreal 227 - Trace against world and return the wanted information (location, normal, texture and/or polyflags)
-	bool TraceSurfHitInfo(vec3& Start, vec3& End, vec3* HitLocation, vec3* HitNormal, UTexture* HitTex, int* HitFlags);
-	// Unreal 227 - Perform a single line check with this actor
-	bool TraceThisActor(vec3& TraceEnd, vec3 TraceStart, vec3* HitLocation, vec3* HitNormal, std::optional<vec3> Extent);
 
 	// A dry run given traced keeps there what it hit, for FinishMove to make
 	// the same move without tracing it again.

@@ -236,8 +236,6 @@ void Engine::Run()
 
 	bool firstCall = true;
 
-	float currentZoneTimeDilation = 1.0f; // Unreal 227 allows zones to specify their own time dilations
-
 	if (const char* stress = std::getenv("SURREAL_GC_STRESS"))
 		GarbageStressFrames = std::max(std::atoi(stress), 0);
 
@@ -260,9 +258,6 @@ void Engine::Run()
 		// Check if there is a new map to load (next level, saved game etc.): load it if that's the case
 
 		// Tick everything
-		if (LaunchInfo.IsUnreal1_227())
-			currentZoneTimeDilation = viewport->Actor()->PlayerReplicationInfo()->PlayerZone()->ZoneTimeDilation();
-
 		float realTimeElapsed = CalcTimeElapsed();
 
 		// A join under way; its map may load here, before the level's time.
@@ -271,8 +266,8 @@ void Engine::Run()
 		if (PendingLevel)
 			UpdateConnectingMessage();
 
-		float entryLevelElapsed = EntryLevel ? realTimeElapsed * clamp(EntryLevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f) : 0.0f;
-		float levelElapsed = realTimeElapsed * clamp(LevelInfo->TimeDilation() * currentZoneTimeDilation, 0.0025f, 25.0f);
+		float entryLevelElapsed = EntryLevel ? realTimeElapsed * clamp(EntryLevelInfo->TimeDilation(), 0.0025f, 25.0f) : 0.0f;
+		float levelElapsed = realTimeElapsed * clamp(LevelInfo->TimeDilation(), 0.0025f, 25.0f);
 
 		// The windows tick before the engine, as the original's
 		// (Extension.dll XGameEngineExt::Tick 0x100266a0): what the level
@@ -2591,17 +2586,6 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		// "mpinstall"
 		return "mpgameplay";
 	}
-	else if (command == "os")
-	{
-		// 227 Seems to have this command
-#ifdef WIN32
-		return "Windows";
-#elif __APPLE__
-		return "macOS";
-#else
-		return "Linux"; // With apologies to BSD, Haiku and others...
-#endif
-	}
 	else if (command == "getsplash")
 	{
 		return khgSplashScreen ? "true" : "false";
@@ -3177,11 +3161,6 @@ void Engine::LogGamePackageSHA1Sums() const
 	if (packages->IsUnrealTournament())
 	{
 		LogMessage("Botpack.u: " + SHA1Sum::of_file(systemPath / "Botpack.u"));
-		LogMessage("UnrealI.u: " + SHA1Sum::of_file(systemPath / "UnrealI.u"));
-		LogMessage("UnrealShare.u: " + SHA1Sum::of_file(systemPath / "UnrealShare.u"));
-	}
-	else if (packages->IsUnreal1())
-	{
 		LogMessage("UnrealI.u: " + SHA1Sum::of_file(systemPath / "UnrealI.u"));
 		LogMessage("UnrealShare.u: " + SHA1Sum::of_file(systemPath / "UnrealShare.u"));
 	}

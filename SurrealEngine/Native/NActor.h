@@ -9,8 +9,6 @@ public:
 
 	static void Add_ColorColor(const Color& A, const Color& B, Color& ReturnValue);
 	static void AllActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<NameString> MatchTag);
-	static void AllActors_U227(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<NameString> MatchTag, std::optional<NameString> MatchEvent);
-	static void AllActors_U227k(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<NameString> MatchTag, std::optional<NameString> MatchEvent, bool bAllLevels);
 	static void AutonomousPhysics(UObject* Self, float DeltaSeconds);
 	static void BasedActors(UObject* Self, UObject* BaseClass, UObject*& Actor);
 	static void ChildActors(UObject* Self, UObject* BaseClass, UObject*& Actor);
@@ -34,7 +32,6 @@ public:
 	static void GetSoundDuration(UObject* Self, UObject* Sound, float& ReturnValue);
 	static void GetURLMap(UObject* Self, std::string& ReturnValue);
 	static void HasAnim(UObject* Self, const NameString& Sequence, BitfieldBool& ReturnValue);
-	static void IntDescIterator_U227(UObject* Self, std::string& ClassName, std::string* EntryName, std::string* Desc, std::optional<bool> bSingleNames);
 	static void IsAnimating(UObject* Self, BitfieldBool& ReturnValue);
 	static void IsOverlapping(UObject* Self, UObject* checkActor, BitfieldBool& ReturnValue);
 	static void LastRendered(UObject* Self, float& ReturnValue);
@@ -65,10 +62,7 @@ public:
 	static void Subtract_ColorColor(const Color& A, const Color& B, Color& ReturnValue);
 	static void TouchingActors(UObject* Self, UObject* BaseClass, UObject*& Actor);
 	static void Trace(UObject* Self, vec3& HitLocation, vec3& HitNormal, const vec3& TraceEnd, std::optional<vec3> TraceStart, std::optional<bool> bTraceActors, std::optional<vec3> Extent, UObject*& ReturnValue);
-	static void Trace_U227(UObject* Self, vec3& HitLocation, vec3& HitNormal, const vec3& TraceEnd, std::optional<vec3> TraceStart, std::optional<bool> bTraceActors, std::optional<vec3> Extent, std::optional<bool> bTraceBSP, std::optional<uint8_t> BSPTraceFlags, UObject*& ReturnValue);
 	static void TraceActors(UObject* Self, UObject* BaseClass, UObject*& Actor, vec3& HitLoc, vec3& HitNorm, const vec3& End, std::optional<vec3> Start, std::optional<vec3> Extent);
-	static void TraceSurfHitInfo_U227(UObject* Self, vec3& Start, vec3& End, vec3* HitLocation, vec3* HitNormal, UObject* HitTex, int* HitFlags, BitfieldBool& ReturnValue);
-	static void TraceThisActor_U227(UObject* Self, vec3& TraceEnd, vec3& TraceStart, vec3* HitLocation, vec3* HitNormal, std::optional<vec3> Extent, BitfieldBool& ReturnValue);
 	static void TweenAnim(UObject* Self, const NameString& Sequence, float Time);
 	static void VisibleActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc);
 	static void VisibleCollidingActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc, std::optional<bool> bIgnoreHidden);

@@ -30,45 +30,25 @@ public:
 	bool Next() override { return false; }
 };
 
-// Added in Deus Ex and Unreal 227
+// Added in Deus Ex
 class AllObjectsIterator : public Iterator
 {
 public:
-	// InOuter is a 227-exclusive parameter
-	AllObjectsIterator(UObject* BaseClass, UObject** ReturnValue, UObject* InOuter = nullptr);
+	AllObjectsIterator(UObject* BaseClass, UObject** ReturnValue);
 	bool Next() override;
 	void Mark(GCMarker& marker) override;
 
 private:
 	UObject* BaseClass = nullptr;
 	UObject** ReturnValue = nullptr;
-	UObject* InOuter = nullptr;
 	GCObjectList m_Objects;
 	GCObjectList::iterator m_Iterator;
-};
-
-// Added in Unreal 227.
-class AllParticlesIterator : public Iterator
-{
-public:
-	// TODO: Implement the iterator
-	// Iterates through all alive particles. Note that these are NOT in level actors.
-	AllParticlesIterator(UObject** ReturnValue);
-	bool Next() override;
-
-private:
-	UObject** ReturnValue = nullptr;
 };
 
 class AllActorsIterator : public Iterator
 {
 public:
 	AllActorsIterator(UObject* BaseClass, UObject** ReturnValue, NameString MatchTag);
-	// Unreal 227i version of AllActors
-	AllActorsIterator(UObject* BaseClass, UObject** ReturnValue, NameString MatchTag, NameString MatchEvent);
-	// Unreal 227k version of AllActors
-	// TODO: Handle bAllLevels parameter
-	AllActorsIterator(UObject* BaseClass, UObject** ReturnValue, NameString MatchTag, NameString MatchEvent, bool bAllLevels);
 	bool Next() override;
 	void Mark(GCMarker& marker) override;
 
@@ -76,25 +56,7 @@ private:
 	UObject* BaseClass = nullptr;
 	UObject** ReturnValue = nullptr;
 	NameString MatchTag = "";
-	NameString MatchEvent = "";
-	bool bAllLevels = false;
 	size_t index = 0;
-};
-
-// Added in Unreal Gold 227
-class AllFilesIterator : public Iterator
-{
-public:
-	// Iterates through all files of a type (Extensions are the usual Unreal Package extensions, or all files, if the FileExtension string is empty)
-	AllFilesIterator(const std::string& FileExtension, const std::string& FilePrefix, std::string& FileName);
-	bool Next() override;
-
-private:
-	std::string FileExtension;
-	std::string FilePrefix;
-	std::string& FileName;
-	Array<std::string> FoundFiles;
-	Array<std::string>::iterator iterator;
 };
 
 class BasedActorsIterator : public Iterator
@@ -147,21 +109,6 @@ private:
 	int* outIndex = nullptr;
 	size_t position = 0;
 	size_t visited = 0;
-};
-
-class IntDescIterator : public Iterator
-{
-public:
-	IntDescIterator(std::string& className, std::string* entryName, std::string* desc, std::optional<bool> bSingleNames);
-	bool Next() override;
-private:
-	std::string ClassName;
-	std::string* EntryName;
-	std::string* Desc;
-	std::optional<bool> bSingleNames;
-
-	Array<IntObject> IntObjects;
-	Array<IntObject>::iterator it;
 };
 
 class RadiusActorsIterator : public Iterator

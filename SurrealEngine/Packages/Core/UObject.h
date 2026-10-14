@@ -66,16 +66,6 @@ enum CSGOper
 	CSG_Deintersect
 };
 
-// Unreal 227
-enum eAnimNotifyEval
-{
-	ANE_Equal,
-	ANE_Greater,
-	ANE_Less,
-	ANE_GreaterOrEqual,
-	ANE_LessOrEqual
-};
-
 struct PropertyHeader
 {
 	UnrealPropertyType type;

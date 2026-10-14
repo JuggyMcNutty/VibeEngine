@@ -8,17 +8,6 @@
 #include "Package/IniProperty.h"
 #include "VM/ScriptCall.h"
 
-bool UPlayerPawn::IsPressing(uint8_t KeyNum)
-{
-	for (auto& activeButtons : engine->activeInputButtons)
-	{
-		if (activeButtons.second == KeyNum)
-			return true;
-	}
-
-	return false;
-}
-
 void UPlayerPawn::PausedInput(float elapsed)
 {
 	if (Role() >= ROLE_SimulatedProxy && Player() && !UObject::TryCast<UCamera>(this))

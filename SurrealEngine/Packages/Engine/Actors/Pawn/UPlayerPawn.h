@@ -21,9 +21,6 @@ public:
 	void Tick(float elapsed) override;
 	void TickRotating(float elapsed) override;
 
-	// Unreal 227 addition
-	bool IsPressing(uint8_t KeyNum);
-
 	float& AppliedBob() { return Value<float>(PropOffsets_PlayerPawn.AppliedBob); }
 	float& Bob() { return Value<float>(PropOffsets_PlayerPawn.Bob); }
 	float& BorrowedMouseX() { return Value<float>(PropOffsets_PlayerPawn.BorrowedMouseX); }

@@ -11,18 +11,7 @@
 void NGameInfo::RegisterFunctions()
 {
 	RegisterVMNativeFunc_1("GameInfo", "GetNetworkNumber", &NGameInfo::GetNetworkNumber, 0);
-	if (engine->LaunchInfo.IsUnreal1_227())
-		RegisterVMNativeFunc_6("GameInfo", "ParseKillMessage", &NGameInfo::ParseKillMessage_U227, 0);
-	else
-		RegisterVMNativeFunc_5("GameInfo", "ParseKillMessage", &NGameInfo::ParseKillMessage, 0);
-
-	if (engine->LaunchInfo.IsUnreal1_227())
-	{
-		RegisterVMNativeFunc_2("GameInfo", "GetNetworkNumber", &NGameInfo::GetNetworkNumber_U227, 0);
-		RegisterVMNativeFunc_2("GameInfo", "LoadTravelInventory", &NGameInfo::LoadTravelInventory_U227, 920);
-		RegisterVMNativeFunc_2("GameInfo", "MakeColorCode", &NGameInfo::MakeColorCode_U227, 0);
-		RegisterVMNativeFunc_1("GameInfo", "StripColorCodes", &NGameInfo::StripColorCodes_U227, 0);
-	}
+	RegisterVMNativeFunc_5("GameInfo", "ParseKillMessage", &NGameInfo::ParseKillMessage, 0);
 }
 
 // The original's (Engine.dll 0x103e69d0): the address the level's net
@@ -64,45 +53,4 @@ void NGameInfo::ParseKillMessage(const std::string& KillerName, const std::strin
 	}
 
 	ReturnValue = result;
-}
-
-void NGameInfo::ParseKillMessage_U227(const std::string& KillerName, const std::string& VictimName, const std::string& WeaponName, const std::string& DeathMessage, std::optional<bool> bFemale, std::string& ReturnValue)
-{
-	LogUnimplemented("GameInfo.ParseKillMessage() - U227 optional parameter bFemale");
-	ParseKillMessage(KillerName, VictimName, WeaponName, DeathMessage, ReturnValue);
-}
-
-void NGameInfo::GetNetworkNumber_U227(UObject* Self, std::string& ReturnValue)
-{
-	// auto GISelf = UObject::Cast<UGameInfo>(Self);
-	LogUnimplemented("GameInfo.GetNetworkNumber() [U227]");
-	ReturnValue = "";
-}
-
-void NGameInfo::LoadTravelInventory_U227(UObject* Other, BitfieldBool& ReturnValue)
-{
-	// auto PPOther = UObject::Cast<UPlayerPawn>(Other);
-	LogUnimplemented("GameInfo.LoadTravelInventory() [U227]");
-	ReturnValue = false;
-}
-
-void NGameInfo::MakeColorCode_U227(const Color& color, std::string& ReturnValue)
-{
-	std::stringstream ss;
-	ss << "#";
-	ss << std::hex << std::setfill('0') << std::setw(2);
-	ss << color.R << color.G << color.B << color.A;
-
-	ReturnValue = ss.str();
-}
-
-void NGameInfo::StripColorCodes_U227(std::string& S)
-{
-	auto pos = S.find('#');
-
-	while (pos != std::string::npos)
-	{
-		S.erase(pos, 9); // #RRGGBBAA
-		pos = S.find('#');
-	}
 }

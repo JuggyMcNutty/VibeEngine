@@ -95,7 +95,6 @@ public:
 	void UpdateTextureInfo(TextureInfo& info, const Poly& poly, UTexture* texture, float ZoneUPanSpeed, float ZoneVPanSpeed);
 	void UpdateTextureInfo(TextureInfo& info, UTexture* texture);
 
-	void SetTile3DOffset(bool enabled, std::optional<vec3> offset, std::optional<Rotator> rotOffset, std::optional<bool> bFlatZ, std::optional<float> Scale, std::optional<bool> bWorldOffset);
 
 	RenderDevice* Device = nullptr;
 
@@ -147,17 +146,6 @@ private:
 		uint64_t startFPSTime = 0;
 		SceneNode Frame;
 	} Canvas;
-
-	// Unreal 227
-	struct
-	{
-		vec3 Offset = vec3();
-		Rotator RotOffset = Rotator();
-		float Scale = 1.0f;
-		bool Enabled = false;
-		bool FlatZ = false;
-		bool bWorldOffset = false; // 227k - Offset and RotOffset are absolute world coordinates
-	} Tile3DOffset;
 
 	Array<vec3> VertexBuffer;
 	Array<GouraudVertex> GouraudVertexBuffer;

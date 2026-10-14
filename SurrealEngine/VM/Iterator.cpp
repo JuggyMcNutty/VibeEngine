@@ -40,8 +40,8 @@ static const Array<int>& ActorSlotsByName(ULevel* level, const NameString& class
 	return ActorSlots(level->ActorsByClassName, level, className.GetCompareIndex(), [&](UActor* actor) { return actor->IsA(className); });
 }
 
-AllObjectsIterator::AllObjectsIterator(UObject* BaseClass, UObject** ReturnValue, UObject* InOuter)
-	: BaseClass(BaseClass), ReturnValue(ReturnValue), InOuter(InOuter), m_Objects(GC::GetObjects()), m_Iterator(m_Objects.begin())
+AllObjectsIterator::AllObjectsIterator(UObject* BaseClass, UObject** ReturnValue)
+	: BaseClass(BaseClass), ReturnValue(ReturnValue), m_Objects(GC::GetObjects()), m_Iterator(m_Objects.begin())
 {
 }
 
@@ -55,7 +55,7 @@ bool AllObjectsIterator::Next()
 
 		// An object deleted (CriticalDelete) is gone to the script, as the
 		// original's leaves the object table.
-		if (currentObject && !AnyFlags(currentObject->Flags, ObjectFlags::EliminateObject) && currentObject->IsA(BaseClass->Name) && (!InOuter || InOuter == currentObject->Outer()))
+		if (currentObject && !AnyFlags(currentObject->Flags, ObjectFlags::EliminateObject) && currentObject->IsA(BaseClass->Name))
 		{
 			*ReturnValue = currentObject;
 			return true;
@@ -72,20 +72,9 @@ AllActorsIterator::AllActorsIterator(UObject* BaseClass, UObject** ReturnValue, 
 {
 }
 
-AllActorsIterator::AllActorsIterator(UObject* BaseClass, UObject** ReturnValue, NameString MatchTag, NameString MatchEvent)
-	: BaseClass(BaseClass), ReturnValue(ReturnValue), MatchTag(MatchTag), MatchEvent(MatchEvent)
-{
-}
-
-AllActorsIterator::AllActorsIterator(UObject* BaseClass, UObject** ReturnValue, NameString MatchTag, NameString MatchEvent, bool bAllLevels)
-	: BaseClass(BaseClass), ReturnValue(ReturnValue), MatchTag(MatchTag), MatchEvent(MatchEvent), bAllLevels(bAllLevels)
-{
-}
-
 bool AllActorsIterator::Next()
 {
 	bool matchTag = !MatchTag.IsNone();
-	bool matchEvent = !MatchEvent.IsNone();
 
 	const Array<UActor*>& actors = engine->Level->Actors;
 	const Array<int>& slots = ActorSlotsByName(engine->Level, BaseClass->Name);
@@ -93,7 +82,7 @@ bool AllActorsIterator::Next()
 	{
 		UActor* actor = actors[*it];
 		index = (size_t)*it + 1;
-		if (actor && (!matchTag || actor->Tag() == MatchTag) && (!matchEvent || actor->Event() == MatchEvent))
+		if (actor && (!matchTag || actor->Tag() == MatchTag))
 		{
 			*ReturnValue = actor;
 			return true;
@@ -101,53 +90,6 @@ bool AllActorsIterator::Next()
 	}
 	index = actors.size();
 	*ReturnValue = nullptr;
-	return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-AllFilesIterator::AllFilesIterator(const std::string& FileExtension, const std::string& FilePrefix, std::string& FileName) : FileExtension(FileExtension), FilePrefix(FilePrefix), FileName(FileName)
-{
-	auto packageNames = engine->packages->GetPackageNames();
-
-	for (auto& packageName : packageNames)
-	{
-		auto package = engine->packages->GetPackage(packageName);
-
-		if ((FileExtension.empty() || package->GetPackageFileExtension() == "." + FileExtension) &&
-			(FilePrefix.empty() || StrTools::startswith(package->GetPackageFileName(), FilePrefix, true)))
-		{
-			FoundFiles.push_back(package->GetPackageFileName());
-		}
-	}
-
-	iterator = FoundFiles.begin();
-}
-
-bool AllFilesIterator::Next()
-{
-	if (iterator == FoundFiles.end())
-	{
-		FileName = {};
-		return false;
-	}
-
-	FileName = *iterator;
-	iterator++;
-
-	return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////,
-
-AllParticlesIterator::AllParticlesIterator(UObject** ReturnValue)
-	: ReturnValue(ReturnValue)
-{
-}
-
-bool AllParticlesIterator::Next()
-{
-	ReturnValue = nullptr;
 	return false;
 }
 
@@ -291,41 +233,6 @@ bool CycleActorsIterator::NextByScan()
 	}
 	*Actor = nullptr;
 	return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-IntDescIterator::IntDescIterator(std::string& className, std::string* entryName, std::string* desc, std::optional<bool> bSingleNames)
-	: ClassName(className), EntryName(entryName), Desc(desc), bSingleNames(bSingleNames)
-{
-	IntObjects = engine->packages->GetIntObjects(ClassName);
-
-	if (bSingleNames && *bSingleNames)
-	{
-		// TODO: Remove duplicates
-	}
-
-	it = IntObjects.begin();
-}
-
-bool IntDescIterator::Next()
-{
-	if (it == IntObjects.end())
-	{
-		EntryName = nullptr;
-		Desc = nullptr;
-		return false;
-	}
-
-	if (EntryName)
-		*EntryName = it->Name.ToString();
-
-	if (Desc)
-		*Desc = it->Description;
-
-	it++;
-
-	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -641,7 +548,6 @@ bool TraceVisibleActorsIterator::Next()
 void AllObjectsIterator::Mark(GCMarker& marker)
 {
 	marker.MarkConst(BaseClass);
-	marker.MarkConst(InOuter);
 	if (!(m_Iterator == m_Objects.end()))
 		marker.MarkConst(*m_Iterator);
 }

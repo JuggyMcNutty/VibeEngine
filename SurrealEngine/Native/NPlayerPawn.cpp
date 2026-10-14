@@ -34,8 +34,6 @@ void NPlayerPawn::RegisterFunctions()
 		RegisterVMNativeFunc_3("PlayerPawn", "UpdateURL", &NPlayerPawn::UpdateURL, 546);
 	else
 		RegisterVMNativeFunc_1("PlayerPawn", "UpdateURL", &NPlayerPawn::UpdateURL_219, 546);
-	if (engine->LaunchInfo.IsUnreal1_227())
-		RegisterVMNativeFunc_2("PlayerPawn", "IsPressing", &NPlayerPawn::IsPressing_U227, 549);
 }
 
 void NPlayerPawn::ClientTravel(UObject* Self, const std::string& URL, uint8_t TravelType, bool bItems)
@@ -91,11 +89,6 @@ void NPlayerPawn::GetPlayerNetworkAddress(UObject* Self, std::string& ReturnValu
 {
 	NetConnection* connection = NetConnectionOfPlayer(UObject::Cast<UPlayerPawn>(Self)->Player());
 	ReturnValue = connection ? connection->RemoteAddressString() : "";
-}
-
-void NPlayerPawn::IsPressing_U227(UObject* Self, uint8_t& KeyNum, BitfieldBool& ReturnValue)
-{
-	ReturnValue = UObject::Cast<UPlayerPawn>(Self)->IsPressing(KeyNum);
 }
 
 void NPlayerPawn::PasteFromClipboard(UObject* Self, std::string& ReturnValue)

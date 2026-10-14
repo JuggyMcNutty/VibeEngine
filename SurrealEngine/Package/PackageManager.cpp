@@ -60,7 +60,6 @@
 #include "Packages/Core/UStruct.h"
 #include "Packages/Core/USubsystem.h"
 #include "Packages/Core/UTextBuffer.h"
-#include "Packages/Core/Properties/UAnyProperty.h"
 #include "Packages/Core/Properties/UArrayProperty.h"
 #include "Packages/Core/Properties/UBoolProperty.h"
 #include "Packages/Core/Properties/UByteProperty.h"
@@ -85,22 +84,6 @@
 #include "Packages/DeusEx/UParticleIterator.h"
 #include "Packages/DeusEx/UScriptedPawn.h"
 #include "Packages/DeusExText/UDeusExTextParser.h"
-#include "Packages/Emitter/UDistantLightActor.h"
-#include "Packages/Emitter/UEmitterGarbageCollector.h"
-#include "Packages/Emitter/UEmitterRC.h"
-#include "Packages/Emitter/UKillParticleForce.h"
-#include "Packages/Emitter/UParticleConcentrateForce.h"
-#include "Packages/Emitter/UVelocityForce.h"
-#include "Packages/Emitter/UXBeamEmitter.h"
-#include "Packages/Emitter/UXEmitter.h"
-#include "Packages/Emitter/UXMeshEmitter.h"
-#include "Packages/Emitter/UXParticleEmitter.h"
-#include "Packages/Emitter/UXParticleForces.h"
-#include "Packages/Emitter/UXRainRestrictionVolume.h"
-#include "Packages/Emitter/UXSpriteEmitter.h"
-#include "Packages/Emitter/UXTrailEmitter.h"
-#include "Packages/Emitter/UXTrailParticle.h"
-#include "Packages/Emitter/UXWeatherEmitter.h"
 #include "Packages/Engine/UCanvas.h"
 #include "Packages/Engine/UClient.h"
 #include "Packages/Engine/UConsole.h"
@@ -109,21 +92,16 @@
 #include "Packages/Engine/USurrealClient.h"
 #include "Packages/Engine/UViewport.h"
 #include "Packages/Engine/Actors/UActor.h"
-#include "Packages/Engine/Actors/UAnimationNotify.h"
 #include "Packages/Engine/Actors/UDecal.h"
 #include "Packages/Engine/Actors/UHUD.h"
 #include "Packages/Engine/Actors/ULight.h"
 #include "Packages/Engine/Actors/UMenu.h"
 #include "Packages/Engine/Actors/UProjectile.h"
-#include "Packages/Engine/Actors/UProjector.h"
-#include "Packages/Engine/Actors/USkeletalMeshInstance.h"
 #include "Packages/Engine/Actors/USpawnNotify.h"
-#include "Packages/Engine/Actors/UStaticMeshActor.h"
 #include "Packages/Engine/Actors/Brush/UBrush.h"
 #include "Packages/Engine/Actors/Brush/UMover.h"
 #include "Packages/Engine/Actors/Decoration/UCarcass.h"
 #include "Packages/Engine/Actors/Decoration/UDecoration.h"
-#include "Packages/Engine/Actors/Info/UDynamicZoneInfo.h"
 #include "Packages/Engine/Actors/Info/UGameInfo.h"
 #include "Packages/Engine/Actors/Info/UGameReplicationInfo.h"
 #include "Packages/Engine/Actors/Info/UInfo.h"
@@ -140,9 +118,6 @@
 #include "Packages/Engine/Actors/Info/UZoneInfo.h"
 #include "Packages/Engine/Actors/Inventory/UInventory.h"
 #include "Packages/Engine/Actors/Inventory/UWeapon.h"
-#include "Packages/Engine/Actors/InventoryAttachment/UInventoryAttachment.h"
-#include "Packages/Engine/Actors/InventoryAttachment/UWeaponAttachment.h"
-#include "Packages/Engine/Actors/InventoryAttachment/UWeaponMuzzleFlash.h"
 #include "Packages/Engine/Actors/Keypoint/UInterpolationPoint.h"
 #include "Packages/Engine/Actors/Keypoint/UKeypoint.h"
 #include "Packages/Engine/Actors/Keypoint/Ulocationid.h"
@@ -176,7 +151,6 @@
 #include "Packages/Engine/Resources/UPalette.h"
 #include "Packages/Engine/Resources/UPrimitive.h"
 #include "Packages/Engine/Resources/USound.h"
-#include "Packages/Engine/Resources/UStaticLightData.h"
 #include "Packages/Engine/Resources/Level/UBspNodes.h"
 #include "Packages/Engine/Resources/Level/UBspSurfs.h"
 #include "Packages/Engine/Resources/Level/ULevel.h"
@@ -190,7 +164,6 @@
 #include "Packages/Engine/Resources/Mesh/ULodMesh.h"
 #include "Packages/Engine/Resources/Mesh/UMesh.h"
 #include "Packages/Engine/Resources/Mesh/USkeletalMesh.h"
-#include "Packages/Engine/Resources/Mesh/UStaticMesh.h"
 #include "Packages/Engine/Resources/Textures/UBitmap.h"
 #include "Packages/Engine/Resources/Textures/UFireTexture.h"
 #include "Packages/Engine/Resources/Textures/UFractalTexture.h"
@@ -250,11 +223,7 @@
 #include "Packages/IpDrv/UUdpLink.h"
 #include "Packages/RMusicPlayer/URMusic_Component.h"
 #include "Packages/RMusicPlayer/URMusic_Player.h"
-#include "Packages/UPak/UPathNodeIterator.h"
-#include "Packages/UPak/UPawnPathNodeIterator.h"
 #include "Native/NActor.h"
-#include "Native/N227Emitter.h"
-#include "Native/N227Projector.h"
 #include "Native/NCanvas.h"
 #include "Native/NCommandlet.h"
 #include "Native/NConsole.h"
@@ -282,8 +251,6 @@
 #include "Native/NParticleIterator.h"
 #include "Native/NScriptedPawn.h"
 #include "Native/NPlayerPawnExt.h"
-#include "Native/NUPakPathNodeIterator.h"
-#include "Native/NUPakPawnPathNodeIterator.h"
 #include "Native/NBorderWindow.h"
 #include "Native/NButtonWindow.h"
 #include "Native/NCheckboxWindow.h"
@@ -707,8 +674,8 @@ void PackageManager::ScanPaths()
 	const auto cachePath = convert_path_separators(GetIniValue("System", "Core.System", "CachePath"));
 	gameCacheFolderPath = (gameSystemFolderPath / cachePath).lexically_normal();
 
-	// Unreal 227j+ and UT 469d+ store localization files in SystemLocalized folder
-	if ((IsUnreal1_227() && launchInfo.gameSubVersion >= 10) || (IsUnrealTournament_469() && launchInfo.gameSubVersion >= 4))
+	// UT 469d+ stores localization files in SystemLocalized folder
+	if (IsUnrealTournament_469() && launchInfo.gameSubVersion >= 4)
 	{
 		auto langpaths = GetIniValues("System", "Core.System", "LangPaths");
 
@@ -1298,11 +1265,6 @@ void PackageManager::RegisterFunctions()
 		//{AUTOGENERATED(Register,UnrealTournament-436)
 		//}AUTOGENERATED
 	}
-	else if (launchInfo.gameExecutableName == "Unreal" && launchInfo.gameVersionString == "226b")
-	{
-		//{AUTOGENERATED(Register,Unreal-226b)
-		//}AUTOGENERATED
-	}
 	else if (launchInfo.gameExecutableName == "DeusEx" && launchInfo.gameVersionString == "1112fm")
 	{
 		//{AUTOGENERATED(Register,DeusEx-1112fm)
@@ -1328,17 +1290,6 @@ void PackageManager::RegisterFunctions()
 	NInternetLink::RegisterFunctions();
 	NTcpLink::RegisterFunctions();
 	NUdpLink::RegisterFunctions();
-	if (IsUnreal1())
-	{
-		NUPakPathNodeIterator::RegisterFunctions();
-		NUPakPawnPathNodeIterator::RegisterFunctions();
-	}
-	if (IsUnreal1_227())
-	{
-		NXParticleEmitter::RegisterFunctions();
-		NXEmitter::RegisterFunctions();
-		N227Projector::RegisterFunctions();
-	}
 	if (IsDeusEx())
 	{
 		NDebugInfo::RegisterFunctions();
@@ -1392,10 +1343,8 @@ void PackageManager::RegisterFunctions()
 void PackageManager::RegisterNativeClasses()
 {
 	NameString corePackage = "Core";
-	NameString emitterPackage = "Emitter";
 	NameString enginePackage = "Engine";
 	NameString ipdrvPackage = "IpDrv";
-	NameString upakPackage = "UPak";
 	NameString extensionPackage = "Extension";
 	NameString conSysPackage = "ConSys";
 	NameString deusExPackage = "DeusEx";
@@ -1427,11 +1376,6 @@ void PackageManager::RegisterNativeClasses()
 	RegisterNativeClass<UStrProperty>(corePackage, "StrProperty", "Property");
 	RegisterNativeClass<UStringProperty>(corePackage, "StringProperty", "Property");
 	RegisterNativeClass<UTextBuffer>(corePackage, "TextBuffer", "Object");
-
-	if (launchInfo.IsUnreal1_227())
-	{
-		RegisterNativeClass<UAnyProperty>(corePackage, "AnyProperty", "Property");
-	}
 
 	if (launchInfo.ue1Version < 400)
 	{
@@ -1563,42 +1507,6 @@ void PackageManager::RegisterNativeClasses()
 	RegisterNativeClass<UTcpLink>(ipdrvPackage, "TcpLink", "InternetLink");
 	RegisterNativeClass<UUdpLink>(ipdrvPackage, "UdpLink", "InternetLink");
 
-	if (IsUnreal1())
-	{
-		RegisterNativeClass<UPakPathNodeIterator>(upakPackage, "PathNodeIterator", "Actor");
-		RegisterNativeClass<UPakPawnPathNodeIterator>(upakPackage, "PawnPathNodeIterator", "PathNodeIterator");
-	}
-
-	if (IsUnreal1_227())
-	{
-		RegisterNativeClass<U227SkeletalMeshInstance>(enginePackage, "SkeletalMeshInstance", "Object");
-		RegisterNativeClass<U227AnimationNotify>(enginePackage, "AnimationNotify", "Object");
-		RegisterNativeClass<UStaticLightData>(enginePackage, "StaticLightData", "Object");
-		RegisterNativeClass<UStaticMeshActor>(enginePackage, "StaticMeshActor", "Actor");
-		RegisterNativeClass<UInventoryAttachment>(enginePackage, "InventoryAttachment", "Actor");
-		RegisterNativeClass<UWeaponAttachment>(enginePackage, "WeaponAttachment", "InventoryAttachment");
-		RegisterNativeClass<UWeaponMuzzleFlash>(enginePackage, "WeaponMuzzleFlash", "InventoryAttachment");
-		RegisterNativeClass<U227Projector>(enginePackage, "Projector", "Actor");
-		RegisterNativeClass<UDynamicZoneInfo>(enginePackage, "DynamicZoneInfo", "ZoneInfo");
-		RegisterNativeClass<UDistantLightActor>(emitterPackage, "DistantLightActor", "Light");
-		RegisterNativeClass<UStaticMesh>(enginePackage, "StaticMesh", "Mesh");
-		RegisterNativeClass<UEmitterRC>(emitterPackage, "EmitterRC", "Actor");
-		RegisterNativeClass<UXParticleEmitter>(emitterPackage, "XParticleEmitter", "Actor");
-		RegisterNativeClass<UXParticleForces>(emitterPackage, "XParticleForces", "Actor");
-		RegisterNativeClass<UVelocityForce>(emitterPackage, "VelocityForce", "XParticleForces");
-		RegisterNativeClass<UKillParticleForce>(emitterPackage, "KillParticleForce", "XParticleForces");
-		RegisterNativeClass<UParticleConcentrateForce>(emitterPackage, "ParticleConcentrateForce", "XParticleForces");
-		RegisterNativeClass<UXEmitter>(emitterPackage, "XEmitter", "XParticleEmitter");
-		RegisterNativeClass<UEmitterGarbageCollector>(emitterPackage, "EmitterGarbageCollector", "Info");
-		RegisterNativeClass<UXTrailParticle>(emitterPackage, "XTrailParticle", "Actor");
-		RegisterNativeClass<UXBeamEmitter>(emitterPackage, "XBeamEmitter", "XEmitter");
-		RegisterNativeClass<UXMeshEmitter>(emitterPackage, "XMeshEmitter", "XEmitter");
-		RegisterNativeClass<UXSpriteEmitter>(emitterPackage, "XSpriteEmitter", "XEmitter");
-		RegisterNativeClass<UXWeatherEmitter>(emitterPackage, "XWeatherEmitter", "XParticleEmitter");
-		RegisterNativeClass<UXTrailEmitter>(emitterPackage, "XTrailEmitter", "XEmitter");
-		RegisterNativeClass<UXRainRestrictionVolume>(emitterPackage, "XRainRestrictionVolume", "Actor");
-	}
-	
 	if (IsDeusEx())
 	{
 		RegisterNativeClass<UPlayerPawnExt>(extensionPackage, "PlayerPawnExt", "PlayerPawn");

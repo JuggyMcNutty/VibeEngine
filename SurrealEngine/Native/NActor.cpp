@@ -23,12 +23,7 @@
 
 void NActor::RegisterFunctions()
 {
-	if (engine->LaunchInfo.IsUnreal1_227k())
-		RegisterVMNativeFunc_5("Actor", "AllActors", &NActor::AllActors_U227k, 304);
-	else if (engine->LaunchInfo.IsUnreal1_227())
-		RegisterVMNativeFunc_4("Actor", "AllActors", &NActor::AllActors_U227, 304);
-	else
-		RegisterVMNativeFunc_3("Actor", "AllActors", &NActor::AllActors, 304);
+	RegisterVMNativeFunc_3("Actor", "AllActors", &NActor::AllActors, 304);
 	RegisterVMNativeFunc_1("Actor", "AutonomousPhysics", &NActor::AutonomousPhysics, 3971);
 	RegisterVMNativeFunc_2("Actor", "BasedActors", &NActor::BasedActors, 306);
 	RegisterVMNativeFunc_2("Actor", "ChildActors", &NActor::ChildActors, 305);
@@ -57,8 +52,6 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_2("Actor", "GetSoundDuration", &NActor::GetSoundDuration, 0);
 	RegisterVMNativeFunc_1("Actor", "GetURLMap", &NActor::GetURLMap, 547);
 	RegisterVMNativeFunc_2("Actor", "HasAnim", &NActor::HasAnim, 263);
-	if (engine->LaunchInfo.IsUnreal1_227())
-		RegisterVMNativeFunc_4("Actor", "IntDescIterator", &NActor::IntDescIterator_U227, 313);
 	RegisterVMNativeFunc_2("Actor", "IsOverlapping", &NActor::IsOverlapping, 718);
 	RegisterVMNativeFunc_1("Actor", "LastRendered", &NActor::LastRendered, 723);
 	RegisterVMNativeFunc_1("Actor", "LinkSkelAnim", &NActor::LinkSkelAnim, 0);
@@ -98,10 +91,7 @@ void NActor::RegisterFunctions()
 	RegisterLatentAction(384, LatentRunState::Sleep);
 	RegisterVMNativeFunc_6("Actor", "Spawn", &NActor::Spawn, 278);
 	RegisterVMNativeFunc_2("Actor", "TouchingActors", &NActor::TouchingActors, 307);
-	if (engine->LaunchInfo.IsUnreal1_227())
-		RegisterVMNativeFunc_9("Actor", "Trace", &NActor::Trace_U227, 277);
-	else
-		RegisterVMNativeFunc_7("Actor", "Trace", &NActor::Trace, 277);
+	RegisterVMNativeFunc_7("Actor", "Trace", &NActor::Trace, 277);
 	RegisterVMNativeFunc_7("Actor", "TraceActors", &NActor::TraceActors, 309);
 	RegisterVMNativeFunc_2("Actor", "TweenAnim", &NActor::TweenAnim, 294);
 	RegisterVMNativeFunc_4("Actor", "VisibleActors", &NActor::VisibleActors, 311);
@@ -122,27 +112,10 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_7("Actor", "TraceVisibleActors", &NActor::TraceVisibleActors, 1003);
 
 	// Color operators
-	// They do not exist in Unreal 1 until the 227j patch and they use different native indexes on j and later
-	if (engine->LaunchInfo.IsUnreal1_227k())
-	{
-		RegisterVMNativeFunc_3("Actor", "Add_ColorColor", &NActor::Add_ColorColor, 552);
-		RegisterVMNativeFunc_3("Actor", "Subtract_ColorColor", &NActor::Subtract_ColorColor, 550);
-		RegisterVMNativeFunc_3("Actor", "Multiply_ColorFloat", &NActor::Multiply_ColorFloat, 553);
-		RegisterVMNativeFunc_3("Actor", "Multiply_FloatColor", &NActor::Multiply_FloatColor, 551);
-	}
-	else if (!engine->LaunchInfo.IsUnreal1())
-	{
-		RegisterVMNativeFunc_3("Actor", "Add_ColorColor", &NActor::Add_ColorColor, 551);
-		RegisterVMNativeFunc_3("Actor", "Subtract_ColorColor", &NActor::Subtract_ColorColor, 549); // U227 reserves this slot for PlayerPawn.IsPressing()
-		RegisterVMNativeFunc_3("Actor", "Multiply_ColorFloat", &NActor::Multiply_ColorFloat, 552);
-		RegisterVMNativeFunc_3("Actor", "Multiply_FloatColor", &NActor::Multiply_FloatColor, 550);
-	}
-
-	if (engine->LaunchInfo.IsUnreal1_227())
-	{
-		RegisterVMNativeFunc_7("Actor", "TraceSurfHitInfo", &NActor::TraceSurfHitInfo_U227, 1736);
-		RegisterVMNativeFunc_6("Actor", "TraceThisActor", &NActor::TraceThisActor_U227, 1739);
-	}
+	RegisterVMNativeFunc_3("Actor", "Add_ColorColor", &NActor::Add_ColorColor, 551);
+	RegisterVMNativeFunc_3("Actor", "Subtract_ColorColor", &NActor::Subtract_ColorColor, 549);
+	RegisterVMNativeFunc_3("Actor", "Multiply_ColorFloat", &NActor::Multiply_ColorFloat, 552);
+	RegisterVMNativeFunc_3("Actor", "Multiply_FloatColor", &NActor::Multiply_FloatColor, 550);
 
 	if (engine->LaunchInfo.IsDeusEx())
 	{
@@ -201,16 +174,6 @@ void NActor::Add_ColorColor(const Color& A, const Color& B, Color& ReturnValue)
 void NActor::AllActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<NameString> MatchTag)
 {
 	Frame::CreatedIterator = std::make_unique<AllActorsIterator>(BaseClass, &Actor, MatchTag ? *MatchTag : std::string());
-}
-
-void NActor::AllActors_U227(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<NameString> MatchTag, std::optional<NameString> MatchEvent)
-{
-	Frame::CreatedIterator = std::make_unique<AllActorsIterator>(BaseClass, &Actor, MatchTag ? *MatchTag : std::string(), MatchEvent ? *MatchEvent : std::string());
-}
-
-void NActor::AllActors_U227k(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<NameString> MatchTag, std::optional<NameString> MatchEvent, bool bAllLevels)
-{
-	Frame::CreatedIterator = std::make_unique<AllActorsIterator>(BaseClass, &Actor, MatchTag ? *MatchTag : std::string(), MatchEvent ? *MatchEvent : std::string(), bAllLevels);
 }
 
 void NActor::AutonomousPhysics(UObject* Self, float DeltaSeconds)
@@ -468,11 +431,6 @@ void NActor::GetURLMap(UObject* Self, std::string& ReturnValue)
 void NActor::HasAnim(UObject* Self, const NameString& Sequence, BitfieldBool& ReturnValue)
 {
 	ReturnValue = UObject::Cast<UActor>(Self)->HasAnim(Sequence);
-}
-
-void NActor::IntDescIterator_U227(UObject* Self, std::string& ClassName, std::string* EntryName, std::string* Desc, std::optional<bool> bSingleNames)
-{
-	Frame::CreatedIterator = std::make_unique<IntDescIterator>(ClassName, EntryName, Desc, bSingleNames);
 }
 
 void NActor::IsAnimating(UObject* Self, BitfieldBool& ReturnValue)
@@ -804,18 +762,6 @@ void NActor::Trace(UObject* Self, vec3& HitLocation, vec3& HitNormal, const vec3
 		Extent ? *Extent : vec3(0, 0, 0));
 }
 
-void NActor::Trace_U227(UObject* Self, vec3& HitLocation, vec3& HitNormal, const vec3& TraceEnd, std::optional<vec3> TraceStart, std::optional<bool> bTraceActors, std::optional<vec3> Extent, std::optional<bool> bTraceBSP, std::optional<uint8_t> BSPTraceFlags, UObject*& ReturnValue)
-{
-	auto SelfActor = UObject::Cast<UActor>(Self);
-	ReturnValue = SelfActor->Trace(
-		HitLocation, HitNormal, TraceEnd,
-		TraceStart ? *TraceStart : SelfActor->Location(),
-		bTraceActors ? *bTraceActors : false,
-		Extent ? *Extent : vec3(0, 0, 0),
-		bTraceBSP ? *bTraceBSP : true,
-		BSPTraceFlags ? *BSPTraceFlags : 0);
-}
-
 void NActor::TraceActors(UObject* Self, UObject* BaseClass, UObject*& Actor, vec3& HitLoc, vec3& HitNorm, const vec3& End, std::optional<vec3> Start, std::optional<vec3> Extent)
 {
 	UActor* SelfActor = UObject::Cast<UActor>(Self);
@@ -977,21 +923,6 @@ void NActor::TraceVisibleActors(UObject* Self, UObject* BaseClass, UObject*& Act
 	vec3 realExtent = Extent ? *Extent : vec3(0, 0, 0);
 
 	Frame::CreatedIterator = std::make_unique<TraceVisibleActorsIterator>(BaseClass, &Actor, &HitLoc, &HitNorm, End, realStart, realExtent);
-}
-
-void NActor::TraceSurfHitInfo_U227(UObject* Self, vec3& Start, vec3& End, vec3* HitLocation, vec3* HitNormal, UObject* HitTex, int* HitFlags, BitfieldBool& ReturnValue)
-{
-	auto SelfActor = UObject::Cast<UActor>(Self);
-	auto Tex = UObject::Cast<UTexture>(HitTex);
-
-	ReturnValue = SelfActor->TraceSurfHitInfo(Start, End, HitLocation, HitNormal, Tex, HitFlags);
-}
-
-void NActor::TraceThisActor_U227(UObject* Self, vec3& TraceEnd, vec3& TraceStart, vec3* HitLocation, vec3* HitNormal, std::optional<vec3> Extent, BitfieldBool& ReturnValue)
-{
-	auto SelfActor = UObject::Cast<UActor>(Self);
-
-	ReturnValue = SelfActor->TraceThisActor(TraceEnd, TraceStart, HitLocation, HitNormal, Extent);
 }
 
 void NActor::InStasis(UObject* Self, BitfieldBool& ReturnValue)

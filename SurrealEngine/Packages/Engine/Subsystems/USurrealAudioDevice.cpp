@@ -529,7 +529,7 @@ static std::unique_ptr<AudioSource> CreateMusicSource(UMusic* song, int order)
 	std::unique_ptr<AudioSource> source;
 	if (song->Format == "mp3" || song->Format == "mp2")
 		source = AudioSource::CreateMp3(song->Data);
-	else if (song->Format == "ogg" || song->Format == "event") // Some ogg files in Unreal 227 have event as format for some reason
+	else if (song->Format == "ogg")
 		source = AudioSource::CreateOgg(song->Data, true);
 	else if (song->Format == "wav")
 		source = AudioSource::CreateWav(song->Data);
