@@ -175,8 +175,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Native/NParticleIterator.h
 	SurrealEngine/Native/NPlayerPawnExt.cpp
 	SurrealEngine/Native/NPlayerPawnExt.h
-	SurrealEngine/Native/NRMusicPlayer.cpp
-	SurrealEngine/Native/NRMusicPlayer.h
 	SurrealEngine/Native/NBorderWindow.cpp
 	SurrealEngine/Native/NBorderWindow.h
 	SurrealEngine/Native/NButtonWindow.cpp
@@ -680,9 +678,6 @@ set(SURREALCOMMON_SOURCES
 	SurrealEngine/Network/NetSerialize.h
 	SurrealEngine/Network/NetServer.cpp
 	SurrealEngine/Network/NetServer.h
-	SurrealEngine/Packages/RMusicPlayer/URMusic_Component.h
-	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.cpp
-	SurrealEngine/Packages/RMusicPlayer/URMusic_Player.h
 	SurrealEngine/Collision/TopLevel/CollisionSystem.cpp
 	SurrealEngine/Collision/TopLevel/CollisionSystem.h
 	SurrealEngine/Collision/TopLevel/CollisionHit.h
@@ -834,7 +829,6 @@ source_group("SurrealEngine\\Packages\\Extension\\Windows" REGULAR_EXPRESSION "$
 source_group("SurrealEngine\\Packages\\Extension\\Windows\\TabGroup" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Extension/Windows/TabGroup/.+")
 source_group("SurrealEngine\\Packages\\Extension\\Windows\\Text" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/Extension/Windows/Text/.+")
 source_group("SurrealEngine\\Packages\\IpDrv" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/IpDrv/.+")
-source_group("SurrealEngine\\Packages\\RMusicPlayer" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Packages/RMusicPlayer/.+")
 source_group("SurrealEngine\\Collision" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/.+")
 source_group("SurrealEngine\\Collision\\TopLevel" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/TopLevel/.+")
 source_group("SurrealEngine\\Collision\\BottomLevel" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/SurrealEngine/Collision/BottomLevel/.+")

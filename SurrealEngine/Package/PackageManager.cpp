@@ -221,8 +221,6 @@
 #include "Packages/IpDrv/UInternetLink.h"
 #include "Packages/IpDrv/UTcpLink.h"
 #include "Packages/IpDrv/UUdpLink.h"
-#include "Packages/RMusicPlayer/URMusic_Component.h"
-#include "Packages/RMusicPlayer/URMusic_Player.h"
 #include "Native/NActor.h"
 #include "Native/NCanvas.h"
 #include "Native/NCommandlet.h"
@@ -269,7 +267,6 @@
 #include "Native/NListWindow.h"
 #include "Native/NModalWindow.h"
 #include "Native/NRadioBoxWindow.h"
-#include "Native/NRMusicPlayer.h"
 #include "Native/NRootWindow.h"
 #include "Native/NScaleManagerWindow.h"
 #include "Native/NScaleWindow.h"
@@ -1284,11 +1281,6 @@ void PackageManager::RegisterFunctions()
 		NWebResponse::RegisterFunctions();
 		NWindow::RegisterFunctions();
 	}
-
-	if (fs::exists(gameSystemFolderPath / "RMusicPlayer.u"))
-	{
-		NRMusicPlayer::RegisterFunctions();
-	}
 }
 
 void PackageManager::RegisterNativeClasses()
@@ -1300,7 +1292,6 @@ void PackageManager::RegisterNativeClasses()
 	NameString conSysPackage = "ConSys";
 	NameString deusExPackage = "DeusEx";
 	NameString deusExTextPackage = "DeusExText";
-	NameString RMusicPlayerPackage = "RMusicPlayer";
 
 	RegisterNativeClass<UObject>(corePackage, "Object");
 	RegisterNativeClass<UPackage>(corePackage, "Package");
@@ -1542,12 +1533,6 @@ void PackageManager::RegisterNativeClasses()
 		RegisterNativeClass<UConversation>(conSysPackage, "Conversation", "ConObject");
 		RegisterNativeClass<UConversationList>(conSysPackage, "ConversationList", "ConObject");
 		RegisterNativeClass<UConversationMissionList>(conSysPackage, "ConversationMissionList", "ConObject");
-	}
-
-	if (fs::exists(gameSystemFolderPath / "RMusicPlayer.u"))
-	{
-		RegisterNativeClass<URMusic_Component>(RMusicPlayerPackage, "RMusic_Component", "Actor");
-		RegisterNativeClass<URMusic_Player>(RMusicPlayerPackage, "RMusic_Player", "RMusic_Component");
 	}
 }
 

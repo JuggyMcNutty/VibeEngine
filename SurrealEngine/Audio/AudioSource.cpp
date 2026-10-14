@@ -524,29 +524,6 @@ std::unique_ptr<AudioSource> AudioSource::CreateMod(Array<uint8_t> filedata, boo
 	return std::make_unique<OpenMPTAudioSource>(filedata, loop, subsong);
 }
 
-std::unique_ptr<AudioSource> AudioSource::TryCreateFromFile(const std::string& FilePath, bool loop)
-{
-	try
-	{
-		const fs::path path{FilePath};
-		auto data = File::read_all_bytes(FilePath);
-		const auto extension = path.extension().string();
-
-		if (StrTools::equals_ignore_case(extension, ".mp3") || StrTools::equals_ignore_case(extension, ".mp2"))
-			return std::make_unique<Mp3AudioSource>(std::move(data));
-		if (StrTools::equals_ignore_case(extension, ".ogg"))
-			return std::make_unique<OggAudioSource>(std::move(data), loop);
-		if (StrTools::equals_ignore_case(extension, ".flac"))
-			return std::make_unique<FlacAudioSource>(std::move(data));
-		if (StrTools::equals_ignore_case(extension, ".wav"))
-			return std::make_unique<WavAudioSource>(std::move(data));
-	}
-	catch (...)
-	{
-	}
-	return nullptr;
-}
-
 class ResampleAudioSource : public AudioSource
 {
 public:

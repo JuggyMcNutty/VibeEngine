@@ -3842,27 +3842,3 @@ struct PropertyDataOffsets_StaticMeshActor
 };
 
 extern PropertyDataOffsets_StaticMeshActor PropOffsets_StaticMeshActor;
-
-struct PropertyDataOffsets_RMusic_Player
-{
-	PropertyDataOffset RMusic_Volume;
-	PropertyDataOffset bAlwaysLoadCodecs;
-	PropertyDataOffset RMusic_PluginsDirectory;
-	PropertyDataOffset RMusic_Directory;
-	PropertyDataOffset bIncludeDebugInfo;
-	PropertyDataOffset bAuthoritative;
-	PropertyDataOffset bUseCurrentPaths;
-	PropertyDataOffset FaderUpdateTime;
-	PropertyDataOffset NextTrack;
-	PropertyDataOffset NextLoop;
-	PropertyDataOffset bIsOn;
-	PropertyDataOffset RMusic_LocalPlayer;
-	PropertyDataOffset RMusic_CurLevel;
-	PropertyDataOffset RMusic_OldLevel;
-	PropertyDataOffset bHasDSP;
-	PropertyDataOffset fDSPUpdateTime;
-	PropertyDataOffset fDSPUpdateDelay;
-	PropertyDataOffset nextEvent;
-};
-
-extern PropertyDataOffsets_RMusic_Player PropOffsets_RMusic_Player;
