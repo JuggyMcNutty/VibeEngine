@@ -159,20 +159,6 @@ void NActor::ConsoleCommand(UObject* Self, const std::string& Command, std::stri
 	ReturnValue = engine->ConsoleCommand(Self, Command, found.ToType<BitfieldBool&>());
 }
 
-void NActor::DemoPlaySound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch)
-{
-	UActor* SelfActor = UObject::Cast<UActor>(Self);
-	USound* s = UObject::Cast<USound>(Sound);
-	if (s)
-	{
-		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = engine->audiodev->SoundId(SelfActor, slot);
-		if (bNoOverride && *bNoOverride) id |= 1;
-
-		engine->audiodev->PlaySound(SelfActor, id, s, SelfActor->Location(), Volume ? *Volume : SelfActor->TransientSoundVolume(), Radius ? (*Radius) : SelfActor->TransientSoundRadius(), Pitch ? *Pitch : 1.0f, slot == SLOT_Talk);
-	}
-}
-
 void NActor::Destroy(UObject* Self, BitfieldBool& ReturnValue)
 {
 	ReturnValue = UObject::Cast<UActor>(Self)->Destroy();
@@ -304,12 +290,6 @@ void NActor::GetMapName(UObject* Self, const std::string& NameEnding, const std:
 
 	// Grab first map if map wasn't found or none was specified
 	ReturnValue = !maps.empty() ? maps.front() : std::string();
-}
-
-void NActor::GetNextSkin_219(UObject* Self, const std::string& Prefix, const std::string& CurrentSkin, int Dir, std::string& ReturnValue)
-{
-	std::string SkinDesc;
-	GetNextSkin(Self, Prefix, CurrentSkin, Dir, ReturnValue, SkinDesc);
 }
 
 void NActor::GetNextSkin(UObject* Self, const std::string& Prefix, const std::string& CurrentSkin, int Dir, std::string& SkinName, std::string& SkinDesc)
@@ -463,32 +443,6 @@ void NActor::PlayBlendAnim(UObject* Self, const NameString& Sequence, std::optio
 	UObject::Cast<UActor>(Self)->PlayBlendAnim(Sequence, Rate ? *Rate : 1.0f, TweenTime ? *TweenTime : -1.0f, BlendSlot ? *BlendSlot : 0);
 }
 
-void NActor::PlayOwnedSound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch)
-{
-	UActor* SelfActor = UObject::Cast<UActor>(Self);
-	USound* s = UObject::Cast<USound>(Sound);
-	if (s)
-	{
-		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = engine->audiodev->SoundId(SelfActor, slot);
-		if (bNoOverride && *bNoOverride) id |= 1;
-		engine->audiodev->PlaySound(SelfActor, id, s, SelfActor->Location(), Volume ? *Volume : SelfActor->TransientSoundVolume(), Radius ? (*Radius) : SelfActor->TransientSoundRadius(), Pitch ? *Pitch : 1.0f, slot == SLOT_Talk);
-	}
-}
-
-void NActor::PlaySound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch)
-{
-	UActor* SelfActor = UObject::Cast<UActor>(Self);
-	USound* s = UObject::Cast<USound>(Sound);
-	if (s)
-	{
-		int slot = Slot ? *Slot : SLOT_Misc;
-		int id = engine->audiodev->SoundId(SelfActor, slot);
-		if (bNoOverride && *bNoOverride) id |= 1;
-		engine->audiodev->PlaySound(SelfActor, id, s, SelfActor->Location(), Volume ? *Volume : SelfActor->TransientSoundVolume(), Radius ? (*Radius) : SelfActor->TransientSoundRadius(), Pitch ? *Pitch : 1.0f, slot == SLOT_Talk);
-	}
-}
-
 // Whether the script function calling the native is marked simulated, as
 // Engine.dll's PlaySound asks of the frame it is called from: the native's
 // own frame is on top, its caller's under it. State code is no function.
@@ -625,12 +579,6 @@ void NActor::SetOwner(UObject* Self, UObject* NewOwner)
 	UObject::Cast<UActor>(Self)->SetOwner(UObject::Cast<UActor>(NewOwner));
 }
 
-void NActor::SetPhysics(UObject* Self, uint8_t newPhysics)
-{
-	UObject::Cast<UActor>(Self)->SetPhysics(newPhysics);
-	// We are calling Self->SetBase() for all other calls to SetPhysics. Do we need to do it here as well?
-}
-
 void NActor::SetPhysics_Deus(UObject* Self, uint8_t newPhysics, std::optional<UObject*> newFloor)
 {
 	// The original's setPhysics (UActor::SetPhysics with a floor). The
@@ -730,16 +678,6 @@ void NActor::VisibleCollidingActors(UObject* Self, UObject* BaseClass, UObject*&
 		Radius ? *Radius : defaultRadius,
 		Loc ? *Loc : SelfActor->Location(),
 		bIgnoreHidden ? *bIgnoreHidden : false);
-}
-
-void NActor::VisibleCollidingActors_219(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc)
-{
-	UActor* SelfActor = UObject::Cast<UActor>(Self);
-	Frame::CreatedIterator = std::make_unique<VisibleCollidingActorsIterator>(
-		BaseClass, &Actor,
-		Radius ? *Radius : SelfActor->CollisionRadius(),
-		Loc ? *Loc : SelfActor->Location(),
-		false);
 }
 
 void NActor::GetMeshTexture(UObject* Self, std::optional<int> texnum, UObject*& ReturnValue)  

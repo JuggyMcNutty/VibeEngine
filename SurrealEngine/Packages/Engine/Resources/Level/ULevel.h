@@ -84,7 +84,6 @@ public:
 	void CleanupDestroyed(bool force);
 
 private:
-	void TickActor(float elapsed, UActor* actor);
 	void TickDeusEx(float elapsed, bool gamePaused);
 	bool TickActorDeusEx(float elapsed, UActor* actor);
 

@@ -222,15 +222,6 @@ void NCanvas::StrLen(UObject* Self, const std::string& String, float& XL, float&
 	}
 }
 
-void NCanvas::StrLen_219(UObject* Self, const std::string& Text, int NumChars, int StartIndex, int& XL, int& YL)
-{
-	std::string String = Text.substr(StartIndex, NumChars);
-	float width, height;
-	StrLen(Self, String, width, height);
-	XL = (int)std::round(width);
-	YL = (int)std::round(height);
-}
-
 void NCanvas::TextSize(UObject* Self, const std::string& String, float& XL, float& YL)
 {
 	UCanvas* SelfCanvas = UObject::Cast<UCanvas>(Self);

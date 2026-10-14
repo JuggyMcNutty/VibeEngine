@@ -45,7 +45,6 @@ public:
 	int Height() const { return height; }
 	const vec3* Pixels() const { return lightcolors.data(); }
 
-	static vec3 GetLightColor(UActor* light);
 
 	// URender::GlobalLighting (dx-reverse-info/render-dll.md, lighting): the
 	// brightness given, shaped by the light's type at this moment and kept
@@ -81,8 +80,6 @@ private:
 	// others get nothing from it.
 	void FindLitSpans(UActor* light, Array<LightmapSpan>& spans);
 
-	void AddLightContribution(UActor* light, const LightmapSpan* spans, size_t count);
-	static void AddLightContribution(const vec3& lightcolor, const float* src, float* dest, int size);
 	void AddLightContributionDX(UActor* light, const LightmapSpan* spans, size_t count);
 
 	int width = 0;

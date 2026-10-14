@@ -38,7 +38,7 @@ void UPawn::Tick(float elapsed)
 		else if (StateFrame->LatentState == LatentRunState::StrafeTo)
 		{
 			TickRotateTo(Focus());
-			if (TickMoveTo(Destination()))
+			if (DeusExMoveToward(Destination()))
 				StateFrame->LatentState = LatentRunState::Continue;
 		}
 		else if (StateFrame->LatentState == LatentRunState::StrafeFacing)
@@ -48,7 +48,7 @@ void UPawn::Tick(float elapsed)
 				Focus() = FaceTarget()->Location();
 				TickRotateTo(Focus());
 				vec3 oldDest = Destination();
-				if (TickMoveTo(Destination()))
+				if (DeusExMoveToward(Destination()))
 					StateFrame->LatentState = LatentRunState::Continue;
 				Destination() = oldDest;
 			}
@@ -364,11 +364,6 @@ bool UPawn::DeusExPollMoveToward()
 		}
 	}
 	return done;
-}
-
-bool UPawn::TickMoveTo(const vec3& target)
-{
-	return DeusExMoveToward(target);
 }
 
 void UPawn::MoveTo(const vec3& newDestination, float speed)

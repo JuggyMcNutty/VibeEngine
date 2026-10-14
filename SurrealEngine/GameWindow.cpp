@@ -183,26 +183,6 @@ void GameWindow::ExitLoop()
 	DisplayBackend::Get()->ExitLoop();
 }
 
-std::string GameWindow::GetAvailableResolutions() const
-{
-	std::string result = "";
-
-	auto resolutions = QueryAvailableResolutions();
-
-	// "Flatten" the resolutions list into a single string
-	for (int i = 0; i < resolutions.size(); i++)
-	{
-		auto& res = resolutions[i];
-		std::string resString = std::to_string(int(res.width)) + "x" + std::to_string(int(res.height));
-
-		result += resString;
-		if (i < resolutions.size() - 1)
-			result += " ";
-	}
-
-	return result;
-}
-
 // Deus Ex's Display menu reads the sizes it offers from GETRES, smallest
 // first with a space between, as the original lists its display modes. It
 // takes at most 16, and none from a list with no space. The fork's window

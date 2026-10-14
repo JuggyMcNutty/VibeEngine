@@ -153,10 +153,13 @@ bool UActor::SetLocation(const vec3& newLocation, bool noCheck)
 	if (!noCheck)
 	{
 		bool findRoom = bCollideWorld() || (bCollideWhenPlacing() && Level()->NetMode() != NM_Client);
-		auto result = findRoom ? FindSpot(newLocation, CollisionRadius(), CollisionHeight(), false) : CheckLocation(newLocation, CollisionRadius(), CollisionHeight(), findRoom);
-		if (!result.first)
-			return false;
-		location = result.second;
+		if (findRoom)
+		{
+			auto result = FindSpot(newLocation, CollisionRadius(), CollisionHeight(), false);
+			if (!result.first)
+				return false;
+			location = result.second;
+		}
 
 		// Deus Ex: what stands at the spot may stop the move (EncroachingOn),
 		// and what blocks hears it come (EncroachedBy), before it moves.
@@ -370,56 +373,6 @@ bool UActor::HasLeftWorld()
 	return true;
 }
 
-void UActor::ApplyMovementAcceleration(float elapsed, float accelRate, float friction, float maxSpeed)
-{
-	if (dot(Acceleration(), Acceleration()) > 0.0001f)
-	{
-		// Acceleration must never exceed the acceleration rate
-		float accelSpeed = length(Acceleration());
-		vec3 accelDir = Acceleration() * (1.0f / accelSpeed);
-		if (accelSpeed > accelRate)
-			Acceleration() = accelDir * accelRate;
-
-		float speed = length(Velocity());
-		Velocity() = Velocity() - (Velocity() - accelDir * speed) * (friction * elapsed);
-	}
-	else
-	{
-		float speed = length(Velocity());
-		if (speed > 0.0f)
-		{
-			float newSpeed = std::max(speed - speed * friction * 2.0f * elapsed, 0.0f);
-			Velocity() = Velocity() * (newSpeed / speed);
-		}
-	}
-
-	Velocity() = Velocity() + Acceleration() * elapsed;
-
-	float speed = length(Velocity());
-	if (speed > 0.0f && speed > maxSpeed)
-		Velocity() = Velocity() * (maxSpeed / speed);
-}
-
-bool UActor::ShouldAbortMovementTick(uint8_t expectedPhysics)
-{
-	return bDeleteMe() || Physics() != expectedPhysics;
-}
-
-UPawn* UActor::PreparePawnMovementTick()
-{
-	UPawn* pawn = UObject::TryCast<UPawn>(this);
-	if (!pawn)
-		return nullptr;
-
-	if (HasLeftWorld())
-		return nullptr;
-
-	OldLocation() = Location();
-	bJustTeleported() = false;
-
-	return pawn;
-}
-
 void UActor::FireHitWall(const CollisionHit& hit)
 {
 	CallEvent(this, EventName::HitWall, { ExpressionValue::VectorValue(hit.Normal), ExpressionValue::ObjectValue(hit.Actor ? hit.Actor : Level()) });
@@ -512,36 +465,6 @@ void UActor::RecomputeVelocityFromDisplacement(float elapsed)
 {
 	if (!bJustTeleported())
 		Velocity() = (Location() - OldLocation()) / elapsed;
-}
-
-std::pair<bool, vec3> UActor::CheckLocation(vec3 location, float radius, float height, bool check)
-{
-	// Search for a valid spot near the location
-
-	if (!check)
-		return { true, location };
-
-	// What is a reasonable size for this grid? what did UE1 do?
-	int offset[] = { 0, 1, -1 };
-	bool found = false;
-	float scale = std::max(radius, height);
-	for (int z = 0; z < 3 && !found; z++)
-	{
-		for (int y = 0; y < 3 && !found; y++)
-		{
-			for (int x = 0; x < 3 && !found; x++)
-			{
-				vec3 testlocation = location + vec3(offset[x] * scale, offset[y] * scale, offset[z] * scale);
-				CollisionHitList hits = XLevel()->Collision.OverlapTest(testlocation, height, radius, false, true, false);
-				if (hits.empty())
-				{
-					location = testlocation;
-					found = true;
-				}
-			}
-		}
-	}
-	return { found, location };
 }
 
 // The original's ULevel::FindSpot (engine-dll.md, teleporting an actor): the

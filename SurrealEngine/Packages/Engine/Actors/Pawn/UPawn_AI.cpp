@@ -204,11 +204,6 @@ bool UPawn::CanHearNoise(UActor* source, float loudness)
 	return !XLevel()->Collision.TraceAnyHit(source->Location(), Location(), source, false, true, false);
 }
 
-void UPawn::ClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters)
-{
-	LogUnimplemented("Pawn.ClientHearSound");
-}
-
 // The original's native (Engine.dll 0x103dfc40): only a player pawn whose
 // player is a viewport, with audio, plays it -- the volume and pitch over
 // 100, a radius of 0 as 1,600, an actor being destroyed as None.

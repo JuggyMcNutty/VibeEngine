@@ -700,16 +700,6 @@ void PackageManager::ScanSaveInfos()
 	}
 }
 
-Array<NameString> PackageManager::GetPackageNames() const
-{
-	Array<NameString> names;
-	for (auto& it : packageFilenames)
-	{
-		names.push_back(it.first);
-	}
-	return names;
-}
-
 Package* PackageManager::GetSaveInfoPackage(const NameString& saveFolderName)
 {
 	auto idx = saveInfos.find(saveFolderName);

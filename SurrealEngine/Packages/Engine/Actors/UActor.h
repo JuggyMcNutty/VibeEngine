@@ -255,14 +255,6 @@ public:
 
 	// True (and fires FellOutOfWorld) if the actor's location has no valid region at all, i.e. it fell outside the level's BSP geometry.
 	bool HasLeftWorld();
-	// Shared accel/friction/max-speed update used by TickWalking, TickSwimming and TickFlying.
-	void ApplyMovementAcceleration(float elapsed, float accelRate, float friction, float maxSpeed);
-	// True if the movement loop calling this should stop: the actor was destroyed, or Physics()
-	// no longer matches expectedPhysics. Both can happen from inside TryMove
-	bool ShouldAbortMovementTick(uint8_t expectedPhysics);
-	// Common TickWalking/TickSwimming/TickFlying preamble: casts to UPawn (null return means "not a
-	// pawn, caller should bail"), checks HasLeftWorld, and resets OldLocation/bJustTeleported for the tick.
-	UPawn* PreparePawnMovementTick();
 	// Fires the HitWall event with the actor/level that was hit - used by every movement tick function.
 	void FireHitWall(const CollisionHit& hit);
 	// Deus Ex's: the original's processHitWall, which gives a pawn HitWall
@@ -273,7 +265,6 @@ public:
 	// Steps onto the ground if able, if not (would be falling) retuns false without moving
 	bool TryStepToGround(vec3 stepDownDelta);
 
-	bool ShouldAbortJumping(UPawn* pawn, vec3 oldPosition, vec3 stepDownDelta);
 	// Recovers Velocity from actual displacement over the tick, unless bJustTeleported was set (which
 	// makes the displacement meaningless as a velocity source).
 	void RecomputeVelocityFromDisplacement(float elapsed);
@@ -288,7 +279,6 @@ public:
 	void FindBase();
 	void SetCollision(bool newColActors, bool newBlockActors, bool newBlockPlayers);
 
-	std::pair<bool, vec3> CheckLocation(vec3 location, float radius, float height, bool check);
 	std::pair<bool, vec3> FindSpot(vec3 location, float radius, float height, bool checkFirst);
 	void AdjustSpot(vec3& spot, const vec3& dest, float traceLength);
 	bool EncroachBlockedBy(UActor* other);

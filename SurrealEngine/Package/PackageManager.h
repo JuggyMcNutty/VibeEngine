@@ -42,7 +42,6 @@ public:
 	fs::path GetCacheFolderPath() const { return gameCacheFolderPath; }
 
 	Package* GetPackage(const NameString& name);
-	Array<NameString> GetPackageNames() const;
 	// Whether a package of that name is on the paths, and whether it is a map.
 	bool HasPackage(const NameString& name) const { return packageFilenames.find(name) != packageFilenames.end(); }
 	bool IsMapPackage(const NameString& name) const;

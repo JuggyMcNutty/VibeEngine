@@ -498,34 +498,6 @@ void NObject::DynamicLoadObject(const std::string& ObjectName, UObject* ObjectCl
 	}
 }
 
-void NObject::DynamicLoadObject_219(const std::string& ObjectName, UObject* ObjectClass, UObject*& ReturnValue)
-{
-	ReturnValue = nullptr;
-
-	if (!ObjectName.empty())
-	{
-		auto dotpos = ObjectName.find('.');
-		if (dotpos != 0 && dotpos != std::string::npos)
-		{
-			std::string packageName = ObjectName.substr(0, dotpos);
-			std::string objectName = ObjectName.substr(dotpos + 1);
-
-			try
-			{
-				ReturnValue = engine->packages->GetPackage(packageName)->GetUObject(ObjectClass->Name, objectName);
-			}
-			catch (...)
-			{
-			}
-		}
-	}
-
-	if (!ReturnValue)
-	{
-		LogMessage("Object.DynamicLoadObject: could not load '" + ObjectName + "'");
-	}
-}
-
 void NObject::Enable(UObject* Self, const NameString& ProbeFunc)
 {
 	Self->EnableEvent(ProbeFunc);

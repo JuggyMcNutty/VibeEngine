@@ -14,7 +14,6 @@ public:
 	static void ChildActors(UObject* Self, UObject* BaseClass, UObject*& Actor);
 	static void ConsoleCommand(UObject* Self, const std::string& Command, std::string& ReturnValue);
 	static void CycleActors(UObject* Self, UObject* BaseClass, UObject*& Actor, int& index);
-	static void DemoPlaySound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch);
 	static void Destroy(UObject* Self, BitfieldBool& ReturnValue);
 	static void Error(UObject* Self, const std::string& S);
 	static void FastTrace(UObject* Self, const vec3& TraceEnd, std::optional<vec3> TraceStart, BitfieldBool& ReturnValue);
@@ -28,7 +27,6 @@ public:
 	static void GetNextInt(UObject* Self, const std::string& ClassName, int Num, std::string& ReturnValue);
 	static void GetNextIntDesc(UObject* Self, const std::string& ClassName, int Num, std::string& Entry, std::string& Description);
 	static void GetNextSkin(UObject* Self, const std::string& Prefix, const std::string& CurrentSkin, int Dir, std::string& SkinName, std::string& SkinDesc);
-	static void GetNextSkin_219(UObject* Self, const std::string& Prefix, const std::string& CurrentSkin, int Dir, std::string& ReturnValue);
 	static void GetSoundDuration(UObject* Self, UObject* Sound, float& ReturnValue);
 	static void GetURLMap(UObject* Self, std::string& ReturnValue);
 	static void HasAnim(UObject* Self, const NameString& Sequence, BitfieldBool& ReturnValue);
@@ -45,8 +43,6 @@ public:
 	static void Multiply_FloatColor(float A, const Color& B, Color& ReturnValue);
 	static void PlayAnim(UObject* Self, const NameString& Sequence, std::optional<float> Rate, std::optional<float> TweenTime);
 	static void PlayBlendAnim(UObject* Self, const NameString& Sequence, std::optional<float> Rate, std::optional<float> TweenTime, std::optional<uint8_t> BlendSlot);
-	static void PlayOwnedSound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch);
-	static void PlaySound(UObject* Self, UObject* Sound, std::optional<uint8_t> Slot, std::optional<float> Volume, std::optional<bool> bNoOverride, std::optional<float> Radius, std::optional<float> Pitch);
 	static void PlayerCanSeeMe(UObject* Self, BitfieldBool& ReturnValue);
 	static void RadiusActors(UObject* Self, UObject* BaseClass, UObject*& Actor, float Radius, std::optional<vec3> Loc);
 	static void SetBase(UObject* Self, UObject* NewBase);
@@ -54,7 +50,6 @@ public:
 	static void SetCollisionSize(UObject* Self, float NewRadius, float NewHeight, BitfieldBool& ReturnValue);
 	static void SetLocation(UObject* Self, const vec3& NewLocation, BitfieldBool& ReturnValue);
 	static void SetOwner(UObject* Self, UObject* NewOwner);
-	static void SetPhysics(UObject* Self, uint8_t newPhysics);
 	static void SetRotation(UObject* Self, const Rotator& NewRotation, BitfieldBool& ReturnValue);
 	static void SetTimer(UObject* Self, float NewTimerRate, bool bLoop);
 	static void Sleep(UObject* Self, float Seconds);
@@ -66,7 +61,6 @@ public:
 	static void TweenAnim(UObject* Self, const NameString& Sequence, float Time);
 	static void VisibleActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc);
 	static void VisibleCollidingActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc, std::optional<bool> bIgnoreHidden);
-	static void VisibleCollidingActors_219(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc);
 	static void GetPlayerPawn(UObject* Self, UObject*& ReturnValue);
 	static void AIClearEvent(UObject* Self, const NameString& eventName);
 	static void AIClearEventCallback(UObject* Self, const NameString& eventName);

@@ -970,11 +970,6 @@ UObject* UPawn::FindRandomDest()
 	return reachablePoints[index];
 }
 
-UObject* UPawn::FindPathTo(const vec3& aPoint, bool bSinglePath)
-{
-	return FindPathToward(FindClosestNavPoint(aPoint), bSinglePath);
-}
-
 bool UPawn::MarkReachableNavEndPoints()
 {
 	int maxActorReachableCalls = 8; // upper bound for how expensive this can get

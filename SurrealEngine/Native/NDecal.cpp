@@ -12,11 +12,6 @@ void NDecal::RegisterFunctions()
 	RegisterVMNativeFunc_0("Decal", "DetachDecal", &NDecal::DetachDecal, 0);
 }
 
-void NDecal::AttachDecal(UObject* Self, float TraceDistance, std::optional<vec3> DecalDir, UObject*& ReturnValue)
-{
-	ReturnValue = UObject::TryCast<UDecal>(Self)->AttachDecal(TraceDistance, DecalDir ? *DecalDir : vec3(0.0f));
-}
-
 // With the client's Decals off (the Display menu's Decals) the original's
 // attaches none (Engine.dll ADecal::execAttachDecal, 0x103e7250): the game's
 // decals then destroy themselves as they are made.

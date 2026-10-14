@@ -146,7 +146,6 @@ public:
 	bool PreLogin(const std::string& options, const std::string& address, std::string& error, std::string& failcode);
 	UPlayerPawn* SpawnPlayActor(UObject* player, uint8_t remoteRole, const UnrealURL& url, std::string& error);
 
-	UObject* FindObject(NameString name, NameString className);
 
 	// The collector (vibe/docs/ENGINE.md, objects and memory). A request is
 	// carried out at the end of the frame, with no script running.

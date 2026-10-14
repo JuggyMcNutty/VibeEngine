@@ -90,7 +90,7 @@ void LightmapBuilder::AddStaticLights(UModel* model, int lightMap)
 					continue;
 				Shadow.Load(model, lightMap, lightindex, LightmapRect::Of(spans.data(), spans.size()));
 				Effect.Run(light, width, spans.data(), spans.size(), WorldLocations(), base, WorldNormal(), Shadow.Pixels(), illuminationmap.data());
-				AddLightContribution(light, spans.data(), spans.size());
+				AddLightContributionDX(light, spans.data(), spans.size());
 			}
 		}
 	}
@@ -137,7 +137,7 @@ void LightmapBuilder::AddLights(UModel* model, int lightMap)
 		else
 			Shadow.Clear(model, lightMap, added.Rect);
 		Effect.Run(added.Light, width, lit, added.NumSpans, WorldLocations(), base, WorldNormal(), Shadow.Pixels(), illuminationmap.data());
-		AddLightContribution(added.Light, lit, added.NumSpans);
+		AddLightContributionDX(added.Light, lit, added.NumSpans);
 	}
 }
 
@@ -206,56 +206,6 @@ void LightmapBuilder::FindLitSpans(UActor* light, Array<LightmapSpan>& spans)
 		int ix1 = (int)std::clamp(x1, 0.0f, (float)width);
 		if (ix0 < ix1)
 			spans.push_back({ y, ix0, ix1 });
-	}
-}
-
-void LightmapBuilder::AddLightContribution(UActor* light, const LightmapSpan* spans, size_t count)
-{
-	AddLightContributionDX(light, spans, count);
-}
-
-void LightmapBuilder::AddLightContribution(const vec3& lightcolor, const float* src, float* dest, int size)
-{
-	float lightcolorR = lightcolor.r;
-	float lightcolorG = lightcolor.g;
-	float lightcolorB = lightcolor.b;
-
-#ifdef USE_SSE2
-	__m128 mmlightcolor0 = _mm_setr_ps(lightcolorR, lightcolorG, lightcolorB, lightcolorR);
-	__m128 mmlightcolor1 = _mm_setr_ps(lightcolorG, lightcolorB, lightcolorR, lightcolorG);
-	__m128 mmlightcolor2 = _mm_setr_ps(lightcolorB, lightcolorR, lightcolorG, lightcolorB);
-	int sse_size = size / 4 * 4;
-	for (size_t i = 0; i < sse_size; i += 4)
-	{
-		// To do: memory align buffers
-		__m128 s = _mm_loadu_ps(src);
-		__m128 s0 = _mm_shuffle_ps(s, s, _MM_SHUFFLE(1, 0, 0, 0));
-		__m128 s1 = _mm_shuffle_ps(s, s, _MM_SHUFFLE(2, 2, 1, 1));
-		__m128 s2 = _mm_shuffle_ps(s, s, _MM_SHUFFLE(3, 3, 3, 2));
-		__m128 one = _mm_set_ps1(1.0f);
-		_mm_storeu_ps(dest, _mm_min_ps(_mm_add_ps(_mm_loadu_ps(dest), _mm_mul_ps(s0, mmlightcolor0)), one));
-		_mm_storeu_ps(dest + 4, _mm_min_ps(_mm_add_ps(_mm_loadu_ps(dest + 4), _mm_mul_ps(s1, mmlightcolor1)), one));
-		_mm_storeu_ps(dest + 8, _mm_min_ps(_mm_add_ps(_mm_loadu_ps(dest + 8), _mm_mul_ps(s2, mmlightcolor2)), one));
-		src += 4;
-		dest += 3 * 4;
-	}
-#else
-	int sse_size = 0;
-#endif
-	for (size_t i = sse_size; i < size; i++)
-	{
-		float s = *src;
-		float r = s * lightcolorR;
-		float g = s * lightcolorG;
-		float b = s * lightcolorB;
-		r = r <= 1.0f ? r : 1.0f;
-		g = g <= 1.0f ? g : 1.0f;
-		b = b <= 1.0f ? b : 1.0f;
-		dest[0] += r;
-		dest[1] += g;
-		dest[2] += b;
-		src++;
-		dest += 3;
 	}
 }
 
@@ -385,82 +335,6 @@ float LightmapBuilder::GlobalLighting(UActor* light, float brightness, vec3* col
 	}
 	}
 	return std::clamp(brightness, 0.0f, 1.0f);
-}
-
-vec3 LightmapBuilder::GetLightColor(UActor* light)
-{
-	constexpr float phaseScale = (1.0f / 255.0f);
-	constexpr float periodSpeed = 40.0f;
-	constexpr float turnsToRadians = 2.0f * 3.14159265359f;
-	constexpr float strobeSpeed = 10.0f;
-	switch (light->LightType())
-	{
-	default:
-	case LT_Steady:
-	case LT_BackdropLight:
-		return hsbtorgb(light->LightHue(), light->LightSaturation(), light->LightBrightness());
-	case LT_Pulse:
-	{
-		float pulseTurns = light->LightPhase() * phaseScale + light->Level()->TimeSeconds() * periodSpeed / std::max(light->LightPeriod(), (uint8_t)1);
-		float pulse = std::sin(pulseTurns * turnsToRadians);
-		float brightness = light->LightBrightness() * (0.65f + 0.35f * pulse);
-		return hsbtorgb(light->LightHue(), light->LightSaturation(), (uint8_t)std::clamp(brightness, 0.0f, 255.0f));
-	}
-	case LT_SubtlePulse:
-	{
-		float pulseTurns = light->LightPhase() * phaseScale + light->Level()->TimeSeconds() * periodSpeed / std::max(light->LightPeriod(), (uint8_t)1);
-		float pulse = std::sin(pulseTurns * turnsToRadians);
-		float brightness = light->LightBrightness() * (0.8f + 0.2f * pulse);
-		return hsbtorgb(light->LightHue(), light->LightSaturation(), (uint8_t)std::clamp(brightness, 0.0f, 255.0f));
-	}
-	case LT_Blink:
-		if (std::fmod(light->LightPhase() * phaseScale + light->Level()->TimeSeconds() * periodSpeed / std::max(light->LightPeriod(), (uint8_t)1), 2.0f) < 1.0f)
-			return hsbtorgb(light->LightHue(), light->LightSaturation(), light->LightBrightness());
-		else
-			return vec3(0.0f);
-	case LT_Strobe:
-		if (std::fmod(light->Level()->TimeSeconds() * strobeSpeed, 2.0f) < 1.0f)
-			return hsbtorgb(light->LightHue(), light->LightSaturation(), light->LightBrightness());
-		else
-			return vec3(0.0f);
-	case LT_Flicker:
-		if (light->Light.FlickerRandom)
-			return hsbtorgb(light->LightHue(), light->LightSaturation(), light->LightBrightness());
-		else
-			return vec3(0.0f);
-	case LT_TexturePaletteOnce:
-	{
-		if (light->LifeSpan() <= 0.0f || !light->Skin() || !light->Skin()->Palette())
-			return vec3(0.0f);
-
-		float t = light->LifeSpan() / light->Class->GetDefaultObject<UActor>()->LifeSpan();
-		UPalette* palette = light->Skin()->Palette();
-		if (palette->Colors.empty())
-			return vec3(0.0f);
-		uint32_t color = palette->Colors[(int)(t * palette->Colors.size())];
-		return vec3(
-			((color >> 16) & 0xff) * (1.0f / 255.0f),
-			((color >> 8) & 0xff) * (1.0f / 255.0f),
-			(color & 0xff) * (1.0f / 255.0f));
-	}
-	case LT_TexturePaletteLoop:
-	{
-		if (light->LifeSpan() <= 0.0f || !light->Skin() || !light->Skin()->Palette())
-			return vec3(0.0f);
-
-		float t = light->LightPhase() * phaseScale + light->Level()->TimeSeconds() * periodSpeed / std::max(light->LightPeriod(), (uint8_t)1);
-		t -= std::floor(t);
-
-		UPalette* palette = light->Skin()->Palette();
-		if (palette->Colors.empty())
-			return vec3(0.0f);
-		uint32_t color = palette->Colors[(int)(t * palette->Colors.size())];
-		return vec3(
-			((color >> 16) & 0xff) * (1.0f / 255.0f),
-			((color >> 8) & 0xff) * (1.0f / 255.0f),
-			(color & 0xff) * (1.0f / 255.0f));
-	}
-	}
 }
 
 void LightmapBuilder::CalcRowLines(Coords MapCoords, const LightMapIndex& lmindex)

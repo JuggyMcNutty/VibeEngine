@@ -2008,17 +2008,6 @@ UZoneInfo* Engine::GetZoneActor(int zoneIndex)
 		return LevelInfo;
 }
 
-UObject* Engine::FindObject(NameString name, NameString className)
-{
-	for (auto actor : Level->Actors)
-	{
-		if (actor && !AnyFlags(actor->Flags, ObjectFlags::EliminateObject) && actor->Name == name && UObject::GetUClassFullName(actor) == className)
-			return actor;
-	}
-
-	return nullptr;
-}
-
 float Engine::CalcTimeElapsed()
 {
 	using namespace std::chrono;

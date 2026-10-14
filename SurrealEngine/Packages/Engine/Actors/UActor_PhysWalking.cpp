@@ -10,34 +10,6 @@
 #include "Packages/Engine/Resources/Level/UModel.h"
 #include "Engine.h"
 
-bool UActor::ShouldAbortJumping(UPawn* pawn, vec3 oldPosition, vec3 stepDownDelta)
-{
-	//check if we can still walk, if so, nothing changes
-	if (TryStepToGround(stepDownDelta))
-	{
-		return false;
-	}
-
-	if (pawn->bCanJump())
-	{
-		CallEvent(this, EventName::MayFall);
-
-		//the pawn decides to not jump over the ledge,
-		//stop imediately and backtrack
-		if (!pawn->bCanJump())
-		{
-			Velocity() = vec3(0.0f);
-			Acceleration() = vec3(0.0f);
-			TryMove(oldPosition - Location());
-			return true;
-		}
-	}
-
-	SetPhysics(PHYS_Falling);
-	SetBase(nullptr, true);
-	return false;
-}
-
 void UActor::TickWalking(float elapsed)
 {
 	// Deus Ex's pawns walk as the original's do.

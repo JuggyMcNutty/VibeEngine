@@ -82,15 +82,6 @@ void NPawn::ClearPaths(UObject* Self)
 	selfPawn->ClearPaths();
 }
 
-void NPawn::ClientHearSound(UObject* Self, UObject* Actor, int Id, UObject* S, const vec3& SoundLocation, const vec3& Parameters)
-{
-	UPawn* SelfPawn = UObject::Cast<UPawn>(Self);
-	UActor* AActor = UObject::Cast<UActor>(Actor);
-	USound* Sound = UObject::Cast<USound>(S);
-
-	SelfPawn->ClientHearSound(AActor, Id, Sound, SoundLocation, Parameters);
-}
-
 void NPawn::ClientHearSound_Deus(UObject* Self, UObject* Actor, int Id, UObject* S, const vec3& SoundLocation, const vec3& Parameters)
 {
 	UObject::Cast<UPawn>(Self)->DeusExClientHearSound(UObject::Cast<UActor>(Actor), Id, UObject::Cast<USound>(S), SoundLocation, Parameters);
@@ -214,13 +205,6 @@ void NPawn::FindStairRotation(UObject* Self, float DeltaTime, int& ReturnValue)
 	ReturnValue = DeusExFindStairRotation(pawn, DeltaTime);
 }
 
-void NPawn::LineOfSightTo(UObject* Self, UObject* Other, BitfieldBool& ReturnValue)
-{
-	UPawn* selfPawn = UObject::Cast<UPawn>(Self);
-	UActor* otherActor = UObject::Cast<UActor>(Other);
-	ReturnValue = selfPawn->LineOfSightTo(otherActor, false);
-}
-
 void NPawn::MoveTo(UObject* Self, const vec3& NewDestination, std::optional<float> speed)
 {
 	UPawn* SelfPawn = UObject::Cast<UPawn>(Self);
@@ -237,37 +221,6 @@ void NPawn::PickAnyTarget(UObject* Self, float& bestAim, float& bestDist, const 
 {
 	UPawn* SelfPawn = UObject::Cast<UPawn>(Self);
 	ReturnValue = SelfPawn->PickAnyTarget(bestAim, bestDist, FireDir, projStart);
-}
-
-void NPawn::AIPickRandomDestination(UObject* Self, float minDist, float maxDist, int centralYaw, float yawDistribution, int centralPitch, float pitchDistribution, int tries, float multiplier, vec3& dest)  
-{  
-	UPawn* selfPawn = UObject::Cast<UPawn>(Self);  
-	if (!selfPawn) { dest = {}; return; }  
-  
-	selfPawn->ClearPaths();  
-  
-	Array<UNavigationPoint*> candidates;  
-	for (UNavigationPoint* nav = selfPawn->Level()->NavigationPointList(); nav; nav = nav->nextNavigationPoint())  
-	{  
-		if (!selfPawn->ActorReachable(nav)) continue;  
-		vec3 toPoint = nav->Location() - selfPawn->Location();  
-		float dist = length(toPoint);  
-		if (dist < minDist || dist > maxDist * multiplier) continue;  
-  
-		Rotator dir = Rotator::FromVector(normalize(toPoint));  
-		int yawDiff = std::abs(dir.Yaw - centralYaw);  
-		int pitchDiff = std::abs(dir.Pitch - centralPitch);  
-		if (yawDiff > yawDistribution * 65536.0f / 360.0f) continue;  
-		if (pitchDiff > pitchDistribution * 65536.0f / 360.0f) continue;  
-  
-		candidates.push_back(nav);  
-	}  
-  
-	if (candidates.empty()) { dest = {}; return; }  
-  
-	float r = static_cast<float>(static_cast<double>(std::rand()) / RAND_MAX);
-	size_t idx = static_cast<size_t>(r * candidates.size());  
-	dest = candidates[idx]->Location();  
 }
 
 void NPawn::PickTarget(UObject* Self, float& bestAim, float& bestDist, const vec3& FireDir, const vec3& projStart, UObject*& ReturnValue)
@@ -310,18 +263,6 @@ void NPawn::StopWaiting(UObject* Self)
 {
 	UPawn* SelfPawn = UObject::Cast<UPawn>(Self);
 	SelfPawn->SleepTimeLeft = 0.0f;
-}
-
-void NPawn::StrafeFacing(UObject* Self, const vec3& NewDestination, UObject* NewTarget)
-{
-	UPawn* SelfPawn = UObject::Cast<UPawn>(Self);
-	SelfPawn->StrafeFacing(NewDestination, UObject::Cast<UActor>(NewTarget));
-}
-
-void NPawn::StrafeTo(UObject* Self, const vec3& NewDestination, const vec3& NewFocus)
-{
-	UPawn* SelfPawn = UObject::Cast<UPawn>(Self);
-	SelfPawn->StrafeTo(NewDestination, NewFocus);
 }
 
 void NPawn::TurnTo(UObject* Self, const vec3& NewFocus)

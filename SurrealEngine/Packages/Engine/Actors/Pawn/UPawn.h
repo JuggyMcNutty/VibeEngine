@@ -35,7 +35,6 @@ public:
 	float GetSpeed();
 
 	bool TickRotateTo(const vec3& target);
-	bool TickMoveTo(const vec3& target);
 	// Deus Ex's moves as the original's: APawn::moveToward, one tick toward
 	// a spot, whether it is reached; and the latent MoveTo's and
 	// MoveToward's polls, whether they are done.
@@ -96,7 +95,6 @@ public:
 	bool ReachableSwimming(UActor* anActor);
 	bool ReachableWalking(UActor* anActor);
 
-	void ClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters);
 	// Deus Ex's native: a viewport's player plays the sound it hears
 	// (UActor::CheckHearSound).
 	void DeusExClientHearSound(UActor* actor, int id, USound* sound, const vec3& soundLocation, const vec3& parameters);
@@ -126,7 +124,6 @@ public:
 
 	void ClearPaths();
 	UObject* FindRandomDest();
-	UObject* FindPathTo(const vec3& aPoint, bool bSinglePath);
 	UObject* FindPathToward(UObject* anActor, bool singlePath);
 	UObject* FindBestInventoryPath(bool predictRespawns, float& outBestWeight);
 	UNavigationPoint* FindClosestNavPoint(vec3 location);

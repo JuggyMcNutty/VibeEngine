@@ -38,22 +38,6 @@ void NPlayerPawn::ConsoleCommand(UObject* Self, const std::string& Command, std:
 	ReturnValue = engine->ConsoleCommand(Self, Command, found.ToType<BitfieldBool&>());
 }
 
-void NPlayerPawn::ClientMessage_219(UObject* Self, const std::string& S)
-{
-	LogUnimplemented("Playerawn.ClientMessage");
-}
-
-void NPlayerPawn::ConsoleCommand_219(UObject* Self, const std::string& Command)
-{
-	std::string result;
-	ConsoleCommand(Self, Command, result);
-}
-
-void NPlayerPawn::ConsoleCommandResult_219(UObject* Self, const std::string& Command, std::string& ReturnValue)
-{
-	ConsoleCommand(Self, Command, ReturnValue);
-}
-
 void NPlayerPawn::CopyToClipboard(UObject* Self, const std::string& Text)
 {
 	engine->window->SetClipboardText(Text);
@@ -103,9 +87,4 @@ void NPlayerPawn::UpdateURL(UObject* Self, const std::string& NewOption, const s
 		// Save the setting to DefaultUser section in User.ini
 		engine->packages->SetIniValue("User", "DefaultPlayer", NewOption, NewValue);
 	}
-}
-
-void NPlayerPawn::UpdateURL_219(UObject* Self, const std::string& NewOption)
-{
-	engine->LastURL.AddOrReplaceOption(NewOption);
 }
