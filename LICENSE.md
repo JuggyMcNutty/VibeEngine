@@ -139,17 +139,6 @@
 	** limitations under the License.
 	*/
 
-## License for Thirdparty/dr_flac
-
-	/*
-	FLAC audio decoder. Choice of public domain or MIT-0. See license statements at the end of this file.
-	dr_flac - v0.12.20 - 2020-09-08
-	
-	David Reid - mackron@gmail.com
-	
-	GitHub: https://github.com/mackron/dr_libs
-	*/
-
 ## License for Thirdparty/dr_wav
 
 	/*

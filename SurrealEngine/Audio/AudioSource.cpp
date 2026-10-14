@@ -21,9 +21,6 @@
 #define MINIMP3_IMPLEMENTATION
 #include "minimp3_ex.h"
 
-#define DR_FLAC_IMPLEMENTATION
-#include "dr_flac.h"
-
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 
@@ -111,103 +108,6 @@ public:
 	bool endofdata = false;
 	mp3dec_ex_t decoder;
 	mp3dec_frame_info_t frame_info;
-};
-
-class FlacAudioSource : public AudioSource
-{
-public:
-	FlacAudioSource(Array<uint8_t> filedata) : filedata(std::move(filedata))
-	{
-		decoder = drflac_open(&FlacAudioSource::StaticInputRead, &FlacAudioSource::StaticInputSeek, this, nullptr);
-		if (!decoder)
-			Exception::Throw("Could not open flac file");
-	}
-
-	~FlacAudioSource()
-	{
-		drflac_close(decoder);
-	}
-
-	int GetFrequency() override
-	{
-		return decoder->sampleRate;
-	}
-
-	int GetChannels() override
-	{
-		return decoder->channels;
-	}
-
-	int GetSamples() override
-	{
-		return decoder->totalPCMFrameCount;
-	}
-
-	void SeekToSample(uint64_t position) override
-	{
-		if (drflac_seek_to_pcm_frame(decoder, position))
-			eofdata = false;
-	}
-
-	size_t ReadSamples(float* output, size_t samples) override
-	{
-		if (!eofdata)
-		{
-			size_t samplesread = drflac_read_pcm_frames_f32(decoder, samples / decoder->channels, output) * decoder->channels;
-			eofdata = (samplesread != samples);
-			return samplesread;
-		}
-		else
-		{
-			return 0;
-		}
-	}
-
-	size_t InputRead(void* pBufferOut, size_t bytesToRead)
-	{
-		size_t available = filedata.size() - inputpos;
-		size_t count = std::min(bytesToRead, available);
-		memcpy(pBufferOut, filedata.data() + inputpos, count);
-		inputpos += count;
-		return count;
-	}
-
-	drflac_bool32 InputSeek(int offset, drflac_seek_origin origin)
-	{
-		if (origin == drflac_seek_origin_start)
-		{
-			if (offset < 0 || offset >(int)filedata.size())
-				return DRFLAC_FALSE;
-			inputpos = offset;
-			return DRFLAC_TRUE;
-		}
-		else if (origin == drflac_seek_origin_current)
-		{
-			if ((offset < 0 && (size_t)-offset > inputpos) || inputpos + offset > filedata.size())
-				return DRFLAC_FALSE;
-			inputpos = (size_t)((int64_t)inputpos + offset);
-			return DRFLAC_TRUE;
-		}
-		else
-		{
-			return DRFLAC_FALSE;
-		}
-	}
-
-	static size_t StaticInputRead(void* pUserData, void* pBufferOut, size_t bytesToRead)
-	{
-		return static_cast<FlacAudioSource*>(pUserData)->InputRead(pBufferOut, bytesToRead);
-	}
-
-	static drflac_bool32 StaticInputSeek(void* pUserData, int offset, drflac_seek_origin origin)
-	{
-		return static_cast<FlacAudioSource*>(pUserData)->InputSeek(offset, origin);
-	}
-
-	drflac* decoder = nullptr;
-	Array<uint8_t> filedata;
-	size_t inputpos = 0;
-	bool eofdata = false;
 };
 
 class WavAudioSource : public AudioSource
@@ -502,11 +402,6 @@ public:
 std::unique_ptr<AudioSource> AudioSource::CreateMp3(Array<uint8_t> filedata)
 {
 	return std::make_unique<Mp3AudioSource>(std::move(filedata));
-}
-
-std::unique_ptr<AudioSource> AudioSource::CreateFlac(Array<uint8_t> filedata)
-{
-	return std::make_unique<FlacAudioSource>(std::move(filedata));
 }
 
 std::unique_ptr<AudioSource> AudioSource::CreateWav(Array<uint8_t> filedata)

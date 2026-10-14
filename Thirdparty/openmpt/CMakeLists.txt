@@ -462,7 +462,6 @@ set(LIBOPENMPT_SOURCES
     soundlib/tuningCollection.cpp
 
     # dependencies
-    ../dr_flac.h
     ../dr_wav.h
     ../minimp3.h
     ../stb_vorbis.h
@@ -527,7 +526,6 @@ source_group("src\\mpt\\uuid_namespace" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOUR
 
 include_directories(openmpt ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ common src)
 
-# TODO: MPT_WITH_FLAC but using dr_flac.h
 add_definitions(-DLIBOPENMPT_BUILD -DMPT_WITH_MINIZ -DMPT_WITH_MINIMP3 -DMPT_WITH_STBVORBIS)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

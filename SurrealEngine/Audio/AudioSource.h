@@ -8,7 +8,6 @@ class AudioSource
 {
 public:
 	static std::unique_ptr<AudioSource> CreateMp3(Array<uint8_t> filedata);
-	static std::unique_ptr<AudioSource> CreateFlac(Array<uint8_t> filedata);
 	static std::unique_ptr<AudioSource> CreateWav(Array<uint8_t> filedata);
 	static std::unique_ptr<AudioSource> CreateOgg(Array<uint8_t> filedata, bool loop = false);
 	static std::unique_ptr<AudioSource> CreateMod(Array<uint8_t> filedata, bool loop = true, int subsong = 0);

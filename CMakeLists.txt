@@ -748,7 +748,6 @@ set(THIRDPARTY_SOURCES
 	Thirdparty/resample/fft4g.h
 	Thirdparty/resample/r8bconf.h
 	Thirdparty/resample/r8bbase.h
-	Thirdparty/dr_flac.h
 	Thirdparty/stb_vorbis.h
 	Thirdparty/TinySHA1/TinySHA1.hpp
 	Thirdparty/miniz/miniz.c
