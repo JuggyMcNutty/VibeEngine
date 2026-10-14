@@ -164,14 +164,12 @@ void FogmapBuilder::CalcWorldLocations(Coords MapCoords, const LightMapIndex& lm
 	float rightDY = uv[2].y - uv[1].y;
 	float rightStep = rightDX / rightDY;
 
-	// Texel i at its centre along U for Deus Ex, as the light maps'
+	// Texel i at its centre along U, as the light maps'
 	// (LightmapBuilder::CalcRowLines)
-	float uShift = engine->LaunchInfo.IsDeusEx() ? 0.0f : 0.5f;
-
 	for (int y = 0; y < height; y++)
 	{
-		float x0 = uv[0].x + leftStep * (y + 0.5f - uv[0].y) + uShift;
-		float x1 = uv[1].x + rightStep * (y + 0.5f - uv[1].y) + uShift;
+		float x0 = uv[0].x + leftStep * (y + 0.5f - uv[0].y);
+		float x1 = uv[1].x + rightStep * (y + 0.5f - uv[1].y);
 		float t0 = (y + 0.5f - uv[0].y) / leftDY;
 		float t1 = (y + 0.5f - uv[1].y) / rightDY;
 		vec3 p0 = mix(p[0], p[2], t0);

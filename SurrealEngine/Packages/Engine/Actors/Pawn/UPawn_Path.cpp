@@ -21,12 +21,6 @@ UNavigationPoint* UPawn::SetRouteCache(const Array<UNavigationPoint*>& points)
 	// who called SetRouteCache?", and nothing calls it (engine-dll.md, the
 	// search) -- so Teleporter.SpecialHandling, which looks at RouteCache[1],
 	// never finds a teleporter there.
-	if (engine->LaunchInfo.ue1Version > 219 && !engine->LaunchInfo.IsDeusEx())
-	{
-		auto cache = RouteCache();
-		for (size_t i = 0; i < cache.size(); i++)
-			cache[i] = (i < points.size()) ? points[i] : nullptr;
-	}
 	return !points.empty() ? points.front() : nullptr;
 }
 
@@ -210,9 +204,9 @@ bool UPawn::BreadthPathFrom(UNavigationPoint* start, UNavigationPoint*& endNode,
 
 std::pair<Array<UNavigationPoint*>, int32_t> UPawn::FindPathToEndPoint(UNavigationPoint* start, int maxNodes)
 {
-	// Other games' route from the original's search: the end point's way back
-	// to the start -- the start the chain's last node -- with the parts the
-	// pawn already touches skipped.
+	// Upstream's route from the original's search (below): the end point's way
+	// back to the start -- the start the chain's last node -- with the parts
+	// the pawn already touches skipped.
 	if ((start->bPlayerOnly() && !bIsPlayer()))
 		return { {}, 0 };
 
@@ -910,7 +904,8 @@ UActor* UPawn::DeusExFindPath(UActor* goalActor, vec3 goalPoint, bool singlePath
 }
 
 // ---------------------------------------------------------------------------
-// Other games' path search, the fork's own around the original's breadthPathFrom.
+// Upstream's path search around the original's breadthPathFrom, for
+// FindRandomDest and FindBestInventoryPath, which no script of the game calls.
 
 UObject* UPawn::FindRandomDest()
 {

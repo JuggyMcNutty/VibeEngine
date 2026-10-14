@@ -108,40 +108,37 @@ Engine::Engine(GameLaunchInfo launchinfo) : LaunchInfo(launchinfo)
 
 	floatprop = GC::Alloc<UFloatProperty>(NameString(), nullptr, ObjectFlags::NoFlags);
 
-	Frame::Guards = LaunchInfo.IsDeusEx();
+	Frame::Guards = true;
 
-	if (LaunchInfo.IsDeusEx())
+	auto extpkg = packages->GetPackage("Extension");
+	deusExPackage = packages->GetPackage("DeusEx");
+	dxgc = UObject::Cast<UGC>(transientpkg->NewObject("gc", extpkg->GetClass("GC"), ObjectFlags::Transient));
+	// The GC class's underline texture (Solid), which every window's GC
+	// starts with in the original.
+	dxgc->DefaultUnderlineTexture = dxgc->underlineTexture();
+	dxgc->Canvas() = canvas;
+	// In a little package of its own, as the original's GetSaveInfo(pkg)
+	// makes it: Package::Save refuses an object from another package
+	// (transient stopped every save), and saving it from package DeusEx
+	// exported the DeusExSaveInfo class into SaveInfo.dxs, whose load
+	// then re-registered the class's natives, a fatal error.
+	// Public, as the original's: its load of a save finds the object by
+	// its name in the save's SaveInfo.
+	dxSaveInfo = UObject::Cast<UDXSaveInfo>(packages->CreateEmptyPackage("SaveInfo")->NewObject("MyDeusExSaveInfo", deusExPackage->GetClass("DeusExSaveInfo"), ObjectFlags::Public));
+
+	// The AI event manager's class is the original Engine.dll's own,
+	// with no script -- Engine.u only declares LevelInfo's property of
+	// it -- so the class is made here and added to the Engine package,
+	// where a level's manager and a save's import of it resolve.
 	{
-		auto extpkg = packages->GetPackage("Extension");
-		deusExPackage = packages->GetPackage("DeusEx");
-		dxgc = UObject::Cast<UGC>(transientpkg->NewObject("gc", extpkg->GetClass("GC"), ObjectFlags::Transient));
-		// The GC class's underline texture (Solid), which every window's GC
-		// starts with in the original.
-		dxgc->DefaultUnderlineTexture = dxgc->underlineTexture();
-		dxgc->Canvas() = canvas;
-		// In a little package of its own, as the original's GetSaveInfo(pkg)
-		// makes it: Package::Save refuses an object from another package
-		// (transient stopped every save), and saving it from package DeusEx
-		// exported the DeusExSaveInfo class into SaveInfo.dxs, whose load
-		// then re-registered the class's natives, a fatal error.
-		// Public, as the original's: its load of a save finds the object by
-		// its name in the save's SaveInfo.
-		dxSaveInfo = UObject::Cast<UDXSaveInfo>(packages->CreateEmptyPackage("SaveInfo")->NewObject("MyDeusExSaveInfo", deusExPackage->GetClass("DeusExSaveInfo"), ObjectFlags::Public));
-
-		// The AI event manager's class is the original Engine.dll's own,
-		// with no script -- Engine.u only declares LevelInfo's property of
-		// it -- so the class is made here and added to the Engine package,
-		// where a level's manager and a save's import of it resolve.
-		{
-			UClass* objectClass = UObject::Cast<UClass>(packages->GetPackage("Core")->GetUObject("Class", "Object"));
-			UClass* emClass = GC::Alloc<UClass>(NameString("EventManager"), objectClass, ObjectFlags::Native | ObjectFlags::Public | ObjectFlags::Standalone);
-			emClass->Class = UObject::Cast<UClass>(packages->GetPackage("Core")->GetUObject("Class", "Class"));
-			emClass->Properties = objectClass->Properties;
-			emClass->StructSize = objectClass->StructSize;
-			emClass->StructAlignment = objectClass->StructAlignment;
-			emClass->PropertyData.Init(emClass);
-			packages->GetPackage("Engine")->AddRuntimeExport(emClass);
-		}
+		UClass* objectClass = UObject::Cast<UClass>(packages->GetPackage("Core")->GetUObject("Class", "Object"));
+		UClass* emClass = GC::Alloc<UClass>(NameString("EventManager"), objectClass, ObjectFlags::Native | ObjectFlags::Public | ObjectFlags::Standalone);
+		emClass->Class = UObject::Cast<UClass>(packages->GetPackage("Core")->GetUObject("Class", "Class"));
+		emClass->Properties = objectClass->Properties;
+		emClass->StructSize = objectClass->StructSize;
+		emClass->StructAlignment = objectClass->StructAlignment;
+		emClass->PropertyData.Init(emClass);
+		packages->GetPackage("Engine")->AddRuntimeExport(emClass);
 	}
 
 	std::string consolestr = packages->GetIniValue("system", "Engine.Engine", "Console");
@@ -200,7 +197,7 @@ void Engine::Run()
 		audiodev->InitDevice();
 		render = std::make_unique<RenderSubsystem>(window->GetRenderDevice());
 
-		if (engine->LaunchInfo.ue1Version > 219 && !client->StartupFullscreen)
+		if (!client->StartupFullscreen)
 			viewport->bWindowsMouseAvailable() = true;
 
 		window->LockCursor();
@@ -309,7 +306,7 @@ void Engine::Run()
 		// original's level tick holds it (dx-reverse-info engine-dll.md, a
 		// level's tick).
 		if (!dedicated)
-			UpdateInput(LaunchInfo.IsDeusEx() ? std::min(realTimeElapsed, 0.4f) : realTimeElapsed);
+			UpdateInput(std::min(realTimeElapsed, 0.4f));
 
 		SetPause(!LevelInfo->Pauser().empty());
 
@@ -320,11 +317,8 @@ void Engine::Run()
 			timeline->Tick(realTimeElapsed);
 
 		// To do: set these to true if the frame rate is too low
-		if (LaunchInfo.ue1Version >= 436)
-		{
-			LevelInfo->bDropDetail() = false;
-			LevelInfo->bAggressiveLOD() = false;
-		}
+		LevelInfo->bDropDetail() = false;
+		LevelInfo->bAggressiveLOD() = false;
 
 		// A client's packets come in before its level ticks and go out
 		// after, as the original's level tick has them.
@@ -392,8 +386,7 @@ void Engine::Run()
 				// depending on leftover state.
 				if (UnrealURL(LevelInfo->NextURL()).HasOption("restart"))
 				{
-					if (packages->IsDeusEx())
-						DeleteSaveGameFiles("Current"); // the original's ?restart empties Current
+					DeleteSaveGameFiles("Current"); // the original's ?restart empties Current
 					// Passes the level's own TravelInfo back in, so it means to preserve it.
 					// Copies: LoadMap unloads the level that holds them.
 					ClientTravelInfo.TravelType = ETravelType::TRAVEL_Relative;
@@ -429,15 +422,14 @@ void Engine::Run()
 
 		if (ClientTravelInfo.URL.HasOption("restart"))
 		{
-			if (packages->IsDeusEx())
-				DeleteSaveGameFiles("Current"); // the original's ?restart empties Current
+			DeleteSaveGameFiles("Current"); // the original's ?restart empties Current
 			UnrealURL restartURL = LastURL;
 			auto restartTravelInfo = Level->TravelInfo;
 			LoadMap(restartURL, restartTravelInfo);
 			LoginPlayer();
 		}
 
-		if (ClientTravelInfo.URL.HasOption("load") || (packages->IsDeusEx() && ClientTravelInfo.URL.HasOption("loadgame")))
+		if (ClientTravelInfo.URL.HasOption("load") || ClientTravelInfo.URL.HasOption("loadgame"))
 		{
 			UnrealURL url(ClientTravelInfo.URL);
 			if (LoadFromSaveFile(url))
@@ -449,17 +441,9 @@ void Engine::Run()
 				// (?load?loadonly?loadgame) -- and its TravelPostAccept spawns
 				// the level's mission script, which no save holds.
 				UnrealURL loginURL = GetDefaultURL(LevelInfo->URL.Map);
-				if (packages->IsDeusEx())
-				{
-					loginURL.AddOrReplaceOption("load");
-					loginURL.AddOrReplaceOption("loadonly");
-					loginURL.AddOrReplaceOption("loadgame");
-				}
-				else
-				{
-					for (const std::string& option : url.Options)
-						loginURL.AddOrReplaceOption(option);
-				}
+				loginURL.AddOrReplaceOption("load");
+				loginURL.AddOrReplaceOption("loadonly");
+				loginURL.AddOrReplaceOption("loadgame");
 				LoginPlayer(loginURL);
 			}
 		}
@@ -710,30 +694,16 @@ void Engine::ClientTravel(const std::string& newURL, ETravelType travelType, boo
 	// keys the URL has are written to the ini, as the original's LoadMap
 	// saves them (SaveURLConfig).
 	const char* playerKeys[] = { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" };
-	if (engine->LaunchInfo.ue1Version > 219)
+	for (const char* optionKey : playerKeys)
 	{
-		for (const char* optionKey : playerKeys)
-		{
-			if (url.HasOption(optionKey))
-				engine->packages->SetIniValue("User", "DefaultPlayer", optionKey, url.GetOption(optionKey));
-		}
-		for (const std::string& optionKey : DefaultPlayerOptionKeys())
-		{
-			std::string value;
-			if (!url.HasOption(optionKey) && packages->FindIniValue("user", "DefaultPlayer", optionKey, value))
-				url.AddOrReplaceOption(optionKey + "=" + value);
-		}
+		if (url.HasOption(optionKey))
+			engine->packages->SetIniValue("User", "DefaultPlayer", optionKey, url.GetOption(optionKey));
 	}
-	else
+	for (const std::string& optionKey : DefaultPlayerOptionKeys())
 	{
-		for (std::string optionKey : playerKeys)
-		{
-			std::string value;
-			if (url.HasOption(optionKey))
-				engine->packages->SetIniValue("System", "URL", optionKey, url.GetOption(optionKey));
-			else if (packages->FindIniValue("System", "URL", optionKey, value))
-				url.AddOrReplaceOption(optionKey + "=" + value);
-		}
+		std::string value;
+		if (!url.HasOption(optionKey) && packages->FindIniValue("user", "DefaultPlayer", optionKey, value))
+			url.AddOrReplaceOption(optionKey + "=" + value);
 	}
 
 	if (travelType == ETravelType::TRAVEL_Absolute)
@@ -796,16 +766,8 @@ UnrealURL Engine::GetDefaultURL(const std::string& map)
 Array<std::string> Engine::DefaultPlayerOptionKeys()
 {
 	Array<std::string> keys;
-	if (LaunchInfo.IsDeusEx())
-	{
-		for (const NameString& key : packages->GetIniKeysFromSection("user", "DefaultPlayer"))
-			keys.push_back(key.ToString());
-	}
-	else
-	{
-		for (const char* key : { "Name", "Class", "team", "skin", "Face", "Voice", "OverrideClass" })
-			keys.push_back(key);
-	}
+	for (const NameString& key : packages->GetIniKeysFromSection("user", "DefaultPlayer"))
+		keys.push_back(key.ToString());
 	return keys;
 }
 
@@ -846,8 +808,7 @@ void Engine::ReturnToEntry(bool failed)
 	LevelInfo = EntryLevelInfo;
 	LevelPackage = EntryLevelPackage;
 	GameInfo = EntryGameInfo;
-	if (packages->IsDeusEx())
-		DeusExLevelInfo = EntryDeusExLevelInfo;
+	DeusExLevelInfo = EntryDeusExLevelInfo;
 	LevelInfo->LevelAction() = LEVACT_None;
 	LoginPlayer();
 	if (failed && !PendingLevel)
@@ -869,8 +830,7 @@ void Engine::UnloadMap()
 			pawn->Destroy();
 		}
 		LevelInfo = nullptr;
-		if (packages->IsDeusEx())
-			DeusExLevelInfo = nullptr;
+		DeusExLevelInfo = nullptr;
 		Level = nullptr;
 		LevelPackage = nullptr;
 		GameInfo = nullptr;
@@ -882,8 +842,7 @@ void Engine::UnloadMap()
 		return;
 
 	LevelInfo = nullptr;
-	if (packages->IsDeusEx())
-		DeusExLevelInfo = nullptr;
+	DeusExLevelInfo = nullptr;
 	Level = nullptr;
 	viewport->Actor() = nullptr;
 	dxRootWindow = nullptr;
@@ -917,7 +876,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 
 	bool loadedFromCurrent = false;
 	LevelPackage = nullptr;
-	if (packages->IsDeusEx() && dxTravelUsesCurrent)
+	if (dxTravelUsesCurrent)
 	{
 		dxTravelUsesCurrent = false;
 		// Within a mission, a map saved into Current is revisited as the
@@ -975,7 +934,7 @@ void Engine::LoadMap(const UnrealURL& url, const std::map<std::string, std::stri
 	// Deus Ex's movers filed into the level's BSP, as the original's LoadMap
 	// makes its brush tracker for every map but Entry -- with a client only:
 	// a dedicated server files none, and its lines pass its movers
-	if (LaunchInfo.IsDeusEx() && !LaunchInfo.dedicatedServer && !StrTools::equals_ignore_case(LevelPackage->GetPackageName().ToString(), packages->GetIniValue("System", "URL", "EntryMap", "Entry")))
+	if (!LaunchInfo.dedicatedServer && !StrTools::equals_ignore_case(LevelPackage->GetPackageName().ToString(), packages->GetIniValue("System", "URL", "EntryMap", "Entry")))
 		Level->Collision.FileMovers();
 
 	if (asClient)
@@ -1089,20 +1048,14 @@ void Engine::BeginPlay(const UnrealURL& url)
 		// level start finds it, whatever the map saved: DXMP_Silo's saved
 		// regions put its items, crates and robots in none, which their first
 		// fall took for leaving the world
-		if (LaunchInfo.IsDeusEx())
-		{
-			for (size_t i = 0; i < Level->Actors.size(); i++) { UActor* actor = Level->Actors[i]; if (actor && !actor->bDeleteMe()) actor->Region() = actor->FindRegion(); }
-		}
+		for (size_t i = 0; i < Level->Actors.size(); i++) { UActor* actor = Level->Actors[i]; if (actor && !actor->bDeleteMe()) actor->Region() = actor->FindRegion(); }
 
 		// The original's level start has every actor 10 s undrawn, whatever
 		// the map file kept, before PostBeginPlay: a ScriptedPawn out of
 		// sight starts from its StartUp state's code, not its Tick -- one
 		// out of the world stays in Idle, where its Tick would go on to its
 		// orders.
-		if (engine->LaunchInfo.IsDeusEx())
-		{
-			for (UActor* actor : Level->Actors) { if (actor) actor->LastRenderTime() = -10.0f; }
-		}
+		for (UActor* actor : Level->Actors) { if (actor) actor->LastRenderTime() = -10.0f; }
 
 		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::PostBeginPlay); }
 		for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], EventName::SetInitialState); }
@@ -1111,8 +1064,7 @@ void Engine::BeginPlay(const UnrealURL& url)
 	}
 
 	CallPostPostBeginPlay();
-	if (LaunchInfo.IsDeusEx())
-		Level->SortActors();
+	Level->SortActors();
 
 	if (LevelInfo->Game())
 		CallEvent(LevelInfo->Game(), "DetailChange", {});
@@ -1125,8 +1077,6 @@ void Engine::BeginPlay(const UnrealURL& url)
 // chose over the save's.
 void Engine::CallPostPostBeginPlay()
 {
-	if (!LaunchInfo.IsDeusEx())
-		return;
 	for (size_t i = 0; i < Level->Actors.size(); i++) { if (Level->Actors[i]) CallEvent(Level->Actors[i], "PostPostBeginPlay"); }
 }
 
@@ -1150,7 +1100,7 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 		savefilePackage = packages->LoadSaveSlot(slotNum);
 	}
 
-	if (!savefilePackage && packages->IsDeusEx() && url.HasOption("loadgame"))
+	if (!savefilePackage && url.HasOption("loadgame"))
 	{
 		// The original's Browse ?loadgame=N (dx-reverse-info/deusex-dll.md, travel
 		// and saving): read the slot's SaveInfo, empty Current, copy the
@@ -1206,7 +1156,7 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 
 	LinkActorsToLevel();
 	// Filed as a map's load files them, with a client only
-	if (LaunchInfo.IsDeusEx() && !LaunchInfo.dedicatedServer)
+	if (!LaunchInfo.dedicatedServer)
 		Level->Collision.FileMovers();
 
 	// engine->GameInfo is otherwise only assigned in LoadMap, so without this it keeps
@@ -1217,8 +1167,7 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 		Exception::Throw("Save file has no GameInfo actor for " + LevelPackage->GetPackageName().ToString() + "!");
 
 	CallPostPostBeginPlay();
-	if (LaunchInfo.IsDeusEx())
-		Level->SortActors();
+	Level->SortActors();
 
 	RequestGarbageCollection("saved level " + realMapName, true);
 	return true;
@@ -1231,19 +1180,11 @@ bool Engine::LoadFromSaveFile(const UnrealURL& url)
 // first real attempt to open the menu. Nothing else sets it; clear it once a
 // level is running.
 // The level's engine and net versions: Deus Ex's 1100 for both, which a
-// server's query answer reports and the Join screens compare with their own;
-// the game's version and the fork's mark otherwise.
+// server's query answer reports and the Join screens compare with their own.
 void Engine::SetEngineVersion()
 {
-	if (LaunchInfo.IsDeusEx())
-	{
-		LevelInfo->EngineVersion() = "1100";
-		LevelInfo->MinNetVersion() = "1100";
-		return;
-	}
-	LevelInfo->EngineVersion() = LaunchInfo.gameVersionString + " SE";
-	if (LaunchInfo.ue1Version > 219)
-		LevelInfo->MinNetVersion() = LaunchInfo.gameVersionString + " SE";
+	LevelInfo->EngineVersion() = "1100";
+	LevelInfo->MinNetVersion() = "1100";
 }
 
 static void ClearIgnoreNextShowMenu(UObject* player)
@@ -1274,7 +1215,7 @@ void Engine::EnsureFlagBase(UPlayerPawn* pawn)
 
 void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription) const
 {
-	if (slotNum < -1 || (!packages->IsDeusEx() && slotNum < 0))
+	if (slotNum < -1)
 		Exception::Throw("Invalid save slot: " + std::to_string(slotNum));
 
 	// First and foremost ensure the Save folder exists
@@ -1282,64 +1223,49 @@ void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 	if (!fs::exists(saveFolderPath))
 		fs::create_directory(saveFolderPath);
 
-	if (packages->IsDeusEx())
+	// The original's SaveGame (dx-reverse-info/deusex-dll.md, travel and saving):
+	// slot 0 is a new slot, the highest SaveNNNN plus one; -1 the quick
+	// save. The slot is emptied, Current copied in, the SaveInfo filled
+	// and written to the slot (and to Current, which keeps one of its
+	// own), and the level saved on top of the copy.
+	if (slotNum == 0)
+		slotNum = NextSaveSlot();
+	const auto slotFolderName = SaveSlotFolderName(slotNum);
+	DeleteSaveGameFiles(slotFolderName);
+	const auto saveSlotFolder = saveFolderPath / slotFolderName;
+	if (!fs::exists(saveSlotFolder))
+		fs::create_directory(saveSlotFolder);
+	CopySaveGameFiles("Current", slotFolderName);
+
+	dxSaveInfo->DirectoryIndex() = slotNum;
+	dxSaveInfo->Description() = !saveDescription.empty() ? saveDescription : LevelInfo->Title();
+	dxSaveInfo->MissionLocation() = DeusExLevelInfo ? DeusExLevelInfo->MissionLocation() : "";
+	dxSaveInfo->MapName() = Level->package->GetPackageName().ToString();
+	if (auto player = UObject::TryCast<UDeusExPlayer>(viewport->Actor()))
 	{
-		// The original's SaveGame (dx-reverse-info/deusex-dll.md, travel and saving):
-		// slot 0 is a new slot, the highest SaveNNNN plus one; -1 the quick
-		// save. The slot is emptied, Current copied in, the SaveInfo filled
-		// and written to the slot (and to Current, which keeps one of its
-		// own), and the level saved on top of the copy.
-		if (slotNum == 0)
-			slotNum = NextSaveSlot();
-		const auto slotFolderName = SaveSlotFolderName(slotNum);
-		DeleteSaveGameFiles(slotFolderName);
-		const auto saveSlotFolder = saveFolderPath / slotFolderName;
-		if (!fs::exists(saveSlotFolder))
-			fs::create_directory(saveSlotFolder);
-		CopySaveGameFiles("Current", slotFolderName);
-
-		dxSaveInfo->DirectoryIndex() = slotNum;
-		dxSaveInfo->Description() = !saveDescription.empty() ? saveDescription : LevelInfo->Title();
-		dxSaveInfo->MissionLocation() = DeusExLevelInfo ? DeusExLevelInfo->MissionLocation() : "";
-		dxSaveInfo->MapName() = Level->package->GetPackageName().ToString();
-		if (auto player = UObject::TryCast<UDeusExPlayer>(viewport->Actor()))
-		{
-			dxSaveInfo->SaveCount() = ++player->saveCount();
-			dxSaveInfo->SaveTime() = (int)player->saveTime();
-			dxSaveInfo->bCheatsEnabled() = (bool)player->bCheatsEnabled();
-		}
-		dxSaveInfo->UpdateTimeStamp();
-
-		// The copy from Current is overwritten in place: the file goes first,
-		// or the writer keeps it as a .old beside it, which no original save
-		// carries.
-		const auto saveInfoName = "SaveInfo." + packages->GetSaveExtension();
-		fs::remove(saveSlotFolder / saveInfoName);
-		dxSaveInfo->package->Save(dxSaveInfo, (saveSlotFolder / saveInfoName).string());
-		const auto currentFolder = saveFolderPath / "Current";
-		if (fs::exists(currentFolder))
-		{
-			fs::remove(currentFolder / saveInfoName);
-			dxSaveInfo->package->Save(dxSaveInfo, (currentFolder / saveInfoName).string());
-		}
-
-		SaveCurrentLevel(slotNum);
-
-		packages->RemoveSaveInfoPackage(slotFolderName);
-		packages->RemoveSaveInfoPackage("Current");
+		dxSaveInfo->SaveCount() = ++player->saveCount();
+		dxSaveInfo->SaveTime() = (int)player->saveTime();
+		dxSaveInfo->bCheatsEnabled() = (bool)player->bCheatsEnabled();
 	}
-	else
+	dxSaveInfo->UpdateTimeStamp();
+
+	// The copy from Current is overwritten in place: the file goes first,
+	// or the writer keeps it as a .old beside it, which no original save
+	// carries.
+	const auto saveInfoName = "SaveInfo." + packages->GetSaveExtension();
+	fs::remove(saveSlotFolder / saveInfoName);
+	dxSaveInfo->package->Save(dxSaveInfo, (saveSlotFolder / saveInfoName).string());
+	const auto currentFolder = saveFolderPath / "Current";
+	if (fs::exists(currentFolder))
 	{
-		const std::string saveFileName = "Save" + std::to_string(slotNum) + "." + packages->GetSaveExtension();
-		const std::string saveFileFullPath = (saveFolderPath / saveFileName).string();
-		Level->CleanupDestroyed(true);
-		SetLevelURLForSave();
-		LevelPackage->Save(Level, saveFileFullPath);
-
-		// The save package is later reloaded by its slot filename ("SaveN"), not by the original
-		// map name, so record the real map name here for LoadFromSaveFile() to recover.
-		packages->SetIniValue("user", "SaveGame", "MapName" + std::to_string(slotNum), Level->package->GetPackageName().ToString());
+		fs::remove(currentFolder / saveInfoName);
+		dxSaveInfo->package->Save(dxSaveInfo, (currentFolder / saveInfoName).string());
 	}
+
+	SaveCurrentLevel(slotNum);
+
+	packages->RemoveSaveInfoPackage(slotFolderName);
+	packages->RemoveSaveInfoPackage("Current");
 }
 
 // The original's SaveGame makes a texture beside the save info and has the
@@ -1348,7 +1274,7 @@ void Engine::SaveGameToSlot(int32_t slotNum, const std::string& saveDescription)
 // UI two frames before it asks, so the frame last drawn is the world alone.
 void Engine::TakeSaveSnapshot()
 {
-	if (!LaunchInfo.IsDeusEx() || !dxSaveInfo)
+	if (!dxSaveInfo)
 		return;
 
 	std::string device = packages->GetIniValue("system", "Engine.Engine", "GameRenderDevice");
@@ -1512,7 +1438,7 @@ int32_t Engine::DeusExMissionNumber(const std::string& mapName) const
 void Engine::DeusExPreTravel(const UnrealURL& url)
 {
 	dxTravelUsesCurrent = false;
-	if (!packages->IsDeusEx() || !Level || url.Map.empty())
+	if (!Level || url.Map.empty())
 		return;
 	if (url.HasOption("load") || url.HasOption("loadgame") || url.HasOption("loadonly") ||
 		url.HasOption("restart") || url.HasOption("entry"))
@@ -1593,8 +1519,7 @@ void Engine::SaveCurrentLevel(int32_t slot) const
 	LevelPackage->Save(Level, (folder / levelName).string());
 	// And makes its brush tracker again, as the original's SaveGame does:
 	// the movers filed where they are, a destroyed one's polygons gone
-	if (LaunchInfo.IsDeusEx())
-		Level->Collision.FileMovers();
+	Level->Collision.FileMovers();
 }
 
 // The level's own URL as the original's is when saved: the one it was
@@ -1626,9 +1551,9 @@ std::map<std::string, std::string> Engine::CreateTravelInfo(bool transferItems)
 	for (UActor* actor : Level->Actors)
 	{
 		UPlayerPawn* pawn = UObject::TryCast<UPlayerPawn>(actor);
-		if (pawn && pawn->Player() && (engine->LaunchInfo.ue1Version <= 219 || pawn->PlayerReplicationInfo()))
+		if (pawn && pawn->Player() && pawn->PlayerReplicationInfo())
 		{
-			std::string playerName = engine->LaunchInfo.ue1Version > 219 ? pawn->PlayerReplicationInfo()->PlayerName() : std::string("Player"); // To do: how to get the travel player name?
+			std::string playerName = pawn->PlayerReplicationInfo()->PlayerName(); // To do: how to get the travel player name?
 			travelInfo[playerName] = ActorTravelInfo::Create(pawn, transferItems);
 		}
 	}
@@ -1645,8 +1570,6 @@ void Engine::LoginPlayer()
 // as such on a server. Single player keeps the game's.
 void Engine::SetMultiplayerName(UnrealURL& url)
 {
-	if (!LaunchInfo.IsDeusEx())
-		return;
 	std::string name = url.GetOption("Name");
 	if (name.empty() || name == "Player")
 		url.AddOrReplaceOption("Name=VibePlayer");
@@ -1747,8 +1670,7 @@ void Engine::LoginPlayer(const UnrealURL& loginURL)
 	CallEvent(pawn, EventName::TravelPostAccept);
 	CallEvent(LevelInfo->Game(), EventName::PostLogin, { ExpressionValue::ObjectValue(pawn) });
 
-	if (LaunchInfo.IsDeusEx())
-		ClearIgnoreNextShowMenu(pawn);
+	ClearIgnoreNextShowMenu(pawn);
 
 	render->OnMapLoaded();
 }
@@ -2132,10 +2054,9 @@ float Engine::CalcTimeElapsed()
 	// Deus Ex's frame is its whole time, a map's load included, as the
 	// original's main loop hands it on (DeusEx.exe MainLoop 0x10914630): the
 	// level's clock takes all of it, the actors and the player's input at
-	// most 0.4 s of it (ULevel::Tick, Engine::UpdateInput). Other games' is
-	// held to 1 s.
+	// most 0.4 s of it (ULevel::Tick, Engine::UpdateInput).
 	float seconds = deltaTime / 1'000'000.0f;
-	return LaunchInfo.IsDeusEx() ? seconds : clamp(seconds, 0.0f, 1.0f);
+	return seconds;
 }
 
 std::string Engine::ParseClassName(std::string className)
@@ -2198,7 +2119,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	{
 		quit = true;
 	}
-	else if (command == "relaunch" && LaunchInfo.IsDeusEx())
+	else if (command == "relaunch")
 	{
 		Relaunch(commandline);
 	}
@@ -2225,7 +2146,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	{
 		render->ShowCollisionDebug = args[1] == "1";
 	}
-	else if (command == "dxwindowdebug" && LaunchInfo.IsDeusEx())
+	else if (command == "dxwindowdebug")
 	{
 		m_DrawDebugDXWindowHierarchy = !m_DrawDebugDXWindowHierarchy;
 	}
@@ -2244,9 +2165,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	}*/
 	else if (command == "getres")
 	{
-		if (LaunchInfo.IsDeusEx())
-			return window->GetMenuResolutions();
-		return window->GetAvailableResolutions();
+		return window->GetMenuResolutions();
 	}
 	else if (command == "getcolordepths")
 	{
@@ -2351,7 +2270,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 	{
 		// Back to the menu's map, the server told as the level goes (Deus
 		// Ex's own goes to dx.dx).
-		ClientTravel(LaunchInfo.IsDeusEx() ? "dx.dx" : packages->GetIniValue("system", "URL", "LocalMap"), ETravelType::TRAVEL_Absolute, false);
+		ClientTravel("dx.dx", ETravelType::TRAVEL_Absolute, false);
 	}
 	else if (command == "reconnect")
 	{
@@ -2552,7 +2471,7 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		// A window's new size is kept as the windowed size, which the ini
 		// saves, as the original's SETRES keeps it.
 		int width = 0, height = 0;
-		if (LaunchInfo.IsDeusEx() && !window->IsFullscreen() && sscanf(args[1].c_str(), "%dx%d", &width, &height) == 2 && width >= 640 && height >= 480)
+		if (!window->IsFullscreen() && sscanf(args[1].c_str(), "%dx%d", &width, &height) == 2 && width >= 640 && height >= 480)
 		{
 			client->WindowedViewportX = width;
 			client->WindowedViewportY = height;
@@ -2636,12 +2555,8 @@ void Engine::LoadEngineSettings()
 		client->LoadProperties("WinDrv.WindowsClient");
 		audiodev->LoadProperties("Galaxy.GalaxyAudioSubsystem");
 		// Deus Ex's renderer settings are those of the device its ini names
-		// (GameRenderDevice, the game's D3DDrv.D3DRenderDevice); other games
-		// keep upstream's section.
-		if (LaunchInfo.IsDeusEx())
-			renderdev->LoadProperties(packages->GetIniValue("system", "Engine.Engine", "GameRenderDevice", "D3DDrv.D3DRenderDevice"));
-		else
-			renderdev->LoadProperties("D3DDrv.Direct3DRenderDevice");
+		// (GameRenderDevice, the game's D3DDrv.D3DRenderDevice).
+		renderdev->LoadProperties(packages->GetIniValue("system", "Engine.Engine", "GameRenderDevice", "D3DDrv.D3DRenderDevice"));
 	}
 	else
 	{
@@ -2746,7 +2661,7 @@ void Engine::CloseWindow()
 
 void Engine::TickWindow()
 {
-	if (window && engine->LaunchInfo.ue1Version > 219)
+	if (window)
 	{
 		if (viewport->bShowWindowsMouse() && viewport->bWindowsMouseAvailable())
 			window->UnlockCursor();
@@ -2783,12 +2698,9 @@ void Engine::OnWindowMouseMove(const Point& pos)
 	if (engine->dxRootWindow && engine->dxRootWindow->OnWindowMouseMove(pos))
 		return;
 
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		float scale = (float)window->GetDpiScale() * window->GetRenderDevice()->GetRenderScale();
-		viewport->WindowsMouseX() = pos.x * scale;
-		viewport->WindowsMouseY() = pos.y * scale;
-	}
+	float scale = (float)window->GetDpiScale() * window->GetRenderDevice()->GetRenderScale();
+	viewport->WindowsMouseX() = pos.x * scale;
+	viewport->WindowsMouseY() = pos.y * scale;
 }
 
 void Engine::OnWindowMouseDown(const Point& pos, EInputKey key)
@@ -2917,7 +2829,7 @@ void Engine::Key(std::string key)
 	if (Frame::Halted)
 		return;
 
-	if (LaunchInfo.IsDeusEx() && key == "~" && window->GetKeyState(IK_Shift))
+	if (key == "~" && window->GetKeyState(IK_Shift))
 	{
 		// Did they REALLY hack UE1 to do something as lame as this??
 		console->GotoState("Typing", {});
@@ -3142,11 +3054,6 @@ void Engine::LogGamePackageSHA1Sums() const
 void Engine::GetLevelInfoObject()
 {
 	LevelInfo = UObject::Cast<ULevelInfo>(LevelPackage->GetUObject("LevelInfo", "LevelInfo0"));
-	if (LaunchInfo.ue1Version < 300) // Unknown when this changed
-	{
-		for (int grr = 1; !LevelInfo && grr < 20; grr++)
-			LevelInfo = UObject::Cast<ULevelInfo>(LevelPackage->GetUObject("LevelInfo", "LevelInfo" + std::to_string(grr)));
-	}
 	if (!LevelInfo)
 		Exception::Throw("Could not find the LevelInfo object for " + LevelPackage->GetPackageName().ToString() + "!");
 }
@@ -3157,26 +3064,23 @@ void Engine::GetLevelObject()
 	if (!Level)
 		Exception::Throw("Could not find the Level object for" + LevelPackage->GetPackageName().ToString() + "!");
 
-	if (LaunchInfo.IsDeusEx())
-	{
-		// Also try to find DeusExLevelInfo
-		DeusExLevelInfo = UObject::Cast<UDeusExLevelInfo>(LevelPackage->GetUObject("DeusExLevelInfo", "DeusExLevelInfo0"));
+	// Also try to find DeusExLevelInfo
+	DeusExLevelInfo = UObject::Cast<UDeusExLevelInfo>(LevelPackage->GetUObject("DeusExLevelInfo", "DeusExLevelInfo0"));
 
-		// Didn't find it. Keep searching.
-		for (int grr = 1; !DeusExLevelInfo && grr < 20; grr++)
-			DeusExLevelInfo = UObject::Cast<UDeusExLevelInfo>(LevelPackage->GetUObject("DeusExLevelInfo", "DeusExLevelInfo" + std::to_string(grr)));
+	// Didn't find it. Keep searching.
+	for (int grr = 1; !DeusExLevelInfo && grr < 20; grr++)
+		DeusExLevelInfo = UObject::Cast<UDeusExLevelInfo>(LevelPackage->GetUObject("DeusExLevelInfo", "DeusExLevelInfo" + std::to_string(grr)));
 
-		// Entry.dx does not have a DeusExLevelInfo
-		/*
-		if (!DeusExLevelInfo)
-			Exception::Throw("Could not find the DeusExLevelInfo object for " + url.Map + "!");
-		*/
+	// Entry.dx does not have a DeusExLevelInfo
+	/*
+	if (!DeusExLevelInfo)
+		Exception::Throw("Could not find the DeusExLevelInfo object for " + url.Map + "!");
+	*/
 
-		// The conversations' comment events stay: the script passes over
-		// them, and 11 jumps land on labels only a comment carries. Each
-		// event's item classes load when the conversation's events bind
-		// (UConversation::BindEventsToActor), as the original's do.
-	}
+	// The conversations' comment events stay: the script passes over
+	// them, and 11 jumps land on labels only a comment carries. Each
+	// event's item classes load when the conversation's events bind
+	// (UConversation::BindEventsToActor), as the original's do.
 }
 
 void Engine::LinkActorsToLevel()

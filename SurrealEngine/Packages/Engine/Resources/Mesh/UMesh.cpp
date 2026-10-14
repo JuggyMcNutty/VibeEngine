@@ -17,27 +17,15 @@ void UMesh::Load(ObjectStream* stream)
 	//      of indicator as to what mesh type we're looking at.
 	//      Maybe just some optional metadata in the package that describes 
 	//			which type of mesh this is?
-	if (stream->GetPackage()->GetPackageManager()->IsDeusEx())
+	for (int i = 0; i < NumVerts; i++)
 	{
-		for (int i = 0; i < NumVerts; i++)
+		struct DeusExVertex
 		{
-			struct DeusExVertex
-			{
-				int16_t x, y, z, padding;
-			} packedvertex;
-			stream->ReadBytes(&packedvertex, sizeof(DeusExVertex));
-			vec3 vertex = { (float)packedvertex.x, (float)packedvertex.y, (float)packedvertex.z };
-			Verts.push_back(vertex);
-		}
-	}
-	else
-	{
-		for (int i = 0; i < NumVerts; i++)
-		{
-			int32_t packedvertex = stream->ReadInt32();
-			vec3 vertex = { (float)((packedvertex << 21) >> 21), (float)((packedvertex << 10) >> 21), (float)(packedvertex >> 22) };
-			Verts.push_back(vertex);
-		}
+			int16_t x, y, z, padding;
+		} packedvertex;
+		stream->ReadBytes(&packedvertex, sizeof(DeusExVertex));
+		vec3 vertex = { (float)packedvertex.x, (float)packedvertex.y, (float)packedvertex.z };
+		Verts.push_back(vertex);
 	}
 	if (stream->GetVersion() > 61 && stream->Tell() != VertsSkipOffset)
 		Exception::Throw("Unexpected lazy array size");

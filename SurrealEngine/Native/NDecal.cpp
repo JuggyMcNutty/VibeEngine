@@ -8,10 +8,7 @@
 
 void NDecal::RegisterFunctions()
 {
-	if (engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_3("Decal", "AttachDecal", &NDecal::AttachDecal_Deus, 0);
-	else
-		RegisterVMNativeFunc_3("Decal", "AttachDecal", &NDecal::AttachDecal, 0);
+	RegisterVMNativeFunc_3("Decal", "AttachDecal", &NDecal::AttachDecal_Deus, 0);
 	RegisterVMNativeFunc_0("Decal", "DetachDecal", &NDecal::DetachDecal, 0);
 }
 

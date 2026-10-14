@@ -47,20 +47,8 @@ void UActor::UpdateActorZone()
 		Region() = newregion;
 	}
 
-	// Deus Ex's scripts do these themselves (ZoneInfo.ActorEntered gives
-	// stray inventory 1.5 seconds; decorations and fragments check
-	// bDestructive), and its engine does neither.
-	if (!engine->LaunchInfo.IsDeusEx() && Region().Zone)
-	{
-		if (Region().Zone->bDestructive() && IsA("Carcass"))
-		{
-			// If the actor is a Carcass and the zone is marked as bDestructive, destroy it.
-			Destroy();
-		}
-		else if (engine->LaunchInfo.ue1Version > 219 && Owner() == nullptr && Region().Zone->bNoInventory() && IsA("Inventory"))
-		{
-			// If the new zone is bNoInventory, destroy Inventory that's not owned by anyone (i.e. in pickup state).
-			Destroy();
-		}
-	}
+	// Destroying what enters a destructive zone, and inventory left in a
+	// no-inventory zone, are Deus Ex's scripts' own (ZoneInfo.ActorEntered
+	// gives stray inventory 1.5 seconds; decorations and fragments check
+	// bDestructive): its engine does neither.
 }

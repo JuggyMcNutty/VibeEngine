@@ -12,48 +12,42 @@ void USurrealClient::LoadProperties(const NameString& from)
 	if (from == "")
 		name_from = NameString(Class);
 
-	if (engine->LaunchInfo.ue1Version > 219) // This seems to set WindowedViewportX and WindowedViewportY to zero for KHG!!!!
-	{
-		StartupFullscreen = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "StartupFullscreen", StartupFullscreen);
-		WindowedViewportX = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "WindowedViewportX", WindowedViewportX);
-		WindowedViewportY = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "WindowedViewportY", WindowedViewportY);
-		WindowedColorBits = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "WindowedColorBits", WindowedColorBits);
-		FullscreenViewportX = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "FullscreenViewportX", FullscreenViewportX);
-		FullscreenViewportY = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "FullscreenViewportY", FullscreenViewportY);
-		FullscreenColorBits = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "FullscreenColorBits", FullscreenColorBits);
-		Brightness = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "Brightness", Brightness);
-		UseJoystick = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "UseJoystick", UseJoystick);
-		UseDirectInput = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "UseDirectInput", UseDirectInput);
-		MinDesiredFrameRate = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "MinDesiredFrameRate", MinDesiredFrameRate);
-		ScreenFlashes = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "ScreenFlashes", ScreenFlashes);
-		Decals = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "Decals", Decals);
-		NoDynamicLights = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "NoDynamicLights", NoDynamicLights);
-		TextureDetail = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "TextureDetail", TextureDetail);
-		SkinDetail = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "SkinDetail", SkinDetail);
-	}
+	StartupFullscreen = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "StartupFullscreen", StartupFullscreen);
+	WindowedViewportX = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "WindowedViewportX", WindowedViewportX);
+	WindowedViewportY = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "WindowedViewportY", WindowedViewportY);
+	WindowedColorBits = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "WindowedColorBits", WindowedColorBits);
+	FullscreenViewportX = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "FullscreenViewportX", FullscreenViewportX);
+	FullscreenViewportY = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "FullscreenViewportY", FullscreenViewportY);
+	FullscreenColorBits = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "FullscreenColorBits", FullscreenColorBits);
+	Brightness = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "Brightness", Brightness);
+	UseJoystick = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "UseJoystick", UseJoystick);
+	UseDirectInput = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "UseDirectInput", UseDirectInput);
+	MinDesiredFrameRate = IniPropertyConverter<int>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "MinDesiredFrameRate", MinDesiredFrameRate);
+	ScreenFlashes = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "ScreenFlashes", ScreenFlashes);
+	Decals = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "Decals", Decals);
+	NoDynamicLights = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "NoDynamicLights", NoDynamicLights);
+	TextureDetail = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "TextureDetail", TextureDetail);
+	SkinDetail = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("System"), name_from, "SkinDetail", SkinDetail);
 }
 
 void USurrealClient::SaveConfig()
 {
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		engine->packages->SetIniValue("System", Class, "StartupFullscreen", IniPropertyConverter<bool>::ToString(StartupFullscreen));
-		engine->packages->SetIniValue("System", Class, "WindowedViewportX", IniPropertyConverter<int>::ToString(WindowedViewportX));
-		engine->packages->SetIniValue("System", Class, "WindowedViewportY", IniPropertyConverter<int>::ToString(WindowedViewportY));
-		engine->packages->SetIniValue("System", Class, "WindowedColorBits", IniPropertyConverter<int>::ToString(WindowedColorBits));
-		engine->packages->SetIniValue("System", Class, "FullscreenViewportX", IniPropertyConverter<int>::ToString(FullscreenViewportX));
-		engine->packages->SetIniValue("System", Class, "FullscreenViewportY", IniPropertyConverter<int>::ToString(FullscreenViewportY));
-		engine->packages->SetIniValue("System", Class, "FullscreenColorBits", IniPropertyConverter<int>::ToString(FullscreenColorBits));
-		engine->packages->SetIniValue("System", Class, "Brightness", IniPropertyConverter<float>::ToString(Brightness));
-		engine->packages->SetIniValue("System", Class, "UseJoystick", IniPropertyConverter<bool>::ToString(UseJoystick));
-		engine->packages->SetIniValue("System", Class, "UseDirectInput", IniPropertyConverter<bool>::ToString(UseDirectInput));
-		engine->packages->SetIniValue("System", Class, "MinDesiredFrameRate", IniPropertyConverter<int>::ToString(MinDesiredFrameRate));
-		engine->packages->SetIniValue("System", Class, "ScreenFlashes", IniPropertyConverter<bool>::ToString(ScreenFlashes));
-		engine->packages->SetIniValue("System", Class, "Decals", IniPropertyConverter<bool>::ToString(Decals));
-		engine->packages->SetIniValue("System", Class, "NoDynamicLights", IniPropertyConverter<bool>::ToString(NoDynamicLights));
-		engine->packages->SetIniValue("System", Class, "TextureDetail", TextureDetail);
-		engine->packages->SetIniValue("System", Class, "SkinDetail", SkinDetail);
-	}
+	engine->packages->SetIniValue("System", Class, "StartupFullscreen", IniPropertyConverter<bool>::ToString(StartupFullscreen));
+	engine->packages->SetIniValue("System", Class, "WindowedViewportX", IniPropertyConverter<int>::ToString(WindowedViewportX));
+	engine->packages->SetIniValue("System", Class, "WindowedViewportY", IniPropertyConverter<int>::ToString(WindowedViewportY));
+	engine->packages->SetIniValue("System", Class, "WindowedColorBits", IniPropertyConverter<int>::ToString(WindowedColorBits));
+	engine->packages->SetIniValue("System", Class, "FullscreenViewportX", IniPropertyConverter<int>::ToString(FullscreenViewportX));
+	engine->packages->SetIniValue("System", Class, "FullscreenViewportY", IniPropertyConverter<int>::ToString(FullscreenViewportY));
+	engine->packages->SetIniValue("System", Class, "FullscreenColorBits", IniPropertyConverter<int>::ToString(FullscreenColorBits));
+	engine->packages->SetIniValue("System", Class, "Brightness", IniPropertyConverter<float>::ToString(Brightness));
+	engine->packages->SetIniValue("System", Class, "UseJoystick", IniPropertyConverter<bool>::ToString(UseJoystick));
+	engine->packages->SetIniValue("System", Class, "UseDirectInput", IniPropertyConverter<bool>::ToString(UseDirectInput));
+	engine->packages->SetIniValue("System", Class, "MinDesiredFrameRate", IniPropertyConverter<int>::ToString(MinDesiredFrameRate));
+	engine->packages->SetIniValue("System", Class, "ScreenFlashes", IniPropertyConverter<bool>::ToString(ScreenFlashes));
+	engine->packages->SetIniValue("System", Class, "Decals", IniPropertyConverter<bool>::ToString(Decals));
+	engine->packages->SetIniValue("System", Class, "NoDynamicLights", IniPropertyConverter<bool>::ToString(NoDynamicLights));
+	engine->packages->SetIniValue("System", Class, "TextureDetail", TextureDetail);
+	engine->packages->SetIniValue("System", Class, "SkinDetail", SkinDetail);
 }
 
 std::string USurrealClient::GetPropertyAsString(const NameString& propertyName) const

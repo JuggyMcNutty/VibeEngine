@@ -23,11 +23,10 @@
 #define UU_PER_METER 43
 
 // Deus Ex's sounds are mixed as Galaxy mixes them (GalaxyMixer), the mix
-// streamed through one source; other games' sounds are OpenAL's own sources,
-// placed in 3D.
+// streamed through one source, once the engine is up.
 static bool UseGalaxyMixer()
 {
-	return engine && engine->LaunchInfo.IsDeusEx();
+	return engine != nullptr;
 }
 
 class ALSoundSource

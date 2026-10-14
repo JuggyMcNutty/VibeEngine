@@ -29,10 +29,7 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_2("Actor", "ChildActors", &NActor::ChildActors, 305);
 	RegisterVMNativeFunc_2("Actor", "ConsoleCommand", &NActor::ConsoleCommand, 0);
 	RegisterVMNativeFunc_3("Actor", "CycleActors", &NActor::CycleActors, 1002);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_6("Actor", "DemoPlaySound", &NActor::DemoPlaySound, 0);
-	else
-		RegisterVMNativeFunc_6("Actor", "DemoPlaySound", &NActor::DemoPlaySound_Deus, 0);
+	RegisterVMNativeFunc_6("Actor", "DemoPlaySound", &NActor::DemoPlaySound_Deus, 0);
 	RegisterVMNativeFunc_1("Actor", "Destroy", &NActor::Destroy, 279);
 	RegisterVMNativeFunc_1("Actor", "Error", &NActor::Error, 233);
 	RegisterVMNativeFunc_3("Actor", "FastTrace", &NActor::FastTrace, 548);
@@ -45,10 +42,7 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_2("Actor", "GetMeshTexture", &NActor::GetMeshTexture, 1013);
 	RegisterVMNativeFunc_3("Actor", "GetNextInt", &NActor::GetNextInt, 0);
 	RegisterVMNativeFunc_4("Actor", "GetNextIntDesc", &NActor::GetNextIntDesc, 0);
-	if (engine->LaunchInfo.ue1Version > 219)
-		RegisterVMNativeFunc_5("Actor", "GetNextSkin", &NActor::GetNextSkin, 545);
-	else
-		RegisterVMNativeFunc_4("Actor", "GetNextSkin", &NActor::GetNextSkin_219, 545);
+	RegisterVMNativeFunc_5("Actor", "GetNextSkin", &NActor::GetNextSkin, 545);
 	RegisterVMNativeFunc_2("Actor", "GetSoundDuration", &NActor::GetSoundDuration, 0);
 	RegisterVMNativeFunc_1("Actor", "GetURLMap", &NActor::GetURLMap, 547);
 	RegisterVMNativeFunc_2("Actor", "HasAnim", &NActor::HasAnim, 263);
@@ -59,14 +53,8 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_2("Actor", "Move", &NActor::Move, 266);
 	RegisterVMNativeFunc_3("Actor", "MoveCacheEntry", &NActor::MoveCacheEntry, 0);
 	RegisterVMNativeFunc_2("Actor", "MoveSmooth", &NActor::MoveSmooth, 3969);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_6("Actor", "PlayOwnedSound", &NActor::PlayOwnedSound, 0);
-	else
-		RegisterVMNativeFunc_6("Actor", "PlayOwnedSound", &NActor::PlayOwnedSound_Deus, 0);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_6("Actor", "PlaySound", &NActor::PlaySound, 264);
-	else
-		RegisterVMNativeFunc_7("Actor", "PlaySound", &NActor::PlaySound_Deus, 264);
+	RegisterVMNativeFunc_6("Actor", "PlayOwnedSound", &NActor::PlayOwnedSound_Deus, 0);
+	RegisterVMNativeFunc_7("Actor", "PlaySound", &NActor::PlaySound_Deus, 264);
 	RegisterVMNativeFunc_1("Actor", "PlayerCanSeeMe", &NActor::PlayerCanSeeMe, 532);
 	RegisterVMNativeFunc_4("Actor", "RadiusActors", &NActor::RadiusActors, 310);
 	RegisterVMNativeFunc_1("Actor", "SetBase", &NActor::SetBase, 298);
@@ -74,10 +62,7 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_3("Actor", "SetCollisionSize", &NActor::SetCollisionSize, 283);
 	RegisterVMNativeFunc_2("Actor", "SetLocation", &NActor::SetLocation, 267);
 	RegisterVMNativeFunc_1("Actor", "SetOwner", &NActor::SetOwner, 272);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_1("Actor", "SetPhysics", &NActor::SetPhysics, 3970);
-	else
-		RegisterVMNativeFunc_2("Actor", "SetPhysics", &NActor::SetPhysics_Deus, 3970);
+	RegisterVMNativeFunc_2("Actor", "SetPhysics", &NActor::SetPhysics_Deus, 3970);
 	RegisterVMNativeFunc_2("Actor", "SetRotation", &NActor::SetRotation, 299);
 	RegisterVMNativeFunc_2("Actor", "SetTimer", &NActor::SetTimer, 280);
 	RegisterVMNativeFunc_1("Actor", "Sleep", &NActor::Sleep, 256);
@@ -95,10 +80,7 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_7("Actor", "TraceActors", &NActor::TraceActors, 309);
 	RegisterVMNativeFunc_2("Actor", "TweenAnim", &NActor::TweenAnim, 294);
 	RegisterVMNativeFunc_4("Actor", "VisibleActors", &NActor::VisibleActors, 311);
-	if (engine->LaunchInfo.ue1Version > 219)
-		RegisterVMNativeFunc_5("Actor", "VisibleCollidingActors", &NActor::VisibleCollidingActors, 312);
-	else
-		RegisterVMNativeFunc_4("Actor", "VisibleCollidingActors", &NActor::VisibleCollidingActors_219, 312);
+	RegisterVMNativeFunc_5("Actor", "VisibleCollidingActors", &NActor::VisibleCollidingActors, 312);
 	RegisterVMNativeFunc_1("Actor", "GetPlayerPawn", &NActor::GetPlayerPawn, 720);
 	RegisterVMNativeFunc_1("Actor", "AIClearEvent", &NActor::AIClearEvent, 716);
 	RegisterVMNativeFunc_1("Actor", "AIClearEventCallback", &NActor::AIClearEventCallback, 711);
@@ -117,18 +99,15 @@ void NActor::RegisterFunctions()
 	RegisterVMNativeFunc_3("Actor", "Multiply_ColorFloat", &NActor::Multiply_ColorFloat, 552);
 	RegisterVMNativeFunc_3("Actor", "Multiply_FloatColor", &NActor::Multiply_FloatColor, 550);
 
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		RegisterVMNativeFunc_1("Actor", "InStasis", &NActor::InStasis, 721);
-		RegisterVMNativeFunc_11("Actor", "ParabolicTrace", &NActor::ParabolicTrace, 722);
-		RegisterVMNativeFunc_5("Actor", "RandomBiasedRotation", &NActor::RandomBiasedRotation, 717);
-		RegisterVMNativeFunc_1("Actor", "SetInstantMusicVolume", &NActor::SetInstantMusicVolume, 270);
-		RegisterVMNativeFunc_1("Actor", "SetInstantSoundVolume", &NActor::SetInstantSoundVolume, 268);
-		RegisterVMNativeFunc_1("Actor", "SetInstantSpeechVolume", &NActor::SetInstantSpeechVolume, 269);
-		RegisterVMNativeFunc_1("Actor", "StopSound", &NActor::StopSound_Deus, 265);
-		RegisterVMNativeFunc_4("Actor", "PlayBlendAnim", &NActor::PlayBlendAnim, 1010);
-		RegisterVMNativeFunc_3("Actor", "TweenBlendAnim", &NActor::TweenBlendAnim, 1012);
-	}
+	RegisterVMNativeFunc_1("Actor", "InStasis", &NActor::InStasis, 721);
+	RegisterVMNativeFunc_11("Actor", "ParabolicTrace", &NActor::ParabolicTrace, 722);
+	RegisterVMNativeFunc_5("Actor", "RandomBiasedRotation", &NActor::RandomBiasedRotation, 717);
+	RegisterVMNativeFunc_1("Actor", "SetInstantMusicVolume", &NActor::SetInstantMusicVolume, 270);
+	RegisterVMNativeFunc_1("Actor", "SetInstantSoundVolume", &NActor::SetInstantSoundVolume, 268);
+	RegisterVMNativeFunc_1("Actor", "SetInstantSpeechVolume", &NActor::SetInstantSpeechVolume, 269);
+	RegisterVMNativeFunc_1("Actor", "StopSound", &NActor::StopSound_Deus, 265);
+	RegisterVMNativeFunc_4("Actor", "PlayBlendAnim", &NActor::PlayBlendAnim, 1010);
+	RegisterVMNativeFunc_3("Actor", "TweenBlendAnim", &NActor::TweenBlendAnim, 1012);
 	RegisterVMNativeFunc_3("Actor", "PlayAnim", &NActor::PlayAnim, 259);
 	RegisterVMNativeFunc_4("Actor", "LoopAnim", &NActor::LoopAnim, 260);
 	RegisterVMNativeFunc_1("Actor", "IsAnimating", &NActor::IsAnimating, 282);
@@ -735,7 +714,7 @@ void NActor::VisibleActors(UObject* Self, UObject* BaseClass, UObject*& Actor, s
 	UActor* SelfActor = UObject::Cast<UActor>(Self);
 	// Deus Ex's radius defaults to 0, as the original's: no limit here, 1000
 	// for VisibleCollidingActors (the iterators).
-	float defaultRadius = engine->LaunchInfo.IsDeusEx() ? 0.0f : SelfActor->CollisionRadius();
+	float defaultRadius = 0.0f;
 	Frame::CreatedIterator = std::make_unique<VisibleActorsIterator>(
 		SelfActor, BaseClass, &Actor,
 		Radius ? *Radius : defaultRadius,
@@ -745,7 +724,7 @@ void NActor::VisibleActors(UObject* Self, UObject* BaseClass, UObject*& Actor, s
 void NActor::VisibleCollidingActors(UObject* Self, UObject* BaseClass, UObject*& Actor, std::optional<float> Radius, std::optional<vec3> Loc, std::optional<bool> bIgnoreHidden)
 {
 	UActor* SelfActor = UObject::Cast<UActor>(Self);
-	float defaultRadius = engine->LaunchInfo.IsDeusEx() ? 0.0f : SelfActor->CollisionRadius();
+	float defaultRadius = 0.0f;
 	Frame::CreatedIterator = std::make_unique<VisibleCollidingActorsIterator>(
 		BaseClass, &Actor,
 		Radius ? *Radius : defaultRadius,

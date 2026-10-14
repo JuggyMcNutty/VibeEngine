@@ -955,6 +955,10 @@ A mod gets the original's loader and natives:
   ([the timing natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#clock-unclock-and-cyclestoseconds)),
   which count the steady clock's nanoseconds where the original's count the
   CPU's cycles.
+- **Two path natives no stock script calls are upstream's**, not the
+  original's, which are unread: `Pawn.FindRandomDest` 525, a random
+  navigation point the pawn can reach, and `FindBestInventoryPath` 540, the
+  way to the inventory it wants most.
 
 A macro texture, which no stock texture has, is drawn as `D3DDrv` draws it
 ([the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness)):
@@ -1056,7 +1060,5 @@ Stubs a single-player game does without; the audit lists each:
   its only user, calls only implemented ones.
 - `GC`'s `PushGC`, `PopGC`, `CopyGC` and `Intersect`, and 3 more of the
   windows' stubs, which no script calls.
-- Two more that no script of the game calls, so only a mod reaches them:
-  `Canvas.DrawPortal` 480, which draws nothing, and `Pawn.FindRandomDest`
-  525, upstream's own pick of a random navigation point the pawn can reach;
-  the original's two are unread.
+- One more that no script of the game calls, so only a mod reaches it:
+  `Canvas.DrawPortal` 480, which draws nothing; the original's is unread.

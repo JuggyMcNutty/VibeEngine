@@ -23,18 +23,10 @@ LightSystem::~LightSystem()
 
 void LightSystem::Tick(float levelTimeElapsed)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		// The original's: 0.25 + 0.2 sin(8 t), t the viewport's time
-		// (dx-reverse-info/render-dll.md, meshes) -- here the level's
-		AmbientGlowTime = std::fmod(AmbientGlowTime + levelTimeElapsed, 2.0f * 3.14159265359f / 8.0f);
-		AmbientGlowAmount = 0.25f + 0.2f * std::sin(8.0f * AmbientGlowTime);
-	}
-	else
-	{
-		AmbientGlowTime = std::fmod(AmbientGlowTime + 0.8f * levelTimeElapsed, 1.0f);
-		AmbientGlowAmount = 0.30f + 0.20f * std::sin(radians(AmbientGlowTime * 360.0f));
-	}
+	// The original's: 0.25 + 0.2 sin(8 t), t the viewport's time
+	// (dx-reverse-info/render-dll.md, meshes) -- here the level's
+	AmbientGlowTime = std::fmod(AmbientGlowTime + levelTimeElapsed, 2.0f * 3.14159265359f / 8.0f);
+	AmbientGlowAmount = 0.25f + 0.2f * std::sin(8.0f * AmbientGlowTime);
 	LastTickElapsed = levelTimeElapsed;
 }
 
@@ -97,8 +89,7 @@ void LightSystem::TickRandoms(float levelTime)
 void LightSystem::BeginFrame()
 {
 	FrameCounter++;
-	if (engine->LaunchInfo.IsDeusEx())
-		TickRandoms(engine->LevelInfo->TimeSeconds());
+	TickRandoms(engine->LevelInfo->TimeSeconds());
 
 	LightTree.Lights.clear();
 	for (UActor* actor : engine->Level->Actors)

@@ -86,10 +86,7 @@ bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly&
 		{
 			UTexture* tex = polyTex->DetailTexture()->GetAnimTexture();
 			engine->render->UpdateTexture(tex);
-			if (engine->LaunchInfo.IsDeusEx())
-				engine->render->UpdateTextureInfo(detailtex, tex);
-			else
-				engine->render->UpdateTextureInfo(detailtex, poly, tex, ZoneUPanSpeed, ZoneVPanSpeed);
+			engine->render->UpdateTextureInfo(detailtex, tex);
 			surfaceinfo.DetailTexture = &detailtex;
 		}
 
@@ -97,10 +94,7 @@ bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly&
 		{
 			UTexture* tex = poly.Texture->MacroTexture()->GetAnimTexture();
 			engine->render->UpdateTexture(tex);
-			if (engine->LaunchInfo.IsDeusEx())
-				engine->render->UpdateTextureInfo(macrotex, tex);
-			else
-				engine->render->UpdateTextureInfo(macrotex, poly, tex, ZoneUPanSpeed, ZoneVPanSpeed);
+			engine->render->UpdateTextureInfo(macrotex, tex);
 			surfaceinfo.MacroTexture = &macrotex;
 		}
 	}
@@ -121,12 +115,12 @@ bool VisibleBrush::DrawBrushPoly(VisibleFrame* frame, UModel* model, const Poly&
 	{
 		lightmap = engine->Level->Light.GetMoverLightmap(mover, poly, zoneActor, model);
 		// Deus Ex's only as VisibleNode's makes one
-		if (!engine->LaunchInfo.IsDeusEx() || (frame->VolumetricFog && (PolyFlags & PF_Translucent) == 0))
+		if (frame->VolumetricFog && (PolyFlags & PF_Translucent) == 0)
 			fogmap = engine->Level->Light.GetMoverFogmap(mover, poly, zoneActor, model);
 	}
 
 	surfaceinfo.PolyFlags = PolyFlags;
-	surfaceinfo.DepthBias = engine->LaunchInfo.IsDeusEx();
+	surfaceinfo.DepthBias = true;
 	surfaceinfo.LightMap = lightmap.NumMips != 0 ? &lightmap : nullptr;
 	surfaceinfo.FogMap = fogmap.NumMips != 0 ? &fogmap : nullptr;
 

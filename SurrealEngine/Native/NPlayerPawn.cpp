@@ -14,32 +14,19 @@
 void NPlayerPawn::RegisterFunctions()
 {
 	RegisterVMNativeFunc_3("PlayerPawn", "ClientTravel", &NPlayerPawn::ClientTravel, 0);
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		RegisterVMNativeFunc_2("PlayerPawn", "ConsoleCommand", &NPlayerPawn::ConsoleCommand, 0);
-	}
-	else
-	{
-		RegisterVMNativeFunc_1("PlayerPawn", "ClientMessage", &NPlayerPawn::ClientMessage_219, 0);
-		RegisterVMNativeFunc_1("PlayerPawn", "ConsoleCommand", &NPlayerPawn::ConsoleCommand_219, 537);
-		RegisterVMNativeFunc_2("PlayerPawn", "ConsoleCommandResult", &NPlayerPawn::ConsoleCommandResult_219, 542);
-	}
+	RegisterVMNativeFunc_2("PlayerPawn", "ConsoleCommand", &NPlayerPawn::ConsoleCommand, 0);
 	RegisterVMNativeFunc_1("PlayerPawn", "CopyToClipboard", &NPlayerPawn::CopyToClipboard, 0);
 	RegisterVMNativeFunc_2("PlayerPawn", "GetDefaultURL", &NPlayerPawn::GetDefaultURL, 0);
 	RegisterVMNativeFunc_1("PlayerPawn", "GetEntryLevel", &NPlayerPawn::GetEntryLevel, 0);
 	RegisterVMNativeFunc_1("PlayerPawn", "GetPlayerNetworkAddress", &NPlayerPawn::GetPlayerNetworkAddress, 0);
 	RegisterVMNativeFunc_1("PlayerPawn", "PasteFromClipboard", &NPlayerPawn::PasteFromClipboard, 0);
 	RegisterVMNativeFunc_0("PlayerPawn", "ResetKeyboard", &NPlayerPawn::ResetKeyboard, 544);
-	if (engine->LaunchInfo.ue1Version > 219)
-		RegisterVMNativeFunc_3("PlayerPawn", "UpdateURL", &NPlayerPawn::UpdateURL, 546);
-	else
-		RegisterVMNativeFunc_1("PlayerPawn", "UpdateURL", &NPlayerPawn::UpdateURL_219, 546);
+	RegisterVMNativeFunc_3("PlayerPawn", "UpdateURL", &NPlayerPawn::UpdateURL, 546);
 }
 
 void NPlayerPawn::ClientTravel(UObject* Self, const std::string& URL, uint8_t TravelType, bool bItems)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-		CallEvent(Self, "PreTravel", {});
+	CallEvent(Self, "PreTravel", {});
 	engine->ClientTravel(URL, static_cast<ETravelType>(TravelType), bItems);
 }
 

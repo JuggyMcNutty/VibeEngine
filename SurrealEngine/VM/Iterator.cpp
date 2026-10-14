@@ -242,13 +242,12 @@ RadiusActorsIterator::RadiusActorsIterator(UActor* Caller, UObject* BaseClass, U
 	// Deus Ex's reaches each actor's own collision radius further, as the
 	// original's does (Engine.dll 0x103e4fa0, dx-reverse-info engine-dll.md,
 	// traces): its location strictly within Radius + CollisionRadius
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
 	const Array<UActor*>& actors = engine->Level->Actors;
 	for (int slot : ActorSlotsByName(engine->Level, BaseClass->Name))
 	{
 		UActor* levelActor = actors[slot];
 		vec3 d = levelActor->Location() - Location;
-		bool within = deusEx ? dot(d, d) < (Radius + levelActor->CollisionRadius()) * (Radius + levelActor->CollisionRadius()) : length(d) <= Radius;
+		bool within = dot(d, d) < (Radius + levelActor->CollisionRadius()) * (Radius + levelActor->CollisionRadius());
 		if (within)
 			RadiusActors.push_back(levelActor);
 	}
@@ -339,7 +338,6 @@ VisibleActorsIterator::VisibleActorsIterator(UActor* Caller, UObject* BaseClass,
 {
 	// Deus Ex's as the original's: within the radius strictly, a radius of 0
 	// no limit.
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
 	const Array<UActor*>& actors = engine->Level->Actors;
 	for (int slot : ActorSlotsByName(engine->Level, BaseClass->Name))
 	{
@@ -348,7 +346,7 @@ VisibleActorsIterator::VisibleActorsIterator(UActor* Caller, UObject* BaseClass,
 		// * Then whether the distance of the actor from our given Location is no more than Radius
 		UActor* levelActor = actors[slot];
 		float dist = length(levelActor->Location() - Location);
-		bool inRadius = deusEx ? (Radius == 0.0f || dist < Radius) : dist <= Radius;
+		bool inRadius = (Radius == 0.0f || dist < Radius);
 		if (!levelActor->bHidden() && inRadius && Caller->FastTrace(levelActor->Location(), Location))
 		{
 			VisibleActors.push_back(levelActor);
@@ -383,7 +381,7 @@ bool VisibleActorsIterator::Next()
 // passed over the hidden unless asked not to.
 VisibleCollidingActorsIterator::VisibleCollidingActorsIterator(UObject* BaseClass, UObject** ReturnValue, float Radius, const vec3& Location, bool IgnoreHidden) : BaseClass(BaseClass), ReturnValue(ReturnValue), Radius(Radius), Location(Location), IgnoreHidden(IgnoreHidden)
 {
-	DeusEx = engine->LaunchInfo.IsDeusEx();
+	DeusEx = true;
 	if (DeusEx)
 		HitActors = engine->Level->Collision.ActorRadiusCheck(Location, Radius != 0.0f ? Radius : 1000.0f);
 	else

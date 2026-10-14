@@ -24,7 +24,7 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	FrameCounter = engine->render->FrameCounter++;
 	MirrorFlag = mirrorFlag;
 	PortalDepth = portalDepth;
-	DeusExOrder = engine->LaunchInfo.IsDeusEx();
+	DeusExOrder = true;
 	UActor* viewActor = engine->viewport->Actor();
 	UZoneInfo* viewActorZone = viewActor ? viewActor->Region().Zone : nullptr;
 	VolumetricFog = engine->renderdev->VolumetricLighting && viewActorZone && viewActorZone->bFogZone();
@@ -38,7 +38,7 @@ void VisibleFrame::Process(const vec3& location, const mat4& worldToView, const 
 	// what shows through a one-pixel gap. A portal's frame is the same size,
 	// so the spans it inherits are in the same grid.
 	Clipper.SetViewportSize(Frame.X, Frame.Y);
-	Clipper.SetPixelSample(engine->LaunchInfo.IsDeusEx() ? 1.0f : 0.5f);
+	Clipper.SetPixelSample(1.0f);
 	Clipper.Setup(Frame.Projection * Frame.WorldToView * Frame.ObjectToWorld, portalSpans, portalPlane);
 
 	ViewLocation = vec4(location, 1.0f);
@@ -822,14 +822,7 @@ void VisibleFrame::DrawCoronas()
 
 	// Deus Ex coronas are kept and faded across frames, from the viewer's
 	// leaf, not gathered from the drawn parts of the level
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		engine->render->DrawCoronasDX(this);
-		return;
-	}
-
-	for (VisibleCorona &corona : Coronas)
-		corona.Draw(this);
+	engine->render->DrawCoronasDX(this);
 }
 
 void VisibleFrame::DrawOpaqueNodes()

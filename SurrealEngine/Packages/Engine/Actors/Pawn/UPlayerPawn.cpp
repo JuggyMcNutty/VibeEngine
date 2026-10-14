@@ -32,10 +32,8 @@ bool UPlayerPawn::TickInput(float elapsed)
 void UPlayerPawn::Tick(float elapsed)
 {
 	// Deus Ex's input is read in the actor's own tick, before its physics
-	// (UActor::Tick); other games' after it.
+	// (UActor::Tick).
 	UPawn::Tick(elapsed);
-	if (!engine->LaunchInfo.IsDeusEx())
-		TickInput(elapsed);
 
 	// TODO: is this the correct place to set this?
 	aForward() = 0.0f;
@@ -54,18 +52,8 @@ void UPlayerPawn::TickRotating(float elapsed)
 	// Deus Ex's, the original's APawn::physicsRotation for a player
 	// (Engine.dll 0x103c9f30): only its roll is set to 0, when its rotation is
 	// not the desired one or its RotationRate has a roll.
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		if ((Rotation() != DesiredRotation() || RotationRate().Roll > 0) && Rotation().Roll != 0)
-			SetRotation(Rotator(Rotation().Pitch, Rotation().Yaw, 0));
-		return;
-	}
-
-	Rotator rot = Rotation();
-
-	// To do: apply RotationRate().Roll
-
-	Rotation() = rot;
+	if ((Rotation() != DesiredRotation() || RotationRate().Roll > 0) && Rotation().Roll != 0)
+		SetRotation(Rotator(Rotation().Pitch, Rotation().Yaw, 0));
 }
 
 void UPlayerPawn::LoadProperties()
@@ -81,24 +69,14 @@ void UPlayerPawn::LoadProperties()
 	bSnapToLevel() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bSnapToLevel", false);
 	bAlwaysMouseLook() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bAlwaysMouseLook", true);
 	bKeyboardLook() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bKeyboardLook", false);
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		bMaxMouseSmoothing() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bMaxMouseSmoothing", false);
-		bNoFlash() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bNoFlash", false);
-		bNoVoices() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bNoVoices", false);
-		bMessageBeep() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bMessageBeep", true);
-		// NetSpeed is missing
-		// LanSpeed is missing
-		MouseSmoothThreshold() = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "MouseSmoothThreshold", 0.16f);
-		ngWorldSecret() = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "ngWorldSecret", "");
-
-		// SE addition: Store/Load the DefaultFOV setting into/from the user.ini file as well.
-		// Not for Deus Ex, whose DefaultFOV is its own config's (75, the
-		// class's globalconfig): the missing key's 90 widened the view to
-		// 90 degrees the first time a weapon came up.
-		if (!engine->LaunchInfo.IsDeusEx())
-			DefaultFOV() = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "MainFOV", 90.0f);
-	}
+	bMaxMouseSmoothing() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bMaxMouseSmoothing", false);
+	bNoFlash() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bNoFlash", false);
+	bNoVoices() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bNoVoices", false);
+	bMessageBeep() = IniPropertyConverter<bool>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "bMessageBeep", true);
+	// NetSpeed is missing
+	// LanSpeed is missing
+	MouseSmoothThreshold() = IniPropertyConverter<float>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "MouseSmoothThreshold", 0.16f);
+	ngWorldSecret() = IniPropertyConverter<std::string>::FromIniFile(*engine->packages->GetIniFile("user"), "Engine.PlayerPawn", "ngWorldSecret", "");
 }
 
 void UPlayerPawn::SaveConfig()
@@ -119,19 +97,12 @@ void UPlayerPawn::SaveConfig()
 	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bSnapToLevel", IniPropertyConverter<bool>::ToString(bSnapToLevel()));
 	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bAlwaysMouseLook", IniPropertyConverter<bool>::ToString(bAlwaysMouseLook()));
 	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bKeyboardLook", IniPropertyConverter<bool>::ToString(bKeyboardLook()));
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bMaxMouseSmoothing", IniPropertyConverter<bool>::ToString(bMaxMouseSmoothing()));
-		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bNoFlash", IniPropertyConverter<bool>::ToString(bNoFlash()));
-		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bNoVoices", IniPropertyConverter<bool>::ToString(bNoVoices()));
-		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bMessageBeep", IniPropertyConverter<bool>::ToString(bMessageBeep()));
-		// NetSpeed is missing
-		// LanSpeed is missing
-		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "MouseSmoothThreshold", IniPropertyConverter<float>::ToString(MouseSmoothThreshold()));
-		engine->packages->SetIniValue("user", "Engine.PlayerPawn", "ngWorldSecret", ngWorldSecret());
-
-		// SE addition: Store/Load the DefaultFOV setting into/from the user.ini file as well
-		if (!engine->LaunchInfo.IsDeusEx())
-			engine->packages->SetIniValue("user", "Engine.PlayerPawn", "MainFOV", IniPropertyConverter<float>::ToString(DefaultFOV()));
-	}
+	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bMaxMouseSmoothing", IniPropertyConverter<bool>::ToString(bMaxMouseSmoothing()));
+	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bNoFlash", IniPropertyConverter<bool>::ToString(bNoFlash()));
+	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bNoVoices", IniPropertyConverter<bool>::ToString(bNoVoices()));
+	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "bMessageBeep", IniPropertyConverter<bool>::ToString(bMessageBeep()));
+	// NetSpeed is missing
+	// LanSpeed is missing
+	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "MouseSmoothThreshold", IniPropertyConverter<float>::ToString(MouseSmoothThreshold()));
+	engine->packages->SetIniValue("user", "Engine.PlayerPawn", "ngWorldSecret", ngWorldSecret());
 }

@@ -24,7 +24,7 @@ void UActor::TickPhysics(float elapsed)
 		// and anything falls it, as the original's physWalking, physSwimming,
 		// physFlying and physFalling take a whole tick, handing what they
 		// leave to the physics they end in.
-		bool wholeFrame = ((mode == PHYS_Walking || mode == PHYS_Swimming || mode == PHYS_Flying) && bIsPawn() || mode == PHYS_Falling) && engine->LaunchInfo.IsDeusEx();
+		bool wholeFrame = ((mode == PHYS_Walking || mode == PHYS_Swimming || mode == PHYS_Flying) && bIsPawn()) || mode == PHYS_Falling;
 		if (wholeFrame)
 			physTimeElapsed = timeLeft;
 		PhysicsFrameLeft = timeLeft - physTimeElapsed;
@@ -153,14 +153,14 @@ bool UActor::SetLocation(const vec3& newLocation, bool noCheck)
 	if (!noCheck)
 	{
 		bool findRoom = bCollideWorld() || (bCollideWhenPlacing() && Level()->NetMode() != NM_Client);
-		auto result = (engine->LaunchInfo.IsDeusEx() && findRoom) ? FindSpot(newLocation, CollisionRadius(), CollisionHeight(), false) : CheckLocation(newLocation, CollisionRadius(), CollisionHeight(), findRoom);
+		auto result = findRoom ? FindSpot(newLocation, CollisionRadius(), CollisionHeight(), false) : CheckLocation(newLocation, CollisionRadius(), CollisionHeight(), findRoom);
 		if (!result.first)
 			return false;
 		location = result.second;
 
 		// Deus Ex: what stands at the spot may stop the move (EncroachingOn),
 		// and what blocks hears it come (EncroachedBy), before it moves.
-		if (engine->LaunchInfo.IsDeusEx() && CheckEncroachment(location))
+		if (CheckEncroachment(location))
 			return false;
 	}
 
@@ -188,7 +188,7 @@ bool UActor::SetLocation(const vec3& newLocation, bool noCheck)
 		// encroachment check touches
 		for (UActor* actor : XLevel()->Collision.CollidingActors(Location(), CollisionHeight(), CollisionRadius()))
 		{
-			if (actor != this && !actor->IsBasedOn(this) && !IsBasedOn(actor) && bCollideActors() && actor->bCollideActors() && !(engine->LaunchInfo.IsDeusEx() && EncroachBlockedBy(actor)))
+			if (actor != this && !actor->IsBasedOn(this) && !IsBasedOn(actor) && bCollideActors() && actor->bCollideActors() && !EncroachBlockedBy(actor))
 			{
 				Touch(actor);
 			}
@@ -252,29 +252,7 @@ bool UActor::SetCollisionSize(float newRadius, float newHeight)
 
 void UActor::PhysLanded(UActor* hitActor, const vec3& hitNormal, float remaining)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		DeusExPhysLanded(hitActor, hitNormal, remaining);
-		return;
-	}
-
-	// landed on the floor
-	CallEvent(this, EventName::Landed, { ExpressionValue::VectorValue(hitNormal) });
-
-	if (Physics() == PHYS_Falling) // Landed event might have changed the physics mode
-	{
-		if (UObject::TryCast<UPawn>(this))
-		{
-			SetPhysics(PHYS_Walking);
-			SetBase(hitActor, true);
-		}
-		else
-		{
-			SetPhysics(PHYS_None);
-			SetBase(hitActor, true);
-			Velocity() = vec3(0.0f);
-		}
-	}
+	DeusExPhysLanded(hitActor, hitNormal, remaining);
 }
 
 // The original's processLanded (Engine.dll 0x103cef60; dx-reverse-info

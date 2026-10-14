@@ -594,7 +594,7 @@ void UActor::SetTweenFromBlendAnimFrame(int slot)
 
 UTexture* UActor::GetMultiskin(int index)
 {
-	if (engine->LaunchInfo.ue1Version > 219 && index >= 0 && index < 8)
+	if (index >= 0 && index < 8)
 		return MultiSkins()[index];
 	else
 		return nullptr;

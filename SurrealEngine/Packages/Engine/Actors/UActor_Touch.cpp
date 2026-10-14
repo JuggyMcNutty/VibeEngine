@@ -6,18 +6,15 @@
 
 void UActor::CheckPendingTouch()
 {
-	if (engine->LaunchInfo.ue1Version >= 400)
+	if (PendingTouch())
 	{
+		CallEvent(PendingTouch(), EventName::PostTouch, { ExpressionValue::ObjectValue(this) });
 		if (PendingTouch())
 		{
-			CallEvent(PendingTouch(), EventName::PostTouch, { ExpressionValue::ObjectValue(this) });
-			if (PendingTouch())
-			{
-				UActor* cur = PendingTouch();
-				UActor* next = cur->PendingTouch();
-				PendingTouch() = next;
-				cur->PendingTouch() = nullptr;
-			}
+			UActor* cur = PendingTouch();
+			UActor* next = cur->PendingTouch();
+			PendingTouch() = next;
+			cur->PendingTouch() = nullptr;
 		}
 	}
 }

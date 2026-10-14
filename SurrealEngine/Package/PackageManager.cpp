@@ -296,8 +296,7 @@ PackageManager::PackageManager(const GameLaunchInfo& launchInfo) : launchInfo(la
 	ScanPaths();
 	ScanForMaps();
 
-	if (launchInfo.IsDeusEx())
-		ScanSaveInfos();
+	ScanSaveInfos();
 
 	InitPropertyOffsets(this);
 
@@ -650,19 +649,7 @@ void PackageManager::ScanFolder(const std::string& packagedir, const std::string
 void PackageManager::ScanPaths()
 {
 	Array<std::string> paths;
-	if (launchInfo.ue1Version <= 219) // khg with 219 uses old format. unreal uses new in 226
-	{
-		for (int i = 0; i < 16; i++)
-		{
-			std::string value = GetIniValue("system", "Core.System", "Paths[" + std::to_string(i) + "]");
-			if (!value.empty())
-				paths.push_back(std::move(value));
-		}
-	}
-	else
-	{
-		paths = GetIniValues("system", "Core.System", "Paths");
-	}
+	paths = GetIniValues("system", "Core.System", "Paths");
 
 	// Handle SavePath and CachePath
 	const auto savePath = convert_path_separators(GetIniValue("System", "Core.System", "SavePath"));
@@ -831,9 +818,6 @@ std::unique_ptr<IniFile> PackageManager::GetIniFile(NameString iniName)
 
 std::unique_ptr<IniFile> PackageManager::GetUserIniFile()
 {
-	if (launchInfo.ue1Version <= 219)
-		return std::make_unique<IniFile>(*iniFiles[launchInfo.gameExecutableName]);
-
 	return std::make_unique<IniFile>(*iniFiles["User"]);
 }
 
@@ -931,17 +915,11 @@ Array<std::string> PackageManager::GetDefaultIniValues(const NameString& section
 
 std::string PackageManager::GetDefUserIniValue(const NameString& sectionName, const NameString& keyName, std::string default_value)
 {
-	if (launchInfo.ue1Version <= 219)
-		return defaultIniFile->GetValue(sectionName, keyName, default_value);
-
 	return defaultUserFile->GetValue(sectionName, keyName, default_value);
 }
 
 Array<std::string> PackageManager::GetDefUserIniValues(const NameString& sectionName, const NameString& keyName, Array<std::string> default_values)
 {
-	if (launchInfo.ue1Version <= 219)
-		return defaultIniFile->GetValues(sectionName, keyName, default_values);
-
 	return defaultUserFile->GetValues(sectionName, keyName, default_values);
 }
 
@@ -951,7 +929,7 @@ void PackageManager::ResetIniSection(NameString iniName, const NameString& secti
 	if (iniName == "system")
 		defaults = defaultIniFile.get();
 	else if (iniName == "user")
-		defaults = (launchInfo.ue1Version <= 219) ? defaultIniFile.get() : defaultUserFile.get();
+		defaults = defaultUserFile.get();
 	if (!defaults)
 		return;
 
@@ -1042,21 +1020,18 @@ void PackageManager::LoadEngineIniFiles()
 		iniFiles[systemIniName] = std::make_unique<IniFile>((gameSystemFolderPath / systemIniFileName).string());
 	}
 
-	if (launchInfo.ue1Version > 219)
+	if (!File::try_open_existing((gameSystemFolderPath / userIniName).string()))
 	{
+		userIniName = userIniName.substr(3); // Trim off the "SE-" part
 		if (!File::try_open_existing((gameSystemFolderPath / userIniName).string()))
-		{
-			userIniName = userIniName.substr(3); // Trim off the "SE-" part
-			if (!File::try_open_existing((gameSystemFolderPath / userIniName).string()))
-				userIniName = "DefUser.ini";
-		}
-
-		if (!launchInfo.userIniPath.empty())
-			iniFiles["User"] = std::make_unique<IniFile>(launchInfo.userIniPath);
-		else
-			iniFiles["User"] = std::make_unique<IniFile>((gameSystemFolderPath / userIniName).string());
-		defaultUserFile = std::make_unique<IniFile>((gameSystemFolderPath / "DefUser.ini").string());
+			userIniName = "DefUser.ini";
 	}
+
+	if (!launchInfo.userIniPath.empty())
+		iniFiles["User"] = std::make_unique<IniFile>(launchInfo.userIniPath);
+	else
+		iniFiles["User"] = std::make_unique<IniFile>((gameSystemFolderPath / userIniName).string());
+	defaultUserFile = std::make_unique<IniFile>((gameSystemFolderPath / "DefUser.ini").string());
 }
 
 void PackageManager::LoadFileExtensions()
@@ -1238,49 +1213,46 @@ void PackageManager::RegisterFunctions()
 	NInternetLink::RegisterFunctions();
 	NTcpLink::RegisterFunctions();
 	NUdpLink::RegisterFunctions();
-	if (IsDeusEx())
-	{
-		NDebugInfo::RegisterFunctions();
-		NDeusExDecoration::RegisterFunctions();
-		NDeusExPlayer::RegisterFunctions();
-		NDeusExSaveInfo::RegisterFunctions();
-		NDumpLocation::RegisterFunctions();
-		NGameDirectory::RegisterFunctions();
-		NParticleIterator::RegisterFunctions();
-		NScriptedPawn::RegisterFunctions();
-		NPlayerPawnExt::RegisterFunctions();
-		NBorderWindow::RegisterFunctions();
-		NButtonWindow::RegisterFunctions();
-		NCheckboxWindow::RegisterFunctions();
-		NClipWindow::RegisterFunctions();
-		NComputerWindow::RegisterFunctions();
-		NConEvent::RegisterFunctions();
-		NConEventRandomLabel::RegisterFunctions();
-		NConversation::RegisterFunctions();
-		NDeusExTextParser::RegisterFunctions();
-		NEditWindow::RegisterFunctions();
-		NExtensionObject::RegisterFunctions();
-		NExtString::RegisterFunctions();
-		NFlagBase::RegisterFunctions();
-		NGC::RegisterFunctions();
-		NLargeTextWindow::RegisterFunctions();
-		NListWindow::RegisterFunctions();
-		NModalWindow::RegisterFunctions();
-		NRadioBoxWindow::RegisterFunctions();
-		NRootWindow::RegisterFunctions();
-		NScaleManagerWindow::RegisterFunctions();
-		NScaleWindow::RegisterFunctions();
-		NScrollAreaWindow::RegisterFunctions();
-		NTextLogWindow::RegisterFunctions();
-		NTextWindow::RegisterFunctions();
-		NTileWindow::RegisterFunctions();
-		NTimeDemo::RegisterFunctions();
-		NToggleWindow::RegisterFunctions();
-		NViewportWindow::RegisterFunctions();
-		NWebRequest::RegisterFunctions();
-		NWebResponse::RegisterFunctions();
-		NWindow::RegisterFunctions();
-	}
+	NDebugInfo::RegisterFunctions();
+	NDeusExDecoration::RegisterFunctions();
+	NDeusExPlayer::RegisterFunctions();
+	NDeusExSaveInfo::RegisterFunctions();
+	NDumpLocation::RegisterFunctions();
+	NGameDirectory::RegisterFunctions();
+	NParticleIterator::RegisterFunctions();
+	NScriptedPawn::RegisterFunctions();
+	NPlayerPawnExt::RegisterFunctions();
+	NBorderWindow::RegisterFunctions();
+	NButtonWindow::RegisterFunctions();
+	NCheckboxWindow::RegisterFunctions();
+	NClipWindow::RegisterFunctions();
+	NComputerWindow::RegisterFunctions();
+	NConEvent::RegisterFunctions();
+	NConEventRandomLabel::RegisterFunctions();
+	NConversation::RegisterFunctions();
+	NDeusExTextParser::RegisterFunctions();
+	NEditWindow::RegisterFunctions();
+	NExtensionObject::RegisterFunctions();
+	NExtString::RegisterFunctions();
+	NFlagBase::RegisterFunctions();
+	NGC::RegisterFunctions();
+	NLargeTextWindow::RegisterFunctions();
+	NListWindow::RegisterFunctions();
+	NModalWindow::RegisterFunctions();
+	NRadioBoxWindow::RegisterFunctions();
+	NRootWindow::RegisterFunctions();
+	NScaleManagerWindow::RegisterFunctions();
+	NScaleWindow::RegisterFunctions();
+	NScrollAreaWindow::RegisterFunctions();
+	NTextLogWindow::RegisterFunctions();
+	NTextWindow::RegisterFunctions();
+	NTileWindow::RegisterFunctions();
+	NTimeDemo::RegisterFunctions();
+	NToggleWindow::RegisterFunctions();
+	NViewportWindow::RegisterFunctions();
+	NWebRequest::RegisterFunctions();
+	NWebResponse::RegisterFunctions();
+	NWindow::RegisterFunctions();
 }
 
 void PackageManager::RegisterNativeClasses()
@@ -1319,18 +1291,9 @@ void PackageManager::RegisterNativeClasses()
 	RegisterNativeClass<UStringProperty>(corePackage, "StringProperty", "Property");
 	RegisterNativeClass<UTextBuffer>(corePackage, "TextBuffer", "Object");
 
-	if (launchInfo.ue1Version < 400)
-	{
-		RegisterNativeClass<UCommandlet>(corePackage, "Commandlet", "Object");
-		RegisterNativeClass<USimpleCommandlet>(corePackage, "SimpleCommandlet", "Commandlet");
-	}
-
-	// Deus Ex (ue1Version 500) has render iterators too: its particles and
-	// laser beams are drawn through them (dx-reverse-info/deusex-dll.md).
-	if (launchInfo.ue1Version < 400 || IsDeusEx())
-	{
-		RegisterNativeClass<URenderIterator>(enginePackage, "RenderIterator", "Object");
-	}
+	// Deus Ex's particles and laser beams are drawn through render
+	// iterators (dx-reverse-info/deusex-dll.md).
+	RegisterNativeClass<URenderIterator>(enginePackage, "RenderIterator", "Object");
 
 	RegisterNativeClass<USubsystem>(corePackage, "Subsystem", "Object");
 	RegisterNativeClass<ULanguage>(corePackage, "Language", "Object");
@@ -1373,10 +1336,7 @@ void PackageManager::RegisterNativeClasses()
 	RegisterNativeClass<UWetTexture>(enginePackage, "WetTexture", "WaterTexture");
 	RegisterNativeClass<UScriptedTexture>(enginePackage, "ScriptedTexture", "Texture");
 
-	if (launchInfo.ue1Version <= 220)
-		RegisterNativeClass<UFont>(enginePackage, "Font", "Texture");
-	else
-		RegisterNativeClass<UFont>(enginePackage, "Font", "Object");
+	RegisterNativeClass<UFont>(enginePackage, "Font", "Object");
 
 	RegisterNativeClass<UClient>(enginePackage, "Client", "Object");
 	RegisterNativeClass<UViewport>(enginePackage, "Viewport", "Player");
@@ -1449,91 +1409,88 @@ void PackageManager::RegisterNativeClasses()
 	RegisterNativeClass<UTcpLink>(ipdrvPackage, "TcpLink", "InternetLink");
 	RegisterNativeClass<UUdpLink>(ipdrvPackage, "UdpLink", "InternetLink");
 
-	if (IsDeusEx())
-	{
-		RegisterNativeClass<UPlayerPawnExt>(extensionPackage, "PlayerPawnExt", "PlayerPawn");
-		RegisterNativeClass<UExtensionObject>(extensionPackage, "ExtensionObject", "Object");
-		RegisterNativeClass<UFlagBase>(extensionPackage, "FlagBase", "ExtensionObject");
-		RegisterNativeClass<UFlag>(extensionPackage, "Flag", "ExtensionObject");
-		RegisterNativeClass<UFlagBool>(extensionPackage, "FlagBool", "Flag");
-		RegisterNativeClass<UFlagByte>(extensionPackage, "FlagByte", "Flag");
-		RegisterNativeClass<UFlagFloat>(extensionPackage, "FlagFloat", "Flag");
-		RegisterNativeClass<UFlagInt>(extensionPackage, "FlagInt", "Flag");
-		RegisterNativeClass<UFlagName>(extensionPackage, "FlagName", "Flag");
-		RegisterNativeClass<UFlagRotator>(extensionPackage, "FlagRotator", "Flag");
-		RegisterNativeClass<UFlagVector>(extensionPackage, "FlagVector", "Flag");
-		RegisterNativeClass<UDXExtString>(extensionPackage, "ExtString", "Object");
-		RegisterNativeClass<UDXGameDirectory>(deusExPackage, "GameDirectory", "Object");
-		RegisterNativeClass<UDeusExLevelInfo>(deusExPackage, "DeusExLevelInfo", "Info");
-		RegisterNativeClass<UDXTextParser>(deusExTextPackage, "DeusExTextParser", "Object");
-		RegisterNativeClass<UDXSaveInfo>(deusExPackage, "DeusExSaveInfo", "Object");
-		RegisterNativeClass<UGC>(extensionPackage, "GC", "ExtensionObject");
-		RegisterNativeClass<UWindow>(extensionPackage, "Window", "ExtensionObject");
-		RegisterNativeClass<UViewportWindow>(extensionPackage, "ViewportWindow", "Window");
-		RegisterNativeClass<UToggleWindow>(extensionPackage, "ToggleWindow", "ButtonWindow");
-		RegisterNativeClass<UCheckboxWindow>(extensionPackage, "CheckboxWindow", "ToggleWindow");
-		RegisterNativeClass<UTileWindow>(extensionPackage, "TileWindow", "Window");
-		RegisterNativeClass<UTextWindow>(extensionPackage, "TextWindow", "Window");
-		RegisterNativeClass<UButtonWindow>(extensionPackage, "ButtonWindow", "TextWindow");
-		RegisterNativeClass<UTextLogWindow>(extensionPackage, "TextLogWindow", "TextWindow");
-		RegisterNativeClass<ULargeTextWindow>(extensionPackage, "LargeTextWindow", "TextWindow");
-		RegisterNativeClass<UEditWindow>(extensionPackage, "EditWindow", "LargeTextWindow");
-		RegisterNativeClass<UTabGroupWindow>(extensionPackage, "TabGroupWindow", "Window");
-		RegisterNativeClass<UModalWindow>(extensionPackage, "ModalWindow", "TabGroupWindow");
-		RegisterNativeClass<URootWindow>(extensionPackage, "RootWindow", "ModalWindow");
-		RegisterNativeClass<URadioBoxWindow>(extensionPackage, "RadioBoxWindow", "TabGroupWindow");
-		RegisterNativeClass<UClipWindow>(extensionPackage, "ClipWindow", "TabGroupWindow");
-		RegisterNativeClass<UScrollAreaWindow>(extensionPackage, "ScrollAreaWindow", "Window");
-		RegisterNativeClass<UScaleWindow>(extensionPackage, "ScaleWindow", "Window");
-		RegisterNativeClass<UScaleManagerWindow>(extensionPackage, "ScaleManagerWindow", "Window");
-		RegisterNativeClass<UListWindow>(extensionPackage, "ListWindow", "Window");
-		RegisterNativeClass<UComputerWindow>(extensionPackage, "ComputerWindow", "Window");
-		RegisterNativeClass<UBorderWindow>(extensionPackage, "BorderWindow", "Window");
-		RegisterNativeClass<UEventManager>(enginePackage, "EventManager", "Object");
-		RegisterNativeClass<UAIEventType>(enginePackage, "AIEventType", "Object");
-		RegisterNativeClass<UAIEvent>(enginePackage, "AIEvent", "Object");
-		RegisterNativeClass<UAISenderEvent>(enginePackage, "AISenderEvent", "AIEvent");
-		RegisterNativeClass<UAIReceiverEvent>(enginePackage, "AIReceiverEvent", "AIEvent");
-		RegisterNativeClass<UDeusExPlayer>(deusExPackage, "DeusExPlayer", "PlayerPawnExt");
-		RegisterNativeClass<UScriptedPawn>(deusExPackage, "ScriptedPawn", "Pawn");
-		RegisterNativeClass<UDeusExDecoration>(deusExPackage, "DeusExDecoration", "Decoration");
-		RegisterNativeClass<UParticleIterator>(deusExPackage, "ParticleIterator", "RenderIterator");
-		RegisterNativeClass<ULaserIterator>(deusExPackage, "LaserIterator", "RenderIterator");
-		RegisterNativeClass<UConLight>(conSysPackage, "ConLight", "Light");
-		RegisterNativeClass<UConObject>(conSysPackage, "ConObject", "Object");
-		RegisterNativeClass<UConAudioList>(conSysPackage, "ConAudioList", "ConObject");
-		RegisterNativeClass<UConCamera>(conSysPackage, "ConCamera", "ConObject");
-		RegisterNativeClass<UConChoice>(conSysPackage, "ConChoice", "ConObject");
-		RegisterNativeClass<UConEvent>(conSysPackage, "ConEvent", "ConObject");
-		RegisterNativeClass<UConEventAddCredits>(conSysPackage, "ConEventAddCredits", "ConEvent");
-		RegisterNativeClass<UConEventAddGoal>(conSysPackage, "ConEventAddGoal", "ConEvent");
-		RegisterNativeClass<UConEventAddNote>(conSysPackage, "ConEventAddNote", "ConEvent");
-		RegisterNativeClass<UConEventAddSkillPoints>(conSysPackage, "ConEventAddSkillPoints", "ConEvent");
-		RegisterNativeClass<UConEventAnimation>(conSysPackage, "ConEventAnimation", "ConEvent");
-		RegisterNativeClass<UConEventCheckFlag>(conSysPackage, "ConEventCheckFlag", "ConEvent");
-		RegisterNativeClass<UConEventCheckObject>(conSysPackage, "ConEventCheckObject", "ConEvent");
-		RegisterNativeClass<UConEventCheckPersona>(conSysPackage, "ConEventCheckPersona", "ConEvent");
-		RegisterNativeClass<UConEventChoice>(conSysPackage, "ConEventChoice", "ConEvent");
-		RegisterNativeClass<UConEventComment>(conSysPackage, "ConEventComment", "ConEvent");
-		RegisterNativeClass<UConEventEnd>(conSysPackage, "ConEventEnd", "ConEvent");
-		RegisterNativeClass<UConEventJump>(conSysPackage, "ConEventJump", "ConEvent");
-		RegisterNativeClass<UConEventMoveCamera>(conSysPackage, "ConEventMoveCamera", "ConEvent");
-		RegisterNativeClass<UConEventRandomLabel>(conSysPackage, "ConEventRandomLabel", "ConEvent");
-		RegisterNativeClass<UConEventSetFlag>(conSysPackage, "ConEventSetFlag", "ConEvent");
-		RegisterNativeClass<UConEventSpeech>(conSysPackage, "ConEventSpeech", "ConEvent");
-		RegisterNativeClass<UConEventTrade>(conSysPackage, "ConEventTrade", "ConEvent");
-		RegisterNativeClass<UConEventTransferObject>(conSysPackage, "ConEventTransferObject", "ConEvent");
-		RegisterNativeClass<UConEventTrigger>(conSysPackage, "ConEventTrigger", "ConEvent");
-		RegisterNativeClass<UConFlagRef>(conSysPackage, "ConFlagRef", "ConObject");
-		RegisterNativeClass<UConHistory>(conSysPackage, "ConHistory", "ConObject");
-		RegisterNativeClass<UConHistoryEvent>(conSysPackage, "ConHistoryEvent", "ConObject");
-		RegisterNativeClass<UConItem>(conSysPackage, "ConItem", "ConObject");
-		RegisterNativeClass<UConListItem>(conSysPackage, "ConListItem", "ConObject");
-		RegisterNativeClass<UConSpeech>(conSysPackage, "ConSpeech", "ConObject");
-		RegisterNativeClass<UConversation>(conSysPackage, "Conversation", "ConObject");
-		RegisterNativeClass<UConversationList>(conSysPackage, "ConversationList", "ConObject");
-		RegisterNativeClass<UConversationMissionList>(conSysPackage, "ConversationMissionList", "ConObject");
-	}
+	RegisterNativeClass<UPlayerPawnExt>(extensionPackage, "PlayerPawnExt", "PlayerPawn");
+	RegisterNativeClass<UExtensionObject>(extensionPackage, "ExtensionObject", "Object");
+	RegisterNativeClass<UFlagBase>(extensionPackage, "FlagBase", "ExtensionObject");
+	RegisterNativeClass<UFlag>(extensionPackage, "Flag", "ExtensionObject");
+	RegisterNativeClass<UFlagBool>(extensionPackage, "FlagBool", "Flag");
+	RegisterNativeClass<UFlagByte>(extensionPackage, "FlagByte", "Flag");
+	RegisterNativeClass<UFlagFloat>(extensionPackage, "FlagFloat", "Flag");
+	RegisterNativeClass<UFlagInt>(extensionPackage, "FlagInt", "Flag");
+	RegisterNativeClass<UFlagName>(extensionPackage, "FlagName", "Flag");
+	RegisterNativeClass<UFlagRotator>(extensionPackage, "FlagRotator", "Flag");
+	RegisterNativeClass<UFlagVector>(extensionPackage, "FlagVector", "Flag");
+	RegisterNativeClass<UDXExtString>(extensionPackage, "ExtString", "Object");
+	RegisterNativeClass<UDXGameDirectory>(deusExPackage, "GameDirectory", "Object");
+	RegisterNativeClass<UDeusExLevelInfo>(deusExPackage, "DeusExLevelInfo", "Info");
+	RegisterNativeClass<UDXTextParser>(deusExTextPackage, "DeusExTextParser", "Object");
+	RegisterNativeClass<UDXSaveInfo>(deusExPackage, "DeusExSaveInfo", "Object");
+	RegisterNativeClass<UGC>(extensionPackage, "GC", "ExtensionObject");
+	RegisterNativeClass<UWindow>(extensionPackage, "Window", "ExtensionObject");
+	RegisterNativeClass<UViewportWindow>(extensionPackage, "ViewportWindow", "Window");
+	RegisterNativeClass<UToggleWindow>(extensionPackage, "ToggleWindow", "ButtonWindow");
+	RegisterNativeClass<UCheckboxWindow>(extensionPackage, "CheckboxWindow", "ToggleWindow");
+	RegisterNativeClass<UTileWindow>(extensionPackage, "TileWindow", "Window");
+	RegisterNativeClass<UTextWindow>(extensionPackage, "TextWindow", "Window");
+	RegisterNativeClass<UButtonWindow>(extensionPackage, "ButtonWindow", "TextWindow");
+	RegisterNativeClass<UTextLogWindow>(extensionPackage, "TextLogWindow", "TextWindow");
+	RegisterNativeClass<ULargeTextWindow>(extensionPackage, "LargeTextWindow", "TextWindow");
+	RegisterNativeClass<UEditWindow>(extensionPackage, "EditWindow", "LargeTextWindow");
+	RegisterNativeClass<UTabGroupWindow>(extensionPackage, "TabGroupWindow", "Window");
+	RegisterNativeClass<UModalWindow>(extensionPackage, "ModalWindow", "TabGroupWindow");
+	RegisterNativeClass<URootWindow>(extensionPackage, "RootWindow", "ModalWindow");
+	RegisterNativeClass<URadioBoxWindow>(extensionPackage, "RadioBoxWindow", "TabGroupWindow");
+	RegisterNativeClass<UClipWindow>(extensionPackage, "ClipWindow", "TabGroupWindow");
+	RegisterNativeClass<UScrollAreaWindow>(extensionPackage, "ScrollAreaWindow", "Window");
+	RegisterNativeClass<UScaleWindow>(extensionPackage, "ScaleWindow", "Window");
+	RegisterNativeClass<UScaleManagerWindow>(extensionPackage, "ScaleManagerWindow", "Window");
+	RegisterNativeClass<UListWindow>(extensionPackage, "ListWindow", "Window");
+	RegisterNativeClass<UComputerWindow>(extensionPackage, "ComputerWindow", "Window");
+	RegisterNativeClass<UBorderWindow>(extensionPackage, "BorderWindow", "Window");
+	RegisterNativeClass<UEventManager>(enginePackage, "EventManager", "Object");
+	RegisterNativeClass<UAIEventType>(enginePackage, "AIEventType", "Object");
+	RegisterNativeClass<UAIEvent>(enginePackage, "AIEvent", "Object");
+	RegisterNativeClass<UAISenderEvent>(enginePackage, "AISenderEvent", "AIEvent");
+	RegisterNativeClass<UAIReceiverEvent>(enginePackage, "AIReceiverEvent", "AIEvent");
+	RegisterNativeClass<UDeusExPlayer>(deusExPackage, "DeusExPlayer", "PlayerPawnExt");
+	RegisterNativeClass<UScriptedPawn>(deusExPackage, "ScriptedPawn", "Pawn");
+	RegisterNativeClass<UDeusExDecoration>(deusExPackage, "DeusExDecoration", "Decoration");
+	RegisterNativeClass<UParticleIterator>(deusExPackage, "ParticleIterator", "RenderIterator");
+	RegisterNativeClass<ULaserIterator>(deusExPackage, "LaserIterator", "RenderIterator");
+	RegisterNativeClass<UConLight>(conSysPackage, "ConLight", "Light");
+	RegisterNativeClass<UConObject>(conSysPackage, "ConObject", "Object");
+	RegisterNativeClass<UConAudioList>(conSysPackage, "ConAudioList", "ConObject");
+	RegisterNativeClass<UConCamera>(conSysPackage, "ConCamera", "ConObject");
+	RegisterNativeClass<UConChoice>(conSysPackage, "ConChoice", "ConObject");
+	RegisterNativeClass<UConEvent>(conSysPackage, "ConEvent", "ConObject");
+	RegisterNativeClass<UConEventAddCredits>(conSysPackage, "ConEventAddCredits", "ConEvent");
+	RegisterNativeClass<UConEventAddGoal>(conSysPackage, "ConEventAddGoal", "ConEvent");
+	RegisterNativeClass<UConEventAddNote>(conSysPackage, "ConEventAddNote", "ConEvent");
+	RegisterNativeClass<UConEventAddSkillPoints>(conSysPackage, "ConEventAddSkillPoints", "ConEvent");
+	RegisterNativeClass<UConEventAnimation>(conSysPackage, "ConEventAnimation", "ConEvent");
+	RegisterNativeClass<UConEventCheckFlag>(conSysPackage, "ConEventCheckFlag", "ConEvent");
+	RegisterNativeClass<UConEventCheckObject>(conSysPackage, "ConEventCheckObject", "ConEvent");
+	RegisterNativeClass<UConEventCheckPersona>(conSysPackage, "ConEventCheckPersona", "ConEvent");
+	RegisterNativeClass<UConEventChoice>(conSysPackage, "ConEventChoice", "ConEvent");
+	RegisterNativeClass<UConEventComment>(conSysPackage, "ConEventComment", "ConEvent");
+	RegisterNativeClass<UConEventEnd>(conSysPackage, "ConEventEnd", "ConEvent");
+	RegisterNativeClass<UConEventJump>(conSysPackage, "ConEventJump", "ConEvent");
+	RegisterNativeClass<UConEventMoveCamera>(conSysPackage, "ConEventMoveCamera", "ConEvent");
+	RegisterNativeClass<UConEventRandomLabel>(conSysPackage, "ConEventRandomLabel", "ConEvent");
+	RegisterNativeClass<UConEventSetFlag>(conSysPackage, "ConEventSetFlag", "ConEvent");
+	RegisterNativeClass<UConEventSpeech>(conSysPackage, "ConEventSpeech", "ConEvent");
+	RegisterNativeClass<UConEventTrade>(conSysPackage, "ConEventTrade", "ConEvent");
+	RegisterNativeClass<UConEventTransferObject>(conSysPackage, "ConEventTransferObject", "ConEvent");
+	RegisterNativeClass<UConEventTrigger>(conSysPackage, "ConEventTrigger", "ConEvent");
+	RegisterNativeClass<UConFlagRef>(conSysPackage, "ConFlagRef", "ConObject");
+	RegisterNativeClass<UConHistory>(conSysPackage, "ConHistory", "ConObject");
+	RegisterNativeClass<UConHistoryEvent>(conSysPackage, "ConHistoryEvent", "ConObject");
+	RegisterNativeClass<UConItem>(conSysPackage, "ConItem", "ConObject");
+	RegisterNativeClass<UConListItem>(conSysPackage, "ConListItem", "ConObject");
+	RegisterNativeClass<UConSpeech>(conSysPackage, "ConSpeech", "ConObject");
+	RegisterNativeClass<UConversation>(conSysPackage, "Conversation", "ConObject");
+	RegisterNativeClass<UConversationList>(conSysPackage, "ConversationList", "ConObject");
+	RegisterNativeClass<UConversationMissionList>(conSysPackage, "ConversationMissionList", "ConObject");
 }
 
 template<typename T>

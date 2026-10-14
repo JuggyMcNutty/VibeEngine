@@ -15,7 +15,7 @@ void UPawn::InitActorZone()
 	FootRegion() = FindRegion({ 0.0f, 0.0f, -CollisionHeight() });
 	HeadRegion() = FindRegion({ 0.0f, 0.0f, EyeHeight() });
 
-	if (engine->LaunchInfo.ue1Version > 219 && PlayerReplicationInfo())
+	if (PlayerReplicationInfo())
 		PlayerReplicationInfo()->PlayerZone() = Region().Zone;
 }
 
@@ -28,20 +28,12 @@ void UPawn::UpdateActorZone()
 
 	// Deus Ex's Pawn.FootZoneChange and HeadZoneChange set PainTime
 	// themselves; its engine does not.
-	bool nativePainTime = !engine->LaunchInfo.IsDeusEx();
 
 	PointRegion oldfootregion = FootRegion();
 	PointRegion newfootregion = FindRegion({ 0.0f, 0.0f, -CollisionHeight() });
 	if (oldfootregion.Zone && oldfootregion.Zone != newfootregion.Zone)
 	{
 		CallEvent(this, EventName::FootZoneChange, { ExpressionValue::ObjectValue(newfootregion.Zone) });
-		if (nativePainTime && newfootregion.Zone && newfootregion.Zone->bPainZone())
-		{
-			// Pain zones, such as lava and slime, should immediately start hurting the pawn upon entering,
-			// so set the pawn's PainTime to something quite low.
-			// After that, they'll get DamagePerSec damage each second.
-			PainTime() = 0.1f;
-		}
 	}
 
 	FootRegion() = newfootregion;
@@ -51,17 +43,10 @@ void UPawn::UpdateActorZone()
 	if (oldheadregion.Zone && oldheadregion.Zone != newheadregion.Zone)
 	{
 		CallEvent(this, EventName::HeadZoneChange, { ExpressionValue::ObjectValue(newheadregion.Zone) });
-
-		if (nativePainTime && newheadregion.Zone && newheadregion.Zone->bWaterZone() && !newheadregion.Zone->bPainZone())
-		{
-			// If the new zone is also a pain zone, like lava or slime, then by this point PainTime is already set,
-			// so don't set it again. Otherwise, cause the pawn to start drowning in UnderWaterTime seconds.
-			PainTime() = UnderWaterTime();
-		}
 	}
 
 	HeadRegion() = newheadregion;
 
-	if (engine->LaunchInfo.ue1Version > 219 && PlayerReplicationInfo() && Level()->NetMode() != NM_Client)
+	if (PlayerReplicationInfo() && Level()->NetMode() != NM_Client)
 		PlayerReplicationInfo()->PlayerZone() = Region().Zone;
 }

@@ -52,7 +52,7 @@ public:
 	int Channels = 16;            // Deus Ex's EffectsChannels; the channels in use are SetChannelCount's
 	uint8_t MusicVolume = 160;
 	uint8_t SoundVolume = 200;
-	uint8_t SpeechVolume = 255;   // Deus Ex's Speech slider; other games play speech at SoundVolume
+	uint8_t SpeechVolume = 255;   // Deus Ex's Speech slider
 	// Deus Ex: the volumes as set (SET, the ini), which GET reads and the ini
 	// saves; the three above are those playing, which a menu's slider also
 	// moves as it goes (SetInstant*Volume), as the original's class

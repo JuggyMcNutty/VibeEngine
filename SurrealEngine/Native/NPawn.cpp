@@ -14,27 +14,18 @@
 void NPawn::RegisterFunctions()
 {
 	RegisterVMNativeFunc_0("Pawn", "AddPawn", &NPawn::AddPawn, 529);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_9("Pawn", "AIPickRandomDestination", &NPawn::AIPickRandomDestination, 709);
-	else
-		RegisterVMNativeFunc_10("Pawn", "AIPickRandomDestination", &NPawn::AIPickRandomDestination_Deus, 709);
+	RegisterVMNativeFunc_10("Pawn", "AIPickRandomDestination", &NPawn::AIPickRandomDestination_Deus, 709);
 	RegisterVMNativeFunc_2("Pawn", "CanSee", &NPawn::CanSee, 533);
 	RegisterVMNativeFunc_3("Pawn", "CheckValidSkinPackage", &NPawn::CheckValidSkinPackage, 0);
 	RegisterVMNativeFunc_0("Pawn", "ClearPaths", &NPawn::ClearPaths, 522);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_5("Pawn", "ClientHearSound", &NPawn::ClientHearSound, 0);
-	else
-		RegisterVMNativeFunc_5("Pawn", "ClientHearSound", &NPawn::ClientHearSound_Deus, 0);
+	RegisterVMNativeFunc_5("Pawn", "ClientHearSound", &NPawn::ClientHearSound_Deus, 0);
 	RegisterVMNativeFunc_1("Pawn", "EAdjustJump", &NPawn::EAdjustJump, 523);
 	RegisterVMNativeFunc_3("Pawn", "FindBestInventoryPath", &NPawn::FindBestInventoryPath, 540);
 	RegisterVMNativeFunc_4("Pawn", "FindPathTo", &NPawn::FindPathTo, 518);
 	RegisterVMNativeFunc_4("Pawn", "FindPathToward", &NPawn::FindPathToward, 517);
 	RegisterVMNativeFunc_2("Pawn", "FindRandomDest", &NPawn::FindRandomDest, 525);
 	RegisterVMNativeFunc_2("Pawn", "FindStairRotation", &NPawn::FindStairRotation, 524);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_2("Pawn", "LineOfSightTo", &NPawn::LineOfSightTo, 514);
-	else
-		RegisterVMNativeFunc_3("Pawn", "LineOfSightTo", &NPawn::LineOfSightTo_Deus, 514);
+	RegisterVMNativeFunc_3("Pawn", "LineOfSightTo", &NPawn::LineOfSightTo_Deus, 514);
 	RegisterVMNativeFunc_2("Pawn", "MoveTo", &NPawn::MoveTo, 500);
 	RegisterLatentAction(501, LatentRunState::MoveTo);
 	RegisterVMNativeFunc_2("Pawn", "MoveToward", &NPawn::MoveToward, 502);
@@ -44,15 +35,9 @@ void NPawn::RegisterFunctions()
 	RegisterVMNativeFunc_1("Pawn", "PickWallAdjust", &NPawn::PickWallAdjust, 526);
 	RegisterVMNativeFunc_0("Pawn", "RemovePawn", &NPawn::RemovePawn, 530);
 	RegisterVMNativeFunc_0("Pawn", "StopWaiting", &NPawn::StopWaiting, 0);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_2("Pawn", "StrafeFacing", &NPawn::StrafeFacing, 506);
-	else
-		RegisterVMNativeFunc_3("Pawn", "StrafeFacing", &NPawn::StrafeFacing_Deus, 506);
+	RegisterVMNativeFunc_3("Pawn", "StrafeFacing", &NPawn::StrafeFacing_Deus, 506);
 	RegisterLatentAction(507, LatentRunState::StrafeFacing);
-	if (!engine->LaunchInfo.IsDeusEx())
-		RegisterVMNativeFunc_2("Pawn", "StrafeTo", &NPawn::StrafeTo, 504);
-	else
-		RegisterVMNativeFunc_3("Pawn", "StrafeTo", &NPawn::StrafeTo_Deus, 504);
+	RegisterVMNativeFunc_3("Pawn", "StrafeTo", &NPawn::StrafeTo_Deus, 504);
 	RegisterLatentAction(505, LatentRunState::StrafeTo);
 	RegisterVMNativeFunc_1("Pawn", "TurnTo", &NPawn::TurnTo, 508);
 	RegisterLatentAction(509, LatentRunState::TurnTo);
@@ -63,15 +48,12 @@ void NPawn::RegisterFunctions()
 	RegisterVMNativeFunc_2("Pawn", "actorReachable", &NPawn::actorReachable, 520);
 	RegisterVMNativeFunc_2("Pawn", "pointReachable", &NPawn::pointReachable, 521);
 
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		RegisterVMNativeFunc_4("Pawn", "AICanHear", &NPawn::AICanHear, 706);
-		RegisterVMNativeFunc_7("Pawn", "AICanSee", &NPawn::AICanSee, 705);
-		RegisterVMNativeFunc_3("Pawn", "AICanSmell", &NPawn::AICanSmell, 707);
-		RegisterVMNativeFunc_7("Pawn", "AIDirectionReachable", &NPawn::AIDirectionReachable, 708);
-		RegisterVMNativeFunc_1("Pawn", "ComputePathnodeDistances", &NPawn::ComputePathnodeDistances, 1020);
-		RegisterVMNativeFunc_5("Pawn", "ReachablePathnodes", &NPawn::ReachablePathnodes, 1004);
-	}
+	RegisterVMNativeFunc_4("Pawn", "AICanHear", &NPawn::AICanHear, 706);
+	RegisterVMNativeFunc_7("Pawn", "AICanSee", &NPawn::AICanSee, 705);
+	RegisterVMNativeFunc_3("Pawn", "AICanSmell", &NPawn::AICanSmell, 707);
+	RegisterVMNativeFunc_7("Pawn", "AIDirectionReachable", &NPawn::AIDirectionReachable, 708);
+	RegisterVMNativeFunc_1("Pawn", "ComputePathnodeDistances", &NPawn::ComputePathnodeDistances, 1020);
+	RegisterVMNativeFunc_5("Pawn", "ReachablePathnodes", &NPawn::ReachablePathnodes, 1004);
 }
 
 void NPawn::AddPawn(UObject* Self)
@@ -129,31 +111,17 @@ void NPawn::FindBestInventoryPath(UObject* Self, float& MinWeight, bool bPredict
 void NPawn::FindPathTo(UObject* Self, const vec3& aPoint, std::optional<bool> bSinglePath, std::optional<bool> bClearPaths, UObject*& ReturnValue)
 {
 	UPawn* selfPawn = UObject::Cast<UPawn>(Self);
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		// The original's findPathTo, which clears the nodes itself as it
-		// gathers them (engine-dll.md, the search).
-		ReturnValue = selfPawn->DeusExFindPathFromScript(nullptr, aPoint, bSinglePath.value_or(false), bClearPaths.value_or(true));
-		return;
-	}
-	if (!bClearPaths || *bClearPaths)
-		selfPawn->ClearPaths();
-	ReturnValue = selfPawn->FindPathTo(aPoint, bSinglePath ? *bSinglePath : false);
+	// The original's findPathTo, which clears the nodes itself as it
+	// gathers them (engine-dll.md, the search).
+	ReturnValue = selfPawn->DeusExFindPathFromScript(nullptr, aPoint, bSinglePath.value_or(false), bClearPaths.value_or(true));
 }
 
 void NPawn::FindPathToward(UObject* Self, UObject* anActor, std::optional<bool> bSinglePath, std::optional<bool> bClearPaths, UObject*& ReturnValue)
 {
 	UPawn* selfPawn = UObject::Cast<UPawn>(Self);
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		// The original's findPathToward; no goal, no path and nothing else.
-		UActor* goal = UObject::Cast<UActor>(anActor);
-		ReturnValue = goal ? selfPawn->DeusExFindPathFromScript(goal, vec3(0.0f), bSinglePath.value_or(false), bClearPaths.value_or(true)) : nullptr;
-		return;
-	}
-	if (!bClearPaths || *bClearPaths)
-		selfPawn->ClearPaths();
-	ReturnValue = selfPawn->FindPathToward(anActor, bSinglePath ? *bSinglePath : false);
+	// The original's findPathToward; no goal, no path and nothing else.
+	UActor* goal = UObject::Cast<UActor>(anActor);
+	ReturnValue = goal ? selfPawn->DeusExFindPathFromScript(goal, vec3(0.0f), bSinglePath.value_or(false), bClearPaths.value_or(true)) : nullptr;
 }
 
 void NPawn::FindRandomDest(UObject* Self, std::optional<bool> bClearPaths, UObject*& ReturnValue)
@@ -240,65 +208,10 @@ static int DeusExFindStairRotation(UPawn* pawn, float deltaTime)
 	return stairRot;
 }
 
-// Another game's: the fork's own reading of UE1's.
 void NPawn::FindStairRotation(UObject* Self, float DeltaTime, int& ReturnValue)
 {
 	UPawn* pawn = UObject::Cast<UPawn>(Self);
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		ReturnValue = DeusExFindStairRotation(pawn, DeltaTime);
-		return;
-	}
-
-	int pitch = pawn->ViewRotation().Pitch & 0xffff;
-	if (pitch > 0x8000)
-		pitch -= 0x10000;
-	ReturnValue = pitch;
-
-	if (DeltaTime > 0.33f)
-		return;
-	ULevel* level = pawn->XLevel();
-	if (!level || !level->Model)
-		return;
-
-	auto blocked = [&](const vec3& from, const vec3& to) -> bool
-	{
-		dvec3 origin = to_dvec3(from);
-		dvec3 delta = to_dvec3(to) - origin;
-		double len = length(delta);
-		if (len < 0.01)
-			return false;
-		TraceRayModel tracer;
-		return tracer.TraceAnyHit(level->Model, origin, 0.01, delta * (1.0 / len), len, false);
-	};
-
-	vec3 at, left, up;
-	Coords::Rotation(pawn->Rotation()).GetAxes(at, left, up);
-	at.z = 0.0f;
-	float len = length(at);
-	if (len < 0.01f)
-		return;
-	at *= 1.0f / len;
-
-	vec3 eyes = pawn->Location();
-	eyes.z += pawn->EyeHeight();
-	float footZ = pawn->Location().z - pawn->CollisionHeight();
-	const float step = 25.0f;
-	vec3 probe = eyes + at * (4.0f * pawn->CollisionRadius() + 32.0f);
-
-	int target = 0;
-	if (!blocked(eyes, probe))
-	{
-		// The floor under the probe point: above a step up means stairs up,
-		// none until a step down means stairs down, else level. A wall at
-		// eye height ahead keeps the view level.
-		if (blocked(probe, vec3(probe.x, probe.y, footZ + step)))
-			target = 5400;
-		else if (!blocked(vec3(probe.x, probe.y, footZ + step), vec3(probe.x, probe.y, footZ - step)))
-			target = -5000;
-	}
-
-	ReturnValue = pitch + (int)((target - pitch) * std::min(5.0f * DeltaTime, 1.0f));
+	ReturnValue = DeusExFindStairRotation(pawn, DeltaTime);
 }
 
 void NPawn::LineOfSightTo(UObject* Self, UObject* Other, BitfieldBool& ReturnValue)

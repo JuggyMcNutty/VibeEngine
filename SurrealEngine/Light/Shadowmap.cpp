@@ -24,7 +24,7 @@ void Shadowmap::Clear(UModel* model, int lightMap, const LightmapRect& rect)
 	// Deus Ex's shadows are the original's bytes: a light without shadow
 	// bits, a moving one, is 127 all over, half a lit texel's 254
 	// (dx-reverse-info/render-dll.md, light maps)
-	float lit = engine->LaunchInfo.IsDeusEx() ? 127.0f : 1.0f;
+	float lit = 127.0f;
 	for (int y = rect.y0; y < rect.y1; y++)
 	{
 		float* dest = pixels.data() + y * width;
@@ -73,46 +73,5 @@ void Shadowmap::Load(UModel* model, int lightMap, int lightindex, const Lightmap
 	// Convert bits to floats that are easier to work with
 
 	const uint8_t* bits = model->LightBits.data() + lmindex.DataOffset + lightindex * pitch * height;
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		LoadDX(bits, pitch, rect);
-		return;
-	}
-
-	// The bits of the rectangle and a texel around it, which the blur reads
-	int bx0 = std::max(rect.x0 - 1, 0), bx1 = std::min(rect.x1 + 1, width);
-	int by0 = std::max(rect.y0 - 1, 0), by1 = std::min(rect.y1 + 1, height);
-	for (int y = by0; y < by1; y++)
-	{
-		const uint8_t* line = bits + y * pitch;
-		float* dest = &tempbuf[y * width];
-		for (int x = bx0; x < bx1; x++)
-		{
-			bool shadowtest = (line[x >> 3] & (1 << (x & 7))) != 0;
-			dest[x] = (float)shadowtest;
-		}
-	}
-
-	// Apply 3x3 gaussian blur
-	static const float weights[9] = { 0.125f, 0.25f, 0.125f, 0.25f, 0.50f, 0.25f, 0.125f, 0.25f, 0.125f };
-	for (int y = rect.y0; y < rect.y1; y++)
-	{
-		float* dest = pixels.data() + y * width;
-		const float* src = tempbuf.data() + y * width;
-		for (int x = rect.x0; x < rect.x1; x++)
-		{
-			float value = 0.0f;
-			for (int yy = -1; yy <= 1; yy++)
-			{
-				int yyy = clamp(y + yy, 0, height - 1) - y;
-				for (int xx = -1; xx <= 1; xx++)
-				{
-					int xxx = clamp(x + xx, 0, width - 1);
-					value += src[yyy * width + xxx] * weights[4 + xx + yy * 3];
-				}
-			}
-
-			dest[x] = value;
-		}
-	}
+	LoadDX(bits, pitch, rect);
 }

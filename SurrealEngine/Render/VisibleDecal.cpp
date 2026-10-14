@@ -16,7 +16,7 @@ void VisibleDecal::DrawDecals(VisibleFrame* frame, BspNode* node)
 	// Deus Ex draws decals only while the client's Decals is on (the
 	// Display menu's Decals; Render.dll's DrawFrame), and leaves them
 	// unstamped when off.
-	if (engine->LaunchInfo.IsDeusEx() && !engine->client->Decals)
+	if (!engine->client->Decals)
 		return;
 
 	for (auto& leveldecal : node->Decals)

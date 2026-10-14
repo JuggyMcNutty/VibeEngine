@@ -35,7 +35,7 @@ bool UPawn::ReachableWalking(UActor* anActor)
 	// not move at all.
 	auto fallOnto = [&](float depth)
 		{
-			float chunk = engine->LaunchInfo.IsDeusEx() ? length(settleDelta) : depth;
+			float chunk = length(settleDelta);
 			vec3 start = Location();
 			for (float fallen = 0.0f; fallen < depth; fallen += chunk)
 			{

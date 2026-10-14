@@ -81,7 +81,7 @@ public:
 	// The player's options in the URL: Deus Ex's every key of the user ini's
 	// [DefaultPlayer] as the ini spells them, in its order, a key given twice
 	// its last value, as the original's FURL::LoadURLConfig adds the section
-	// (Engine.dll 0x103f9bc0); another game's the seven keys upstream reads.
+	// (Engine.dll 0x103f9bc0).
 	Array<std::string> DefaultPlayerOptionKeys();
 	void SetMultiplayerName(UnrealURL& url);
 	void LoadEntryMap();

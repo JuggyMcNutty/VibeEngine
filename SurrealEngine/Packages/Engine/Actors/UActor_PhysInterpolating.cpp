@@ -31,18 +31,14 @@ void UActor::TickInterpolating(float elapsed)
 
 		if (auto pawn = UObject::TryCast<UPlayerPawn>(this))
 		{
-			if (engine->LaunchInfo.ue1Version > 219)
-			{
-				pawn->DesiredFlashScale() = mix(target->ScreenFlashScale(), next->ScreenFlashScale(), physAlpha);
-				pawn->DesiredFlashFog() = mix(target->ScreenFlashFog(), next->ScreenFlashFog(), physAlpha);
-				pawn->FovAngle() = mix(target->FovModifier(), next->FovModifier(), physAlpha) * Class->GetDefaultObject<UPlayerPawn>()->FovAngle();
-				pawn->FlashScale() = vec3(pawn->DesiredFlashScale());
-				pawn->FlashFog() = pawn->DesiredFlashFog();
-			}
+			pawn->DesiredFlashScale() = mix(target->ScreenFlashScale(), next->ScreenFlashScale(), physAlpha);
+			pawn->DesiredFlashFog() = mix(target->ScreenFlashFog(), next->ScreenFlashFog(), physAlpha);
+			pawn->FovAngle() = mix(target->FovModifier(), next->FovModifier(), physAlpha) * Class->GetDefaultObject<UPlayerPawn>()->FovAngle();
+			pawn->FlashScale() = vec3(pawn->DesiredFlashScale());
+			pawn->FlashFog() = pawn->DesiredFlashFog();
 		}
 
-		if (engine->LaunchInfo.ue1Version > 219)
-			Level()->TimeDilation() = mix(target->GameSpeedModifier(), next->GameSpeedModifier(), physAlpha);
+		Level()->TimeDilation() = mix(target->GameSpeedModifier(), next->GameSpeedModifier(), physAlpha);
 
 		float rateModifier = mix(target->RateModifier(), next->RateModifier(), physAlpha);
 		float physRate = PhysRate() * rateModifier;
@@ -98,11 +94,8 @@ void UActor::TickInterpolating(float elapsed)
 			CallEvent(this, EventName::InterpolateEnd, { ExpressionValue::ObjectValue(target) });
 
 			target = target->Prev();
-			if (engine->LaunchInfo.ue1Version > 219)
-			{
-				while (target && target->bSkipNextPath())
-					target = target->Prev();
-			}
+			while (target && target->bSkipNextPath())
+				target = target->Prev();
 
 			Target() = target;
 			PhysAlpha() = 1.0f;
@@ -113,11 +106,8 @@ void UActor::TickInterpolating(float elapsed)
 			CallEvent(this, EventName::InterpolateEnd, { ExpressionValue::ObjectValue(target) });
 
 			target = target->Next();
-			if (engine->LaunchInfo.ue1Version > 219)
-			{
-				while (target && target->bSkipNextPath())
-					target = target->Next();
-			}
+			while (target && target->bSkipNextPath())
+				target = target->Next();
 
 			Target() = target;
 			PhysAlpha() = 0.0f;

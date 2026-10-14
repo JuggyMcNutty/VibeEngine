@@ -32,9 +32,7 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, bool wireframe, b
 		return false;
 
 	engine->render->Stats.Actors++;
-	// Deus Ex actors pick their lights in SetupForActorDX instead
-	if (!engine->LaunchInfo.IsDeusEx())
-		engine->Level->Light.UpdateLightList(actor);
+	// The actor's lights are picked in SetupForActorDX, not here
 
 	// DrawDebugInfo(frame, actor);
 
@@ -97,17 +95,11 @@ bool VisibleMesh::DrawMeshAtLocation(VisibleFrame* frame, UActor* actor, UActor*
 	}
 	else if (auto lodmesh = UObject::TryCast<ULodMesh>(mesh))
 	{
-		if (engine->LaunchInfo.IsDeusEx())
-			return DrawLodMeshDX(frame, actor, lightLocationActor, lodmesh, meshToWorld, meshNormalToWorld, translucentPass);
-		else
-			return DrawLodMesh(frame, actor, lightLocationActor, lodmesh, meshToWorld, meshNormalToWorld, translucentPass);
+		return DrawLodMeshDX(frame, actor, lightLocationActor, lodmesh, meshToWorld, meshNormalToWorld, translucentPass);
 	}
 	else
 	{
-		if (engine->LaunchInfo.IsDeusEx())
-			return DrawMeshDX(frame, actor, lightLocationActor, mesh, meshToWorld, meshNormalToWorld, translucentPass);
-		else
-			return DrawMesh(frame, actor, lightLocationActor, mesh, meshToWorld, meshNormalToWorld, translucentPass);
+		return DrawMeshDX(frame, actor, lightLocationActor, mesh, meshToWorld, meshNormalToWorld, translucentPass);
 	}
 }
 
@@ -117,7 +109,7 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, UActor* lightLoca
 	float fatness = actor->Fatness() / 16.0f - 8.0f;
 
 	UActor* animSource = actor;
-	if (engine->LaunchInfo.ue1Version > 219 && actor->bAnimByOwner() && actor->Owner())
+	if (actor->bAnimByOwner() && actor->Owner())
 		animSource = actor->Owner();
 
 	MeshAnimSeq* seq = mesh->GetSequence(animSource->AnimSequence());
@@ -267,7 +259,7 @@ bool VisibleMesh::DrawMesh(VisibleFrame* frame, UActor* actor, UActor* lightLoca
 bool VisibleMesh::DrawLodMesh(VisibleFrame* frame, UActor* actor, UActor* lightLocationActor, ULodMesh* mesh, const mat4& ObjectToWorld, const mat3& ObjectNormalToWorld, bool translucentPass)
 {
 	UActor* animSource = actor;
-	if (engine->LaunchInfo.ue1Version > 219 && actor->bAnimByOwner() && actor->Owner())
+	if (actor->bAnimByOwner() && actor->Owner())
 		animSource = actor->Owner();
 
 	MeshAnimSeq* seq = mesh->GetSequence(animSource->AnimSequence());
@@ -529,7 +521,7 @@ bool VisibleMesh::DrawMeshDX(VisibleFrame* frame, UActor* actor, UActor* lightLo
 	float fatness = actor->Fatness() / 16.0f - 8.0f;
 
 	UActor* animSource = actor;
-	if (engine->LaunchInfo.ue1Version > 219 && actor->bAnimByOwner() && actor->Owner())
+	if (actor->bAnimByOwner() && actor->Owner())
 		animSource = actor->Owner();
 
 	MeshAnimSeq* seq = mesh->GetSequence(animSource->AnimSequence());
@@ -766,7 +758,7 @@ bool VisibleMesh::DrawMeshDX(VisibleFrame* frame, UActor* actor, UActor* lightLo
 bool VisibleMesh::DrawLodMeshDX(VisibleFrame* frame, UActor* actor, UActor* lightLocationActor, ULodMesh* mesh, const mat4& ObjectToWorld, const mat3& ObjectNormalToWorld, bool translucentPass)
 {
 	UActor* animSource = actor;
-	if (engine->LaunchInfo.ue1Version > 219 && actor->bAnimByOwner() && actor->Owner())
+	if (actor->bAnimByOwner() && actor->Owner())
 		animSource = actor->Owner();
 
 	MeshAnimSeq* seq = mesh->GetSequence(animSource->AnimSequence());
@@ -1258,24 +1250,21 @@ void VisibleMesh::DrawDebugInfo(VisibleFrame* frame, UActor* actor)
 	}
 
 	// Draw last calculated path for the bot
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		vec3 start = pawn->Location();
-		start.z += pawn->BaseEyeHeight();
+	vec3 start = pawn->Location();
+	start.z += pawn->BaseEyeHeight();
 
-		for (UNavigationPoint* p : pawn->RouteCache())
-		{
-			if (!p)
-				break;
-			vec3 end = p->Location();
-			end.z += pawn->BaseEyeHeight();
-			engine->render->Device->Draw3DLine(
-				&frame->Frame,
-				vec4(1.0f, 1.0f, 0.0f, 1.0f),
-				0,
-				start,
-				end);
-			start = end;
-		}
+	for (UNavigationPoint* p : pawn->RouteCache())
+	{
+		if (!p)
+			break;
+		vec3 end = p->Location();
+		end.z += pawn->BaseEyeHeight();
+		engine->render->Device->Draw3DLine(
+			&frame->Frame,
+			vec4(1.0f, 1.0f, 0.0f, 1.0f),
+			0,
+			start,
+			end);
+		start = end;
 	}
 }

@@ -161,59 +161,12 @@ bool UPawn::DeusExLineOfSightTo(UActor* other, bool useLOSFlag, bool ignoreDista
 
 bool UPawn::LineOfSightTo(UActor* other, bool ignoreDistance)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-		return DeusExLineOfSightTo(other, false, ignoreDistance);
-
-	if (!other)
-		return false;
-
-	if (!ignoreDistance && length(Location() - other->Location()) > SightRadius())
-		return false;
-
-	vec3 eye_pos = Location();
-	eye_pos.z += BaseEyeHeight();
-
-	auto& origin = other->Location();
-	auto top = origin + vec3{ 0.f, 0.f, other->CollisionHeight() / 2 };
-	auto bottom = origin - vec3{ 0.f, 0.f, other->CollisionHeight() / 2 };
-
-	return FastTrace(origin, eye_pos) || FastTrace(top, eye_pos) || FastTrace(bottom, eye_pos);
+	return DeusExLineOfSightTo(other, false, ignoreDistance);
 }
 
 bool UPawn::CanSee(UActor* other)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-		return DeusExLineOfSightTo(other, true, false);
-
-	if (!other)
-		return false;
-
-	// Two fields to keep in mind of:
-	// float SightRadius: Maximum seeing distance
-	// float PeripheralVision: Cosine of limits of peripheral vision
-
-	auto& origin = other->Location();
-	auto top = origin + vec3{ 0.f, 0.f, other->CollisionHeight() / 2 };
-	auto bottom = origin - vec3{ 0.f, 0.f, other->CollisionHeight() / 2 };
-
-	vec3 eye_pos = Location();
-	eye_pos.z += BaseEyeHeight();
-
-	// Cannot see if the actor is too far away from the sight radius
-	if (length(origin - eye_pos) > SightRadius())
-		return false;
-
-	// Cannot see if the actor is outside of the peripheral vision angles
-	vec3 orientation = Coords::Rotation(Rotation()).XAxis;
-
-	// Calculate the cosine of the vectors
-	// which is basically A dot B / (|A| * |B|), or just the dot products of the normalized versions of A and B
-	float cosine = dot(normalize(orientation), normalize(origin - eye_pos));
-	float peripheralVision = PeripheralVision();
-	if (cosine < peripheralVision)
-		return false;
-
-	return FastTrace(origin, eye_pos) || FastTrace(top, eye_pos) || FastTrace(bottom, eye_pos);
+	return DeusExLineOfSightTo(other, true, false);
 }
 
 bool UPawn::CanHearNoise(UActor* source, float loudness)
@@ -233,7 +186,7 @@ bool UPawn::CanHearNoise(UActor* source, float loudness)
 	float dist2 = dot(delta, delta);
 
 	if (!bIsPlayer() || !Level()->Game()->bTeamGame() || !noisePawn->bIsPlayer() ||
-		(engine->LaunchInfo.ue1Version > 219 && (!PlayerReplicationInfo() || !noisePawn->PlayerReplicationInfo() || (PlayerReplicationInfo()->Team() != noisePawn->PlayerReplicationInfo()->Team()))))
+		!PlayerReplicationInfo() || !noisePawn->PlayerReplicationInfo() || (PlayerReplicationInfo()->Team() != noisePawn->PlayerReplicationInfo()->Team()))
 	{
 		if (dist2 > (4000.0f * 4000.0f) * (loudness * loudness))
 			return false;
@@ -288,7 +241,7 @@ UActor* UPawn::PickAnyTarget(float& bestAim, float& bestDist, const vec3& FireDi
 UActor* UPawn::PickTarget(float& bestAim, float& bestDist, const vec3& FireDir, const vec3& projStart)
 {
 	UActor* bestActor = nullptr;
-	UPlayerReplicationInfo* ourPlayerInfo = engine->LaunchInfo.ue1Version > 219 ? PlayerReplicationInfo() : nullptr;
+	UPlayerReplicationInfo* ourPlayerInfo = PlayerReplicationInfo();
 	bool teamGame = ourPlayerInfo && Level()->Game()->bTeamGame();
 	for (UPawn* pawn = Level()->PawnList(); pawn != nullptr; pawn = pawn->nextPawn())
 	{
@@ -297,12 +250,9 @@ UActor* UPawn::PickTarget(float& bestAim, float& bestDist, const vec3& FireDir, 
 			continue;
 
 		// Skip team mates
-		if (engine->LaunchInfo.ue1Version > 219)
-		{
-			auto pawnPlayerInfo = pawn->PlayerReplicationInfo();
-			if (teamGame && pawnPlayerInfo && ourPlayerInfo->Team() == pawnPlayerInfo->Team())
-				continue;
-		}
+		auto pawnPlayerInfo = pawn->PlayerReplicationInfo();
+		if (teamGame && pawnPlayerInfo && ourPlayerInfo->Team() == pawnPlayerInfo->Team())
+			continue;
 
 		if (CheckIfBestTarget(pawn, bestAim, bestDist, FireDir, projStart))
 			bestActor = pawn;
@@ -552,45 +502,9 @@ bool UPawn::PickWallAdjust()
 // pawn's velocity made a jump to its Destination by SuggestJumpVelocity.
 vec3 UPawn::EAdjustJump()
 {
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		vec3 vel = Velocity();
-		SuggestJumpVelocity(Destination(), vel);
-		return vel;
-	}
-
-	UZoneInfo* zone = FootRegion().Zone;
-	vec3 gravity = zone ? zone->ZoneGravity() : vec3(0.0f, 0.0f, -980.0f);
-
-	const float dt = 0.05f;
-	const float jumpZ = JumpZ();
-	vec3 pos = Location();
-	vec3 vel = vec3(0.0f, 0.0f, jumpZ);
-	float time = 0.0f;
-	const float maxSimTime = 5.0f;
-	const float targetZ = Location().z;
-	while (time < maxSimTime && pos.z < targetZ)
-	{
-		vel.z += gravity.z * dt;
-		pos.z += vel.z * dt;
-		time += dt;
-		if (pos.z >= targetZ) break;
-	}
-
-	vec3 target = Focus();
-	if (dot(target - Location(), target - Location()) < 0.001f)
-		target = Destination();
-	vec3 horizontalDir = normalize(target - Location());
-	horizontalDir.z = 0.0f;
-
-	vec3 horizontalVel = horizontalDir * (length(target - Location()) / std::max(time, 0.001f));
-
-	float groundSpeed = GroundSpeed();
-	float horizSpeed = length(horizontalVel);
-	if (horizSpeed > groundSpeed)
-		horizontalVel = horizontalVel * (groundSpeed / horizSpeed);
-
-	return horizontalVel + vec3(0.0f, 0.0f, jumpZ);
+	vec3 vel = Velocity();
+	SuggestJumpVelocity(Destination(), vel);
+	return vel;
 }
 
 // The original's calcMoveFlags: which reach specs the pawn may use.
@@ -616,132 +530,7 @@ bool UPawn::AIDirectionReachable(const vec3& focus, int yaw, int pitch, float mi
 {
 	// Deus Ex's steps with the original's own walk, fly and swim moves
 	// (UPawn_ReachDeusEx.cpp).
-	if (engine->LaunchInfo.IsDeusEx())
-		return DeusExAIDirectionReachable(focus, yaw, pitch, minDist, maxDist, bestDest);
-
-	// A copy: the caller may hand the pawn's own Location(), a reference
-	// into its property data, and the pawn moves below.
-	vec3 focusPoint = focus;
-	vec3 startLocation = Location();
-	vec3 startVelocity = Velocity();
-	bestDest = startLocation;
-
-	// In a water zone it swims, along yaw and pitch; otherwise walking (or
-	// swimming out of water) walks along the yaw alone and flying flies
-	// along both; any other physics fails.
-	bool inWater = Region().Zone && Region().Zone->bWaterZone();
-	uint8_t physics = Physics();
-	enum class Mode { Walk, Fly, Swim };
-	Mode mode;
-	if (inWater)
-		mode = Mode::Swim;
-	else if (physics == PHYS_Walking || physics == PHYS_Swimming)
-		mode = Mode::Walk;
-	else if (physics == PHYS_Flying)
-		mode = Mode::Fly;
-	else
-		return false;
-
-	Rotator direction((mode == Mode::Walk) ? 0 : pitch, yaw, 0);
-	vec3 dir = Coords::Rotation(direction).XAxis;
-
-	float step = std::clamp(CollisionRadius(), 5.0f, 25.0f);
-	float maxStep = MaxStepHeight();
-
-	// A walk step goes up, along and back to the floor; a drop past
-	// MaxStepHeight below the start is a ledge, undone.
-	enum class StepResult { Moved, Blocked, Ledge };
-	auto moveStep = [&](float stepSize) -> StepResult
-	{
-		vec3 delta = dir * stepSize;
-		if (mode != Mode::Walk)
-			return TryMove(delta).Fraction < 1.0f ? StepResult::Blocked : StepResult::Moved;
-
-		vec3 before = Location();
-		TryMove(vec3(0.0f, 0.0f, maxStep));
-		float wentUp = Location().z - before.z;
-		CollisionHit lateral = TryMove(delta);
-		CollisionHit down = TryMove(vec3(0.0f, 0.0f, -(wentUp + maxStep)));
-		if (down.Fraction == 1.0f)
-		{
-			// No floor within MaxStepHeight below where it started: a ledge.
-			SetLocation(before);
-			return StepResult::Ledge;
-		}
-		if (lateral.Fraction < 0.5f)
-			return StepResult::Blocked;
-		return StepResult::Moved;
-	};
-
-	// A pain zone whose damage the pawn does not resist, and the void,
-	// stop it; so does entering water, or leaving it when swimming.
-	auto zoneStops = [&]() -> bool
-	{
-		if (Region().ZoneNumber == 0)
-			return true;
-		UZoneInfo* zone = Region().Zone;
-		if (zone && zone->bPainZone() && zone->DamageType() != ReducedDamageType())
-			return true;
-		bool nowInWater = zone && zone->bWaterZone();
-		return (mode == Mode::Swim) ? !nowInWater : nowInWater;
-	};
-
-	float prevDist = length(startLocation - focusPoint);
-	bool prevIn = prevDist >= minDist && prevDist <= maxDist;
-	bool found = false;
-	float best = -1.0f;
-	bool triedLedgeStep = false;
-
-	for (int i = 0; i < 100; i++)
-	{
-		StepResult result = moveStep(step);
-		if (result == StepResult::Ledge && mode == Mode::Walk && !triedLedgeStep)
-		{
-			// A walk stopped by a ledge tries once more with a step of
-			// MaxStepHeight.
-			triedLedgeStep = true;
-			result = moveStep(maxStep);
-		}
-		if (result != StepResult::Moved)
-			break;
-		if (zoneStops())
-			break;
-
-		float dist = length(Location() - focusPoint);
-		bool inRange = dist >= minDist && dist <= maxDist;
-		if (inRange)
-		{
-			// While the spot is in range it goes on, keeping the farthest.
-			if (dist > best)
-			{
-				best = dist;
-				bestDest = Location();
-				found = true;
-			}
-			// It stops on coming into the range from beyond.
-			if (!prevIn && prevDist > maxDist)
-				break;
-		}
-		else
-		{
-			// It stops on leaving the range, or on crossing it in one
-			// step, which counts as found.
-			if (prevIn)
-				break;
-			if ((prevDist < minDist && dist > maxDist) || (prevDist > maxDist && dist < minDist))
-			{
-				bestDest = Location();
-				found = true;
-				break;
-			}
-		}
-		prevDist = dist;
-		prevIn = inRange;
-	}
-
-	SetLocation(startLocation);
-	Velocity() = startVelocity;
-	return found;
+	return DeusExAIDirectionReachable(focus, yaw, pitch, minDist, maxDist, bestDest);
 }
 
 // The original's AIPickRandomDestination (0x103c7fc0): up to tries

@@ -22,15 +22,8 @@ void NCanvas::RegisterFunctions()
 	RegisterVMNativeFunc_2("Canvas", "DrawTextClipped", &NCanvas::DrawTextClipped, 469);
 	RegisterVMNativeFunc_7("Canvas", "DrawTile", &NCanvas::DrawTile, 466);
 	RegisterVMNativeFunc_7("Canvas", "DrawTileClipped", &NCanvas::DrawTileClipped, 468);
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		RegisterVMNativeFunc_3("Canvas", "DrawActor", &NCanvas::DrawActor, 467);
-		RegisterVMNativeFunc_3("Canvas", "StrLen", &NCanvas::StrLen, 464);
-	}
-	else
-	{
-		RegisterVMNativeFunc_5("Canvas", "StrLen", &NCanvas::StrLen_219, 467); // Maybe only in KHG?
-	}
+	RegisterVMNativeFunc_3("Canvas", "DrawActor", &NCanvas::DrawActor, 467);
+	RegisterVMNativeFunc_3("Canvas", "StrLen", &NCanvas::StrLen, 464);
 	RegisterVMNativeFunc_3("Canvas", "TextSize", &NCanvas::TextSize, 470);
 }
 

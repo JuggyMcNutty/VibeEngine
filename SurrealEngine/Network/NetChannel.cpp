@@ -716,8 +716,6 @@ namespace
 
 		static const NativeRepList* Get()
 		{
-			if (!engine->LaunchInfo.IsDeusEx())
-				return nullptr;
 			static NativeRepList list;
 			static bool made = false;
 			if (!made)

@@ -29,14 +29,11 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	// Deus Ex's SpawnActor refuses a class whose defaults are static or not
 	// to be deleted, as the original's does out of the editor: a static
 	// actor would never be ticked (ULevel::SortActors).
-	if (engine->LaunchInfo.IsDeusEx())
+	UActor* defaults = SpawnClass->GetDefaultObject<UActor>();
+	if (defaults->bStatic() || defaults->bNoDelete())
 	{
-		UActor* defaults = SpawnClass->GetDefaultObject<UActor>();
-		if (defaults->bStatic() || defaults->bNoDelete())
-		{
-			LogMessage("SpawnActor failed because class " + SpawnClass->Name.ToString() + " has bStatic or bNoDelete");
-			return nullptr;
-		}
+		LogMessage("SpawnActor failed because class " + SpawnClass->Name.ToString() + " has bStatic or bNoDelete");
+		return nullptr;
 	}
 
 	vec3 location = SpawnLocation ? *SpawnLocation : Location();
@@ -52,7 +49,7 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	{
 		// Deus Ex fits it in as the original's SpawnActor does: FindSpot,
 		// the spot as it is if the actor fits there already
-		auto result = engine->LaunchInfo.IsDeusEx() ? FindSpot(location, radius, height, true) : CheckLocation(location, radius, height, bCollideWorld || bCollideWhenPlacing);
+		auto result = FindSpot(location, radius, height, true);
 		if (!result.first)
 		{
 			LogMessage("Could not find usable location when trying to spawn: " + SpawnClass->Name.ToString());
@@ -81,8 +78,8 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 	actor->Tag() = (SpawnTag && !SpawnTag->IsNone()) ? *SpawnTag : SpawnClass->Name;
 	// Deus Ex's is not yet ticked, the opposite of the level's mark, as the
 	// original's: the level's pass reaches it at the list's end and ticks it
-	// the same frame. Another game's takes its spawner's.
-	actor->bTicked() = engine->LaunchInfo.IsDeusEx() ? !XLevel()->TickMark() : bTicked();
+	// the same frame.
+	actor->bTicked() = !XLevel()->TickMark();
 	actor->Instigator() = Instigator();
 	actor->Brush() = nullptr;
 	actor->Location() = location;
@@ -118,34 +115,30 @@ UActor* UActor::Spawn(UClass* SpawnClass, std::optional<UActor*> SpawnOwner, std
 		// Deus Ex: spawned into something that stops it (its EncroachingOn
 		// agrees), it is destroyed, as the original's SpawnActor does after
 		// PostBeginPlay; what blocks it hears EncroachedBy
-		if (engine->LaunchInfo.IsDeusEx() && !noCollisionFail && !actor->bDeleteMe() && actor->CheckEncroachment(actor->Location()))
+		if (!noCollisionFail && !actor->bDeleteMe() && actor->CheckEncroachment(actor->Location()))
 		{
 			actor->Destroy();
 			return nullptr;
 		}
 		CallEvent(actor, EventName::SetInitialState);
-		if (engine->LaunchInfo.IsDeusEx())
-			CallEvent(actor, "PostPostBeginPlay");
+		CallEvent(actor, "PostPostBeginPlay");
 
 		actor->InitBase();
 
-		if (engine->LaunchInfo.ue1Version >= 400)
+		static bool spawnNotificationLocked = false;
+		if (!spawnNotificationLocked)
 		{
-			static bool spawnNotificationLocked = false;
-			if (!spawnNotificationLocked)
+			struct NotificationLockGuard
 			{
-				struct NotificationLockGuard
-				{
-					NotificationLockGuard() { spawnNotificationLocked = true; }
-					~NotificationLockGuard() { spawnNotificationLocked = false; }
-				} lockGuard;
+				NotificationLockGuard() { spawnNotificationLocked = true; }
+				~NotificationLockGuard() { spawnNotificationLocked = false; }
+			} lockGuard;
 
-				for (USpawnNotify* notifyObj = Level()->SpawnNotify(); notifyObj != nullptr; notifyObj = notifyObj->Next())
-				{
-					UClass* cls = notifyObj->ActorClass();
-					if (cls && actor->IsA(cls->Name))
-						actor = UObject::Cast<UGameInfo>(CallEvent(notifyObj, EventName::SpawnNotification, { ExpressionValue::ObjectValue(actor) }).ToObject());
-				}
+			for (USpawnNotify* notifyObj = Level()->SpawnNotify(); notifyObj != nullptr; notifyObj = notifyObj->Next())
+			{
+				UClass* cls = notifyObj->ActorClass();
+				if (cls && actor->IsA(cls->Name))
+					actor = UObject::Cast<UGameInfo>(CallEvent(notifyObj, EventName::SpawnNotification, { ExpressionValue::ObjectValue(actor) }).ToObject());
 			}
 		}
 	}
@@ -175,7 +168,7 @@ bool UActor::Destroy()
 	RemoveFromBspNode();
 	level->Collision.RemoveFromCollision(this);
 	// A Deus Ex mover stays filed in the BSP (CollisionSystem, filed movers)
-	if (engine->LaunchInfo.IsDeusEx() && Brush())
+	if (Brush())
 		level->Collision.MoverDestroyed(this);
 
 	CallEvent(this, EventName::Destroyed);
@@ -308,13 +301,13 @@ void UActor::Tick(float elapsed)
 {
 	// Deus Ex's tick starts as the original's AActor::Tick does; a pawn's
 	// starts in UPawn::Tick, before its own work.
-	if (engine->LaunchInfo.IsDeusEx() && !bIsPawn() && !StartTick())
+	if (!bIsPawn() && !StartTick())
 		return;
 
 	// The slots move only while the main animation plays or tweens
 	bool mainAnimMoving = IsAnimating() || (AnimFrame() < 0.0f && TweenRate() != 0.0f);
 	TickAnimation(elapsed);
-	if (engine->LaunchInfo.IsDeusEx() && mainAnimMoving)
+	if (mainAnimMoving)
 		TickBlendAnimation(elapsed);
 
 	// A net game's copies tick as the original's do by their roles: another
@@ -359,7 +352,7 @@ void UActor::Tick(float elapsed)
 	// its state code and physics, in place of Tick, as the original's actor
 	// tick has it: its physics take the move it makes the same tick, where
 	// the fork took it a tick later.
-	UPlayerPawn* player = engine->LaunchInfo.IsDeusEx() ? UObject::TryCast<UPlayerPawn>(this) : nullptr;
+	UPlayerPawn* player = UObject::TryCast<UPlayerPawn>(this);
 	if (player && player->TickInput(elapsed))
 	{
 	}
@@ -476,62 +469,31 @@ bool UActor::PlayerCanSeeMe()
 	// or its authority); a net game's server, each player. The fork's asked
 	// every pawn within 500 units in a cone that took a length for a cosine,
 	// so a player looking never saw anything.
-	if (engine->LaunchInfo.IsDeusEx())
+	auto testCanSeeMe = [&](UPlayerPawn* viewer)
 	{
-		auto testCanSeeMe = [&](UPlayerPawn* viewer)
+		if (!viewer)
+			return false;
+		if (viewer->ViewTarget() == this)
+			return true;
+		vec3 d = Location() - viewer->Location();
+		float distSq = dot(d, d);
+		if ((CollisionRadius() + 3.6f) * 100000.0f <= distSq)
+			return false;
+		if (!viewer->bBehindView())
 		{
-			if (!viewer)
+			float along = dot(Coords::Rotation(viewer->ViewRotation()).XAxis, d);
+			if (distSq * 0.25f > along * along)
 				return false;
-			if (viewer->ViewTarget() == this)
-				return true;
-			vec3 d = Location() - viewer->Location();
-			float distSq = dot(d, d);
-			if ((CollisionRadius() + 3.6f) * 100000.0f <= distSq)
-				return false;
-			if (!viewer->bBehindView())
-			{
-				float along = dot(Coords::Rotation(viewer->ViewRotation()).XAxis, d);
-				if (distSq * 0.25f > along * along)
-					return false;
-			}
-			return viewer->LineOfSightTo(this, false);
-		};
-
-		uint8_t netMode = Level()->NetMode();
-		if (netMode == NM_Standalone || (netMode == NM_Client && (bNetTemporary() || Role() == ROLE_Authority)))
-			return testCanSeeMe(UObject::TryCast<UPlayerPawn>(engine->viewport->Actor()));
-		for (UPawn* pawn = Level()->PawnList(); pawn != nullptr; pawn = pawn->nextPawn())
-		{
-			if (testCanSeeMe(UObject::TryCast<UPlayerPawn>(pawn)))
-				return true;
 		}
-		return false;
-	}
+		return viewer->LineOfSightTo(this, false);
+	};
 
+	uint8_t netMode = Level()->NetMode();
+	if (netMode == NM_Standalone || (netMode == NM_Client && (bNetTemporary() || Role() == ROLE_Authority)))
+		return testCanSeeMe(UObject::TryCast<UPlayerPawn>(engine->viewport->Actor()));
 	for (UPawn* pawn = Level()->PawnList(); pawn != nullptr; pawn = pawn->nextPawn())
 	{
-		if (pawn == this)
-			continue;
-
-		vec3 L = Location() - pawn->Location();
-		float dist2 = dot(L, L);
-
-		// Too far away
-		if (dist2 > 500 * 500)
-			continue;
-
-		// Without behind view the pawn can only see in a 75 degree cone in front of them
-		if (!pawn->bBehindView())
-		{
-			vec3 viewDirection = Coords::Rotation(pawn->ViewRotation()).XAxis;
-			if (dot(viewDirection, L) < 0.2588190451f * dist2)
-				continue;
-		}
-
-		// Try check for line of sight
-		vec3 eyePos = pawn->Location();
-		eyePos.z += pawn->BaseEyeHeight();
-		if (pawn->FastTrace(Location(), eyePos))
+		if (testCanSeeMe(UObject::TryCast<UPlayerPawn>(pawn)))
 			return true;
 	}
 	return false;

@@ -13,20 +13,17 @@
 
 void UActor::InitBase()
 {
-	if (engine->LaunchInfo.ue1Version > 219)
+	NameString attachTag = AttachTag();
+	if (!attachTag.IsNone())
 	{
-		NameString attachTag = AttachTag();
-		if (!attachTag.IsNone())
+		for (UActor* levelActor : XLevel()->Actors)
 		{
-			for (UActor* levelActor : XLevel()->Actors)
+			if (levelActor && levelActor->Tag() == attachTag)
 			{
-				if (levelActor && levelActor->Tag() == attachTag)
-				{
-					levelActor->SetBase(this, false);
-				}
+				levelActor->SetBase(this, false);
 			}
-			return;
 		}
+		return;
 	}
 
 	// Find base for certain types
@@ -38,11 +35,6 @@ void UActor::InitBase()
 		{
 			SetBase(hits.front().Actor, true);
 		}
-	}
-
-	if (engine->LaunchInfo.ue1Version < 400 && !ActorBase()) // Unreal expects a base to always exist. What about UT? TournamentPlayer seems to indicate not.
-	{
-		SetBase(Level(), false);
 	}
 }
 

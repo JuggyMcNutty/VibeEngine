@@ -56,7 +56,7 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 	ResetCanvas();
 	PreRender();
 
-	if (engine->LaunchInfo.ue1Version <= 219 || engine->console->bNoDrawWorld() == false)
+	if (engine->console->bNoDrawWorld() == false)
 	{
 		// With the root window's rendering off (a menu over the snapshot,
 		// the black background, the credits) the original's scene frame is
@@ -69,8 +69,7 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 			DrawScene();
 			RenderOverlays();
 		}
-		if (engine->LaunchInfo.IsDeusEx())
-			PostRenderFlash();
+		PostRenderFlash();
 		Device->EndFlash();
 	}
 

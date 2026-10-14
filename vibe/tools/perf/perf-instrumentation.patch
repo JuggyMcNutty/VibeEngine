@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 5afe782..719f29f 100644
+index 7a3ec8b..ee86e29 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -12,6 +12,11 @@ endif()
@@ -15,7 +15,7 @@ index 5afe782..719f29f 100644
  	SurrealEngine/Precomp.cpp
  	SurrealEngine/Precomp.h
 diff --git a/SurrealEngine/Engine.cpp b/SurrealEngine/Engine.cpp
-index 37fad46..f839ca4 100644
+index 21c50a9..ad945c6 100644
 --- a/SurrealEngine/Engine.cpp
 +++ b/SurrealEngine/Engine.cpp
 @@ -2,6 +2,7 @@
@@ -26,7 +26,7 @@ index 37fad46..f839ca4 100644
  #include "Utils/File.h"
  #include "Utils/StrTools.h"
  #include "Utils/SHA1Sum.h"
-@@ -279,8 +280,10 @@ void Engine::Run()
+@@ -271,8 +272,10 @@ void Engine::Run()
  		// makes this frame has been laid out by the time they next tick.
  		// They tick by real seconds since their last tick, not the level's
  		// time (XRootWindow::TickWindows 0x1003a4a0).
@@ -37,13 +37,13 @@ index 37fad46..f839ca4 100644
  
  		TotalTime += realTimeElapsed;
  
-@@ -314,10 +317,16 @@ void Engine::Run()
+@@ -306,10 +309,16 @@ void Engine::Run()
  		// original's level tick holds it (dx-reverse-info engine-dll.md, a
  		// level's tick).
  		if (!dedicated)
 +		{
 +			{ PerfLog::Scope perf(PerfLog::Input); // TEMPORARY DEBUG TOOL
- 			UpdateInput(LaunchInfo.IsDeusEx() ? std::min(realTimeElapsed, 0.4f) : realTimeElapsed);
+ 			UpdateInput(std::min(realTimeElapsed, 0.4f));
 +			}
 +		}
  
@@ -54,7 +54,7 @@ index 37fad46..f839ca4 100644
  		// Do NOT pause this Tick event otherwise some messages will stay on screen forever.
  		if (!dedicated)
  			CallEvent(console, EventName::Tick, { ExpressionValue::FloatValue(levelElapsed) });
-@@ -346,6 +355,10 @@ void Engine::Run()
+@@ -335,6 +344,10 @@ void Engine::Run()
  		if (LevelNetDriver)
  			LevelNetDriver->TickFlush();
  
@@ -65,7 +65,7 @@ index 37fad46..f839ca4 100644
  		// To do: improve CallEvent so parameter passing isn't this painful
  		UFunction* funcPlayerCalcView = viewport->Actor() ? FindEventFunction(viewport->Actor(), "PlayerCalcView") : nullptr;
  		if (funcPlayerCalcView)
-@@ -364,12 +377,17 @@ void Engine::Run()
+@@ -353,12 +366,17 @@ void Engine::Run()
  		}
  
  		if (!dedicated)
@@ -84,7 +84,7 @@ index 37fad46..f839ca4 100644
  
  		// Save the game if there is a request for it
  		if (SaveGameInfo.SaveGameSlot != DONT_SAVE_GAME)
-@@ -2738,6 +2756,9 @@ void Engine::UpdateInput(float timeElapsed)
+@@ -2606,6 +2624,9 @@ void Engine::UpdateInput(float timeElapsed)
  	if (!viewport->Actor())
  		return;
  
@@ -95,7 +95,7 @@ index 37fad46..f839ca4 100644
  		viewport->Actor()->SetBool(it.first, true);
  	for (auto& it : activeInputAxes)
 diff --git a/SurrealEngine/Light/LightSystem_Light.cpp b/SurrealEngine/Light/LightSystem_Light.cpp
-index 261c5bc..500836d 100644
+index 0a35a80..4b97c16 100644
 --- a/SurrealEngine/Light/LightSystem_Light.cpp
 +++ b/SurrealEngine/Light/LightSystem_Light.cpp
 @@ -1,6 +1,8 @@
@@ -156,7 +156,7 @@ index 261c5bc..500836d 100644
  		UnrealMipmap& lmmip = lmtexture->Mip;
  		const vec3* pixels = Builder.Pixels();
 diff --git a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
-index c014a58..d1511b5 100644
+index dfb3b7b..18c7cb7 100644
 --- a/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 +++ b/SurrealEngine/Packages/Engine/Resources/Level/ULevel.cpp
 @@ -1,5 +1,7 @@
@@ -167,19 +167,19 @@ index c014a58..d1511b5 100644
  #include "ULevel.h"
  #include "Packages/Core/UClass.h"
  #include "Packages/Engine/Actors/UDecal.h"
-@@ -95,7 +97,10 @@ void ULevel::TickActor(float elapsed, UActor* actor)
- 	actor->bTicked() = ticked;
+@@ -220,7 +222,10 @@ bool ULevel::TickActorDeusEx(float elapsed, UActor* actor)
+ 		return false;
  
- 	// Tick the actor for this turn
+ 	lastStart = TickStart::Ticked;
 +	uint64_t perfStart = PerfLog::Detail() ? PerfLog::NowNs() : 0; // TEMPORARY DEBUG TOOL
  	actor->Tick(elapsed);
 +	if (perfStart) // TEMPORARY DEBUG TOOL
 +		PerfLog::AddClass(actor->Class->Name.ToString(), (PerfLog::NowNs() - perfStart) / 1e6);
- 
- 	// Destroy the actor if its time
- 	if (actor->Role() >= ROLE_SimulatedProxy && actor->LifeSpan() != 0.0f)
+ 	if (lastStart == TickStart::Waiting)
+ 		return false;
+ 	if (lastStart == TickStart::Stasis || actor->bDeleteMe())
 diff --git a/SurrealEngine/Render/RenderScene.cpp b/SurrealEngine/Render/RenderScene.cpp
-index 82ebe4f..2eb4692 100644
+index d9861eb..8860870 100644
 --- a/SurrealEngine/Render/RenderScene.cpp
 +++ b/SurrealEngine/Render/RenderScene.cpp
 @@ -1,5 +1,6 @@
@@ -189,18 +189,18 @@ index 82ebe4f..2eb4692 100644
  #include "RenderSubsystem.h"
  #include "RenderDevice/RenderDevice.h"
  #include "GameWindow.h"
-@@ -33,6 +34,7 @@ void RenderSubsystem::DrawScene()
- 	bool hasRenderIterators = (engine->LaunchInfo.ue1Version < 400 || engine->LaunchInfo.IsDeusEx()) &&
- 		PropOffsets_Actor.RenderInterface.DataOffset != ~(size_t)0 &&
+@@ -31,6 +32,7 @@ void RenderSubsystem::DrawScene()
+ 	// Only where Actor has the render interface properties
+ 	bool hasRenderIterators = PropOffsets_Actor.RenderInterface.DataOffset != ~(size_t)0 &&
  		PropOffsets_Actor.RenderIteratorClass.DataOffset != ~(size_t)0;
 +	{ PerfLog::Section perf(PerfLog::BspInfo); // TEMPORARY DEBUG TOOL
  	for (UActor* actor : engine->Level->Actors)
  	{
  		if (actor)
-@@ -50,12 +52,17 @@ void RenderSubsystem::DrawScene()
+@@ -47,12 +49,17 @@ void RenderSubsystem::DrawScene()
+ 	// And Deus Ex's movers where the level's BSP files them, as the
  	// original's SetupDynamics does each frame drawn
- 	if (engine->LaunchInfo.IsDeusEx())
- 		engine->Level->Collision.RefileMovers();
+ 	engine->Level->Collision.RefileMovers();
 +	}
  
  	mat4 worldToView = Coords::ViewToRenderDev().ToMatrix() * Coords::Rotation(engine->CameraRotation).Inverse().ToMatrix() * Coords::Location(engine->CameraLocation).ToMatrix();
@@ -216,7 +216,7 @@ index 82ebe4f..2eb4692 100644
  
  void RenderSubsystem::UpdateRenderInterface(UActor* actor)
 diff --git a/SurrealEngine/Render/RenderSubsystem.cpp b/SurrealEngine/Render/RenderSubsystem.cpp
-index c0995fa..3bf3745 100644
+index 3b1a883..542de09 100644
 --- a/SurrealEngine/Render/RenderSubsystem.cpp
 +++ b/SurrealEngine/Render/RenderSubsystem.cpp
 @@ -1,5 +1,6 @@
@@ -226,7 +226,7 @@ index c0995fa..3bf3745 100644
  #include "RenderSubsystem.h"
  #include "RenderDevice/RenderDevice.h"
  #include "GameWindow.h"
-@@ -27,7 +28,9 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
+@@ -24,7 +25,9 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
  	DrawnSinceFlush = true;
  	LevelTimeElapsed = levelTimeElapsed;
  	AutoUV += levelTimeElapsed * 64.0f;
@@ -236,7 +236,7 @@ index c0995fa..3bf3745 100644
  
  	Stats.Frames = 0;
  	Stats.Surfaces = 0;
-@@ -53,11 +56,15 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
+@@ -50,11 +53,15 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
  	}
  
  	Device->Brightness = engine->client->Brightness;
@@ -250,9 +250,9 @@ index c0995fa..3bf3745 100644
  	PreRender();
 +	}
  
- 	if (engine->LaunchInfo.ue1Version <= 219 || engine->console->bNoDrawWorld() == false)
+ 	if (engine->console->bNoDrawWorld() == false)
  	{
-@@ -70,16 +77,24 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
+@@ -67,15 +74,23 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
  		if (engine->viewport->Actor() && (!engine->dxRootWindow || engine->dxRootWindow->bRender()))
  		{
  			DrawScene();
@@ -260,9 +260,8 @@ index c0995fa..3bf3745 100644
  			RenderOverlays();
 +			}
  		}
- 		if (engine->LaunchInfo.IsDeusEx())
 +		{ PerfLog::Section perf(PerfLog::Flash); // TEMPORARY DEBUG TOOL
- 			PostRenderFlash();
+ 		PostRenderFlash();
 +		}
  		Device->EndFlash();
  	}
@@ -278,7 +277,7 @@ index c0995fa..3bf3745 100644
  	FrameDrawn = true;
  }
 diff --git a/SurrealEngine/Render/VisibleFrame.cpp b/SurrealEngine/Render/VisibleFrame.cpp
-index 3cca804..b9171a8 100644
+index 3d6ad16..332a016 100644
 --- a/SurrealEngine/Render/VisibleFrame.cpp
 +++ b/SurrealEngine/Render/VisibleFrame.cpp
 @@ -1,6 +1,7 @@

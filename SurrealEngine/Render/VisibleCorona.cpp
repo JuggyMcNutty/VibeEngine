@@ -25,15 +25,11 @@ void VisibleCorona::Draw(VisibleFrame* frame)
 			float height = (float)light->Skin()->UsedMipmaps.front().Height;
 			float size = light->DrawScale() * frame->Frame.FX;
 
-			if (engine->LaunchInfo.IsDeusEx())
-				size *= 0.2f;
-			else
-				size *= 0.8f;
+			size *= 0.2f;
 
 			vec3 lightcolor = hsbtorgb(light->LightHue(), light->LightSaturation(), 255/*light->LightBrightness()*/);
 
-			if (engine->LaunchInfo.IsDeusEx())
-				lightcolor *= 2.5f;
+			lightcolor *= 2.5f;
 
 			engine->render->UpdateTexture(light->Skin());
 

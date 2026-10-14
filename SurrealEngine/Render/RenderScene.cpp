@@ -28,10 +28,8 @@ void RenderSubsystem::DrawScene()
 
 	// Make sure all actors are at the right location in the BSP
 	IteratorActors.clear();
-	// Only where the RenderIterator native class is registered (its
-	// registration in PackageManager matches this condition)
-	bool hasRenderIterators = (engine->LaunchInfo.ue1Version < 400 || engine->LaunchInfo.IsDeusEx()) &&
-		PropOffsets_Actor.RenderInterface.DataOffset != ~(size_t)0 &&
+	// Only where Actor has the render interface properties
+	bool hasRenderIterators = PropOffsets_Actor.RenderInterface.DataOffset != ~(size_t)0 &&
 		PropOffsets_Actor.RenderIteratorClass.DataOffset != ~(size_t)0;
 	for (UActor* actor : engine->Level->Actors)
 	{
@@ -48,8 +46,7 @@ void RenderSubsystem::DrawScene()
 	}
 	// And Deus Ex's movers where the level's BSP files them, as the
 	// original's SetupDynamics does each frame drawn
-	if (engine->LaunchInfo.IsDeusEx())
-		engine->Level->Collision.RefileMovers();
+	engine->Level->Collision.RefileMovers();
 
 	mat4 worldToView = Coords::ViewToRenderDev().ToMatrix() * Coords::Rotation(engine->CameraRotation).Inverse().ToMatrix() * Coords::Location(engine->CameraLocation).ToMatrix();
 	MainFrame.Process(engine->CameraLocation, worldToView, Coords::Rotation(engine->CameraRotation));

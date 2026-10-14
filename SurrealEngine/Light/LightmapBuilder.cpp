@@ -44,29 +44,13 @@ void LightmapBuilder::Setup(UModel* model, const Coords& mapCoords, int lightMap
 
 void LightmapBuilder::SetAmbientLight(UZoneInfo* zoneActor)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		// Deus Ex's maps are the original's bytes, 127 at most, a byte worth
-		// 2/255 on the screen as D3DDrv shows it (dx-reverse-info/render-dll.md,
-		// light maps): the zone's ambient light starts them, FGetHSV's
-		// colour times 64
-		vec3 ambient = FGetHSV(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
-		vec3 bytes(std::floor(ambient.r * 64.0f), std::floor(ambient.g * 64.0f), std::floor(ambient.b * 64.0f));
-		std::fill(lightcolors.begin(), lightcolors.begin() + (size_t)width * height, bytes);
-		return;
-	}
-
-	// Initialize lightmap with the ambient color
-
-	vec3 ambientColor = hsbtorgb(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness()); // To do: is this the correct scale?
-	// To do: is there more ambient light than just from the zone?
-
-	std::fill(lightcolors.begin(), lightcolors.begin() + (size_t)width * height, ambientColor);
-
-	// To do: how does polyflags affect the lightmap (if at all)?
-
-	//bool isSpecialLit = (surface.PolyFlags & PF_SpecialLit) == PF_SpecialLit;
-	//bool isTranslucent = (surface.PolyFlags & PF_Translucent) == PF_Translucent;
+	// Deus Ex's maps are the original's bytes, 127 at most, a byte worth
+	// 2/255 on the screen as D3DDrv shows it (dx-reverse-info/render-dll.md,
+	// light maps): the zone's ambient light starts them, FGetHSV's
+	// colour times 64
+	vec3 ambient = FGetHSV(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
+	vec3 bytes(std::floor(ambient.r * 64.0f), std::floor(ambient.g * 64.0f), std::floor(ambient.b * 64.0f));
+	std::fill(lightcolors.begin(), lightcolors.begin() + (size_t)width * height, bytes);
 }
 
 void LightmapBuilder::LoadStaticLight(const Array<vec3>& staticLightColors, const LightmapRect& rect)
@@ -227,19 +211,7 @@ void LightmapBuilder::FindLitSpans(UActor* light, Array<LightmapSpan>& spans)
 
 void LightmapBuilder::AddLightContribution(UActor* light, const LightmapSpan* spans, size_t count)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		AddLightContributionDX(light, spans, count);
-		return;
-	}
-
-	vec3 lightcolor = GetLightColor(light);
-	for (size_t i = 0; i < count; i++)
-	{
-		const LightmapSpan& span = spans[i];
-		int offset = span.y * width + span.x0;
-		AddLightContribution(lightcolor, illuminationmap.data() + offset, (float*)(lightcolors.data() + offset), span.x1 - span.x0);
-	}
+	AddLightContributionDX(light, spans, count);
 }
 
 void LightmapBuilder::AddLightContribution(const vec3& lightcolor, const float* src, float* dest, int size)
@@ -530,14 +502,11 @@ void LightmapBuilder::CalcRowLines(Coords MapCoords, const LightMapIndex& lminde
 
 	// Deus Ex lights texel i at its centre, Pan.X + i * UScale along U, as
 	// its Render.dll does and where the devices draw it (TexelLocation takes
-	// i + 0.5 in the row's texel coordinate); other games keep upstream's,
-	// half a texel short of it. Along V both take the row's centre.
-	float uShift = engine->LaunchInfo.IsDeusEx() ? 0.0f : 0.5f;
-
+	// i + 0.5 in the row's texel coordinate); along V, the row's centre.
 	for (int y = 0; y < height; y++)
 	{
-		float x0 = uv[0].x + leftStep * (y + 0.5f - uv[0].y) + uShift;
-		float x1 = uv[1].x + rightStep * (y + 0.5f - uv[1].y) + uShift;
+		float x0 = uv[0].x + leftStep * (y + 0.5f - uv[0].y);
+		float x1 = uv[1].x + rightStep * (y + 0.5f - uv[1].y);
 		float t0 = (y + 0.5f - uv[0].y) / leftDY;
 		float t1 = (y + 0.5f - uv[1].y) / rightDY;
 		vec3 p0 = mix(p[0], p[2], t0);

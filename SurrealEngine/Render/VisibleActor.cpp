@@ -15,10 +15,6 @@ void VisibleActor::Process(VisibleFrame* frame, UActor* actor)
 {
 	// Deus Ex coronas come from the viewer's leaf and are kept across
 	// frames (RenderSubsystem::DrawCoronasDX), not gathered here
-	if (actor->bCorona() && !engine->LaunchInfo.IsDeusEx())
-	{
-		frame->Coronas.push_back(actor);
-	}
 
 	if (actor->bHidden())
 		return;
@@ -36,11 +32,8 @@ void VisibleActor::Process(VisibleFrame* frame, UActor* actor)
 	if ((behindView || !isOwnedByViewport) && actor->bOnlyOwnerSee())
 		return;
 
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		if (!behindView && isOwnedByViewport && actor->bOwnerNoSee())
-			return;
-	}
+	if (!behindView && isOwnedByViewport && actor->bOwnerNoSee())
+		return;
 
 	if (!behindView && actor == engine->CameraActor) // Hide CameraActor as if bOwnerNoSee was set for it
 		return;

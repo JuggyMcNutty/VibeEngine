@@ -21,7 +21,7 @@ static float square(float x) { return x * x; }
 // The channel count's name: Galaxy's EffectsChannels for Deus Ex, which its
 // Sound menu reads and writes (galaxy-dll.md, Settings); Channels for other
 // games.
-static const char* ChannelsKey() { return engine->LaunchInfo.IsDeusEx() ? "EffectsChannels" : "Channels"; }
+static const char* ChannelsKey() { return "EffectsChannels"; }
 
 std::string USurrealAudioDevice::GetPropertyAsString(const NameString& propertyName) const
 {
@@ -54,11 +54,11 @@ std::string USurrealAudioDevice::GetPropertyAsString(const NameString& propertyN
 	else if (propertyName == ChannelsKey())
 		return IniPropertyConverter<int>::ToString(Channels);
 	else if (propertyName == "MusicVolume")
-		return IniPropertyConverter<uint8_t>::ToString(engine->LaunchInfo.IsDeusEx() ? MusicVolumeSetting : MusicVolume);
+		return IniPropertyConverter<uint8_t>::ToString(MusicVolumeSetting);
 	else if (propertyName == "SoundVolume")
-		return IniPropertyConverter<uint8_t>::ToString(engine->LaunchInfo.IsDeusEx() ? SoundVolumeSetting : SoundVolume);
+		return IniPropertyConverter<uint8_t>::ToString(SoundVolumeSetting);
 	else if (propertyName == "SpeechVolume")
-		return IniPropertyConverter<uint8_t>::ToString(engine->LaunchInfo.IsDeusEx() ? SpeechVolumeSetting : SpeechVolume);
+		return IniPropertyConverter<uint8_t>::ToString(SpeechVolumeSetting);
 	else if (propertyName == "AmbientFactor")
 		return IniPropertyConverter<float>::ToString(AmbientFactor);
 	else if (propertyName == "DopplerSpeed")
@@ -99,7 +99,7 @@ void USurrealAudioDevice::SetPropertyFromString(const NameString& propertyName, 
 		Channels = IniPropertyConverter<int>::FromString(value);
 		// Galaxy's channel loops read EffectsChannels as it stands: a SET takes
 		// the channels in use at once (galaxy-dll.md, Settings).
-		if (engine->LaunchInfo.IsDeusEx() && m_Viewport)
+		if (m_Viewport)
 			SetChannelCount();
 	}
 	else if (propertyName == "MusicVolume")
@@ -163,10 +163,9 @@ void USurrealAudioDevice::SaveConfig()
 	engine->packages->SetIniValue("System", Class, "Latency", IniPropertyConverter<int>::ToString(Latency));
 	engine->packages->SetIniValue("System", Class, "OutputRate", IniPropertyConverter<AudioFrequency>::ToString(OutputRate));
 	engine->packages->SetIniValue("System", Class, ChannelsKey(), IniPropertyConverter<int>::ToString(Channels));
-	bool dx = engine->LaunchInfo.IsDeusEx();
-	engine->packages->SetIniValue("System", Class, "MusicVolume", IniPropertyConverter<uint8_t>::ToString(dx ? MusicVolumeSetting : MusicVolume));
-	engine->packages->SetIniValue("System", Class, "SoundVolume", IniPropertyConverter<uint8_t>::ToString(dx ? SoundVolumeSetting : SoundVolume));
-	engine->packages->SetIniValue("System", Class, "SpeechVolume", IniPropertyConverter<uint8_t>::ToString(dx ? SpeechVolumeSetting : SpeechVolume));
+	engine->packages->SetIniValue("System", Class, "MusicVolume", IniPropertyConverter<uint8_t>::ToString(MusicVolumeSetting));
+	engine->packages->SetIniValue("System", Class, "SoundVolume", IniPropertyConverter<uint8_t>::ToString(SoundVolumeSetting));
+	engine->packages->SetIniValue("System", Class, "SpeechVolume", IniPropertyConverter<uint8_t>::ToString(SpeechVolumeSetting));
 	engine->packages->SetIniValue("System", Class, "AmbientFactor", IniPropertyConverter<float>::ToString(AmbientFactor));
 	engine->packages->SetIniValue("System", Class, "DopplerSpeed", IniPropertyConverter<float>::ToString(DopplerSpeed));
 }
@@ -242,21 +241,11 @@ void USurrealAudioDevice::Update()
 	if (m_MusicTransition && m_MusicFadeLength > 0.0f)
 		musicFade = std::max(m_MusicFadeLeft, 0.0f) / m_MusicFadeLength;
 	m_Device->SetMusicVolume(MusicVolume / 255.0f * musicFade);
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		// Galaxy's sample volume is the louder of the two sliders, squared in its
-		// mixer; each sound's own share of the sliders is its voice's
-		// (GalaxyVoice, galaxy-dll.md, Volume).
-		m_Device->SetSoundVolume(SoundVolume / 255.0f);
-		m_Device->SetSpeechVolume(SpeechVolume / 255.0f);
-	}
-	else
-	{
-		// Other games keep the halving their normalized volumes were tuned against,
-		// speech at the Sound slider with the rest.
-		m_Device->SetSoundVolume(SoundVolume / 255.0f * 0.5f);
-		m_Device->SetSpeechVolume(SoundVolume / 255.0f * 0.5f);
-	}
+	// Galaxy's sample volume is the louder of the two sliders, squared in its
+	// mixer; each sound's own share of the sliders is its voice's
+	// (GalaxyVoice, galaxy-dll.md, Volume).
+	m_Device->SetSoundVolume(SoundVolume / 255.0f);
+	m_Device->SetSpeechVolume(SpeechVolume / 255.0f);
 	m_Device->Update();
 }
 
@@ -318,14 +307,14 @@ void USurrealAudioDevice::UpdateAmbience()
 				// times LightBrightness / 255 and the light's momentary pulse or
 				// flicker -- the renderer's GlobalLighting of a steady 1 --, then at
 				// most 1 (galaxy-dll.md, Each frame).
-				if (engine->LaunchInfo.IsDeusEx() && Playing.Actor->LightType() != LT_None)
+				if (Playing.Actor->LightType() != LT_None)
 					Playing.Volume = std::min(Playing.Volume * (Playing.Actor->LightBrightness() / 255.0f) * LightmapBuilder::GlobalLighting(Playing.Actor, 1.0f, nullptr), 1.0f);
 
 				// Deus Ex's Doppler is the ambient sound's alone: the pitch times
 				// 1 - the actor's speed away from the view target / DopplerSpeed,
 				// kept to 0.5-2 (galaxy-dll.md, Each frame). AL's own Doppler is
 				// off for Deus Ex, so nothing else shifts.
-				if (engine->LaunchInfo.IsDeusEx() && DopplerSpeed > 0.0f)
+				if (DopplerSpeed > 0.0f)
 				{
 					vec3 away = Playing.Actor->Location() - ViewActor->Location();
 					float distance = length(away);
@@ -345,9 +334,8 @@ void USurrealAudioDevice::UpdateAmbience()
 // NActor::PlaySound as (slot << 1), and this file already decodes it that way for
 // SLOT_Ambient, so SLOT_Talk is recoverable the same way.
 //
-// PropertyOffsets only resolves the lip-sync properties inside its IsDeusEx() branch, so an
-// unset offset doubles as the "this game has no lip sync" test: other games return on the
-// first line and observe no behaviour change at all.
+// A Pawn class without the lip-sync properties leaves their offsets unset: then no lip
+// sync, and nothing else changes.
 static bool HasLipSync()
 {
 	return PropOffsets_Pawn.nextPhoneme.DataOffset != ~(size_t)0;
@@ -401,45 +389,23 @@ void USurrealAudioDevice::UpdateSounds(float timeStep)
 
 			UpdateLipSync(Playing);
 
-			if (engine->LaunchInfo.IsDeusEx())
-			{
-				// Deus Ex: a wall between the player's eyes and the sound fades it
-				// toward a third of its volume over half a second, and back as it
-				// clears (galaxy-dll.md, Sounds behind walls); then the voice as
-				// Galaxy works it out, through Galaxy's mixer.
-				UpdateObstruction(Playing, timeStep);
-				int volume = 0, panning = 0;
-				GalaxyVoice(Playing, volume, panning);
-				if (Playing.IsActive)
-				{
-					if (m_Device->IsPlaying((int)i))
-						m_Device->UpdateMixedSound((int)i, volume, panning, Playing.Pitch);
-					else
-						PlayingSounds[i] = {};
-				}
-				else
-				{
-					m_Device->PlayMixedSound((int)i, Playing.Sound, volume, panning, Playing.Pitch);
-					Playing.IsActive = true;
-				}
-				continue;
-			}
-
-			// Update the sound.
+			// Deus Ex: a wall between the player's eyes and the sound fades it
+			// toward a third of its volume over half a second, and back as it
+			// clears (galaxy-dll.md, Sounds behind walls); then the voice as
+			// Galaxy works it out, through Galaxy's mixer.
+			UpdateObstruction(Playing, timeStep);
+			int volume = 0, panning = 0;
+			GalaxyVoice(Playing, volume, panning);
 			if (Playing.IsActive)
 			{
 				if (m_Device->IsPlaying((int)i))
-				{
-					m_Device->UpdateSound((int)i, Playing.Sound, Playing.Location, Playing.Volume, Playing.Radius, Playing.Pitch);
-				}
+					m_Device->UpdateMixedSound((int)i, volume, panning, Playing.Pitch);
 				else
-				{
 					PlayingSounds[i] = {};
-				}
 			}
 			else
 			{
-				m_Device->PlaySound((int)i, Playing.Sound, Playing.Location, Playing.Volume, Playing.Radius, Playing.Pitch, (Playing.Id & 14) == SLOT_Talk * 2);
+				m_Device->PlayMixedSound((int)i, Playing.Sound, volume, panning, Playing.Pitch);
 				Playing.IsActive = true;
 			}
 		}
@@ -547,32 +513,6 @@ void USurrealAudioDevice::UpdateMusic(float timeStep)
 	if (!m_Viewport || !m_Viewport->Actor())
 		return;
 
-	if (!engine->LaunchInfo.IsDeusEx())
-	{
-		// Other games keep the fork's instant switch.
-		if (m_Viewport->Actor()->Transition() != MTRAN_None)
-		{
-			if (CurrentSong)
-			{
-				m_Device->PlayMusic({});
-				CurrentSong = nullptr;
-			}
-
-			CurrentSong = m_Viewport->Actor()->Song();
-			CurrentSection = m_Viewport->Actor()->SongSection();
-
-			if (CurrentSong && UseDigitalMusic)
-			{
-				auto source = CreateMusicSource(CurrentSong, CurrentSection != 255 ? CurrentSection : 0);
-				if (source)
-					m_Device->PlayMusic(std::move(source));
-			}
-
-			m_Viewport->Actor()->Transition() = MTRAN_None;
-		}
-		return;
-	}
-
 	auto* player = m_Viewport->Actor();
 
 	if (!m_MusicTransition && player->Transition() != MTRAN_None)
@@ -646,7 +586,7 @@ void USurrealAudioDevice::UpdateMusic(float timeStep)
 
 void USurrealAudioDevice::UpdateReverb()
 {
-	if (!engine->LaunchInfo.IsDeusEx() || !m_Viewport || !m_Viewport->Actor())
+	if (!m_Viewport || !m_Viewport->Actor())
 		return;
 
 	// With UseReverb, the zone of the player's view target with bReverbZone
@@ -686,18 +626,10 @@ bool USurrealAudioDevice::PlaySound(UActor* Actor, int Id, USound* Sound, vec3 L
 	// 0x103e1f60, engine-dll.md#sounds): a script that plays a sound with no
 	// radius of its own is heard 800 units out, not the 1,500 the fork let
 	// through -- and its priority, (1 - distance / radius) * volume, is worked
-	// out on that. Other games keep the fork's 1,500.
+	// out on that.
 	if (Radius <= 0.0)
-		Radius = engine->LaunchInfo.IsDeusEx() ? 800.0f : 1500.0f;
+		Radius = 800.0f;
 
-	if (!engine->LaunchInfo.IsDeusEx())
-	{
-		// Attempt to normalize volume around 1.0 as the values used by the original games are just really broken in general.
-		if (Volume >= 8.0f)
-			Volume = 0.8f; // Special check for announcer garbage
-		else
-			Volume = (Volume - 1.0f) * 0.25f + 1.0f;
-	}
 	// Deus Ex plays the script's volume as Galaxy does: scaled only by fall-off,
 	// obstruction and the sliders, and capped at full by the device (AL_MAX_GAIN).
 
@@ -867,8 +799,7 @@ float USurrealAudioDevice::SoundPriority(UViewport* Viewport, vec3 Location, flo
 	// Galaxy lets a sound beyond its radius go negative: it never beats an empty
 	// channel's 0, so it is dropped even when one is free, and a playing sound
 	// that left its radius is the first stolen (galaxy-dll.md, Playing a sound).
-	// Other games keep the fork's floor, a free channel taken and held silent.
-	return engine->LaunchInfo.IsDeusEx() ? priority : std::max(priority, 0.0f);
+	return priority;
 }
 
 void USurrealAudioDevice::Mark(GCMarker& marker)

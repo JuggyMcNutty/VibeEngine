@@ -45,7 +45,7 @@ void VisibleNode::Draw(VisibleFrame* frame)
 
 	// Deus Ex's detail and macro textures lie as the original's lock leaves
 	// them, at their own scale and not panned with the surface
-	// (dx-reverse-info render-dll.md, a frame); other games' pan with it.
+	// (dx-reverse-info render-dll.md, a frame).
 	// The detail texture is drawn only while the render device's
 	// DetailTextures is on, as the original's (d3ddrv-dll.md, detail
 	// textures).
@@ -55,10 +55,7 @@ void VisibleNode::Draw(VisibleFrame* frame)
 	{
 		tex = surface.Material->DetailTexture()->GetAnimTexture();
 		engine->render->UpdateTexture(tex);
-		if (engine->LaunchInfo.IsDeusEx())
-			engine->render->UpdateTextureInfo(detailtex, tex);
-		else
-			engine->render->UpdateTextureInfo(detailtex, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
+		engine->render->UpdateTextureInfo(detailtex, tex);
 	}
 
 	TextureInfo macrotex;
@@ -66,10 +63,7 @@ void VisibleNode::Draw(VisibleFrame* frame)
 	{
 		tex = surface.Material->MacroTexture()->GetAnimTexture();
 		engine->render->UpdateTexture(tex);
-		if (engine->LaunchInfo.IsDeusEx())
-			engine->render->UpdateTextureInfo(macrotex, tex);
-		else
-			engine->render->UpdateTextureInfo(macrotex, surface, tex, ZoneUPanSpeed, ZoneVPanSpeed);
+		engine->render->UpdateTextureInfo(macrotex, tex);
 	}
 
 	int numverts = Node->NumVertices;
@@ -102,9 +96,7 @@ void VisibleNode::Draw(VisibleFrame* frame)
 		// zone, for a surface not translucent, from the zone it is seen
 		// from, which a fog zone too; upstream took the camera's zone for
 		// every surface, fogging one seen from a zone without fog.
-		if (!engine->LaunchInfo.IsDeusEx())
-			fogmap = engine->Level->Light.GetLevelFogmap(surface, engine->CameraActor->Region().Zone, model);
-		else if (frame->VolumetricFog && (PolyFlags & PF_Translucent) == 0)
+		if (frame->VolumetricFog && (PolyFlags & PF_Translucent) == 0)
 			fogmap = engine->Level->Light.GetLevelFogmap(surface, zoneActor, model);
 	}
 

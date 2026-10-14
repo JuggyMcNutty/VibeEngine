@@ -111,57 +111,16 @@ void ULevel::TickActor(float elapsed, UActor* actor)
 
 void ULevel::Tick(float elapsed, bool gamePaused)
 {
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
-
 	// The tick counts its own jumps, as the original's (ULevel::Tick)
 	Frame::InitRunaway();
-
-	// Each tick marks what it ticks with a fresh value, so the first tick of
-	// a level ticks every actor loaded with it (their bTicked false) --
-	// marked with the old value, the first tick after a load passed over
-	// them all and the first frame was drawn before any had ticked. Deus
-	// Ex's flips the mark after its tick, as the original's: its pass skips
-	// no actor for its own mark (TickDeusEx).
-	if (!deusEx)
-		ticked = !ticked;
 
 	// The actors' step is at most 0.4 s, as the original's level tick holds
 	// it, the level's clock taking the whole time: a long frame -- a load, a
 	// hitch -- moves nothing further. Its floor of 5 ms is not carried: above
 	// 200 frames a second it would run the game fast.
-	if (deusEx)
-		elapsed = std::min(elapsed, 0.4f);
+	elapsed = std::min(elapsed, 0.4f);
 
-	if (deusEx)
-	{
-		TickDeusEx(elapsed, gamePaused);
-	}
-	else if (gamePaused)
-	{
-		for (size_t i = 0; i < Actors.size(); i++)
-		{
-			if (auto playerPawn = UObject::TryCast<UPlayerPawn>(Actors[i]))
-				playerPawn->PausedInput(elapsed);
-			else if (Actors[i] && Actors[i]->bAlwaysTick()) // Should this happen?
-				TickActor(elapsed, Actors[i]);
-		}
-	}
-	else if (engine->LevelInfo->bPlayersOnly())
-	{
-		for (size_t i = 0; i < Actors.size(); i++)
-		{
-			if (Actors[i] && (UObject::TryCast<UPlayerPawn>(Actors[i]) || Actors[i]->bAlwaysTick()))
-				TickActor(elapsed, Actors[i]);
-		}
-	}
-	else
-	{
-		for (size_t i = 0; i < Actors.size(); i++)
-		{
-			if (Actors[i])
-				TickActor(elapsed, Actors[i]);
-		}
-	}
+	TickDeusEx(elapsed, gamePaused);
 
 	// Without a nulled slot the compacted list is the same list; the first
 	// dynamic actor moves down by the static slots emptied before it.
@@ -186,9 +145,9 @@ void ULevel::Tick(float elapsed, bool gamePaused)
 		ActorsVersion++;
 	}
 
-	// The original's mark flips after the actors' tick.
-	if (deusEx)
-		ticked = !ticked;
+	// The mark flips after the actors' tick, as the original's: the pass
+	// skips no actor for its own mark (TickDeusEx).
+	ticked = !ticked;
 
 	// The original's last step of a level tick.
 	CleanupDestroyed(false);
@@ -372,7 +331,7 @@ void ULevel::CleanupDestroyed(bool force)
 			actor->PropertyData.Class->CleanupDestroyed(actor->PropertyData.Data);
 	}
 
-	UEventManager* manager = engine->LaunchInfo.IsDeusEx() && this == engine->Level ? UEventManager::Get() : nullptr;
+	UEventManager* manager = this == engine->Level ? UEventManager::Get() : nullptr;
 	while (UActor* actor = FirstDeleted)
 	{
 		FirstDeleted = actor->Deleted();

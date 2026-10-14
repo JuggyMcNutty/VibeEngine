@@ -23,11 +23,7 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 	direction *= 1.0f / tmax;
 
 	// Deus Ex's hits are given short of what they hit by the original's
-	// backoffs (below); other games' traces look a unit past their end and
-	// stop a unit short.
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
-	float margin = deusEx ? 0.0f : 1.0f;
-	tmax += margin;
+	// backoffs (below).
 
 	CollisionHitList hits;
 
@@ -63,42 +59,32 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 	{
 		if (radius == 0.0 && height == 0.0)
 		{
-			if (deusEx)
+			// Deus Ex's line is the original's walk down the level's BSP
+			// (UModel::LineCheck; dx-reverse-info engine-dll.md, traces):
+			// one hit, where the line enters solid space -- at its start
+			// when that is in solid -- with the plane of the node crossed
+			// there, turned to face the start, and that node's surface; a
+			// polygon with empty space on both sides stops nothing.
+			double fraction;
+			BspNode* crossed;
+			if (TraceRayModel::WalkSolid(GetLevel()->Model, origin, origin + direction * tmax, visibilityOnly ? NF_NotVisBlocking : 0, fraction, crossed))
 			{
-				// Deus Ex's line is the original's walk down the level's BSP
-				// (UModel::LineCheck; dx-reverse-info engine-dll.md, traces):
-				// one hit, where the line enters solid space -- at its start
-				// when that is in solid -- with the plane of the node crossed
-				// there, turned to face the start, and that node's surface; a
-				// polygon with empty space on both sides stops nothing.
-				double fraction;
-				BspNode* crossed;
-				if (TraceRayModel::WalkSolid(GetLevel()->Model, origin, origin + direction * tmax, visibilityOnly ? NF_NotVisBlocking : 0, fraction, crossed))
-				{
-					CollisionHit hit = { (float)(fraction * tmax), vec3(crossed->PlaneX, crossed->PlaneY, crossed->PlaneZ), nullptr, crossed, crossed };
-					if (dot(to_dvec3(hit.Normal), direction) > 0.0)
-						hit.Normal = -hit.Normal;
-					hits.push_back(hit);
-				}
+				CollisionHit hit = { (float)(fraction * tmax), vec3(crossed->PlaneX, crossed->PlaneY, crossed->PlaneZ), nullptr, crossed, crossed };
+				if (dot(to_dvec3(hit.Normal), direction) > 0.0)
+					hit.Normal = -hit.Normal;
+				hits.push_back(hit);
+			}
 
-				// Deus Ex's line meets the movers where the BSP filed them too,
-				// the hits the level's (CollisionSystem, filed movers)
-				GetLevel()->Collision.TraceFiledMovers(origin, direction, tmax, visibilityOnly, hits);
-			}
-			else
-			{
-				// Line/triangle intersect
-				TraceRayModel tracemodel;
-				CollisionHitList worldHits = tracemodel.Trace(GetLevel()->Model, origin, tmin, direction, tmax, visibilityOnly);
-				hits.push_back(worldHits);
-			}
+			// Deus Ex's line meets the movers where the BSP filed them too,
+			// the hits the level's (CollisionSystem, filed movers)
+			GetLevel()->Collision.TraceFiledMovers(origin, direction, tmax, visibilityOnly, hits);
 		}
 		else
 		{
 			// AABB/Triangle intersect
 			TraceAABBModel tracemodel;
 			dvec3 extents = { (double)radius, (double)radius, (double)height };
-			CollisionHitList worldHits = tracemodel.Trace(GetLevel()->Model, origin, tmin, direction, tmax, extents, visibilityOnly, deusEx, false);
+			CollisionHitList worldHits = tracemodel.Trace(GetLevel()->Model, origin, tmin, direction, tmax, extents, visibilityOnly, true, false);
 			hits.push_back(worldHits);
 		}
 	}
@@ -119,84 +105,81 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 	// -- is set 2 units before the level's. Equal distances keep the actors
 	// before the level, the fork's order where the original's sort leaves it
 	// to chance.
-	if (deusEx)
+	bool line = radius == 0.0 && height == 0.0;
+	double brushBackoff = line ? 0.5 : std::max(0.1, 0.1 * tmax);
+
+	// The level's one hit, the nearest, and the line cut to 5 units past it
+	int levelIndex = -1;
+	double levelDist = 0.0;
+	for (size_t i = 0; i < hits.size(); i++)
 	{
-		bool line = radius == 0.0 && height == 0.0;
-		double brushBackoff = line ? 0.5 : std::max(0.1, 0.1 * tmax);
+		const CollisionHit& hit = hits.begin()[i];
+		if (!hit.Actor && (levelIndex < 0 || hit.Fraction < hits.begin()[levelIndex].Fraction))
+			levelIndex = (int)i;
+	}
+	double cutLen = tmax;
+	bool nearStart = false;
+	vec3 levelNormal(0.0f);
+	if (levelIndex >= 0)
+	{
+		const CollisionHit& level = hits.begin()[levelIndex];
+		levelDist = std::max((double)level.Fraction - brushBackoff, 0.0);
+		cutLen = std::min(tmax, levelDist * (levelDist + 5.0) / (levelDist + 0.0001));
+		nearStart = levelDist < 0.01 * tmax && levelDist < 30.0;
+		levelNormal = level.Normal;
+	}
+	// The actors' checks run along the cut line: a cylinder's thousandth is of it
+	double actorBackoff = 0.001 * cutLen;
 
-		// The level's one hit, the nearest, and the line cut to 5 units past it
-		int levelIndex = -1;
-		double levelDist = 0.0;
-		for (size_t i = 0; i < hits.size(); i++)
+	CollisionHitList given;
+	for (size_t i = 0; i < hits.size(); i++)
+	{
+		CollisionHit hit = hits.begin()[i];
+		double dist;
+		if (!hit.Actor)
 		{
-			const CollisionHit& hit = hits.begin()[i];
-			if (!hit.Actor && (levelIndex < 0 || hit.Fraction < hits.begin()[levelIndex].Fraction))
-				levelIndex = (int)i;
+			if ((int)i != levelIndex)
+				continue;
+			dist = levelDist;
 		}
-		double cutLen = tmax;
-		bool nearStart = false;
-		vec3 levelNormal(0.0f);
-		if (levelIndex >= 0)
+		else
 		{
-			const CollisionHit& level = hits.begin()[levelIndex];
-			levelDist = std::max((double)level.Fraction - brushBackoff, 0.0);
-			cutLen = std::min(tmax, levelDist * (levelDist + 5.0) / (levelDist + 0.0001));
-			nearStart = levelDist < 0.01 * tmax && levelDist < 30.0;
-			levelNormal = level.Normal;
-		}
-		// The actors' checks run along the cut line: a cylinder's thousandth is of it
-		double actorBackoff = 0.001 * cutLen;
-
-		CollisionHitList given;
-		for (size_t i = 0; i < hits.size(); i++)
-		{
-			CollisionHit hit = hits.begin()[i];
-			double dist;
-			if (!hit.Actor)
+			UMover* mover = UObject::TryCast<UMover>(hit.Actor);
+			if (nearStart && !mover)
+				continue;
+			if (hit.Node)
 			{
-				if ((int)i != levelIndex)
+				// A brush: its hit backed off, none at the cut line's end or past it
+				dist = std::max((double)hit.Fraction - brushBackoff, 0.0);
+				if (dist >= cutLen)
 					continue;
-				dist = levelDist;
 			}
 			else
 			{
-				UMover* mover = UObject::TryCast<UMover>(hit.Actor);
-				if (nearStart && !mover)
+				// A cylinder: a hit within the cut line, a thousandth short
+				if (hit.Fraction > cutLen)
 					continue;
-				if (hit.Node)
-				{
-					// A brush: its hit backed off, none at the cut line's end or past it
-					dist = std::max((double)hit.Fraction - brushBackoff, 0.0);
-					if (dist >= cutLen)
-						continue;
-				}
-				else
-				{
-					// A cylinder: a hit within the cut line, a thousandth short
-					if (hit.Fraction > cutLen)
-						continue;
-					dist = std::max((double)hit.Fraction - actorBackoff, 0.0);
-				}
-				if (line && mover && hit.NodeHead && levelIndex >= 0)
-				{
-					// A mover's own hit and the level's on one face, which the
-					// fork's two computations put a few millionths apart, are
-					// one distance, the actor's first: the fork's order where
-					// the original's rounding decides (DXMP_Silo's bot doors)
-					if (std::abs(dist - levelDist) < 0.001)
-						dist = levelDist;
-					// The pull: the normals the hits carry are the original's
-					if (std::abs(dist - levelDist) < 2.0 && hit.Normal == levelNormal)
-						dist = std::abs(levelDist - 2.0);
-				}
+				dist = std::max((double)hit.Fraction - actorBackoff, 0.0);
 			}
-			if (dist >= tmax)
-				continue;
-			hit.Fraction = (float)(dist / tmax);
-			given.push_back(hit);
+			if (line && mover && hit.NodeHead && levelIndex >= 0)
+			{
+				// A mover's own hit and the level's on one face, which the
+				// fork's two computations put a few millionths apart, are
+				// one distance, the actor's first: the fork's order where
+				// the original's rounding decides (DXMP_Silo's bot doors)
+				if (std::abs(dist - levelDist) < 0.001)
+					dist = levelDist;
+				// The pull: the normals the hits carry are the original's
+				if (std::abs(dist - levelDist) < 2.0 && hit.Normal == levelNormal)
+					dist = std::abs(levelDist - 2.0);
+			}
 		}
-		hits = given;
+		if (dist >= tmax)
+			continue;
+		hit.Fraction = (float)(dist / tmax);
+		given.push_back(hit);
 	}
+	hits = given;
 
 	// Sort by closest hit and only include the first hit for each actor
 
@@ -219,15 +202,6 @@ CollisionHitList TraceTester::Trace(const vec3& from, const vec3& to, float heig
 		}
 		if (!seen)
 			uniqueHits.push_back(hit);
-	}
-
-	if (!deusEx)
-	{
-		tmax -= margin;
-		for (auto& hit : uniqueHits)
-		{
-			hit.Fraction = (float)(std::max(hit.Fraction - margin, 0.0f) / tmax);
-		}
 	}
 
 	return uniqueHits;
@@ -308,19 +282,16 @@ bool TraceTester::TraceAnyHit(vec3 from, vec3 to, UActor* tracingActor, bool tra
 	direction *= 1.0f / tmax;
 
 	// Deus Ex's asks along the line itself, as the original's FastLineCheck
-	// does; other games' look a unit past its end.
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
-	float margin = deusEx ? 0.0f : 1.0f;
-	tmax += margin;
+	// does.
 
 	// Deus Ex's movers block where the level's BSP filed them, whatever they
 	// collide with (below), not where they are; the other actors only when
 	// asked for
-	if (!deusEx || traceActors)
+	if (traceActors)
 	{
 		CollisionHitList hits;
 		bool actorHit = VisitActorsOnRay(from, to, [&](UActor* actor) {
-			if (actor != tracingActor && actor->bBlockActors() && !(deusEx && UObject::TryCast<UMover>(actor)))
+			if (actor != tracingActor && actor->bBlockActors() && !UObject::TryCast<UMover>(actor))
 			{
 				TraceActor(actor, origin, tmin, direction, tmax, 0.0, 0.0, traceActors, traceWorld, visibilityOnly, hits);
 				if (!hits.empty())
@@ -334,17 +305,12 @@ bool TraceTester::TraceAnyHit(vec3 from, vec3 to, UActor* tracingActor, bool tra
 
 	if (traceWorld)
 	{
-		if (deusEx)
-		{
-			// Deus Ex's is the original's FastLineCheck: its walk down the
-			// level's BSP, blocked by any solid leaf the segment touches, the
-			// start's included; the movers where the BSP filed them besides
-			if (GetLevel()->Collision.FiledMoversBlock(from, to, visibilityOnly))
-				return true;
-			return !TraceRayModel::FastWalk(GetLevel()->Model, to_dvec3(from), to_dvec3(to));
-		}
-		TraceRayModel tracemodel;
-		return tracemodel.TraceAnyHit(GetLevel()->Model, origin, tmin, direction, tmax, visibilityOnly);
+		// Deus Ex's is the original's FastLineCheck: its walk down the
+		// level's BSP, blocked by any solid leaf the segment touches, the
+		// start's included; the movers where the BSP filed them besides
+		if (GetLevel()->Collision.FiledMoversBlock(from, to, visibilityOnly))
+			return true;
+		return !TraceRayModel::FastWalk(GetLevel()->Model, to_dvec3(from), to_dvec3(to));
 	}
 
 	return false;
@@ -379,16 +345,11 @@ bool TraceTester::SightBlocked(const vec3& from, const vec3& to, const std::func
 
 	// Deus Ex's BSP holds the movers where it filed them, and the level's
 	// part is the original's walk with the NF_NotVisBlocking nodes passed
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		if (GetLevel()->Collision.FiledMoversBlock(from, to, true))
-			return true;
-		double fraction;
-		BspNode* crossed;
-		return TraceRayModel::WalkSolid(GetLevel()->Model, to_dvec3(from), to_dvec3(to), NF_NotVisBlocking, fraction, crossed);
-	}
-	TraceRayModel tracemodel;
-	return tracemodel.TraceAnyHit(GetLevel()->Model, origin, tmin, direction, tmax, true);
+	if (GetLevel()->Collision.FiledMoversBlock(from, to, true))
+		return true;
+	double fraction;
+	BspNode* crossed;
+	return TraceRayModel::WalkSolid(GetLevel()->Model, to_dvec3(from), to_dvec3(to), NF_NotVisBlocking, fraction, crossed);
 }
 
 // The hit lies on the cylinder the trace actually swept against: the actor's cylinder grown by the
@@ -452,8 +413,7 @@ void TraceTester::TraceActor(UActor* actor, const dvec3& origin, double tmin, co
 		double localTMin = tmin;
 		double localTMax = tmax;
 
-		bool deusEx = engine->LaunchInfo.IsDeusEx();
-		if (radius == 0.0 && height == 0.0 && deusEx)
+		if (radius == 0.0 && height == 0.0)
 		{
 			// Deus Ex's line meets the brush as the original's walk down its
 			// BSP does (UModel::LineCheck with an owner): one hit, where the
@@ -471,19 +431,13 @@ void TraceTester::TraceActor(UActor* actor, const dvec3& origin, double tmin, co
 			}
 			return;
 		}
-		else if (radius == 0.0 && height == 0.0)
-		{
-			// Line/triangle intersect
-			TraceRayModel tracemodel;
-			brushHits = tracemodel.Trace(mover->Brush(), localOrigin, localTMin, localDirection, localTMax, visibilityOnly);
-		}
 		else
 		{
 			// AABB/Triangle intersect
 			TraceAABBModel tracemodel;
 			dvec3 extents = { (double)radius, (double)radius, (double)height };
 			extents /= dvec3(std::abs(scale.x), std::abs(scale.y), std::abs(scale.z));
-			brushHits = tracemodel.Trace(mover->Brush(), localOrigin, localTMin, localDirection, localTMax, extents, visibilityOnly, engine->LaunchInfo.IsDeusEx(), true);
+			brushHits = tracemodel.Trace(mover->Brush(), localOrigin, localTMin, localDirection, localTMax, extents, visibilityOnly, true, true);
 		}
 
 		for (auto& hit : brushHits)
@@ -515,7 +469,7 @@ void TraceTester::TraceActor(UActor* actor, const dvec3& origin, double tmin, co
 			// the original's normal there: out from the axis, level
 			// (UPrimitive::LineCheck; TraceConsole).
 			dvec3 offset(origin.x - actor->Location().x, origin.y - actor->Location().y, 0.0);
-			if (t == 0.0 && engine->LaunchInfo.IsDeusEx() && dot(offset, offset) > 0.0)
+			if (t == 0.0 && dot(offset, offset) > 0.0)
 			{
 				offset /= std::sqrt(dot(offset, offset));
 				normal = vec3((float)offset.x, (float)offset.y, 0.0f);
@@ -636,14 +590,11 @@ double TraceTester::RayCylinderTrace(const dvec3& rayOrigin, const dvec3& rayDir
 	// cylinder check (UPrimitive::LineCheck) counts only a line coming in:
 	// a trace straight down from inside a pawn does not hit the pawn, where
 	// this found where it left through the bottom.
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		double dx = rayOrigin.x - cylinderCenter.x;
-		double dy = rayOrigin.y - cylinderCenter.y;
-		double dz = rayOrigin.z - cylinderCenter.z;
-		if (dx * dx + dy * dy - cylinderRadius * cylinderRadius < 1.0 && dz > -cylinderHeight && dz < cylinderHeight)
-			return (rayDirNormalized.x * dx + rayDirNormalized.y * dy) * tmax < -0.1 ? 0.0 : tmax;
-	}
+	double dx = rayOrigin.x - cylinderCenter.x;
+	double dy = rayOrigin.y - cylinderCenter.y;
+	double dz = rayOrigin.z - cylinderCenter.z;
+	if (dx * dx + dy * dy - cylinderRadius * cylinderRadius < 1.0 && dz > -cylinderHeight && dz < cylinderHeight)
+		return (rayDirNormalized.x * dx + rayDirNormalized.y * dy) * tmax < -0.1 ? 0.0 : tmax;
 
 	//
 	// First, identify intersections between a line and an infinite cylinder. An infinite

@@ -14,51 +14,26 @@ void UPawn::Tick(float elapsed)
 {
 	// Deus Ex's tick starts as the original's AActor::Tick does: a pawn in
 	// stasis, or waiting for its owner, does nothing more here.
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
-	if (deusEx && !StartTick())
+	if (!StartTick())
 		return;
 
 	MoveTimer() -= elapsed;
 
 	// The original's pawn physics keep a running average of the tick,
 	// which moveToward reads (APawn::performPhysics).
-	if (deusEx)
-		AvgPhysicsTime() = 0.8f * AvgPhysicsTime() + 0.2f * elapsed;
+	AvgPhysicsTime() = 0.8f * AvgPhysicsTime() + 0.2f * elapsed;
 
 	if (StateFrame)
 	{
 		if (StateFrame->LatentState == LatentRunState::MoveTo)
 		{
-			if (deusEx)
-			{
-				if (DeusExPollMoveTo())
-					StateFrame->LatentState = LatentRunState::Continue;
-			}
-			else
-			{
-				TickRotateTo(Focus());
-				if (TickMoveTo(Destination()))
-					StateFrame->LatentState = LatentRunState::Continue;
-			}
-		}
-		else if (StateFrame->LatentState == LatentRunState::MoveToward && deusEx)
-		{
-			if (DeusExPollMoveToward())
+			if (DeusExPollMoveTo())
 				StateFrame->LatentState = LatentRunState::Continue;
 		}
 		else if (StateFrame->LatentState == LatentRunState::MoveToward)
 		{
-			if (MoveTarget())
-			{
-				Focus() = MoveTarget()->Location();
-				TickRotateTo(Focus());
-				if (TickMoveTo(MoveTarget()->Location()))
-					StateFrame->LatentState = LatentRunState::Continue;
-			}
-			else
-			{
+			if (DeusExPollMoveToward())
 				StateFrame->LatentState = LatentRunState::Continue;
-			}
 		}
 		else if (StateFrame->LatentState == LatentRunState::StrafeTo)
 		{
@@ -68,7 +43,7 @@ void UPawn::Tick(float elapsed)
 		}
 		else if (StateFrame->LatentState == LatentRunState::StrafeFacing)
 		{
-			if (engine->LaunchInfo.ue1Version > 219 && FaceTarget())
+			if (FaceTarget())
 			{
 				Focus() = FaceTarget()->Location();
 				TickRotateTo(Focus());
@@ -76,12 +51,6 @@ void UPawn::Tick(float elapsed)
 				if (TickMoveTo(Destination()))
 					StateFrame->LatentState = LatentRunState::Continue;
 				Destination() = oldDest;
-			}
-			else if (engine->LaunchInfo.ue1Version <= 219)
-			{
-				// How did StrafeFacing work in this version? We don't have FaceTarget.
-				LogUnimplemented("StrafeFacing not implemented for old versions");
-				StateFrame->LatentState = LatentRunState::Continue;
 			}
 			else
 			{
@@ -95,17 +64,11 @@ void UPawn::Tick(float elapsed)
 		}
 		else if (StateFrame->LatentState == LatentRunState::TurnToward)
 		{
-			if (engine->LaunchInfo.ue1Version > 219 && FaceTarget())
+			if (FaceTarget())
 			{
 				Focus() = FaceTarget()->Location();
 				if (TickRotateTo(FaceTarget()->Location()))
 					StateFrame->LatentState = LatentRunState::Continue;
-			}
-			else if (engine->LaunchInfo.ue1Version <= 219)
-			{
-				// How did StrafeFacing work in this version? We don't have FaceTarget.
-				LogUnimplemented("TurnToward not implemented for old versions");
-				StateFrame->LatentState = LatentRunState::Continue;
 			}
 			else
 			{
@@ -118,7 +81,7 @@ void UPawn::Tick(float elapsed)
 			{
 				StateFrame->LatentState = LatentRunState::Continue;
 			}
-			else if (deusEx)
+			else
 			{
 				// The original's poll (APawn::execPollWaitForLanding
 				// 0x103bb730): the fall counted down from 2.5 s
@@ -134,7 +97,7 @@ void UPawn::Tick(float elapsed)
 
 	if (bIsPlayer() && Role() >= ROLE_AutonomousProxy)
 	{
-		if (engine->LaunchInfo.ue1Version < 400 || bViewTarget())
+		if (bViewTarget())
 			CallEvent(this, EventName::UpdateEyeHeight, { ExpressionValue::FloatValue(elapsed) });
 		else
 			ViewRotation() = Rotation();
@@ -160,7 +123,7 @@ void UPawn::Tick(float elapsed)
 			if (SpeechTime() == 0.0f)
 				CallEvent(this, EventName::SpeechTimer);
 		}
-		if (engine->LaunchInfo.ue1Version >= 436 && bAdvancedTactics())
+		if (bAdvancedTactics())
 			CallEvent(this, EventName::UpdateTactics, { ExpressionValue::FloatValue(elapsed) });
 
 
@@ -196,8 +159,7 @@ void UPawn::Tick(float elapsed)
 				{
 					LastSeenPos() = Enemy()->Location();
 					LastSeeingPos() = Location();
-					if (engine->LaunchInfo.ue1Version > 219)
-						LastSeenTime() = Level()->TimeSeconds();
+					LastSeenTime() = Level()->TimeSeconds();
 				}
 				else if (IsEventEnabled(EventName::EnemyNotVisible))
 				{
@@ -213,46 +175,7 @@ void UPawn::TickRotating(float elapsed)
 	if (Physics() == PHYS_Spider)
 		return;
 
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		DeusExPhysicsRotation(elapsed);
-		return;
-	}
-
-	bRotateToDesired() = true;
-	bFixedRotationDir() = false;
-
-	if (Rotation() == DesiredRotation())
-		return;
-
-	Rotator rot = Rotation();
-
-	if ((DesiredRotation().Yaw & 0xffff) != (rot.Yaw & 0xffff))
-	{
-		rot.Yaw = Rotator::TurnToShortest(rot.Yaw, DesiredRotation().Yaw, (int)std::abs(RotationRate().Yaw * elapsed));
-	}
-
-	if ((DesiredRotation().Pitch & 0xffff) != (rot.Pitch & 0xffff))
-	{
-		rot.Pitch = DesiredRotation().Pitch & 0xffff;
-		if (rot.Pitch < 0x8000)
-		{
-			rot.Pitch = std::max(rot.Pitch, RotationRate().Pitch);
-		}
-		else if (rot.Pitch < 0x10000 - RotationRate().Pitch)
-		{
-			rot.Pitch = 0x10000 - RotationRate().Pitch;
-		}
-	}
-
-	// To do: apply RotationRate().Roll
-
-	Rotation() = rot;
-
-	if (Rotation() == DesiredRotation())
-	{
-		CallEvent(this, EventName::EndedRotation);
-	}
+	DeusExPhysicsRotation(elapsed);
 }
 
 // APawn::physicsRotation (Engine.dll 0x103c9f30; dx-reverse-info/
@@ -445,34 +368,7 @@ bool UPawn::DeusExPollMoveToward()
 
 bool UPawn::TickMoveTo(const vec3& target)
 {
-	if (engine->LaunchInfo.IsDeusEx())
-		return DeusExMoveToward(target);
-
-	if (MoveTimer() < 0.0f)
-		return true;
-
-	if (Physics() == PHYS_Walking)
-	{
-		vec2 delta = target.xy() - Location().xy();
-		float distSqr = dot(delta, delta);
-		float velocitySqr = dot(Velocity(), Velocity());
-		if (distSqr < 1.0f || distSqr < velocitySqr * 0.05f)
-			return true;
-
-		Acceleration() = vec3(normalize(delta) * AccelRate(), 0.0f);
-	}
-	else
-	{
-		vec3 delta = target - Location();
-		float distSqr = dot(delta, delta);
-		float velocitySqr = dot(Velocity(), Velocity());
-		if (distSqr < 1.0f || distSqr < velocitySqr * 0.05f)
-			return true;
-
-		Acceleration() = normalize(delta) * AccelRate();
-	}
-
-	return false;
+	return DeusExMoveToward(target);
 }
 
 void UPawn::MoveTo(const vec3& newDestination, float speed)
@@ -487,11 +383,8 @@ void UPawn::MoveTo(const vec3& newDestination, float speed)
 		StateFrame->LatentState = LatentRunState::MoveTo;
 
 	// Deus Ex's takes its first step at once, as the original's exec does.
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		TickRotateTo(Focus());
-		DeusExMoveToward(Destination());
-	}
+	TickRotateTo(Focus());
+	DeusExMoveToward(Destination());
 }
 
 void UPawn::MoveToward(UActor* newTarget, float speed)
@@ -504,20 +397,16 @@ void UPawn::MoveToward(UActor* newTarget, float speed)
 	Focus() = newTarget->Location();
 	bReducedSpeed() = false;
 	DesiredSpeed() = clamp(speed, 0.0f, MaxDesiredSpeed());
-	bool deusEx = engine->LaunchInfo.IsDeusEx();
 	if (UObject::TryCast<UPawn>(newTarget))
-		MoveTimer() = deusEx ? 1.2f : 1.0f;
+		MoveTimer() = 1.2f;
 	else
 		SetMoveDuration(newTarget->Location() - Location());
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::MoveToward;
 
 	// Deus Ex's takes its first step at once, as the original's exec does.
-	if (deusEx)
-	{
-		TickRotateTo(Focus());
-		DeusExMoveToward(Destination());
-	}
+	TickRotateTo(Focus());
+	DeusExMoveToward(Destination());
 }
 
 void UPawn::StrafeFacing(const vec3& newDestination, UActor* newTarget)
@@ -526,8 +415,7 @@ void UPawn::StrafeFacing(const vec3& newDestination, UActor* newTarget)
 		return;
 
 	Destination() = newDestination;
-	if (engine->LaunchInfo.ue1Version > 219)
-		FaceTarget() = newTarget;
+	FaceTarget() = newTarget;
 	SetMoveDuration(newDestination - Location());
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::StrafeFacing;
@@ -558,8 +446,7 @@ void UPawn::TurnToward(UActor* newTarget)
 	if (!newTarget)
 		return;
 
-	if (engine->LaunchInfo.ue1Version > 219)
-		FaceTarget() = newTarget;
+	FaceTarget() = newTarget;
 	Focus() = newTarget->Location();
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::TurnToward;
@@ -569,12 +456,9 @@ void UPawn::WaitForLanding()
 {
 	// Deus Ex's waits only when falling, LongFall 2.5 s on (APawn::
 	// execWaitForLanding 0x103bb6f0).
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		LatentFloat() = 2.5f;
-		if (Physics() != PHYS_Falling)
-			return;
-	}
+	LatentFloat() = 2.5f;
+	if (Physics() != PHYS_Falling)
+		return;
 	if (StateFrame)
 		StateFrame->LatentState = LatentRunState::WaitForLanding;
 }

@@ -20,7 +20,7 @@ void RenderSubsystem::ResetCanvas()
 {
 	// Scale the UI so it matches what you saw on a 1024x768 CRT monitor for Unreal and other older games.
 	// Assume 1280x960 for UT and newer.
-	int vertResolution = engine->LaunchInfo.ue1Version < 400 ? 768 : 960;
+	int vertResolution = 960;
 	Canvas.uiscale = std::max((engine->viewport->ViewportHeight() + vertResolution / 2) / vertResolution, 1);
 
 	SceneNode frame;
@@ -45,11 +45,8 @@ void RenderSubsystem::ResetCanvas()
 	int sizeY = (int)(engine->viewport->ViewportHeight() / (float)Canvas.uiscale);
 	engine->canvas->CurX() = 0.0f;
 	engine->canvas->CurY() = 0.0f;
-	if (engine->LaunchInfo.ue1Version > 219)
-	{
-		engine->console->FrameX() = (float)sizeX;
-		engine->console->FrameY() = (float)sizeY;
-	}
+	engine->console->FrameX() = (float)sizeX;
+	engine->console->FrameY() = (float)sizeY;
 	engine->canvas->ClipX() = (float)sizeX;
 	engine->canvas->ClipY() = (float)sizeY;
 	engine->canvas->SizeX() = sizeX;
@@ -75,19 +72,7 @@ void RenderSubsystem::RenderOverlays()
 	Device->SetSceneNode(&Canvas.Frame);
 	if (engine->viewport->Actor())
 	{
-		if (engine->LaunchInfo.ue1Version > 219)
-		{
-			CallEvent(engine->viewport->Actor(), EventName::RenderOverlays, { ExpressionValue::ObjectValue(engine->canvas) });
-		}
-		else
-		{
-			UWeapon* weapon = engine->viewport->Actor()->Weapon();
-			if (weapon)
-			{
-				CallEvent(weapon, "InvCalcView", {});
-				DrawActor(weapon, false, false);
-			}
-		}
+		CallEvent(engine->viewport->Actor(), EventName::RenderOverlays, { ExpressionValue::ObjectValue(engine->canvas) });
 	}
 }
 
@@ -121,12 +106,9 @@ void RenderSubsystem::DrawActor(UActor* actor, bool WireFrame, bool ClearZ)
 	// its sprite has a rectangle on the main view's frame, whatever is in
 	// front of it -- an NPC the vision augmentation draws through a wall
 	// counts as drawn. GC.DrawActor and Canvas.DrawActor both come here.
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		float minX, minY, maxX, maxY, z;
-		if (MainFrame.SpriteRectangle(actor, minX, minY, maxX, maxY, z))
-			actor->LastRenderTime() = engine->LevelInfo->TimeSeconds();
-	}
+	float minX, minY, maxX, maxY, z;
+	if (MainFrame.SpriteRectangle(actor, minX, minY, maxX, maxY, z))
+		actor->LastRenderTime() = engine->LevelInfo->TimeSeconds();
 
 	// The actor draws as if not hidden; a visible one (the vision
 	// augmentation's heat sources) keeps its own flag afterwards.

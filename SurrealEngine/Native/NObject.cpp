@@ -48,16 +48,10 @@ void NObject::RegisterFunctions()
 	RegisterVMNativeFunc_3("Object", "Add_VectorVector", &NObject::Add_VectorVector, 215);
 	RegisterVMNativeFunc_3("Object", "AndAnd_BoolBool", &NObject::AndAnd_BoolBool, 130);
 	RegisterVMNativeFunc_3("Object", "And_IntInt", &NObject::And_IntInt, 156);
-	if (engine->LaunchInfo.ue1Version > 219)
-		RegisterVMNativeFunc_2("Object", "Asc", &NObject::Asc, 237);
-	else
-		RegisterVMNativeFunc_2("Object", "Asc", &NObject::Asc, 0);
+	RegisterVMNativeFunc_2("Object", "Asc", &NObject::Asc, 237);
 	RegisterVMNativeFunc_2("Object", "Atan", &NObject::Atan, 190);
 	RegisterVMNativeFunc_2("Object", "Caps", &NObject::Caps, 235);
-	if (engine->LaunchInfo.ue1Version > 219)
-		RegisterVMNativeFunc_2("Object", "Chr", &NObject::Chr, 236);
-	else
-		RegisterVMNativeFunc_2("Object", "Chr", &NObject::Chr, 0);
+	RegisterVMNativeFunc_2("Object", "Chr", &NObject::Chr, 236);
 	RegisterVMNativeFunc_4("Object", "Clamp", &NObject::Clamp, 251);
 	RegisterVMNativeFunc_3("Object", "ClassIsChildOf", &NObject::ClassIsChildOf, 258);
 	RegisterVMNativeFunc_3("Object", "ComplementEqual_FloatFloat", &NObject::ComplementEqual_FloatFloat, 210);
@@ -77,10 +71,7 @@ void NObject::RegisterFunctions()
 	RegisterVMNativeFunc_3("Object", "Divide_RotatorFloat", &NObject::Divide_RotatorFloat, 289);
 	RegisterVMNativeFunc_3("Object", "Divide_VectorFloat", &NObject::Divide_VectorFloat, 214);
 	RegisterVMNativeFunc_3("Object", "Dot_VectorVector", &NObject::Dot_VectorVector, 219);
-	if (engine->LaunchInfo.ue1Version > 219)
-		RegisterVMNativeFunc_4("Object", "DynamicLoadObject", &NObject::DynamicLoadObject, 0);
-	else
-		RegisterVMNativeFunc_3("Object", "DynamicLoadObject", &NObject::DynamicLoadObject_219, 0);
+	RegisterVMNativeFunc_4("Object", "DynamicLoadObject", &NObject::DynamicLoadObject, 0);
 	RegisterVMNativeFunc_1("Object", "Enable", &NObject::Enable, 117);
 	RegisterVMNativeFunc_3("Object", "EqualEqual_BoolBool", &NObject::EqualEqual_BoolBool, 242);
 	RegisterVMNativeFunc_3("Object", "EqualEqual_FloatFloat", &NObject::EqualEqual_FloatFloat, 180);
@@ -196,38 +187,15 @@ void NObject::RegisterFunctions()
 	RegisterVMNativeFunc_3("Object", "XorXor_BoolBool", &NObject::XorXor_BoolBool, 131);
 	RegisterVMNativeFunc_3("Object", "Xor_IntInt", &NObject::Xor_IntInt, 157);
 
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		RegisterVMNativeFunc_2("Object", "AllObjects", &NObject::AllObjects_DeusEx, 1001);
-		RegisterVMNativeFunc_1("Object", "CriticalDelete", &NObject::CriticalDelete, 751);
-		RegisterVMNativeFunc_3("Object", "GetConfig", &NObject::GetConfig, 0);
-		RegisterVMNativeFunc_1("Object", "clock", &NObject::Clock, 1005);
-		RegisterVMNativeFunc_1("Object", "unclock", &NObject::Unclock, 1006);
-		RegisterVMNativeFunc_2("Object", "CyclesToSeconds", &NObject::CyclesToSeconds, 1007);
-	}
+	RegisterVMNativeFunc_2("Object", "AllObjects", &NObject::AllObjects_DeusEx, 1001);
+	RegisterVMNativeFunc_1("Object", "CriticalDelete", &NObject::CriticalDelete, 751);
+	RegisterVMNativeFunc_3("Object", "GetConfig", &NObject::GetConfig, 0);
+	RegisterVMNativeFunc_1("Object", "clock", &NObject::Clock, 1005);
+	RegisterVMNativeFunc_1("Object", "unclock", &NObject::Unclock, 1006);
+	RegisterVMNativeFunc_2("Object", "CyclesToSeconds", &NObject::CyclesToSeconds, 1007);
 
 	// Package 61 stuff
-	if (engine->LaunchInfo.ue1Version <= 219)
-	{
-		RegisterVMNativeFunc_3("Object", "Concat_StrStr", &NObject::Concat_StrStr, 228);
-		RegisterVMNativeFunc_3("Object", "Less_StrStr", &NObject::Less_StrStr, 197);
-		RegisterVMNativeFunc_3("Object", "Greater_StrStr", &NObject::Greater_StrStr, 198);
-		RegisterVMNativeFunc_3("Object", "LessEqual_StrStr", &NObject::LessEqual_StrStr, 199);
-		RegisterVMNativeFunc_3("Object", "GreaterEqual_StrStr", &NObject::GreaterEqual_StrStr, 200);
-		RegisterVMNativeFunc_3("Object", "EqualEqual_StrStr", &NObject::EqualEqual_StrStr, 201);
-		RegisterVMNativeFunc_3("Object", "NotEqual_StrStr", &NObject::NotEqual_StrStr, 202);
-		RegisterVMNativeFunc_3("Object", "ComplementEqual_StrStr", &NObject::ComplementEqual_StrStr, 168);
-		RegisterVMNativeFunc_2("Object", "Len", &NObject::Len, 204);
-		RegisterVMNativeFunc_3("Object", "InStr", &NObject::InStr, 205);
-		RegisterVMNativeFunc_4("Object", "Mid", &NObject::Mid, 206);
-		RegisterVMNativeFunc_3("Object", "Left", &NObject::Left, 207);
-		RegisterVMNativeFunc_3("Object", "Right", &NObject::Right, 208);
-		RegisterVMNativeFunc_2("Object", "Caps", &NObject::Caps, 209);
-	}
-	else
-	{
-		RegisterVMNativeFunc_3("Object", "At_StrStr", &NObject::At_StrStr, 168);
-	}
+	RegisterVMNativeFunc_3("Object", "At_StrStr", &NObject::At_StrStr, 168);
 
 }
 
@@ -516,10 +484,7 @@ void NObject::DynamicLoadObject(const std::string& ObjectName, UObject* ObjectCl
 				// core-dll.md, the natives): Effects.Laser.LaserBeam1 and
 				// Effects.Wrong.LaserBeam1 are the one FireTexture, which a
 				// Texture asked for does not find.
-				if (engine->LaunchInfo.IsDeusEx())
-					ReturnValue = engine->packages->GetPackage(packageName)->LoadObjectAnyGroup(UObject::Cast<UClass>(ObjectClass), ObjectName.substr(ObjectName.rfind('.') + 1));
-				else
-					ReturnValue = engine->packages->GetPackage(packageName)->GetUObject(ObjectClass->Name, objectName);
+				ReturnValue = engine->packages->GetPackage(packageName)->LoadObjectAnyGroup(UObject::Cast<UClass>(ObjectClass), ObjectName.substr(ObjectName.rfind('.') + 1));
 			}
 			catch (...)
 			{
@@ -657,9 +622,7 @@ void NObject::GetPropertyText(UObject* Self, const std::string& PropName, std::s
 	{
 		if (prop->Name == PropName)
 		{
-			if (!engine->packages->IsDeusEx())
-				ReturnValue = prop->PrintValue(Self->PropertyData.Ptr(prop));
-			else if (AllFlags(prop->Flags, ObjectFlags::Public))
+			if (AllFlags(prop->Flags, ObjectFlags::Public))
 				ReturnValue = Self->ExportPropertyText(prop);
 			return;
 		}
@@ -1048,12 +1011,6 @@ static bool IsClassOrSubclass(UStruct* cls, UClass* of)
 // (PostEditChange); the fork tells none.
 void NObject::ResetConfig(UObject* Self)
 {
-	if (!engine->packages->IsDeusEx())
-	{
-		LogUnimplemented("Object.ResetConfig");
-		return;
-	}
-
 	UClass* cls = UObject::TryCast<UClass>(Self);
 	if (!cls)
 		cls = Self->Class;
@@ -1102,11 +1059,6 @@ void NObject::SaveConfig(UObject* Self)
 
 void NObject::SetPropertyText(UObject* Self, const std::string& PropName, const std::string& PropValue)
 {
-	if (!engine->packages->IsDeusEx())
-	{
-		Self->SetPropertyFromString(PropName, PropValue);
-		return;
-	}
 	for (UProperty* prop : Self->PropertyData.Class->Properties)
 	{
 		if (prop->Name == PropName)

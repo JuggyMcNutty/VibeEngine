@@ -272,7 +272,7 @@ TextureInfo LightSystem::GetLightmap(UModel* model, int lightmapIndex, const Coo
 		const vec3* pixels = Builder.Pixels();
 		// Deus Ex's maps are the original's bytes, up to 127: a 255th each,
 		// which the light map's doubling on the screen makes D3DDrv's 2/255
-		float scale = engine->LaunchInfo.IsDeusEx() ? 1.0f / 255.0f : 1.0f;
+		float scale = 1.0f / 255.0f;
 		for (int y = updated.y0; y < updated.y1; y++)
 		{
 			vec4* dest = (vec4*)lmmip.Data.data() + (size_t)y * lmmip.Width;
@@ -361,37 +361,14 @@ void LightSystem::InitVertexLight(VertexLight& out, UActor* actor, UZoneInfo* zo
 	float ambientGlow = actor->AmbientGlow() == 255 ? AmbientGlowAmount : actor->AmbientGlow() * (1.0f / 255.0f);
 	// Deus Ex's is the original's: the zone's ambient light in FGetHSV's
 	// colour (dx-reverse-info/render-dll.md, meshes)
-	if (engine->LaunchInfo.IsDeusEx())
-		out.AmbientColor = ambientGlow + FGetHSV(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
-	else
-		out.AmbientColor = ambientGlow + hsbtorgb(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
+	out.AmbientColor = ambientGlow + FGetHSV(zoneActor->AmbientHue(), zoneActor->AmbientSaturation(), zoneActor->AmbientBrightness());
 
-	if (engine->LaunchInfo.IsDeusEx())
-	{
-		out.OriginalFormula = true;
-		out.ScaleGlow = actor->ScaleGlow();
-		// DrawLodMesh's unlit level (Render.dll 0x10b0f6e0): the glow raw,
-		// not pulsing, held to 0-1
-		out.UnlitLevel = std::clamp(actor->AmbientGlow() / 256.0f + actor->ScaleGlow() * 0.5f, 0.0f, 1.0f);
-		SetupForActorDX(out, actor);
-	}
-	else
-	{
-	out.ScaleGlow = actor->ScaleGlow() * 1.5f;
-
-	int lightIndex = 0;
-	for (UActor* light : actor->TouchingLights.List)
-	{
-		out.Lights[lightIndex].Location = light->Location();
-		out.Lights[lightIndex].Color = LightmapBuilder::GetLightColor(light);
-		float invRadius = 1.0f / light->WorldLightRadius();
-		out.Lights[lightIndex].InvRadiusSquared = invRadius * invRadius;
-		lightIndex++;
-		if (lightIndex == VertexLight::MaxLights)
-			break;
-	}
-	out.NumLights = lightIndex;
-	}
+	out.OriginalFormula = true;
+	out.ScaleGlow = actor->ScaleGlow();
+	// DrawLodMesh's unlit level (Render.dll 0x10b0f6e0): the glow raw,
+	// not pulsing, held to 0-1
+	out.UnlitLevel = std::clamp(actor->AmbientGlow() / 256.0f + actor->ScaleGlow() * 0.5f, 0.0f, 1.0f);
+	SetupForActorDX(out, actor);
 
 	out.CameraLocation = engine->CameraLocation;
 

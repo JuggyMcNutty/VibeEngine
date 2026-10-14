@@ -53,7 +53,7 @@ void LightEffect::Run(UActor* light, int width, const LightmapSpan* spans, size_
 	args.radius = light->WorldLightRadius();
 	args.invRadius = 1.0f / args.radius;
 	args.invRadiusSquared = args.invRadius * args.invRadius;
-	args.smoothFalloff = engine->LaunchInfo.IsDeusEx();
+	args.smoothFalloff = true;
 
 	uint8_t effect = light->LightEffect();
 	EffectFunc func = (effect <= LE_Unused) ? Effects[effect] : &LightEffect::NoneEffect;
@@ -772,9 +772,7 @@ float LightEffect::CalcLightDistanceFalloff(float distsqr)
 	// times the light's height over the surface / the radius, which is
 	// 1 + 2v^3 - 3v^2 times the angle's cosine the effects apply
 	// (dx-reverse-info/render-dll.md, light maps)
-	if (engine->LaunchInfo.IsDeusEx())
-		return std::max(1.0f + 2.0f * v3 - 3.0f * v2, 0.0f);
-	return std::min((1.0f + 2.0f * v3 - 3.0f * v2) / v, 1.0f);
+	return std::max(1.0f + 2.0f * v3 - 3.0f * v2, 0.0f);
 }
 
 float LightEffect::LightDistanceFalloff(float distsqr)
