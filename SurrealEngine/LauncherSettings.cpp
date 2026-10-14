@@ -26,8 +26,6 @@ LauncherSettings::LauncherSettings()
 			RenderDevice.Type = RenderDeviceType::Vulkan;
 		else if (rendevtype == "D3D11")
 			RenderDevice.Type = RenderDeviceType::D3D11;
-		else if (rendevtype == "D3D12")
-			RenderDevice.Type = RenderDeviceType::D3D12;
 		else if (rendevtype == "OpenGL")
 			RenderDevice.Type = RenderDeviceType::OpenGL;
 		else if (rendevtype == "GLES")
@@ -97,7 +95,6 @@ void LauncherSettings::Save()
 	default:
 	case RenderDeviceType::Vulkan: rendev["Type"] = JsonValue::string("Vulkan"); break;
 	case RenderDeviceType::D3D11: rendev["Type"] = JsonValue::string("D3D11"); break;
-	case RenderDeviceType::D3D12: rendev["Type"] = JsonValue::string("D3D12"); break;
 	case RenderDeviceType::OpenGL: rendev["Type"] = JsonValue::string("OpenGL"); break;
 	case RenderDeviceType::GLES: rendev["Type"] = JsonValue::string("GLES"); break;
 	}
