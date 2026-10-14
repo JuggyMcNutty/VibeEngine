@@ -2039,6 +2039,12 @@ void GLRenderDevice::EndFlash()
 		SetPipeline(PF_Highlighted);
 		SetDescriptorSet(0);
 
+		// The quad on the near plane, depth 0, so the depth test passes it
+		// over everything drawn: GL's depth runs -1 to 1, and at 0 the quad
+		// fell behind what the windows had drawn solid (their text, bars and
+		// icons), which kept their full brightness under the flash. The
+		// Vulkan and D3D11 devices' 0 is their near plane already.
+		const float z = -1.0f;
 		auto alloc = ReserveVertices(4, 6);
 		if (alloc.vptr)
 		{
@@ -2046,10 +2052,10 @@ void GLRenderDevice::EndFlash()
 			uint32_t* iptr = alloc.iptr;
 			uint32_t vpos = alloc.vpos;
 
-			vptr[0] = { 0, vec3(-1.0f, -1.0f, 0.0f), zero2, zero2, zero2, zero2, color };
-			vptr[1] = { 0, vec3(1.0f, -1.0f, 0.0f), zero2, zero2, zero2, zero2, color };
-			vptr[2] = { 0, vec3(1.0f,  1.0f, 0.0f), zero2, zero2, zero2, zero2, color };
-			vptr[3] = { 0, vec3(-1.0f,  1.0f, 0.0f), zero2, zero2, zero2, zero2, color };
+			vptr[0] = { 0, vec3(-1.0f, -1.0f, z), zero2, zero2, zero2, zero2, color };
+			vptr[1] = { 0, vec3(1.0f, -1.0f, z), zero2, zero2, zero2, zero2, color };
+			vptr[2] = { 0, vec3(1.0f,  1.0f, z), zero2, zero2, zero2, zero2, color };
+			vptr[3] = { 0, vec3(-1.0f,  1.0f, z), zero2, zero2, zero2, zero2, color };
 
 			iptr[0] = vpos;
 			iptr[1] = vpos + 1;
