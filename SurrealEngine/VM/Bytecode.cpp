@@ -98,26 +98,6 @@ Expression* Bytecode::ReadToken(BytecodeStream* stream, int depth)
 		stream->ReadToken();
 		return expr;
 	}
-	else if (token == ExprToken::Construct_227 && engine->LaunchInfo.IsUnreal1_227())
-	{
-		ConstructExpression* expr = Create<ConstructExpression>(exproffset);
-		expr->Struct = stream->ReadObject<UStruct>();
-		int argcount = stream->ReadIndex();
-		for (int i = 0; i < argcount; i++)
-		{
-			ConstructArgument arg;
-			arg.Name = stream->ReadObject<UProperty>();
-			arg.Value = ReadToken(stream, depth);
-			expr->Args.push_back(arg);
-		}
-		return expr;
-	}
-	else if (token == ExprToken::DynArrayToInt_HP1 && engine->LaunchInfo.IsHarryPotter1())
-	{
-		DynArrayToIntExpression* expr = Create<DynArrayToIntExpression>(exproffset);
-		expr->Value = ReadToken(stream, depth);
-		return expr;
-	}
 	else if (token == ExprToken::LetBool && stream->GetVersion() <= 63)
 	{
 		FunctionArgumentsExpression* expr = Create<FunctionArgumentsExpression>(exproffset);

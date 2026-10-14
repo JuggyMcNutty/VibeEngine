@@ -743,12 +743,6 @@ void ExpressionEvaluator::Expr(StringToNameExpression* expr)
 	*Out = ExpressionValue::NameValue(v);
 }
 
-void ExpressionEvaluator::Expr(DynArrayToIntExpression* expr)
-{
-	size_t count = Value(expr->Value).ToArray().GetSize();
-	*Out = ExpressionValue::IntValue((int)count);
-}
-
 void ExpressionEvaluator::Expr(VirtualFunctionExpression* expr)
 {
 	UClass* contextClass = UObject::TryCast<UClass>(Context);
@@ -798,11 +792,6 @@ void ExpressionEvaluator::Expr(NativeFunctionExpression* expr)
 		*Out = OperatorValue(expr);
 	else
 		Call(NativeFunctions::FuncByIndex[expr->nativeindex], expr->Args);
-}
-
-void ExpressionEvaluator::Expr(ConstructExpression* expr)
-{
-	Frame::ThrowException("Construct expression not implemented");
 }
 
 // The operators most script calls go to -- about 83% of the native calls on

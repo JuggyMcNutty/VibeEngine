@@ -582,13 +582,6 @@ void PrintPrettyExpression::Expr(StringToNameExpression* expr)
 	writeOutput(")");
 }
 
-void PrintPrettyExpression::Expr(DynArrayToIntExpression* expr)
-{
-	writeOutput("dynarrayToInt(");
-	Print(writeOutput, expr->Value);
-	writeOutput(")");
-}
-
 void PrintPrettyExpression::Expr(VirtualFunctionExpression* expr)
 {
 	writeOutput(expr->Name.ToString() + "(");
@@ -651,20 +644,4 @@ void PrintPrettyExpression::Expr(NativeFunctionExpression* expr)
 void PrintPrettyExpression::Expr(FunctionArgumentsExpression* expr)
 {
 	writeOutput("function arguments");
-}
-
-void PrintPrettyExpression::Expr(ConstructExpression* expr)
-{
-	writeOutput("construct " + expr->Struct->Name.ToString() + "(");
-	int index = 0;
-	for (auto arg : expr->Args)
-	{
-		if (index != 0)
-			writeOutput(", ");
-		if (arg.Name)
-			writeOutput(arg.Name->Name.ToString() + ": ");
-		Print(writeOutput, arg.Value);
-		index++;
-	}
-	writeOutput(")");
 }

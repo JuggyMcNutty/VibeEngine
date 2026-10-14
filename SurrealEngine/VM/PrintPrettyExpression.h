@@ -95,13 +95,11 @@ private:
 	void Expr(VectorToStringExpression* expr) override;
 	void Expr(RotatorToStringExpression* expr) override;
 	void Expr(StringToNameExpression* expr) override;
-	void Expr(DynArrayToIntExpression* expr) override;
 	void Expr(VirtualFunctionExpression* expr) override;
 	void Expr(FinalFunctionExpression* expr) override;
 	void Expr(GlobalFunctionExpression* expr) override;
 	void Expr(NativeFunctionExpression* expr) override;
 	void Expr(FunctionArgumentsExpression* expr) override;
-	void Expr(ConstructExpression* expr) override;
 
 	std::function<void(const std::string&)> writeOutput;
 };

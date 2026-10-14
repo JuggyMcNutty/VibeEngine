@@ -34,7 +34,6 @@ class PackageManager
 public:
 	PackageManager(const GameLaunchInfo& launchInfo);
 
-	bool IsUnreal1_227() const { return false; }
 	bool IsUnrealTournament() const { return false; }
 	bool IsUnrealTournament_469() const { return false; }
 	bool IsDeusEx() const { return true; }

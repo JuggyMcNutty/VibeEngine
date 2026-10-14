@@ -85,13 +85,11 @@ class NameToStringExpression;
 class VectorToStringExpression;
 class RotatorToStringExpression;
 class StringToNameExpression;
-class DynArrayToIntExpression;
 class VirtualFunctionExpression;
 class FinalFunctionExpression;
 class GlobalFunctionExpression;
 class NativeFunctionExpression;
 class FunctionArgumentsExpression;
-class ConstructExpression;
 
 class ExpressionVisitor
 {
@@ -180,11 +178,9 @@ public:
 	virtual void Expr(VectorToStringExpression* expr) = 0;
 	virtual void Expr(RotatorToStringExpression* expr) = 0;
 	virtual void Expr(StringToNameExpression* expr) = 0;
-	virtual void Expr(DynArrayToIntExpression* expr) = 0;
 	virtual void Expr(VirtualFunctionExpression* expr) = 0;
 	virtual void Expr(FinalFunctionExpression* expr) = 0;
 	virtual void Expr(GlobalFunctionExpression* expr) = 0;
 	virtual void Expr(NativeFunctionExpression* expr) = 0;
 	virtual void Expr(FunctionArgumentsExpression* expr) = 0;
-	virtual void Expr(ConstructExpression* expr) = 0;
 };

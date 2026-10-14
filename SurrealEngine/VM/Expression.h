@@ -789,14 +789,6 @@ public:
 	Expression* Value = nullptr;
 };
 
-class DynArrayToIntExpression : public Expression
-{
-public:
-	void Visit(ExpressionVisitor* visitor) override { visitor->Expr(this); }
-
-	Expression* Value = nullptr;
-};
-
 class VirtualFunctionExpression : public Expression
 {
 public:
@@ -849,19 +841,4 @@ public:
 	void Visit(ExpressionVisitor* visitor) override { visitor->Expr(this); }
 
 	Array<FunctionArgInfo> args;
-};
-
-struct ConstructArgument
-{
-	UProperty* Name = nullptr;
-	Expression* Value = nullptr;
-};
-
-class ConstructExpression : public Expression
-{
-public:
-	void Visit(ExpressionVisitor* visitor) override { visitor->Expr(this); }
-
-	UStruct* Struct = nullptr;
-	Array<ConstructArgument> Args;
 };
