@@ -7,7 +7,7 @@ Deus Ex. Its branch is `deusex`. You need your own copy of Deus Ex (version 1112
 game's files are included.
 
 - **Targets**: Port Ex Machina's ports, Linux x86_64 (the base) and the TrimUI Smart Pro first
-  ([the ports](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#ports)).
+  ([the ports](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/README.md#engine-ports)).
 - **Deus Ex as the original plays it**: where Surreal Engine lacks something the game needs, the
   original's behaviour is read from the game's DLLs
   ([dx-reverse-info](https://github.com/JuggyMcNutty/dx-reverse-info)) and reimplemented. It
