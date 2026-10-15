@@ -26,8 +26,8 @@ engines, what matches, and what still differs. What else the fork changes:
 ## Stops the game
 
 Differs. An error the fork does not catch -- a script error, an unknown
-native, a failed save -- exits the engine with 1, and the launcher shows its
-crash banner. No map or action is known to reach one; the audit lists the
+native, a failed save -- exits the engine with 1, which the launcher takes
+for a crash. No map or action is known to reach one; the audit lists the
 natives whose call would.
 
 A runaway script stops both engines alike, with an error no native's call
@@ -61,8 +61,9 @@ the original's does, with `?loadgame`: the game's `Login` keeps it as saved,
 and its `TravelPostAccept` spawns the level's mission script, which no save
 holds -- an object of a transient class is not written (`LoadConsole` over
 either engine's saves and the original's hub save, `ReturnConsole`). Before
-a level is saved into `Current`, what travels with the player goes from it,
-a decoration in its hands too (`PruneTravelActors`; `ReturnConsole`). The
+a level is saved into `Current`, the augmentations, skills and flag base
+that travel with the player go from it, a decoration in its hands too
+(`PruneTravelActors`; `ReturnConsole`). The
 player's goals, notes and key infos, which the game makes with `new(Self)`,
 are in the level's package, as the original's `new` puts an object in its
 outer
@@ -319,7 +320,7 @@ Matches the original's picture
 [the light maps' brightness](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#the-light-maps-brightness),
 [textures](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/d3ddrv-dll.md#textures)):
 the Brightness slider raises the picture to 1 / (2.5 × Brightness), as
-`D3DDrv` sets its ramp, and the launcher's other gamma mode (XOpenGL's
+`D3DDrv` sets its ramp, and `Settings.json`'s other gamma mode (XOpenGL's
 curve) takes the same product. The shaders take nothing off a texture's
 colours (`NO_DARKCLAMP`), as `D3DDrv` draws 32-bit textures on any
 display of 24 bits or more, on every device: `MeshConsole`'s shots under

@@ -250,7 +250,7 @@ By area, as the code stands. Each device's numbers are its port's, such as
 
 ### Settings the launcher exposes
 
-`LauncherSettings` reads the `Gamepad` and `Performance` blocks
+`LauncherSettings` reads the `Gamepad` and `Performance` blocks the tabbed launchers write
 ([the keys](#settings-and-environment)). Render scale is `RenderDevice::GetRenderScale`: a
 device whose `SupportsRenderScale()` says so (Vulkan, GL) makes its scene buffers at
 `GetRenderWidth()` by `GetRenderHeight()` and scales them to the window as it presents; the
@@ -435,12 +435,13 @@ gives the freed memory back to the system (`malloc_trim`).
   An object reached only through its package keeps the package's file and tables, not its other
   objects.
 - **Where objects are made**: each in the package of the level it belongs to, as the original's:
-  a spawned actor in its level's (the Entry level's own pawn in Entry's), the flag base and what
-  travels with the player in the player's, held by the player and named by its class's count,
-  the event manager in its `LevelInfo`'s, a conversation's camera and flag refs in the
-  conversation's; an object a script makes with `new` in its outer's (`new(Self)` on the player:
-  its goals, notes and key infos), or with none in the transient package. A package played as a
-  level is tagged so (`Package::IsLevel`).
+  a spawned actor in its level's (the Entry level's own pawn in Entry's), the flag base in the
+  player's, and what travels with the player there too, held by the player and named by its
+  class's count; the event manager in its `LevelInfo`'s; an object a script makes with `new` in
+  its outer's (`new(Self)` on the player: its goals, notes and key infos), or with none in the
+  transient package. A conversation's camera and flag refs are in the conversation's package,
+  which outlives any level, as the original's are in `DeusEx`'s. A package played as a level is
+  tagged so (`Package::IsLevel`).
 - **A sound** is decoded once, when first played, for the audio device, which keeps a copy of
   its own (the mixer's 16-bit one, OpenAL's buffer); the sound keeps only its length, channels,
   rate and loop. Its lip-sync shapes decode it again once, into a buffer let go after.
