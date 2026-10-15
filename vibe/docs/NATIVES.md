@@ -62,7 +62,18 @@ and its `TravelPostAccept` spawns the level's mission script, which no save
 holds -- an object of a transient class is not written (`LoadConsole` over
 either engine's saves and the original's hub save, `ReturnConsole`). Before
 a level is saved into `Current`, what travels with the player goes from it,
-a decoration in its hands too (`PruneTravelActors`; `ReturnConsole`). A map
+a decoration in its hands too (`PruneTravelActors`; `ReturnConsole`). The
+player's goals, notes and key infos, which the game makes with `new(Self)`,
+are in the level's package, as the original's `new` puts an object in its
+outer
+([the natives](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#the-natives)):
+a save holds them and either engine's load gives them back, on the island
+and after a map exit's travel (`SaveConsole` and `LoadConsole`, also with
+`Via`). A map exit's travel makes each object a travel property holds anew
+in the new level, held by the new player and named by its class's count,
+its text whole (`ReturnConsole` with `Items`: a goal, a note and a key,
+their texts with `?`, `;` and `%` in them); a console's `open` carries none
+of them, in either engine. A map
 opened at a portal (`open <map>#<portal>`) starts the player at the
 teleporter of that tag (`PortalConsole`). Differs: a level returned to from
 `Current` keeps the map's name in its URL, where the original's names the

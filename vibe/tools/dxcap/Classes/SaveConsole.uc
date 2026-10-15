@@ -1,15 +1,22 @@
 //=============================================================================
 // SaveConsole: a save for the other engine to load -- Liberty Island opened
-// from wherever the run starts; 8 s in, a LoadMarker is spawned and what the
-// level holds is logged (the player, its place and inventory, the game, how
-// many actors, pawns and inventory items, the mission script, and the
-// marker's PostPostBeginPlay calls), then the game is saved to slot 9 (by a
-// SaveHelper, on the next actors' tick) and the run exits 3 s later.
-// LoadConsole loads that slot and logs the same: no save holds the mission
-// script, and the loaded player's TravelPostAccept spawns it again.
+// from wherever the run starts; 8 s in, a LoadMarker is spawned, the player
+// is given a goal, a note and a nano key as the game gives them (AddGoal,
+// AddNote, the key ring's GiveKey: each new(Self) on the player), and what
+// the level holds is logged (the player, its place and inventory, its goals,
+// notes and keys, the game, how many actors, pawns and inventory items, the
+// mission script, and the marker's PostPostBeginPlay calls), then the game
+// is saved to slot 9 (by a SaveHelper, on the next actors' tick) and the run
+// exits 3 s later. LoadConsole loads that slot and logs the same: no save
+// holds the mission script, and the loaded player's TravelPostAccept spawns
+// it again. With Via (DXCAP_CONFIG "Via=<map>", for LoadConsole too) the
+// island is left as a map exit leaves it, with the items, and the marker,
+// the census and the save are made 8 s into that map, where all three
+// arrived by travel.
 //=============================================================================
 class SaveConsole extends Console;
 
+var config string Via;
 var float MapTime;
 var int Step;
 var string CurrentMap;
@@ -53,6 +60,10 @@ function Census(PlayerPawn P, string Label)
 	local Inventory Inv;
 	local LoadMarker M;
 	local MissionScript S;
+	local DeusExPlayer DP;
+	local DeusExGoal Goal;
+	local DeusExNote Note;
+	local NanoKeyInfo Key;
 	local int Actors, Pawns, Items;
 	local string Carried;
 
@@ -68,6 +79,17 @@ function Census(PlayerPawn P, string Label)
 		Carried = Carried $ " " $ Inv.Class.Name;
 	Log("DXSAVE: " $ Label $ " in " $ MapOf(P) $ ": player " $ P.Class.Name $ " at " $ P.Location $ " health " $ P.Health);
 	Log("DXSAVE: " $ Label $ " carries" $ Carried);
+	DP = DeusExPlayer(P);
+	if (DP != None)
+	{
+		for (Goal = DP.FirstGoal; Goal != None; Goal = Goal.next)
+			Log("DXSAVE: " $ Label $ " goal " $ string(Goal) $ " " $ Goal.goalName $ " primary " $ Goal.bPrimaryGoal
+				$ " completed " $ Goal.bCompleted $ ": " $ Goal.text);
+		for (Note = DP.FirstNote; Note != None; Note = Note.next)
+			Log("DXSAVE: " $ Label $ " note " $ string(Note) $ " user " $ Note.bUserNote $ ": " $ Note.text);
+		for (Key = DP.KeyList; Key != None; Key = Key.NextKey)
+			Log("DXSAVE: " $ Label $ " key " $ string(Key) $ " " $ Key.KeyID $ ": " $ Key.Description);
+	}
 	Log("DXSAVE: " $ Label $ " game " $ P.Level.Game $ ", " $ Actors $ " actors, " $ Pawns $ " pawns, " $ Items $ " inventory items");
 	foreach P.AllActors(class'MissionScript', S)
 		Log("DXSAVE: " $ Label $ " mission script " $ S.Name $ " (" $ S.Class.Name $ ")");
@@ -79,6 +101,7 @@ event Tick(float Delta)
 {
 	local PlayerPawn P;
 	local SaveHelper S;
+	local DeusExGoal Goal;
 
 	Super.Tick(Delta);
 	if (Viewport == None || Viewport.Actor == None)
@@ -106,6 +129,24 @@ event Tick(float Delta)
 		Step = 0;
 
 	if (Step == 0 && MapTime > 8.0)
+	{
+		if (DeusExPlayer(P) != None)
+		{
+			Goal = DeusExPlayer(P).AddGoal('DXSaveGoal', True);
+			Goal.SetText("DXCapture goal");
+			DeusExPlayer(P).AddNote("DXCapture note", False, False);
+			if (DeusExPlayer(P).KeyRing != None)
+				DeusExPlayer(P).KeyRing.GiveKey('DXSaveKey', "DXCapture key");
+		}
+		if (Via != "")
+		{
+			Log("DXSAVE: travelling to " $ Via $ " with the items");
+			P.ClientTravel(Via, TRAVEL_Relative, True);
+			Step = 3;
+			return;
+		}
+	}
+	if ((Step == 0 && MapTime > 8.0) || (Step == 3 && CurrentMap ~= Via && MapTime > 8.0))
 	{
 		P.Spawn(class'LoadMarker');
 		Census(P, "saved");

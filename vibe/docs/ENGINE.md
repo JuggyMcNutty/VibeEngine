@@ -436,9 +436,11 @@ gives the freed memory back to the system (`malloc_trim`).
   objects.
 - **Where objects are made**: each in the package of the level it belongs to, as the original's:
   a spawned actor in its level's (the Entry level's own pawn in Entry's), the flag base and what
-  travels with the player in the player's, the event manager in its `LevelInfo`'s, a
-  conversation's camera and flag refs in the conversation's. A package played as a level is
-  tagged so (`Package::IsLevel`).
+  travels with the player in the player's, held by the player and named by its class's count,
+  the event manager in its `LevelInfo`'s, a conversation's camera and flag refs in the
+  conversation's; an object a script makes with `new` in its outer's (`new(Self)` on the player:
+  its goals, notes and key infos), or with none in the transient package. A package played as a
+  level is tagged so (`Package::IsLevel`).
 - **A sound** is decoded once, when first played, for the audio device, which keeps a copy of
   its own (the mixer's 16-bit one, OpenAL's buffer); the sound keeps only its length, channels,
   rate and loop. Its lip-sync shapes decode it again once, into a buffer let go after.

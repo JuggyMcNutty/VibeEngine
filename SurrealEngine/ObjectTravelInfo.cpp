@@ -3,6 +3,7 @@
 #include "ObjectTravelInfo.h"
 #include "Packages/Core/UClass.h"
 #include "Packages/Core/Properties/UObjectProperty.h"
+#include "Packages/Core/Properties/UStrProperty.h"
 #include "Packages/Engine/Actors/UActor.h"
 #include "Packages/Engine/Actors/Pawn/UPlayerPawn.h"
 #include "Engine.h"
@@ -11,6 +12,45 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+
+// A value holding the text's separators -- '?' between objects, ';' between
+// properties -- or the escape itself travels as %3F, %3B or %25, so a note
+// or a goal's text travels whole. Any other '%' reads as it is.
+static std::string EscapeTravelValue(const std::string& value)
+{
+	std::string result;
+	for (char c : value)
+	{
+		if (c == '%')
+			result += "%25";
+		else if (c == '?')
+			result += "%3F";
+		else if (c == ';')
+			result += "%3B";
+		else
+			result += c;
+	}
+	return result;
+}
+
+static std::string UnescapeTravelValue(const std::string& value)
+{
+	std::string result;
+	for (size_t i = 0; i < value.size(); i++)
+	{
+		std::string code = value[i] == '%' ? value.substr(i + 1, 2) : std::string();
+		if (code == "25" || code == "3F" || code == "3B")
+		{
+			result += code == "25" ? '%' : code == "3F" ? '?' : ';';
+			i += 2;
+		}
+		else
+		{
+			result += value[i];
+		}
+	}
+	return result;
+}
 
 std::string ActorTravelInfo::Create(UPlayerPawn* pawn, bool transferItems)
 {
@@ -71,7 +111,7 @@ std::string ActorTravelInfo::ToString(const Array<TravelObject>& travelActors)
 
 		for (auto it = object.Properties.begin(); it != object.Properties.end(); it++)
 		{
-			result += it->first + "=" + it->second;
+			result += it->first + "=" + EscapeTravelValue(it->second);
 
 			if (it != --object.Properties.end())
 				result += ";";
@@ -119,6 +159,12 @@ ActorTravelInfo::TravelObject ActorTravelInfo::CreateObject(UObject* travelObjec
 				}
 			}
 		}
+		else if (UObject::TryCast<UStrProperty>(property) && property->ArrayDimension == 1)
+		{
+			// As it is: printed, a string is quoted, and the quotes it came
+			// back with were kept, one more pair each travel.
+			info.Properties[property->Name.ToString()] = *static_cast<std::string*>(travelObject->GetProperty(property));
+		}
 		else
 		{
 			info.Properties[property->Name.ToString()] = travelObject->GetPropertyAsString(property->Name);
@@ -158,8 +204,11 @@ Array<UObject*> ActorTravelInfo::Accept(UPlayerPawn* pawn, const std::string& tr
 			else if (cls)
 			{
 				// In the level package, so a save keeps what travelled: the
-				// flag base and its flags, the key list, the history.
-				object = pawn->package->NewObject({}, cls, ObjectFlags::NoFlags);
+				// flag base and its flags, the key list, the history. Held by
+				// the player and named as the original's travel makes them
+				// (JCDentonMale2.FlagBase4, JCDentonMale2.DeusExGoal1).
+				object = pawn->package->NewObject(pawn->package->MakeUniqueObjectName(cls), cls, ObjectFlags::NoFlags);
+				object->Outer() = pawn;
 			}
 			else
 			{
@@ -296,7 +345,7 @@ ActorTravelInfo::TravelObject ActorTravelInfo::ParseSingleObject(const std::stri
 		std::string propName = readProperty.substr(0, equalsPos);
 		std::string propValue = readProperty.substr(equalsPos + 1);
 
-		result.Properties[propName] = propValue;
+		result.Properties[propName] = UnescapeTravelValue(propValue);
 	}
 
 	return result;

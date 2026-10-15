@@ -1,8 +1,8 @@
 //=============================================================================
 // LoadConsole: a save the other engine wrote, loaded -- from the menu map, 3 s
-// in, slot 9 (SaveConsole's) is loaded, and 5 s into the loaded level what it
-// holds is logged as SaveConsole logs it; then an exit. With nothing loaded
-// after 60 s it says so and exits.
+// in, slot 9 (SaveConsole's) is loaded, and 5 s into the loaded level -- the
+// island, or SaveConsole's Via -- what it holds is logged as SaveConsole
+// logs it; then an exit. With nothing loaded after 60 s it says so and exits.
 //=============================================================================
 class LoadConsole extends SaveConsole;
 
@@ -30,7 +30,7 @@ event Tick(float Delta)
 		DeusExPlayer(P).LoadGame(9);
 		Step = 1;
 	}
-	else if (Step == 1 && CurrentMap ~= "01_NYC_UNATCOIsland" && MapTime > 5.0)
+	else if (Step == 1 && (CurrentMap ~= "01_NYC_UNATCOIsland" || (Via != "" && CurrentMap ~= Via)) && MapTime > 5.0)
 	{
 		Census(P, "loaded");
 		Log("DXSAVE: exiting");

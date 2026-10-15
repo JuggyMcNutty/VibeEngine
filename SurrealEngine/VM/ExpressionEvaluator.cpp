@@ -272,8 +272,12 @@ void ExpressionEvaluator::Expr(NewExpression* expr)
 	ExpressionValue flags = Value(expr->FlagsExpr);
 	UClass* cls = UObject::Cast<UClass>(Value(expr->ClassExpr).ToObject());
 
-	// To do: package needs to be grabbed from outer, or the "transient package" if it is None, a virtual package for runtime objects
-	Package* package = engine->packages->GetPackage("Engine");
+	// As the original's execNew (Core.dll 0x1013d9f0): the object is made
+	// in its outer, or with none in the transient package. So new(Self) on
+	// the player -- its goals, notes and key infos -- is in the level's
+	// package, which a save writes and a level left behind takes with it.
+	UObject* outerObj = outer.GetType() != ExpressionValueType::Nothing ? outer.ToObject() : nullptr;
+	Package* package = outerObj && outerObj->package ? outerObj->package : engine->packages->GetTransientPackage();
 
 	// An object given no name is named after its class and a number, as
 	// the original's StaticConstructObject names it (DeusExNote0).
@@ -287,8 +291,8 @@ void ExpressionEvaluator::Expr(NewExpression* expr)
 		flags.GetType() == ExpressionValueType::Nothing ? ObjectFlags::NoFlags : (ObjectFlags)flags.ToInt(),
 		true);
 
-	if (outer.GetType() != ExpressionValueType::Nothing)
-		newObj->Outer() = outer.ToObject();
+	if (outerObj)
+		newObj->Outer() = outerObj;
 
 	*Out = ExpressionValue::ObjectValue(newObj);
 }
