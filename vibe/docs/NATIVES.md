@@ -594,9 +594,10 @@ and the ones on the walls are not drawn
   passes the line to the launcher on its line
   ([running it](ENGINE.md#running-it)), which starts again once the game has
   ended, where the original's new process starts while the old one is still
-  ending. With no launcher on the line -- the ports' launcher, or the engine
-  started by hand -- the dedicated server's starts the engine again itself,
-  as that server, and Rendering Device does nothing.
+  ending. With no launcher on the line -- the ports' tabbed launchers
+  (linux-aarch64's and the Smart Pro's), or the engine started by hand --
+  the dedicated server's starts the engine again itself, as that server, and
+  Rendering Device does nothing.
 
 ## Sound
 
