@@ -397,7 +397,7 @@ ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 DXCAP_ENGINE=<scratchpad>/asan/Surre
 The workspace's:
 [gotchas](https://github.com/JuggyMcNutty/port-ex-machina/blob/main/docs/DEVELOPMENT.md#gotchas-that-cost-time).
 Starting the engine (a map only after `=`, SIGTERM under SDL, `Running.ini`):
-[running it](ENGINE.md#running-it). Profiling the handheld on the handheld, and the hooks off
+[running it](ENGINE.md#running-it). Profiling a device on the device, and the hooks off
 before changing the engine: [profiling](ENGINE.md#profiling-and-validating-on-the-desktop),
 [the profiling hooks](ENGINE.md#the-profiling-hooks).
 

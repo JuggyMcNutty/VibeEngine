@@ -280,8 +280,8 @@ shows a fast wave (99_Endgame2's one is dark), shock, shell or interference.
 Still the fork's own:
 
 - **Light maps**
-  - floats, converted on the CPU for the Smart Pro's GPU
-    ([rendering](ENGINE.md#rendering));
+  - floats, converted on the CPU for a GPU that cannot filter them (the
+    Smart Pro's; [rendering](ENGINE.md#rendering));
   - a map whose animating or moving lights changed built, converted and sent
     to the GPU again only where they reach now or reached at its last build,
     where the original builds and uploads it whole every frame;

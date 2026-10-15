@@ -62,7 +62,7 @@ profile and never committed: `vibe/tools/perf/perf.sh on`, and `off` afterwards.
   `save` rewrites the patch from the tree (all of it but `vibe/`), so the next `on` and `off`
   apply cleanly.
 
-With the hooks on, the engine builds with frame pointers (a little slower on the handheld) and
+With the hooks on, the engine builds with frame pointers (a little slower on the Smart Pro) and
 reads [the hooks' variables](#settings-and-environment). `SURREAL_PERF_SAMPLE=<file>` is a
 sampling profiler for devices without `perf`: it samples the main thread's CPU time, recording
 each sample's program counter and the return addresses a frame-pointer walk finds, one block per
@@ -71,8 +71,8 @@ each sample's program counter and the return addresses a frame-pointer walk find
 toolchain's `nm` for a cross build) turns that into self and inclusive time per function,
 optionally under one caller (`--root ULevel::Tick`: the game tick) or with the callers of one
 (`--callers`). A leaf function keeps no frame record, so its samples show its caller's caller as
-the next frame. Profiling the handheld:
-[its README](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance).
+the next frame. Profiling on a device:
+[the Smart Pro's README](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance).
 
 ### Natives from the original
 
@@ -101,9 +101,9 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 - **`--server`** runs a dedicated server of the `--url` map, as the original's `-SERVER`: no
   window, sound or player; `--lanplay` gives it the LAN tick rate
   ([multiplayer](NATIVES.md#multiplayer)).
-- **Under SDL the engine ignores SIGTERM**: SDL turns it into a quit event nothing reads. On the
-  handheld, whose only display backend is SDL's, stop it with SIGKILL (`kill -9`). A desktop run
-  on Wayland or X11 takes SIGTERM's default, and a dedicated server ends on it (143).
+- **Under SDL the engine ignores SIGTERM**: SDL turns it into a quit event nothing reads. Where
+  SDL is the only display backend (the Smart Pro's), stop it with SIGKILL (`kill -9`). A desktop
+  run on Wayland or X11 takes SIGTERM's default, and a dedicated server ends on it (143).
 - `Running.ini` is the launcher's crash sentinel, not the engine's: a run under a launcher
   stopped either way leaves it behind like any crash; a run by hand has none.
 - `--ini=<file>` and `--userini=<file>` name the inis to read and write back, as the original's
@@ -127,12 +127,13 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 
 ### Profiling and validating on the desktop
 
-The handheld has no `perf` and no Vulkan validation layer, so validation runs against the base
-port's build (`scripts/dx.sh build linux-x86_64 engine`), and so can a quick CPU profile. The
-desktop's proportions are not the handheld's (its Cortex-A53 pays far more for a cache miss), so
-what to work on next is decided by the handheld's own samples. `vibe/tools/host-tools.sh`
-unpacks pinned copies of Linux `perf` and the Khronos validation layer into the `deps/` beside
-the repositories without installing anything. From their parent folder:
+A device may have no `perf` and no Vulkan validation layer (the Smart Pro has neither), so
+validation runs against the base port's build (`scripts/dx.sh build linux-x86_64 engine`), and
+so can a quick CPU profile. The desktop's proportions are not a device's (the Smart Pro's
+Cortex-A53 pays far more for a cache miss), so what to work on next for a device is decided by
+its own samples. `vibe/tools/host-tools.sh` unpacks pinned copies of Linux `perf` and the
+Khronos validation layer into the `deps/` beside the repositories without installing anything.
+From their parent folder:
 
 ```sh
 VibeEngine/vibe/tools/host-tools.sh
@@ -141,7 +142,7 @@ cd gamefiles    # the engine is started from the game's directory
 LD_LIBRARY_PATH=../deps/perf/usr/lib ../deps/perf/usr/bin/perf record -F 2000 --delay=25000 -o /tmp/se.data -- \
     timeout -s KILL 55 ../build/linux-x86_64/engine/SurrealEngine --no-launcher "$PWD" --url=01_NYC_UNATCOIsland.dx
 LD_LIBRARY_PATH=../deps/perf/usr/lib ../deps/perf/usr/bin/perf report -i /tmp/se.data --no-children --sort symbol
-# Synchronization validation (add SURREAL_VK_NO_BINDLESS=1 for the handheld's texture path):
+# Synchronization validation (add SURREAL_VK_NO_BINDLESS=1 for the per-batch descriptor path):
 VK_LAYER_PATH=$PWD/../deps/vulkan-layers/layers VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation \
 VK_KHRONOS_VALIDATION_VALIDATE_SYNC=true \
     timeout -s KILL 60 ../build/linux-x86_64/engine/SurrealEngine --no-launcher "$PWD" --url=01_NYC_UNATCOIsland.dx
@@ -204,7 +205,7 @@ The environment:
 
 | Variable | What it does |
 |---|---|
-| `SURREAL_VK_NO_BINDLESS=1` | Forces the Vulkan device's per-batch descriptor-set path, the one a GPU without descriptor indexing (the handheld's) takes. |
+| `SURREAL_VK_NO_BINDLESS=1` | Forces the Vulkan device's per-batch descriptor-set path, the one a GPU without descriptor indexing (the Smart Pro's, for one) takes. |
 | `SURREALWIDGETS_DISPLAY_BACKEND` | The window backend: `SDL2`, `SDL3` or `X11`. Unset, or naming one the build lacks: the first that starts of Wayland, X11, SDL3 and SDL2. `run-game.sh` defaults it to `SDL2`, the backend with the fork's gamepad support. |
 | `DXL_LAUNCHER_FD` | The recreated launcher's line ([running it](#running-it)). |
 | `SURREAL_GC_DRYRUN=1` | Each collection marks and frees nothing: the log has what would go, by where it lives and by class, and the first holder outside them of each object of a level left behind ([objects and memory](#objects-and-memory)). |
@@ -214,7 +215,7 @@ The environment:
 
 ## What the fork changes
 
-By area, as the code stands. The handheld's numbers are
+By area, as the code stands. Each device's numbers are its port's, such as
 [the Smart Pro's Performance](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/ports/trimui-smartpro/README.md#performance).
 
 ### Running on our devices
