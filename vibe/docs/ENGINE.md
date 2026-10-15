@@ -1,12 +1,15 @@
 # The engine
 
-VibeEngine is [Surreal Engine](https://github.com/dpjudas/SurrealEngine), an open-source
-reimplementation of Unreal Engine 1 that recognises this build of Deus Ex directly (`DeusEx.exe`
-SHA1 `2a933e26aa9cfb33b37f78afe21434caa031f14a` is its `DEUS_EX_1112fm` database entry), forked
-for Deus Ex. It carries what
-[Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina)'s ports need (their launcher,
-embedded GPUs, pads, a handheld's speed) and what Deus Ex needs to play as the original does.
-Its branch is `deusex`. What matches the original and what still differs is
+VibeEngine is a fork of [Surreal Engine](https://github.com/dpjudas/SurrealEngine), an
+open-source reimplementation of Unreal Engine 1 that recognises this build of Deus Ex directly
+(`DeusEx.exe` SHA1 `2a933e26aa9cfb33b37f78afe21434caa031f14a` is its `DEUS_EX_1112fm` database
+entry), for Deus Ex.
+
+It carries what [Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina)'s ports need
+(their launcher, embedded GPUs, pads) and what Deus Ex needs to play as the original does. Its
+default branch is `deusex`.
+
+What matches the original and what still differs is
 [`NATIVES.md`](NATIVES.md); how to work on it, [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
 ## How it is kept
@@ -17,15 +20,10 @@ Its branch is `deusex`. What matches the original and what still differs is
   Builds go to `build/<port>/engine` in the parent folder of the repositories, never into the
   clone.
 - **Upstream is not merged, and nothing goes upstream.** The fork and Surreal Engine differ at
-  the core: upstream runs its scripts through its own interpreter, `Frame::RunExpr`, where the
-  fork runs them through the `ExpressionEvaluator` it reworked ([script VM](#script-vm)). A fix
-  of upstream's worth having is ported by hand, as a commit of the fork's own; upstream's
-  contribution rules do not apply here.
-- **Deus Ex alone.** The engine knows no other game (`UE1GameDatabase.h`): upstream's code for
-  the others is out, and with it its tests of which game runs. A render device's flags are
-  `RenderDevice`'s constants (`DarkClamp`, `MacroTwoPass`, `GammaScale`).
-- **Licence.** Using and building the engine is permitted by its own licence, which grants use
-  "for any purpose".
+  the core. A fix of upstream's worth having is ported by hand, as a commit of the fork's own;
+  upstream's contribution rules do not apply here.
+- **Deus Ex only.** The engine is stripped back to focus only on Deus Ex, so other UE1 games do
+  not launch, sorry.
 
 ## The fork's tools
 
@@ -207,7 +205,7 @@ The environment:
 | Variable | What it does |
 |---|---|
 | `SURREAL_VK_NO_BINDLESS=1` | Forces the Vulkan device's per-batch descriptor-set path, the one a GPU without descriptor indexing (the handheld's) takes. |
-| `SURREALWIDGETS_DISPLAY_BACKEND` | The window backend: `SDL2`, `SDL3` or `X11`. Unset, or naming one the build lacks: the first that starts of Wayland, X11, SDL3 and SDL2. `run-game.sh` defaults it to `SDL2`, the backend with the pad. |
+| `SURREALWIDGETS_DISPLAY_BACKEND` | The window backend: `SDL2`, `SDL3` or `X11`. Unset, or naming one the build lacks: the first that starts of Wayland, X11, SDL3 and SDL2. `run-game.sh` defaults it to `SDL2`, the backend with the fork's gamepad support. |
 | `DXL_LAUNCHER_FD` | The recreated launcher's line ([running it](#running-it)). |
 | `SURREAL_GC_DRYRUN=1` | Each collection marks and frees nothing: the log has what would go, by where it lives and by class, and the first holder outside them of each object of a level left behind ([objects and memory](#objects-and-memory)). |
 | `SURREAL_GC_STRESS=<frames>` | A collection every that many frames, besides the map loads'. |
@@ -232,8 +230,10 @@ By area, as the code stands. The handheld's numbers are
   a host-built `zipdir`. The UI's fonts are `SurrealEngine.pk3`'s.
 - **The gamepad**: the SDL2 display backend gives the pad as polled state (`GetGamepadState`),
   and `GamepadInput` turns it into UE1 joystick keys and axes that `User.ini` binds; menus get
-  their own controls. Only the SDL2 backend has it, and SurrealWidgets builds SDL3's instead
-  when both are on, so the ports build the engine without SDL3.
+  their own controls. Only the SDL2 backend has it. SDL3 supports pads too, but the SDL3
+  backend, upstream's, has no `GetGamepadState`, only upstream's mapping of a pad's buttons to
+  keys; SurrealWidgets builds it instead of SDL2's when both are on, so the ports build the
+  engine without SDL3.
 - **The launchers' lines**: `--cmdline=` (`OriginalCommandLine`) and `DXL_LAUNCHER_FD`
   (`LauncherLine`) ([running it](#running-it)), with the console's `exec` and an `open` that
   takes a map's file name; `RELAUNCH` passed to the launcher, or a dedicated server started
