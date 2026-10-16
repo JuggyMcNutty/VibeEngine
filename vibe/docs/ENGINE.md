@@ -119,8 +119,7 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
   and `ready` once its first map is in, takes `TakeFocus` and `Open <url>`, and passes a
   `RELAUNCH` as `relaunch <line>` before it exits; the lines and their meaning are
   [the game and the launcher](https://github.com/JuggyMcNutty/deusex-launcher/blob/main/README.md#the-game-and-the-launcher).
-  The ports' tabbed launchers, linux-aarch64's and the Smart Pro's, set nothing, and nothing
-  changes.
+  The Smart Pro's tabbed launcher sets nothing, and nothing changes.
 - Where there is no audio device (a container), give OpenAL Soft the null driver
   ([linux-x86_64's README](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-x86_64/ports/linux-x86_64/README.md#audio)).
 
@@ -191,18 +190,17 @@ than the transforms they save.
 
 ## Settings and environment
 
-The engine reads `$HOME/.config/SurrealEngine/Settings.json` and never writes it: the ports'
-tabbed launchers do, linux-aarch64's and the Smart Pro's, and their `run-game.sh` pins `HOME` to
-the app's `home/`
-([where the settings live](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-aarch64/docs/LAUNCHER.md#where-the-settings-actually-live)).
-`main`'s launcher, linux-x86_64's for now, writes none and leaves `HOME` as it is. The fork's
-keys:
+The engine reads `$HOME/.config/SurrealEngine/Settings.json` and never writes it: the Smart
+Pro's tabbed launcher does, and its `run-game.sh` pins `HOME` to the app's `home/`
+([where the settings live](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/docs/LAUNCHER.md#where-the-settings-actually-live)).
+`main`'s launcher, linux-x86_64's and linux-aarch64's for now, writes none and leaves `HOME` as
+it is. The fork's keys:
 
 | Key | What it does |
 |---|---|
 | `Performance.RenderScale` | The scene drawn at this fraction of the window's size (0.25 to 1; default 1) and scaled up to it, by the Vulkan device and the GL device ([how](#settings-the-launcher-exposes)). |
 | `"Type": "GLES"` in `RenderDevice` | The GL device on an OpenGL ES 3.2 context (on the Smart Pro, the `[GLES]` renderer of its `renderers.ini`). |
-| `Gamepad` | The pad: `Enabled`, `DeadZone`, `LookSensitivityX` and `LookSensitivityY`, `InvertY`, `CursorSpeed` ([controller support](https://github.com/JuggyMcNutty/deusex-launcher/blob/linux-aarch64/docs/LAUNCHER.md#controller-support)). |
+| `Gamepad` | The pad: `Enabled`, `DeadZone`, `LookSensitivityX` and `LookSensitivityY`, `InvertY`, `CursorSpeed` ([controller support](https://github.com/JuggyMcNutty/deusex-launcher/blob/trimui-smartpro/docs/LAUNCHER.md#controller-support)). |
 
 The environment:
 
@@ -250,7 +248,7 @@ By area, as the code stands. Each device's numbers are its port's, such as
 
 ### Settings the launcher exposes
 
-`LauncherSettings` reads the `Gamepad` and `Performance` blocks the tabbed launchers write
+`LauncherSettings` reads the `Gamepad` and `Performance` blocks the Smart Pro's launcher writes
 ([the keys](#settings-and-environment)). Render scale is `RenderDevice::GetRenderScale`: a
 device whose `SupportsRenderScale()` says so (Vulkan, GL) makes its scene buffers at
 `GetRenderWidth()` by `GetRenderHeight()` and scales them to the window as it presents; the
