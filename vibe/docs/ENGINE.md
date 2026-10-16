@@ -6,7 +6,7 @@ open-source reimplementation of Unreal Engine 1 that recognises this build of De
 entry), for Deus Ex.
 
 It carries what [Port Ex Machina](https://github.com/JuggyMcNutty/port-ex-machina)'s ports need
-(their launcher, embedded GPUs, pads) and what Deus Ex needs to play as the original does. Its
+(their launchers, embedded GPUs, pads) and what Deus Ex needs to play as the original does. Its
 default branch is `deusex`.
 
 What matches the original and what still differs is
@@ -128,7 +128,7 @@ SurrealEngine --no-launcher /path/to/deusex --url=01_NYC_UNATCOIsland.dx
 ### Profiling and validating on the desktop
 
 A device may have no `perf` and no Vulkan validation layer (the Smart Pro has neither), so
-validation runs against the base port's build (`scripts/dx.sh build linux-x86_64 engine`), and
+validation runs against the desktop's build (`scripts/dx.sh build linux-x86_64 engine`), and
 so can a quick CPU profile. The desktop's proportions are not a device's (the Smart Pro's
 Cortex-A53 pays far more for a cache miss), so what to work on next for a device is decided by
 its own samples. `vibe/tools/host-tools.sh` unpacks pinned copies of Linux `perf` and the
@@ -236,7 +236,7 @@ By area, as the code stands. Each device's numbers are its port's, such as
   backend, upstream's, has no `GetGamepadState`, only upstream's mapping of a pad's buttons to
   keys; SurrealWidgets builds it instead of SDL2's when both are on, so the ports build the
   engine without SDL3.
-- **The launchers' lines**: `--cmdline=` (`OriginalCommandLine`) and `DXL_LAUNCHER_FD`
+- **The recreated launcher's lines**: `--cmdline=` (`OriginalCommandLine`) and `DXL_LAUNCHER_FD`
   (`LauncherLine`) ([running it](#running-it)), with the console's `exec` and an `open` that
   takes a map's file name; `RELAUNCH` passed to the launcher, or a dedicated server started
   again by the engine itself (`Engine::Relaunch`, `GameApp::Relaunch`;

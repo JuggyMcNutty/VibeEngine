@@ -845,7 +845,7 @@ the GPU, and on the Smart Pro:
 **Names**
 ([the original's](https://github.com/JuggyMcNutty/dx-reverse-info/blob/main/core-dll.md#names-hashed-and-compared)):
 a spawned actor, an AI event's object, an object a script makes with `new`
-and a new window are named as the original names them
+or travel makes anew, and a new window are named as the original names them
 (`MakeUniqueObjectName`: the class's name without trailing digits and the
 class's count, past any number an object of its package already has), and
 the collection deletes such a name once nothing holds it (an object's own
